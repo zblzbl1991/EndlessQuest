@@ -1,13 +1,16 @@
 import { useState, useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
+import { useTradeStore } from '../stores/tradeStore'
+import { useInventoryStore } from '../stores/inventoryStore'
 import { BUILDING_DEFS } from '../data/buildings'
+import { QUALITY_NAMES } from '../data/items'
 import { calcResourceRates } from '../systems/economy/ResourceEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
-import { QUALITY_NAMES, QUALITY_LEVEL_CAP } from '../systems/disciple/DiscipleEngine'
+import { QUALITY_LEVEL_CAP } from '../systems/disciple/DiscipleEngine'
 import type { DiscipleQuality } from '../types/sect'
 import styles from './Sect.module.css'
 
-type SectTab = 'buildings' | 'disciples'
+type SectTab = 'buildings' | 'disciples' | 'shop'
 
 export default function Sect() {
   const [tab, setTab] = useState<SectTab>('buildings')
@@ -28,9 +31,15 @@ export default function Sect() {
           >
             弟子
           </button>
+          <button
+            className={`${styles.tab} ${tab === 'shop' ? styles.activeTab : ''}`}
+            onClick={() => setTab('shop')}
+          >
+            坊市
+          </button>
         </div>
 
-        {tab === 'buildings' ? <BuildingsTab /> : <DisciplesTab />}
+        {tab === 'buildings' ? <BuildingsTab /> : tab === 'disciples' ? <DisciplesTab /> : <ShopTab />}
       </div>
     </div>
   )
@@ -193,6 +202,110 @@ function DisciplesTab() {
             </div>
           )
         })}
+      </div>
+    </>
+  )
+}
+
+function ShopTab() {
+  const shop = useTradeStore((s) => s.shop)
+  const buyItem = useTradeStore((s) => s.buyItem)
+  const refreshDaily = useTradeStore((s) => s.refreshDaily)
+  const spiritStone = useInventoryStore((s) => s.resources.spiritStone)
+  const fairyJade = useInventoryStore((s) => s.resources.fairyJade)
+  const buildings = useSectStore((s) => s.buildings)
+
+  const marketLevel = buildings.find(b => b.type === 'market')?.level ?? 0
+  const marketUnlocked = buildings.find(b => b.type === 'market')?.unlocked ?? false
+
+  const handleBuy = (shopItem: typeof shop.fixedItems[0]) => {
+    buyItem(shopItem)
+  }
+
+  if (!marketUnlocked) {
+    return (
+      <div className={styles.emptyHint}>
+        升级宗门大殿以解锁坊市
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div className={styles.shopHeader}>
+        <div className={styles.shopCurrency}>
+          <span>灵石 {spiritStone.toLocaleString()}</span>
+          {fairyJade > 0 && <span>仙玉 {fairyJade}</span>}
+          <span className={styles.marketLevel}>坊市 Lv{marketLevel}</span>
+        </div>
+      </div>
+
+      <div className={styles.sectionTitle}>日常消耗</div>
+      <div className={styles.shopGrid}>
+        {shop.fixedItems.map(item => (
+          <div key={item.id} className={styles.shopItem}>
+            <div className={styles.shopItemHeader}>
+              <span className={styles.shopItemName}>{item.item.name}</span>
+              <span className={styles.qualityBadge} data-quality={item.item.quality}>
+                {QUALITY_NAMES[item.item.quality]}
+              </span>
+            </div>
+            <p className={styles.shopItemDesc}>{item.item.description}</p>
+            <div className={styles.shopItemFooter}>
+              <span className={styles.shopPrice}>
+                {item.price} {item.currency === 'spiritStone' ? '灵石' : '仙玉'}
+              </span>
+              <button
+                className={styles.buyBtn}
+                onClick={() => handleBuy(item)}
+                disabled={spiritStone < item.price && item.currency === 'spiritStone'}
+              >
+                购买
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className={styles.dailyHeader}>
+        <div className={styles.sectionTitle}>每日灵器</div>
+        <button className={styles.refreshBtn} onClick={refreshDaily}>
+          刷新
+        </button>
+      </div>
+      <div className={styles.shopGrid}>
+        {shop.dailyItems.map(item => (
+          <div
+            key={item.id}
+            className={`${styles.shopItem} ${item.stock === 0 ? styles.soldOut : ''}`}
+          >
+            <div className={styles.shopItemHeader}>
+              <span className={styles.shopItemName}>{item.item.name}</span>
+              <span className={styles.qualityBadge} data-quality={item.item.quality}>
+                {QUALITY_NAMES[item.item.quality]}
+              </span>
+            </div>
+            <p className={styles.shopItemDesc}>{item.item.description}</p>
+            {item.stock === 0 ? (
+              <div className={styles.shopItemFooter}>
+                <span className={styles.soldOutText}>已售出</span>
+              </div>
+            ) : (
+              <div className={styles.shopItemFooter}>
+                <span className={styles.shopPrice}>
+                  {item.price} 灵石
+                </span>
+                <button
+                  className={styles.buyBtn}
+                  onClick={() => handleBuy(item)}
+                  disabled={spiritStone < item.price}
+                >
+                  购买
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     </>
   )
