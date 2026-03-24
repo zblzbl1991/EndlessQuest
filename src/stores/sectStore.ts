@@ -1,77 +1,789 @@
 import { create } from 'zustand'
-import type { Building, BuildingType, Resources } from '../types'
-import { BUILDING_DEFS } from '../data/buildings'
+import type {
+  Character, CharacterTitle, CharacterQuality, CharacterStatus,
+} from '../types/character'
+import type {
+  BuildingType, Resources, Sect, AnyItem, Equipment,
+} from '../types'
+import type { Pet } from '../systems/pet/PetSystem'
+import type { Technique } from '../types/technique'
+import { generateCharacter, calcSectLevel, getMaxCharacters } from '../systems/character/CharacterEngine'
+import { calcResourceRates } from '../systems/economy/ResourceEngine'
+import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough } from '../systems/cultivation/CultivationEngine'
+import { tickComprehension, canLearnTechnique } from '../systems/technique/TechniqueSystem'
+import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
+import { getTechniqueById } from '../data/techniquesTable'
+import { BUILDING_DEFS } from '../data/buildings'
 
-// TODO: Remove all disciple-related code after Task 11 (SectStore rewrite)
+// ---------------------------------------------------------------------------
+// Helper: get equipment item by ID from vault + all character backpacks
+// ---------------------------------------------------------------------------
 
-interface SectState {
-  buildings: Building[]
-  resources: Resources
-  upgradeBuilding: (type: BuildingType) => boolean
-  unlockBuilding: (type: BuildingType) => boolean
-  tryUpgradeBuilding: (type: BuildingType) => { success: boolean; reason: string }
-  reset: () => void
+function findEquipmentById(sect: Sect, itemId: string): Equipment | undefined {
+  for (const item of sect.vault) {
+    if (item.id === itemId && item.type === 'equipment') return item
+  }
+  for (const char of sect.characters) {
+    for (const item of char.backpack) {
+      if (item.id === itemId && item.type === 'equipment') return item
+    }
+  }
+  return undefined
 }
 
-function createInitialBuildings(): Building[] {
-  return BUILDING_DEFS.map((def) => ({
-    type: def.type,
-    level: def.type === 'mainHall' ? 1 : 0,
-    unlocked: def.type === 'mainHall',
-  }))
+// ---------------------------------------------------------------------------
+// Initial state factory
+// ---------------------------------------------------------------------------
+
+function createInitialState(): { sect: Sect } {
+  return {
+    sect: {
+      name: '无名宗门',
+      level: 1,
+      resources: {
+        spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0,
+        fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0,
+      },
+      buildings: BUILDING_DEFS.map((def) => ({
+        type: def.type,
+        level: def.type === 'mainHall' ? 1 : 0,
+        unlocked: def.type === 'mainHall',
+      })),
+      characters: [generateCharacter('common')],
+      vault: [],
+      maxVaultSlots: 50,
+      pets: [],
+      totalAdventureRuns: 0,
+      totalBreakthroughs: 0,
+    },
+  }
 }
 
-const initialResources: Resources = {
-  spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0,
-  fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0,
+// ---------------------------------------------------------------------------
+// Store interface
+// ---------------------------------------------------------------------------
+
+export interface SectStore {
+  sect: Sect
+
+  // Character management
+  addCharacter(quality: CharacterQuality): Character | null
+  removeCharacter(id: string): void
+  promoteCharacter(id: string, newTitle: CharacterTitle): void
+  setCharacterStatus(id: string, status: CharacterStatus): void
+
+  // Technique management
+  learnTechnique(characterId: string, backpackIndex: number): boolean
+  switchTechnique(characterId: string, techniqueId: string): boolean
+
+  // Building management
+  upgradeBuilding(type: BuildingType): boolean
+  tryUpgradeBuilding(type: BuildingType): { success: boolean; reason: string }
+
+  // Item transfer
+  transferItemToCharacter(characterId: string, vaultIndex: number): boolean
+  transferItemToVault(characterId: string, backpackIndex: number): boolean
+  addToVault(item: AnyItem): boolean
+  sellItem(vaultIndex: number): boolean
+  removeVaultItem(vaultIndex: number): AnyItem | null
+
+  // Character inventory
+  equipItem(characterId: string, backpackIndex: number, slotIndex: number): boolean
+  unequipItem(characterId: string, slotIndex: number): boolean
+  enhanceItem(characterId: string, backpackIndex: number): { success: boolean; newLevel: number; cost: { spiritStone: number; ore: number } }
+  sellCharacterItem(characterId: string, backpackIndex: number): boolean
+
+  // Healing
+  healCharacter(characterId: string): boolean
+
+  // Resource operations (GLOBAL UNIQUE)
+  spendResource(type: keyof Resources, amount: number): boolean
+  addResource(type: keyof Resources, amount: number): void
+
+  // Breakthrough
+  attemptBreakthrough(characterId: string): { success: boolean; newRealm: number; newStage: number; statsChanged: boolean }
+
+  // Main tick (called every second)
+  tickAll(deltaSec: number): { spiritProduced: number; spiritConsumed: number }
+
+  // Pet management
+  addPet(pet: Pet): void
+  removePet(petId: string): void
+  assignPet(characterId: string, petId: string): boolean
+  unassignPet(characterId: string, petId: string): void
+
+  reset(): void
 }
 
-export const useSectStore = create<SectState>((set, get) => ({
-  buildings: createInitialBuildings(),
-  resources: { ...initialResources },
+// ---------------------------------------------------------------------------
+// Store implementation
+// ---------------------------------------------------------------------------
+
+export const useSectStore = create<SectStore>((set, get) => ({
+  sect: createInitialState().sect,
+
+  // ---- Character management ----
+
+  addCharacter: (quality) => {
+    const { sect } = get()
+    if (sect.characters.length >= getMaxCharacters(sect.level)) return null
+    const character = generateCharacter(quality)
+    set((s) => ({
+      sect: { ...s.sect, characters: [...s.sect.characters, character] },
+    }))
+    return character
+  },
+
+  removeCharacter: (id) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.filter((c) => c.id !== id),
+      },
+    }))
+  },
+
+  promoteCharacter: (id, newTitle) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === id ? { ...c, title: newTitle } : c
+        ),
+      },
+    }))
+  },
+
+  setCharacterStatus: (id, status) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === id ? { ...c, status } : c
+        ),
+      },
+    }))
+  },
+
+  // ---- Technique management ----
+
+  learnTechnique: (characterId, backpackIndex) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    const item = char.backpack[backpackIndex]
+    if (!item || item.type !== 'techniqueScroll') return false
+
+    const technique = getTechniqueById(item.techniqueId)
+    if (!technique) return false
+
+    if (!canLearnTechnique(char, technique)) return false
+
+    // Consume the scroll
+    const newBackpack = [...char.backpack]
+    newBackpack.splice(backpackIndex, 1)
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? {
+                ...c,
+                backpack: newBackpack,
+                currentTechnique: technique.id,
+                techniqueComprehension: 0,
+                learnedTechniques: c.learnedTechniques.includes(technique.id)
+                  ? c.learnedTechniques
+                  : [...c.learnedTechniques, technique.id],
+              }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  switchTechnique: (characterId, techniqueId) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    if (!char.learnedTechniques.includes(techniqueId)) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? {
+                ...c,
+                currentTechnique: techniqueId,
+                techniqueComprehension: 0,
+              }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  // ---- Building management ----
+
   upgradeBuilding: (type) => {
-    const building = get().buildings.find((b) => b.type === type)
+    const { sect } = get()
+    const building = sect.buildings.find((b) => b.type === type)
     if (!building || !building.unlocked) return false
+
     const def = BUILDING_DEFS.find((d) => d.type === type)
     if (!def || building.level >= def.maxLevel) return false
+
     const cost = def.upgradeCost(building.level)
-    if (get().resources.spiritStone < cost.spiritStone) return false
+    if (sect.resources.spiritStone < cost.spiritStone) return false
+
     set((s) => ({
-      buildings: s.buildings.map((b) => b.type === type ? { ...b, level: b.level + 1 } : b),
-      resources: { ...s.resources, spiritStone: s.resources.spiritStone - cost.spiritStone },
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === type ? { ...b, level: b.level + 1 } : b
+        ),
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
+        },
+      },
     }))
     return true
   },
-  unlockBuilding: (type) => {
-    const { buildings } = get()
-    const check = checkBuildingUnlock(type, buildings)
-    if (!check.unlocked) return false
-    set((s) => ({
-      buildings: s.buildings.map(b => b.type === type ? { ...b, unlocked: true } : b),
-    }))
-    return true
-  },
+
   tryUpgradeBuilding: (type) => {
-    const { buildings, resources } = get()
+    const { sect } = get()
+
     // Check unlock first
-    const building = buildings.find(b => b.type === type)
+    const building = sect.buildings.find((b) => b.type === type)
     if (!building?.unlocked) {
-      const unlockCheck = checkBuildingUnlock(type, buildings)
+      const unlockCheck = checkBuildingUnlock(type, sect.buildings)
       if (!unlockCheck.unlocked) return { success: false, reason: unlockCheck.reason }
       // Try to unlock
-      const unlocked = get().unlockBuilding(type)
-      if (!unlocked) return { success: false, reason: unlockCheck.reason }
+      set((s) => ({
+        sect: {
+          ...s.sect,
+          buildings: s.sect.buildings.map((b) =>
+            b.type === type ? { ...b, unlocked: true } : b
+          ),
+        },
+      }))
     }
+
     // Check upgrade feasibility
-    const check = canUpgradeBuilding(type, get().buildings, resources.spiritStone)
+    const check = canUpgradeBuilding(type, get().sect.buildings, get().sect.resources.spiritStone)
     if (!check.canUpgrade) return { success: false, reason: check.reason }
+
     // Perform upgrade
     const success = get().upgradeBuilding(type)
     return { success, reason: '' }
   },
-  reset: () => set({
-    buildings: createInitialBuildings(),
-    resources: { ...initialResources },
-  }),
+
+  // ---- Item transfer ----
+
+  transferItemToCharacter: (characterId, vaultIndex) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    if (char.backpack.length >= char.maxBackpackSlots) return false
+
+    const item = sect.vault[vaultIndex]
+    if (!item) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        vault: s.sect.vault.filter((_, i) => i !== vaultIndex),
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, backpack: [...c.backpack, item] }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  transferItemToVault: (characterId, backpackIndex) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    if (sect.vault.length >= sect.maxVaultSlots) return false
+
+    const item = char.backpack[backpackIndex]
+    if (!item) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        vault: [...s.sect.vault, item],
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, backpack: c.backpack.filter((_, i) => i !== backpackIndex) }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  addToVault: (item) => {
+    const { sect } = get()
+    if (sect.vault.length >= sect.maxVaultSlots) return false
+    set((s) => ({
+      sect: { ...s.sect, vault: [...s.sect.vault, item] },
+    }))
+    return true
+  },
+
+  sellItem: (vaultIndex) => {
+    const { sect } = get()
+    const item = sect.vault[vaultIndex]
+    if (!item) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        vault: s.sect.vault.filter((_, i) => i !== vaultIndex),
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone + item.sellPrice,
+        },
+      },
+    }))
+    return true
+  },
+
+  removeVaultItem: (vaultIndex) => {
+    const { sect } = get()
+    const item = sect.vault[vaultIndex]
+    if (!item) return null
+
+    set((s) => ({
+      sect: { ...s.sect, vault: s.sect.vault.filter((_, i) => i !== vaultIndex) },
+    }))
+    return item
+  },
+
+  // ---- Character inventory ----
+
+  equipItem: (characterId, backpackIndex, slotIndex) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    const item = char.backpack[backpackIndex]
+    if (!item || item.type !== 'equipment') return false
+
+    // Ensure equippedGear array has enough slots
+    const gear = [...char.equippedGear]
+    while (gear.length <= slotIndex) gear.push(null)
+
+    // If there's already something in that slot, swap it to backpack
+    const prevGearId = gear[slotIndex]
+    const newBackpack = [...char.backpack]
+    newBackpack.splice(backpackIndex, 1)
+    if (prevGearId) {
+      const prevItem = findEquipmentById(sect, prevGearId)
+      if (prevItem) newBackpack.push(prevItem)
+    }
+
+    gear[slotIndex] = item.id
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, backpack: newBackpack, equippedGear: gear }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  unequipItem: (characterId, slotIndex) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    const gear = [...char.equippedGear]
+    if (slotIndex < 0 || slotIndex >= gear.length) return false
+
+    const gearId = gear[slotIndex]
+    if (!gearId) return false
+
+    // Find the equipment
+    const equipment = findEquipmentById(sect, gearId)
+    if (!equipment) return false
+
+    // Check backpack space
+    if (char.backpack.length >= char.maxBackpackSlots) return false
+
+    gear[slotIndex] = null
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, equippedGear: gear, backpack: [...c.backpack, equipment] }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  enhanceItem: (characterId, backpackIndex) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) {
+      return { success: false, newLevel: 0, cost: { spiritStone: 0, ore: 0 } }
+    }
+
+    const item = char.backpack[backpackIndex]
+    if (!item || item.type !== 'equipment') {
+      return { success: false, newLevel: 0, cost: { spiritStone: 0, ore: 0 } }
+    }
+
+    const result = attemptEnhance(item)
+
+    // Check if we have enough resources
+    if (sect.resources.spiritStone < result.cost.spiritStone) {
+      return { success: false, newLevel: item.enhanceLevel, cost: result.cost }
+    }
+    if (sect.resources.ore < result.cost.ore) {
+      return { success: false, newLevel: item.enhanceLevel, cost: result.cost }
+    }
+
+    // Spend resources
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone - result.cost.spiritStone,
+          ore: s.sect.resources.ore - result.cost.ore,
+        },
+      },
+    }))
+
+    // Update item if enhancement succeeded
+    if (result.success) {
+      const newBackpack = [...get().sect.characters.find((c) => c.id === characterId)!.backpack]
+      newBackpack[backpackIndex] = { ...item, enhanceLevel: result.newLevel }
+      set((s) => ({
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) =>
+            c.id === characterId ? { ...c, backpack: newBackpack } : c
+          ),
+        },
+      }))
+    }
+
+    return result
+  },
+
+  sellCharacterItem: (characterId, backpackIndex) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    const item = char.backpack[backpackIndex]
+    if (!item) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, backpack: c.backpack.filter((_, i) => i !== backpackIndex) }
+            : c
+        ),
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone + item.sellPrice,
+        },
+      },
+    }))
+    return true
+  },
+
+  // ---- Healing ----
+
+  healCharacter: (characterId) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+    if (char.status !== 'injured') return false
+    if (sect.resources.herb < 2) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, status: 'cultivating', injuryTimer: 0 }
+            : c
+        ),
+        resources: {
+          ...s.sect.resources,
+          herb: s.sect.resources.herb - 2,
+        },
+      },
+    }))
+    return true
+  },
+
+  // ---- Resource operations ----
+
+  spendResource: (type, amount) => {
+    const { sect } = get()
+    if (sect.resources[type] < amount) return false
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, [type]: s.sect.resources[type] - amount },
+      },
+    }))
+    return true
+  },
+
+  addResource: (type, amount) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, [type]: s.sect.resources[type] + amount },
+      },
+    }))
+  },
+
+  // ---- Breakthrough ----
+
+  attemptBreakthrough: (characterId) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) {
+      return { success: false, newRealm: 0, newStage: 0, statsChanged: false }
+    }
+
+    if (!canBreakthrough(char)) {
+      return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
+    }
+
+    // Get technique if character has one
+    let technique: Technique | null = null
+    if (char.currentTechnique) {
+      technique = getTechniqueById(char.currentTechnique) ?? null
+    }
+
+    const result = performBreakthrough(char, technique)
+    if (!result.success) {
+      return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
+    }
+
+    const statsChanged =
+      result.newStats.hp !== result.oldStats.hp ||
+      result.newStats.atk !== result.oldStats.atk ||
+      result.newStats.def !== result.oldStats.def ||
+      result.newStats.spd !== result.oldStats.spd
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? {
+                ...c,
+                realm: result.newRealm,
+                realmStage: result.newStage,
+                cultivation: 0,
+                baseStats: result.newStats,
+              }
+            : c
+        ),
+        totalBreakthroughs: s.sect.totalBreakthroughs + 1,
+      },
+    }))
+
+    return { success: true, newRealm: result.newRealm, newStage: result.newStage, statsChanged }
+  },
+
+  // ---- Main tick ----
+
+  tickAll: (deltaSec) => {
+    const { sect } = get()
+
+    // 1. Calculate spirit production from buildings
+    const sfBuilding = sect.buildings.find((b) => b.type === 'spiritField')
+    const mhBuilding = sect.buildings.find((b) => b.type === 'mainHall')
+    const rates = calcResourceRates({
+      spiritField: sfBuilding?.level ?? 0,
+      mainHall: mhBuilding?.level ?? 0,
+    })
+
+    const spiritProduced = rates.spiritEnergy * deltaSec
+
+    // 2. Count cultivating characters
+    const cultivatingChars = sect.characters.filter((c) => c.status === 'cultivating')
+    const cultivatingCount = cultivatingChars.length
+    const spiritConsumed = cultivatingCount * 2 * deltaSec
+
+    // 3. Spirit ratio
+    let spiritRatio = 1
+    if (cultivatingCount > 0) {
+      spiritRatio = Math.min(1, (sect.resources.spiritEnergy + spiritProduced) / spiritConsumed)
+    }
+
+    // 4. Add spirit energy
+    let updatedSpiritEnergy = sect.resources.spiritEnergy + spiritProduced
+
+    // 5. Process each cultivating character
+    const updatedCharacters = sect.characters.map((char) => {
+      if (char.status !== 'cultivating') {
+        // Handle resting/injured characters
+        if (char.status === 'injured') {
+          // Heal 1 HP/s equivalent (reduce injuryTimer)
+          const newTimer = Math.max(0, char.injuryTimer - deltaSec)
+          if (newTimer <= 0) {
+            return { ...char, status: 'cultivating' as const, injuryTimer: 0 }
+          }
+          return { ...char, injuryTimer: newTimer }
+        }
+        return char
+      }
+
+      const effectiveSpirit = 2 * spiritRatio * deltaSec
+      const result = cultivationTick(char, effectiveSpirit, deltaSec)
+
+      let updatedChar: Character = {
+        ...char,
+        cultivation: char.cultivation + result.cultivationGained,
+        totalCultivation: char.totalCultivation + result.cultivationGained,
+      }
+
+      // Deduct spirit energy
+      updatedSpiritEnergy -= effectiveSpirit
+
+      // Tick comprehension if character has a technique
+      if (updatedChar.currentTechnique) {
+        const technique = getTechniqueById(updatedChar.currentTechnique)
+        if (technique && updatedChar.techniqueComprehension < 100) {
+          const compResult = tickComprehension(updatedChar, technique, deltaSec)
+          updatedChar = {
+            ...updatedChar,
+            techniqueComprehension: Math.max(0, Math.min(100, updatedChar.techniqueComprehension + compResult.gained)),
+          }
+
+          // If comprehension reaches 100 and technique not yet in learnedTechniques, add it
+          if (updatedChar.techniqueComprehension >= 100 && !updatedChar.learnedTechniques.includes(technique.id)) {
+            updatedChar = {
+              ...updatedChar,
+              learnedTechniques: [...updatedChar.learnedTechniques, technique.id],
+            }
+          }
+        }
+      }
+
+      return updatedChar
+    })
+
+    // 6. Recalculate sect level from mainHall building level
+    const mainHallLevel = updatedCharacters.length > 0
+      ? get().sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
+      : 1
+    const newSectLevel = calcSectLevel(mainHallLevel)
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: updatedCharacters,
+        resources: {
+          ...s.sect.resources,
+          spiritEnergy: updatedSpiritEnergy,
+          herb: s.sect.resources.herb + rates.herb * deltaSec,
+        },
+        level: newSectLevel,
+      },
+    }))
+
+    return {
+      spiritProduced,
+      spiritConsumed: cultivatingCount > 0 ? Math.min(spiritConsumed, spiritProduced + sect.resources.spiritEnergy) : 0,
+    }
+  },
+
+  // ---- Pet management ----
+
+  addPet: (pet) => {
+    set((s) => ({
+      sect: { ...s.sect, pets: [...s.sect.pets, pet] },
+    }))
+  },
+
+  removePet: (petId) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        pets: s.sect.pets.filter((p) => p.id !== petId),
+        // Also unassign from any character
+        characters: s.sect.characters.map((c) => ({
+          ...c,
+          petIds: c.petIds.filter((id) => id !== petId),
+        })),
+      },
+    }))
+  },
+
+  assignPet: (characterId, petId) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    const petExists = sect.pets.some((p) => p.id === petId)
+    if (!petExists) return false
+
+    if (char.petIds.includes(petId)) return true // already assigned
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, petIds: [...c.petIds, petId] }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  unassignPet: (characterId, petId) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? { ...c, petIds: c.petIds.filter((id) => id !== petId) }
+            : c
+        ),
+      },
+    }))
+  },
+
+  // ---- Reset ----
+
+  reset: () => set(createInitialState()),
 }))

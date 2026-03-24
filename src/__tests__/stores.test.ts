@@ -1,202 +1,911 @@
+import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
-import { usePlayerStore } from '../stores/playerStore'
-import { useInventoryStore } from '../stores/inventoryStore'
-// TODO: Re-enable after sectStore rewrite (Task 11)
-// import { useSectStore } from '../stores/sectStore'
+import { generateCharacter } from '../systems/character/CharacterEngine'
+import { getTechniqueById } from '../data/techniquesTable'
+import type { Character, Equipment, Consumable, TechniqueScroll, AnyItem } from '../types'
+import type { Pet } from '../systems/pet/PetSystem'
 
-describe('Zustand stores initialization', () => {
-  beforeEach(() => {
-    useGameStore.getState().reset()
-    usePlayerStore.getState().reset()
-    useInventoryStore.getState().reset()
-    // TODO: Re-enable after sectStore rewrite (Task 11)
-    // useSectStore.getState().reset()
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function makeEquipment(id: string, overrides?: Partial<Equipment>): Equipment {
+  return {
+    id,
+    name: 'Test Sword',
+    quality: 'common',
+    type: 'equipment',
+    description: '',
+    sellPrice: 10,
+    slot: 'weapon',
+    stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 },
+    enhanceLevel: 0,
+    refinementStats: [],
+    setId: null,
+    ...overrides,
+  }
+}
+
+function makeConsumable(id: string, overrides?: Partial<Consumable>): Consumable {
+  return {
+    id,
+    name: 'HP Potion',
+    quality: 'common',
+    type: 'consumable',
+    description: '',
+    sellPrice: 50,
+    effect: { type: 'hp', value: 10 },
+    ...overrides,
+  }
+}
+
+function makeTechniqueScroll(id: string, techniqueId: string, overrides?: Partial<TechniqueScroll>): TechniqueScroll {
+  return {
+    id,
+    name: 'Technique Scroll',
+    quality: 'common',
+    type: 'techniqueScroll',
+    description: '',
+    sellPrice: 100,
+    techniqueId,
+    ...overrides,
+  }
+}
+
+function makePet(id: string, overrides?: Partial<Pet>): Pet {
+  return {
+    id,
+    name: 'Test Pet',
+    quality: 'common',
+    element: 'fire',
+    level: 1,
+    talent: 50,
+    innateSkill: { id: 'claw', name: '利爪', multiplier: 1.2, element: 'neutral', description: '' },
+    equippedSkills: [null, null],
+    stats: { hp: 30, atk: 5, def: 3, spd: 4 },
+    ...overrides,
+  }
+}
+
+function resetStore() {
+  useSectStore.getState().reset()
+}
+
+function getStore() {
+  return useSectStore.getState()
+}
+
+function getFirstCharacter(): Character {
+  return getStore().sect.characters[0]
+}
+
+function setCharacterCultivation(charId: string, amount: number) {
+  useSectStore.setState((s) => ({
+    sect: {
+      ...s.sect,
+      characters: s.sect.characters.map((c) =>
+        c.id === charId ? { ...c, cultivation: amount } : c
+      ),
+    },
+  }))
+}
+
+// ---------------------------------------------------------------------------
+// Initialization Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Initialization', () => {
+  beforeEach(() => resetStore())
+
+  it('should have correct initial sect name', () => {
+    expect(getStore().sect.name).toBe('无名宗门')
   })
 
-  it('gameStore should initialize with default settings', () => {
-    const state = useGameStore.getState()
-    expect(state.saveSlot).toBe(1)
-    expect(state.lastOnlineTime).toBeGreaterThan(0)
+  it('should have exactly 1 initial common character', () => {
+    expect(getStore().sect.characters).toHaveLength(1)
+    expect(getStore().sect.characters[0].quality).toBe('common')
   })
 
-  it('playerStore should have correct initial stats', () => {
-    const state = usePlayerStore.getState()
-    expect(state.player.baseStats.hp).toBe(100)
-    expect(state.player.baseStats.atk).toBe(15)
-    expect(state.player.cultivationStats.maxSpiritPower).toBe(50)
+  it('should have 500 spirit stones initially', () => {
+    expect(getStore().sect.resources.spiritStone).toBe(500)
   })
 
-  it('inventoryStore should start with 50 slots', () => {
-    const state = useInventoryStore.getState()
-    expect(state.maxSlots).toBe(50)
-    expect(state.items).toHaveLength(0)
+  it('should have 0 spirit energy initially', () => {
+    expect(getStore().sect.resources.spiritEnergy).toBe(0)
   })
 
-  // TODO: Re-enable after sectStore rewrite (Task 11)
-  // it('sectStore should have mainHall unlocked at level 1', () => {
-  //   const state = useSectStore.getState()
-  //   const mainHall = state.buildings.find((b) => b.type === 'mainHall')
-  //   expect(mainHall?.level).toBe(1)
-  //   expect(mainHall?.unlocked).toBe(true)
-  // })
+  it('should have mainHall unlocked at level 1', () => {
+    const mainHall = getStore().sect.buildings.find((b) => b.type === 'mainHall')
+    expect(mainHall?.level).toBe(1)
+    expect(mainHall?.unlocked).toBe(true)
+  })
+
+  it('should have spiritField unlocked at level 0 (unlockCondition: mainHall Lv1)', () => {
+    // spiritField requires mainHall Lv1 — which we have. It should be unlockable but starts at level 0.
+    // But it doesn't auto-unlock — that happens through tryUpgradeBuilding.
+    const sf = getStore().sect.buildings.find((b) => b.type === 'spiritField')
+    expect(sf?.level).toBe(0)
+    expect(sf?.unlocked).toBe(false)
+  })
+
+  it('should have empty vault with maxVaultSlots 50', () => {
+    expect(getStore().sect.vault).toHaveLength(0)
+    expect(getStore().sect.maxVaultSlots).toBe(50)
+  })
+
+  it('should have empty pets array', () => {
+    expect(getStore().sect.pets).toHaveLength(0)
+  })
+
+  it('should have sect level 1', () => {
+    expect(getStore().sect.level).toBe(1)
+  })
+
+  it('initial character should be cultivating', () => {
+    expect(getFirstCharacter().status).toBe('cultivating')
+  })
 })
 
-describe('Game loop store integration', () => {
-  beforeEach(() => {
-    usePlayerStore.getState().reset()
-    useInventoryStore.getState().reset()
-    // TODO: Re-enable after sectStore rewrite (Task 11)
-    // useSectStore.getState().reset()
+// ---------------------------------------------------------------------------
+// Character Management Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Character Management', () => {
+  beforeEach(() => resetStore())
+
+  it('addCharacter should add a new character', () => {
+    const char = getStore().addCharacter('common')
+    expect(char).not.toBeNull()
+    expect(getStore().sect.characters).toHaveLength(2)
+    expect(char!.quality).toBe('common')
   })
 
-  it('playerStore.tick() should accumulate cultivation', () => {
-    // Give enough spirit energy (need 2/s, test with 10 for 1 second)
-    const result = usePlayerStore.getState().tick(10, 1)
-    expect(result.cultivationGained).toBe(5)
-    expect(result.spiritSpent).toBe(2)
-    expect(usePlayerStore.getState().player.cultivation).toBe(5)
-  })
-
-  it('playerStore.tick() should not cultivate without spirit energy', () => {
-    const result = usePlayerStore.getState().tick(0, 1)
-    expect(result.cultivationGained).toBe(0)
-    expect(usePlayerStore.getState().player.cultivation).toBe(0)
-  })
-
-  it('playerStore.attemptBreakthrough() should succeed with enough cultivation', () => {
-    // Set cultivation to 100 (need 100 for first breakthrough)
-    usePlayerStore.getState().tick(100, 20) // tick 20 seconds with enough spirit = 100 cultivation gained
-    const player = usePlayerStore.getState().player
-    expect(player.cultivation).toBe(100)
-
-    const result = usePlayerStore.getState().attemptBreakthrough()
-    expect(result.success).toBe(true)
-    expect(result.newStage).toBe(1)
-    expect(usePlayerStore.getState().player.cultivation).toBe(0) // consumed
-    expect(usePlayerStore.getState().player.baseStats.hp).toBeGreaterThan(100) // stats grew
-  })
-
-  it('inventoryStore.tickResourceProduction() should produce resources', () => {
-    useInventoryStore.getState().tickResourceProduction(10)
-    const resources = useInventoryStore.getState().resources
-    expect(resources.spiritEnergy).toBe(10) // 1/s × 10s
-    expect(resources.herb).toBe(0) // no spiritField yet
-  })
-})
-
-describe('Equipment store integration', () => {
-  beforeEach(() => {
-    usePlayerStore.getState().reset()
-    useInventoryStore.getState().reset()
-  })
-
-  it('should equip item by slot index', () => {
-    const success = usePlayerStore.getState().equipItem('test_item_1', 5) // weapon slot
-    expect(success).toBe(true)
-    expect(usePlayerStore.getState().player.equippedGear[5]).toBe('test_item_1')
-  })
-
-  it('should unequip item and return id', () => {
-    usePlayerStore.getState().equipItem('test_item_1', 5)
-    const prev = usePlayerStore.getState().unequipItem(5)
-    expect(prev).toBe('test_item_1')
-    expect(usePlayerStore.getState().player.equippedGear[5]).toBeNull()
-  })
-
-  it('should reject invalid slot index on equip', () => {
-    expect(usePlayerStore.getState().equipItem('test', -1)).toBe(false)
-    expect(usePlayerStore.getState().equipItem('test', 9)).toBe(false)
-  })
-
-  it('should reject invalid slot index on unequip', () => {
-    expect(usePlayerStore.getState().unequipItem(-1)).toBeNull()
-    expect(usePlayerStore.getState().unequipItem(9)).toBeNull()
-  })
-
-  it('should get total stats with equipped gear', () => {
-    usePlayerStore.getState().equipItem('test_item_1', 5) // weapon slot
-    const mockEquipment = {
-      id: 'test_item_1',
-      name: 'Iron Sword',
-      quality: 'common' as const,
-      type: 'equipment' as const,
-      description: '',
-      sellPrice: 10,
-      slot: 'weapon' as const,
-      stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 },
-      enhanceLevel: 0,
-      refinementStats: [],
-      setId: null,
+  it('addCharacter should return null when at max', () => {
+    // Sect level 1 -> maxCharacters 5, initial 1, add 4 more
+    for (let i = 0; i < 4; i++) {
+      const char = getStore().addCharacter('common')
+      expect(char).not.toBeNull()
     }
-    const total = usePlayerStore.getState().getTotalStats((id) =>
-      id === 'test_item_1' ? mockEquipment : undefined
-    )
-    expect(total.hp).toBe(100) // base only
-    expect(total.atk).toBe(25) // base 15 + weapon 10
-    expect(total.def).toBe(8)  // base only
+    // 6th should fail
+    const char = getStore().addCharacter('common')
+    expect(char).toBeNull()
+    expect(getStore().sect.characters).toHaveLength(5)
   })
 
-  it('should getEquippedItemIds return current gear array', () => {
-    usePlayerStore.getState().equipItem('item_a', 0)
-    usePlayerStore.getState().equipItem('item_b', 5)
-    const ids = usePlayerStore.getState().getEquippedItemIds()
-    expect(ids[0]).toBe('item_a')
-    expect(ids[5]).toBe('item_b')
-    expect(ids[1]).toBeNull()
+  it('removeCharacter should remove a character by id', () => {
+    const char = getFirstCharacter()
+    getStore().removeCharacter(char.id)
+    expect(getStore().sect.characters).toHaveLength(0)
   })
 
-  it('should sell item and gain spirit stone', () => {
-    useInventoryStore.getState().addItem({
-      id: 'sell_test', name: 'Test', quality: 'common', type: 'consumable', description: '', sellPrice: 50,
-      effect: { type: 'hp', value: 10 },
-    } as any)
-    const initialStone = useInventoryStore.getState().resources.spiritStone
-    const result = useInventoryStore.getState().sellItem(0)
-    expect(result.success).toBe(true)
-    expect(result.spiritStone).toBe(50)
-    expect(useInventoryStore.getState().resources.spiritStone).toBe(initialStone + 50)
+  it('removeCharacter should handle unknown id gracefully', () => {
+    getStore().removeCharacter('nonexistent')
+    expect(getStore().sect.characters).toHaveLength(1)
   })
 
-  it('should not sell non-existent item', () => {
-    const result = useInventoryStore.getState().sellItem(0)
+  it('promoteCharacter should change title', () => {
+    const char = getFirstCharacter()
+    getStore().promoteCharacter(char.id, 'seniorDisciple')
+    expect(getStore().sect.characters[0].title).toBe('seniorDisciple')
+  })
+
+  it('promoteCharacter should ignore unknown character', () => {
+    getStore().promoteCharacter('nonexistent', 'master')
+    expect(getFirstCharacter().title).toBe('disciple')
+  })
+
+  it('setCharacterStatus should change status', () => {
+    const char = getFirstCharacter()
+    getStore().setCharacterStatus(char.id, 'idle')
+    expect(getStore().sect.characters[0].status).toBe('idle')
+  })
+
+  it('setCharacterStatus should ignore unknown character', () => {
+    getStore().setCharacterStatus('nonexistent', 'injured')
+    expect(getFirstCharacter().status).toBe('cultivating')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Technique Management Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Technique Management', () => {
+  beforeEach(() => resetStore())
+
+  it('learnTechnique should consume scroll and set technique', () => {
+    const char = getFirstCharacter()
+    const scroll = makeTechniqueScroll('scroll_qingxin', 'qingxin')
+
+    // Put scroll in character's backpack
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [scroll] } : c
+        ),
+      },
+    }))
+
+    const result = getStore().learnTechnique(char.id, 0)
+    expect(result).toBe(true)
+    const updatedChar = getStore().sect.characters[0]
+    expect(updatedChar.currentTechnique).toBe('qingxin')
+    expect(updatedChar.backpack).toHaveLength(0)
+    expect(updatedChar.techniqueComprehension).toBe(0)
+  })
+
+  it('learnTechnique should reject if item is not techniqueScroll', () => {
+    const char = getFirstCharacter()
+    const potion = makeConsumable('potion_1')
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [potion] } : c
+        ),
+      },
+    }))
+
+    const result = getStore().learnTechnique(char.id, 0)
+    expect(result).toBe(false)
+    expect(getStore().sect.characters[0].currentTechnique).toBeNull()
+  })
+
+  it('learnTechnique should reject if character not found', () => {
+    const scroll = makeTechniqueScroll('scroll_qingxin', 'qingxin')
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === c.id ? { ...c, backpack: [scroll] } : c
+        ),
+      },
+    }))
+
+    const result = getStore().learnTechnique('nonexistent', 0)
+    expect(result).toBe(false)
+  })
+
+  it('learnTechnique should reject if requirements not met', () => {
+    // 'fentian' requires minRealm 1 — character starts at realm 0
+    const char = getFirstCharacter()
+    const scroll = makeTechniqueScroll('scroll_fentian', 'fentian')
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [scroll] } : c
+        ),
+      },
+    }))
+
+    const result = getStore().learnTechnique(char.id, 0)
+    expect(result).toBe(false)
+  })
+
+  it('switchTechnique should change to learned technique', () => {
+    const char = getFirstCharacter()
+    const scroll1 = makeTechniqueScroll('scroll_qingxin', 'qingxin')
+    const scroll2 = makeTechniqueScroll('scroll_lieyan', 'lieyan')
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [scroll1, scroll2] } : c
+        ),
+      },
+    }))
+
+    getStore().learnTechnique(char.id, 0)
+    getStore().learnTechnique(char.id, 0) // learns lieyan (now at index 0 after first removal)
+
+    // Set some comprehension on current technique
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, techniqueComprehension: 50 } : c
+        ),
+      },
+    }))
+
+    const result = getStore().switchTechnique(char.id, 'qingxin')
+    expect(result).toBe(true)
+    const updatedChar = getStore().sect.characters[0]
+    expect(updatedChar.currentTechnique).toBe('qingxin')
+    expect(updatedChar.techniqueComprehension).toBe(0) // reset
+  })
+
+  it('switchTechnique should reject unknown technique', () => {
+    const char = getFirstCharacter()
+    const result = getStore().switchTechnique(char.id, 'nonexistent_technique')
+    expect(result).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Building Management Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Building Management', () => {
+  beforeEach(() => resetStore())
+
+  it('upgradeBuilding should upgrade mainHall', () => {
+    // mainHall upgradeCost at level 1 = 100 * 1 = 100
+    const result = getStore().upgradeBuilding('mainHall')
+    expect(result).toBe(true)
+    const mainHall = getStore().sect.buildings.find((b) => b.type === 'mainHall')
+    expect(mainHall?.level).toBe(2)
+    expect(getStore().sect.resources.spiritStone).toBe(400) // 500 - 100
+  })
+
+  it('upgradeBuilding should fail with insufficient spirit stones', () => {
+    // Set spirit stones to 0
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 0 } },
+    }))
+    const result = getStore().upgradeBuilding('mainHall')
+    expect(result).toBe(false)
+  })
+
+  it('tryUpgradeBuilding should return reason on failure', () => {
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 0 } },
+    }))
+    const result = getStore().tryUpgradeBuilding('mainHall')
     expect(result.success).toBe(false)
-    expect(result.spiritStone).toBe(0)
+    expect(result.reason).toBeTruthy()
   })
 
-  it('should enhance equipment item', () => {
-    useInventoryStore.getState().addItem({
-      id: 'enhance_test', name: 'Sword', quality: 'common', type: 'equipment', description: '', sellPrice: 10,
-      slot: 'weapon', stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 },
-      enhanceLevel: 0, refinementStats: [], setId: null,
-    })
-    // Give enough resources for enhancement
-    useInventoryStore.getState().addResource('spiritStone', 10000)
-    useInventoryStore.getState().addResource('ore', 1000)
-    const result = useInventoryStore.getState().enhanceItem(0)
+  it('tryUpgradeBuilding should succeed with enough resources', () => {
+    const result = getStore().tryUpgradeBuilding('mainHall')
+    expect(result.success).toBe(true)
+    expect(result.reason).toBe('')
+  })
+
+  it('upgradeBuilding should auto-unlock spiritField when mainHall is Lv1', () => {
+    const result = getStore().tryUpgradeBuilding('spiritField')
+    expect(result.success).toBe(true)
+    const sf = getStore().sect.buildings.find((b) => b.type === 'spiritField')
+    expect(sf?.unlocked).toBe(true)
+    expect(sf?.level).toBe(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Resource Operations Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Resource Operations', () => {
+  beforeEach(() => resetStore())
+
+  it('spendResource should deduct resources', () => {
+    const result = getStore().spendResource('spiritStone', 200)
+    expect(result).toBe(true)
+    expect(getStore().sect.resources.spiritStone).toBe(300)
+  })
+
+  it('spendResource should fail with insufficient resources', () => {
+    const result = getStore().spendResource('spiritStone', 1000)
+    expect(result).toBe(false)
+    expect(getStore().sect.resources.spiritStone).toBe(500)
+  })
+
+  it('addResource should increase resources', () => {
+    getStore().addResource('spiritStone', 200)
+    expect(getStore().sect.resources.spiritStone).toBe(700)
+  })
+
+  it('addResource should work with spirit energy', () => {
+    getStore().addResource('spiritEnergy', 50)
+    expect(getStore().sect.resources.spiritEnergy).toBe(50)
+  })
+
+  it('addResource should work with herbs', () => {
+    getStore().addResource('herb', 10)
+    expect(getStore().sect.resources.herb).toBe(10)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Item Transfer Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Item Transfer', () => {
+  beforeEach(() => resetStore())
+
+  it('transferItemToCharacter should move item from vault to character backpack', () => {
+    const char = getFirstCharacter()
+    const sword = makeEquipment('sword_1')
+
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [sword] },
+    }))
+
+    const result = getStore().transferItemToCharacter(char.id, 0)
+    expect(result).toBe(true)
+    expect(getStore().sect.vault).toHaveLength(0)
+    expect(getStore().sect.characters[0].backpack).toHaveLength(1)
+    expect(getStore().sect.characters[0].backpack[0].id).toBe('sword_1')
+  })
+
+  it('transferItemToCharacter should fail if backpack full', () => {
+    const char = getFirstCharacter()
+    const items: AnyItem[] = []
+    for (let i = 0; i < char.maxBackpackSlots; i++) {
+      items.push(makeConsumable(`pot_${i}`))
+    }
+
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: items } : c
+        ),
+        vault: [makeEquipment('sword_1')],
+      },
+    }))
+
+    const result = getStore().transferItemToCharacter(char.id, 0)
+    expect(result).toBe(false)
+  })
+
+  it('transferItemToCharacter should fail if character not found', () => {
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [makeEquipment('sword_1')] },
+    }))
+
+    const result = getStore().transferItemToCharacter('nonexistent', 0)
+    expect(result).toBe(false)
+  })
+
+  it('transferItemToVault should move item from character backpack to vault', () => {
+    const char = getFirstCharacter()
+    const sword = makeEquipment('sword_1')
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [sword] } : c
+        ),
+      },
+    }))
+
+    const result = getStore().transferItemToVault(char.id, 0)
+    expect(result).toBe(true)
+    expect(getStore().sect.characters[0].backpack).toHaveLength(0)
+    expect(getStore().sect.vault).toHaveLength(1)
+    expect(getStore().sect.vault[0].id).toBe('sword_1')
+  })
+
+  it('transferItemToVault should fail if vault full', () => {
+    const char = getFirstCharacter()
+    const sword = makeEquipment('sword_1')
+    const vaultItems: AnyItem[] = []
+    for (let i = 0; i < 50; i++) {
+      vaultItems.push(makeConsumable(`vpot_${i}`))
+    }
+
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [sword] } : c
+        ),
+        vault: vaultItems,
+      },
+    }))
+
+    const result = getStore().transferItemToVault(char.id, 0)
+    expect(result).toBe(false)
+  })
+
+  it('addToVault should add item if space available', () => {
+    const sword = makeEquipment('sword_1')
+    const result = getStore().addToVault(sword)
+    expect(result).toBe(true)
+    expect(getStore().sect.vault).toHaveLength(1)
+  })
+
+  it('addToVault should fail if vault full', () => {
+    const vaultItems: AnyItem[] = []
+    for (let i = 0; i < 50; i++) {
+      vaultItems.push(makeConsumable(`vpot_${i}`))
+    }
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: vaultItems },
+    }))
+
+    const result = getStore().addToVault(makeEquipment('sword_full'))
+    expect(result).toBe(false)
+  })
+
+  it('sellItem should remove from vault and add spirit stones', () => {
+    const sword = makeEquipment('sword_sell', { sellPrice: 50 })
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [sword] },
+    }))
+
+    const result = getStore().sellItem(0)
+    expect(result).toBe(true)
+    expect(getStore().sect.vault).toHaveLength(0)
+    expect(getStore().sect.resources.spiritStone).toBe(550) // 500 + 50
+  })
+
+  it('sellItem should fail if no item at index', () => {
+    const result = getStore().sellItem(0)
+    expect(result).toBe(false)
+  })
+
+  it('removeVaultItem should return and remove item', () => {
+    const sword = makeEquipment('sword_remove')
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [sword] },
+    }))
+
+    const item = getStore().removeVaultItem(0)
+    expect(item).not.toBeNull()
+    expect(item!.id).toBe('sword_remove')
+    expect(getStore().sect.vault).toHaveLength(0)
+  })
+
+  it('removeVaultItem should return null if no item', () => {
+    const item = getStore().removeVaultItem(0)
+    expect(item).toBeNull()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Character Inventory Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Character Inventory', () => {
+  beforeEach(() => resetStore())
+
+  it('equipItem should equip equipment from backpack', () => {
+    const char = getFirstCharacter()
+    const sword = makeEquipment('sword_eq', { slot: 'weapon' })
+    // Ensure equippedGear has enough slots
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [sword], equippedGear: new Array(9).fill(null) } : c
+        ),
+      },
+    }))
+
+    // weapon slot index is 5
+    const result = getStore().equipItem(char.id, 0, 5)
+    expect(result).toBe(true)
+    const updatedChar = getStore().sect.characters[0]
+    expect(updatedChar.equippedGear[5]).toBe('sword_eq')
+    expect(updatedChar.backpack).toHaveLength(0)
+  })
+
+  it('equipItem should fail if item not equipment', () => {
+    const char = getFirstCharacter()
+    const potion = makeConsumable('pot_eq')
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [potion], equippedGear: new Array(9).fill(null) } : c
+        ),
+      },
+    }))
+
+    const result = getStore().equipItem(char.id, 0, 5)
+    expect(result).toBe(false)
+  })
+
+  it('unequipItem should move equipment from gear to backpack', () => {
+    const char = getFirstCharacter()
+    const sword = makeEquipment('sword_uneq', { slot: 'weapon' })
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, equippedGear: [...new Array(9).fill(null)] as any } : c
+        ),
+      },
+    }))
+
+    // Manually set gear
+    const updatedGear = [...new Array(9).fill(null)]
+    updatedGear[5] = 'sword_uneq'
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        vault: [sword], // Put the equipment in vault so unequip can find it
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, equippedGear: updatedGear } : c
+        ),
+      },
+    }))
+
+    const result = getStore().unequipItem(char.id, 5)
+    expect(result).toBe(true)
+    const updatedChar = getStore().sect.characters[0]
+    expect(updatedChar.equippedGear[5]).toBeNull()
+    expect(updatedChar.backpack).toHaveLength(1)
+  })
+
+  it('enhanceItem should enhance equipment in backpack', () => {
+    const char = getFirstCharacter()
+    const sword = makeEquipment('sword_enh', { slot: 'weapon' })
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [sword] } : c
+        ),
+      },
+    }))
+
+    // Give enough resources
+    getStore().addResource('spiritStone', 10000)
+    getStore().addResource('ore', 1000)
+
+    const result = getStore().enhanceItem(char.id, 0)
     expect(result.cost.spiritStone).toBeGreaterThan(0)
     expect(result.cost.ore).toBeGreaterThan(0)
-    // Result depends on RNG but cost should always be deducted
-    expect(useInventoryStore.getState().resources.spiritStone).toBeLessThan(10500)
+    // Resources should have been spent
+    expect(getStore().sect.resources.spiritStone).toBeLessThan(10500)
   })
 
-  it('should not enhance non-equipment item', () => {
-    useInventoryStore.getState().addItem({
-      id: 'potion', name: 'HP Potion', quality: 'common', type: 'consumable', description: '', sellPrice: 10,
-      effect: { type: 'hp', value: 10 },
-    } as any)
-    const result = useInventoryStore.getState().enhanceItem(0)
+  it('enhanceItem should fail if not equipment', () => {
+    const char = getFirstCharacter()
+    const potion = makeConsumable('pot_enh')
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [potion] } : c
+        ),
+      },
+    }))
+
+    const result = getStore().enhanceItem(char.id, 0)
     expect(result.success).toBe(false)
   })
 
-  it('should not enhance without enough resources', () => {
-    useInventoryStore.getState().addItem({
-      id: 'enhance_poor', name: 'Sword', quality: 'common', type: 'equipment', description: '', sellPrice: 10,
-      slot: 'weapon', stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 },
-      enhanceLevel: 0, refinementStats: [], setId: null,
-    })
-    const result = useInventoryStore.getState().enhanceItem(0)
+  it('sellCharacterItem should sell item from backpack', () => {
+    const char = getFirstCharacter()
+    const potion = makeConsumable('pot_sell', { sellPrice: 75 })
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, backpack: [potion] } : c
+        ),
+      },
+    }))
+
+    const result = getStore().sellCharacterItem(char.id, 0)
+    expect(result).toBe(true)
+    expect(getStore().sect.characters[0].backpack).toHaveLength(0)
+    expect(getStore().sect.resources.spiritStone).toBe(575) // 500 + 75
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Healing Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Healing', () => {
+  beforeEach(() => resetStore())
+
+  it('healCharacter should heal injured character using herbs', () => {
+    const char = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, status: 'injured' } : c
+        ),
+      },
+    }))
+    getStore().addResource('herb', 5)
+
+    const result = getStore().healCharacter(char.id)
+    expect(result).toBe(true)
+    expect(getStore().sect.characters[0].status).toBe('cultivating')
+    expect(getStore().sect.resources.herb).toBe(3) // 5 - 2 herbs consumed
+  })
+
+  it('healCharacter should fail without herbs', () => {
+    const char = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, status: 'injured' } : c
+        ),
+      },
+    }))
+
+    const result = getStore().healCharacter(char.id)
+    expect(result).toBe(false)
+    expect(getStore().sect.characters[0].status).toBe('injured')
+  })
+
+  it('healCharacter should fail for non-injured character', () => {
+    const char = getFirstCharacter()
+    getStore().addResource('herb', 5)
+    const result = getStore().healCharacter(char.id)
+    expect(result).toBe(false)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Breakthrough Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Breakthrough', () => {
+  beforeEach(() => resetStore())
+
+  it('attemptBreakthrough should succeed with enough cultivation', () => {
+    const char = getFirstCharacter()
+    // First breakthrough requires 100 cultivation (realm 0, stage 0)
+    setCharacterCultivation(char.id, 100)
+
+    const result = getStore().attemptBreakthrough(char.id)
+    expect(result.success).toBe(true)
+    expect(result.newRealm).toBe(0) // still realm 0
+    expect(result.newStage).toBe(1) // stage 0 -> stage 1
+    expect(result.statsChanged).toBe(true)
+    expect(getStore().sect.characters[0].cultivation).toBe(0) // reset
+  })
+
+  it('attemptBreakthrough should fail with insufficient cultivation', () => {
+    const char = getFirstCharacter()
+    setCharacterCultivation(char.id, 50)
+
+    const result = getStore().attemptBreakthrough(char.id)
     expect(result.success).toBe(false)
-    // Cost should still be returned so UI can show what's needed
-    expect(result.cost.spiritStone).toBeGreaterThan(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAll Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - tickAll', () => {
+  beforeEach(() => resetStore())
+
+  it('tickAll should produce spirit energy', () => {
+    // Base rate is 1/s when no buildings produce.
+    // The initial character is cultivating and consumes 2/s, so net will be negative.
+    // But spiritProduced should still reflect the base rate.
+    const result = getStore().tickAll(10)
+    expect(result.spiritProduced).toBeCloseTo(10, 0) // ~10 spirit energy in 10 seconds
+    expect(result.spiritConsumed).toBeGreaterThan(0) // cultivator consumed some
+  })
+
+  it('tickAll should accumulate cultivation for cultivating characters', () => {
+    // Give enough spirit energy to cultivate
+    getStore().addResource('spiritEnergy', 100)
+    const beforeCultivation = getFirstCharacter().cultivation
+
+    getStore().tickAll(10)
+
+    expect(getFirstCharacter().cultivation).toBeGreaterThan(beforeCultivation)
+  })
+
+  it('tickAll should consume spirit energy for cultivating characters', () => {
+    getStore().addResource('spiritEnergy', 100)
+    const beforeEnergy = getStore().sect.resources.spiritEnergy
+
+    const result = getStore().tickAll(10)
+    expect(result.spiritConsumed).toBeGreaterThan(0)
+  })
+
+  it('tickAll should not consume spirit for idle characters', () => {
+    const char = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, status: 'idle' } : c
+        ),
+      },
+    }))
+    getStore().addResource('spiritEnergy', 100)
+
+    const result = getStore().tickAll(10)
+    expect(result.spiritConsumed).toBe(0)
+  })
+
+  it('tickAll should work with 0 delta', () => {
+    const result = getStore().tickAll(0)
+    expect(result.spiritProduced).toBe(0)
+    expect(result.spiritConsumed).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Pet Management Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Pet Management', () => {
+  beforeEach(() => resetStore())
+
+  it('addPet should add pet to sect', () => {
+    const pet = makePet('pet_1')
+    getStore().addPet(pet)
+    expect(getStore().sect.pets).toHaveLength(1)
+    expect(getStore().sect.pets[0].id).toBe('pet_1')
+  })
+
+  it('removePet should remove pet from sect', () => {
+    const pet = makePet('pet_2')
+    getStore().addPet(pet)
+    getStore().removePet('pet_2')
+    expect(getStore().sect.pets).toHaveLength(0)
+  })
+
+  it('removePet should unassign from character', () => {
+    const char = getFirstCharacter()
+    const pet = makePet('pet_3')
+    getStore().addPet(pet)
+    getStore().assignPet(char.id, 'pet_3')
+
+    getStore().removePet('pet_3')
+    expect(getStore().sect.pets).toHaveLength(0)
+    expect(getStore().sect.characters[0].petIds).toHaveLength(0)
+  })
+
+  it('assignPet should assign pet to character', () => {
+    const char = getFirstCharacter()
+    const pet = makePet('pet_4')
+    getStore().addPet(pet)
+
+    const result = getStore().assignPet(char.id, 'pet_4')
+    expect(result).toBe(true)
+    expect(getStore().sect.characters[0].petIds).toContain('pet_4')
+  })
+
+  it('assignPet should fail if pet not found', () => {
+    const char = getFirstCharacter()
+    const result = getStore().assignPet(char.id, 'nonexistent_pet')
+    expect(result).toBe(false)
+  })
+
+  it('assignPet should fail if character not found', () => {
+    const pet = makePet('pet_5')
+    getStore().addPet(pet)
+    const result = getStore().assignPet('nonexistent_char', 'pet_5')
+    expect(result).toBe(false)
+  })
+
+  it('unassignPet should remove pet from character', () => {
+    const char = getFirstCharacter()
+    const pet = makePet('pet_6')
+    getStore().addPet(pet)
+    getStore().assignPet(char.id, 'pet_6')
+
+    getStore().unassignPet(char.id, 'pet_6')
+    expect(getStore().sect.characters[0].petIds).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Reset Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Reset', () => {
+  it('reset should restore initial state', () => {
+    // Modify state
+    getStore().addResource('spiritStone', 1000)
+    getStore().addCharacter('spirit')
+
+    // Reset
+    resetStore()
+
+    expect(getStore().sect.resources.spiritStone).toBe(500)
+    expect(getStore().sect.characters).toHaveLength(1)
+    expect(getStore().sect.vault).toHaveLength(0)
   })
 })
