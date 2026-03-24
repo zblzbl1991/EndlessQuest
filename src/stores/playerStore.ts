@@ -1,8 +1,15 @@
 import { create } from 'zustand'
 import type { Player, RealmStage, BaseStats } from '../types/player'
 import type { Equipment } from '../types/item'
+import type { TechniqueType } from '../types/skill'
 import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough } from '../systems/cultivation/CultivationEngine'
 import { getEffectiveStats } from '../systems/equipment/EquipmentEngine'
+import { calcTechniqueBonuses } from '../systems/skill/SkillSystem'
+import { getTechniqueById } from '../data/techniques'
+
+const TECHNIQUE_SLOT_INDEX: Record<TechniqueType, number> = {
+  mental: 0, body: 1, spiritual: 2,
+}
 
 interface PlayerState {
   player: Player
@@ -10,6 +17,8 @@ interface PlayerState {
   attemptBreakthrough: () => { success: boolean; newRealm: number; newStage: RealmStage; statsChanged: boolean }
   equipItem: (itemId: string, slotIndex: number) => boolean
   unequipItem: (slotIndex: number) => string | null
+  equipTechnique: (techId: string, type: TechniqueType) => void
+  equipSkill: (skillId: string) => void
   getEquippedItemIds: () => (string | null)[]
   getTotalStats: (getEquipmentById: (id: string) => Equipment | undefined) => BaseStats
   reset: () => void
@@ -93,10 +102,26 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   getEquippedItemIds: () => {
     return get().player.equippedGear
   },
+  equipTechnique: (techId, type) => {
+    const techniques = [...get().player.equippedTechniques]
+    const slotIdx = TECHNIQUE_SLOT_INDEX[type]
+    techniques[slotIdx] = techId
+    set((s) => ({ player: { ...s.player, equippedTechniques: techniques } }))
+  },
+  equipSkill: (skillId) => {
+    const skills = [...get().player.equippedSkills]
+    // Find first empty slot (index 0-3 are active, 4 is ultimate)
+    const emptyIdx = skills.findIndex((s) => s === null)
+    if (emptyIdx !== -1) {
+      skills[emptyIdx] = skillId
+      set((s) => ({ player: { ...s.player, equippedSkills: skills } }))
+    }
+  },
   getTotalStats: (getEquipmentById) => {
     const player = get().player
     const base: BaseStats = { ...player.baseStats }
 
+    // Apply equipment bonuses
     for (const gearId of player.equippedGear) {
       if (!gearId) continue
       const item = getEquipmentById(gearId)
@@ -110,6 +135,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         base.critDmg = Math.round((base.critDmg + eff.critDmg) * 100) / 100
       }
     }
+
+    // Apply technique bonuses
+    const techBonuses = calcTechniqueBonuses(player.equippedTechniques, getTechniqueById)
+    if (techBonuses.hp) base.hp += techBonuses.hp
+    if (techBonuses.atk) base.atk += techBonuses.atk
+    if (techBonuses.def) base.def += techBonuses.def
+    if (techBonuses.spd) base.spd += techBonuses.spd
+    if (techBonuses.crit) base.crit = Math.round((base.crit + techBonuses.crit) * 1000) / 1000
+    if (techBonuses.critDmg) base.critDmg = Math.round((base.critDmg + techBonuses.critDmg) * 100) / 100
 
     return base
   },
