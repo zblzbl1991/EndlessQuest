@@ -1,0 +1,497 @@
+/* CharactersPage.module.css */
+
+.page {
+  padding: var(--space-md);
+  padding-bottom: 80px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: var(--space-sm);
+}
+
+.viewToggle {
+  display: flex;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.toggleBtn {
+  background: var(--color-panel);
+  border: none;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.toggleBtn + .toggleBtn {
+  border-left: 1px solid var(--color-border-light);
+}
+
+.toggleActive {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* Filter tabs */
+.filterTabs {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  overflow-x: auto;
+}
+
+.filterTab {
+  flex-shrink: 0;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px 14px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.filterActive {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+/* Character grid */
+.characterGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.gridView {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+}
+
+.listView {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: var(--space-xl) 0;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+
+/* ===== Detail View ===== */
+
+.backBtn {
+  background: none;
+  border: none;
+  color: var(--color-accent);
+  font-size: 13px;
+  cursor: pointer;
+  padding: var(--space-xs) 0;
+  margin-bottom: var(--space-sm);
+}
+
+.detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Detail Header */
+.detailHeader {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.detailNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.detailName {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.qualityBadge {
+  display: inline-block;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-quality-common);
+}
+
+.detailSubRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xs);
+}
+
+.detailTitle {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.detailRealm {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  color: var(--color-accent);
+  margin-bottom: var(--space-sm);
+}
+
+.detailProgress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.detailProgress > *:first-child {
+  flex: 1;
+}
+
+.progressText {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* Section */
+.section {
+  margin-bottom: var(--space-sm);
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  padding-left: var(--space-xs);
+  border-left: 2px solid var(--color-accent);
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-xs);
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.statValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Cultivation */
+.cultivationInfo {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.adventureInfo {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  padding: var(--space-sm);
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+}
+
+/* Technique */
+.techniquePanel {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.techniqueName {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.techniqueTier {
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.comprehensionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.comprehensionRow > *:first-child {
+  flex-shrink: 0;
+}
+
+.comprehensionRow > *:nth-child(2) {
+  flex: 1;
+}
+
+.comprehensionLabel {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.comprehensionValue {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.bonuses {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.bonusItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.bonusActive {
+  color: var(--color-success);
+  background: rgba(76, 175, 80, 0.08);
+}
+
+.bonusLocked {
+  color: var(--color-text-tertiary);
+  background: transparent;
+}
+
+.bonusThreshold {
+  font-size: 10px;
+}
+
+.noTechnique {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+}
+
+.noScrollHint {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+/* Action buttons */
+.actionBtn {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.actionBtn:hover {
+  opacity: 0.85;
+}
+
+/* Dropdown */
+.dropdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--space-sm);
+}
+
+.dropdownItem {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.dropdownItem:hover {
+  background: var(--color-panel-hover);
+}
+
+/* Backpack */
+.backpackGrid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.backpackItemWrapper {
+  position: relative;
+}
+
+.itemActions {
+  display: flex;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding: var(--space-xs);
+  background: var(--color-panel);
+  border-radius: var(--radius-sm);
+}
+
+.itemHint {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+}
+
+.itemActionBtn {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.itemActionBtn:hover {
+  background: var(--color-bg-paper);
+}
+
+.sellAction {
+  color: var(--color-danger);
+}
+
+/* Equip from backpack */
+.equipFromBackpack {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-top: var(--space-sm);
+}
+
+.equipFromLabel {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.equipSlotButtons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px;
+  margin-bottom: var(--space-sm);
+}
+
+.equipSlotBtn {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 6px;
+  font-size: 11px;
+  color: var(--color-text);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.equipSlotBtn:hover {
+  background: var(--color-bg-paper);
+}
+
+.cancelBtn {
+  background: none;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+/* Skills */
+.skillsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+  gap: var(--space-xs);
+}
+
+.skillSlot {
+  background: var(--color-panel);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  text-align: center;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.skillName {
+  font-size: 11px;
+  color: var(--color-text);
+}
+
+.skillEmpty {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}

@@ -8,10 +8,10 @@ import { useAutoSave } from './systems/save/useAutoSave'
 import BottomNav from './components/common/BottomNav'
 import TopBar from './components/common/TopBar'
 import SectPage from './pages/SectPage'
+import CharactersPage from './pages/CharactersPage'
+import BuildingsPage from './pages/BuildingsPage'
 
 // Placeholder pages for future tasks
-const CharactersPage = () => <div>弟子页面 - 待实现</div>
-const BuildingsPage = () => <div>建筑页面 - 待实现</div>
 const AdventurePage = () => <div>秘境页面 - 待实现</div>
 const VaultPage = () => <div>仓库页面 - 待实现</div>
 
