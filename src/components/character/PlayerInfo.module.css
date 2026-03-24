@@ -67,3 +67,40 @@
   color: var(--color-success);
   font-size: 10px;
 }
+
+.petSlots {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 10px;
+}
+
+.petSlotsLabel {
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+.petSlot {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+}
+
+.petSlotName {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.petSlotQuality {
+  color: var(--color-text-tertiary);
+}
+
+.petSlotEmpty {
+  color: var(--color-text-quaternary, var(--color-text-tertiary));
+  font-style: italic;
+}

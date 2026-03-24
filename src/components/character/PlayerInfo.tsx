@@ -1,7 +1,9 @@
 import { useMemo } from 'react'
 import { usePlayerStore } from '../../stores/playerStore'
 import { useInventoryStore } from '../../stores/inventoryStore'
+import { usePetStore } from '../../stores/petStore'
 import { getRealmName, getCultivationNeeded } from '../../data/realms'
+import { PET_QUALITY_NAMES } from '../../systems/pet/PetSystem'
 import type { Equipment } from '../../types/item'
 import ProgressBar from '../common/ProgressBar'
 import styles from './PlayerInfo.module.css'
@@ -10,6 +12,8 @@ export default function PlayerInfo() {
   const player = usePlayerStore((s) => s.player)
   const getTotalStats = usePlayerStore((s) => s.getTotalStats)
   const items = useInventoryStore((s) => s.items)
+  const pets = usePetStore((s) => s.pets)
+  const partyPets = usePetStore((s) => s.partyPets)
   const realmName = getRealmName(player.realm, player.realmStage)
   const needed = getCultivationNeeded(player.realm, player.realmStage)
 
@@ -70,6 +74,28 @@ export default function PlayerInfo() {
         <div style={{ fontSize: '10px', color: 'var(--color-text-tertiary)', marginTop: 2 }}>
           修为 {player.cultivation.toLocaleString()} / {needed.toLocaleString()}
         </div>
+        {pets.length > 0 && (
+          <div className={styles.petSlots}>
+            <span className={styles.petSlotsLabel}>灵兽</span>
+            {partyPets.map((petId, idx) => {
+              const pet = petId ? pets.find(p => p.id === petId) : null
+              return (
+                <div key={idx} className={styles.petSlot}>
+                  {pet ? (
+                    <>
+                      <span className={styles.petSlotName}>{pet.name}</span>
+                      <span className={styles.petSlotQuality}>
+                        {PET_QUALITY_NAMES[pet.quality]} Lv.{pet.level}
+                      </span>
+                    </>
+                  ) : (
+                    <span className={styles.petSlotEmpty}>空</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
