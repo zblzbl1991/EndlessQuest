@@ -115,7 +115,7 @@ export function refineEquipment(item: Equipment): RefineResult {
  */
 export function calcEquipmentStats(
   equippedGear: (string | null)[],
-  inventoryItems: Equipment[],
+  _inventoryItems: Equipment[],
   getEquipmentById: (id: string) => Equipment | undefined
 ): ItemStats {
   const total: ItemStats = { hp: 0, atk: 0, def: 0, spd: 0, crit: 0, critDmg: 0 }

@@ -1,0 +1,68 @@
+.card {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 80px;
+}
+
+.card:hover {
+  background: var(--color-panel-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.card.selected {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 1px var(--color-accent);
+}
+
+.name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slot {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+.qualityTag {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: white;
+  align-self: flex-start;
+}
+
+.qualityCommon { background: var(--color-quality-common); }
+.qualitySpirit { background: var(--color-quality-spirit); }
+.qualityImmortal { background: var(--color-quality-immortal); }
+.qualityDivine { background: var(--color-quality-divine); }
+.qualityChaos { background: var(--color-quality-chaos); }
+
+.enhance {
+  font-size: 10px;
+  color: var(--color-accent);
+  font-weight: 700;
+}
+
+.stats {
+  font-size: 10px;
+  color: var(--color-text-secondary);
+}
+
+.empty {
+  background: var(--color-bg);
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-sm);
+  min-height: 80px;
+}

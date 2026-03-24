@@ -1,0 +1,74 @@
+.panel {
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-accent);
+  margin-bottom: var(--space-sm);
+}
+
+.itemInfo {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.cost {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.costValue {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.costInsufficient {
+  color: var(--color-danger);
+}
+
+.button {
+  width: 100%;
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  transition: all var(--transition-fast);
+}
+
+.buttonReady {
+  background: var(--color-accent);
+  color: white;
+}
+
+.buttonReady:hover {
+  background: var(--color-accent-hover);
+}
+
+.buttonDisabled {
+  background: var(--color-border-light);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}
+
+.result {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  text-align: center;
+}
+
+.resultSuccess { background: var(--color-success-bg); color: var(--color-success); }
+.resultFail { background: var(--color-danger-bg); color: var(--color-danger); }

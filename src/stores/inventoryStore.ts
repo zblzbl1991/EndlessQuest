@@ -75,7 +75,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     if (result.success) {
       const newItems = [...get().items]
       newItems[index] = { ...item, enhanceLevel: result.newLevel }
-      set((s) => ({ items: newItems }))
+      set(() => ({ items: newItems }))
     }
 
     return result
