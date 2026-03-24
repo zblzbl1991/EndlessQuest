@@ -14,7 +14,7 @@ export interface Item {
   id: string
   name: string
   quality: ItemQuality
-  type: 'equipment' | 'consumable' | 'material'
+  type: 'equipment' | 'consumable' | 'material' | 'techniqueScroll'
   description: string
   sellPrice: number
 }
@@ -38,7 +38,12 @@ export interface Material extends Item {
   category: 'herb' | 'ore' | 'beastSoul' | 'scroll' | 'other'
 }
 
-export type AnyItem = Equipment | Consumable | Material
+export interface TechniqueScroll extends Item {
+  type: 'techniqueScroll'
+  techniqueId: string
+}
+
+export type AnyItem = Equipment | Consumable | Material | TechniqueScroll
 
 export interface InventoryState {
   items: AnyItem[]

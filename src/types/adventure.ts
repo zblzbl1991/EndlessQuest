@@ -1,3 +1,6 @@
+import type { AnyItem } from './item'
+import type { Resources } from './sect'
+
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss'
 
 export interface Enemy {
@@ -20,7 +23,7 @@ export interface RouteOption {
   events: DungeonEvent[]
 }
 
-export interface DungeonLayer {
+export interface DungeonFloor {
   number: number
   routes: RouteOption[]
 }
@@ -35,14 +38,26 @@ export interface Dungeon {
   lootTable: Array<{ itemId: string; weight: number }>
 }
 
+export interface MemberState {
+  currentHp: number
+  maxHp: number
+  status: 'alive' | 'dead' | 'wounded'
+}
+
+export interface LogEntry {
+  timestamp: number
+  message: string
+}
+
 export interface DungeonRun {
+  id: string
   dungeonId: string
-  currentLayer: number
-  teamHp: number[]
-  mode: 'idle' | 'manual'
-  buffs: string[]
-  tempSkills: string[]
-  currency: number
-  startedAt: number
-  paused: boolean
+  teamCharacterIds: string[]
+  currentFloor: number
+  floors: DungeonFloor[]
+  memberStates: Record<string, MemberState>
+  totalRewards: Resources
+  itemRewards: AnyItem[]
+  eventLog: LogEntry[]
+  status: 'active' | 'retreated' | 'completed' | 'failed'
 }

@@ -1,8 +1,10 @@
+import type { Character } from './character'
+import type { AnyItem } from './item'
+import type { Pet } from '../systems/pet/PetSystem'
+
 export type BuildingType =
   | 'mainHall' | 'spiritField' | 'market' | 'alchemyFurnace'
   | 'forge' | 'scriptureHall' | 'recruitmentPavilion' | 'trainingHall'
-
-export type DiscipleQuality = 'common' | 'spirit' | 'immortal' | 'divine'
 
 export type ResourceType = 'spiritStone' | 'spiritEnergy' | 'herb' | 'ore' | 'fairyJade' | 'scrollFragment' | 'heavenlyTreasure' | 'beastSoul'
 
@@ -23,27 +25,15 @@ export interface Building {
   unlocked: boolean
 }
 
-export interface Disciple {
-  id: string
+export interface Sect {
   name: string
-  quality: DiscipleQuality
   level: number
-  talent: number
-  loyalty: number
-  hp: number
-  atk: number
-  def: number
-  spd: number
-  equippedTechniques: (string | null)[]
-  equippedSkills: (string | null)[]
-  status: 'active' | 'wounded' | 'dispatched'
-  dispatchEndTime: number | null
-  highestQualityOwned: DiscipleQuality
-}
-
-export interface SectState {
-  buildings: Building[]
-  disciples: Disciple[]
   resources: Resources
-  discipleMaxOwned: Record<DiscipleQuality, number>
+  buildings: Building[]
+  characters: Character[]
+  vault: AnyItem[]
+  maxVaultSlots: number
+  pets: Pet[]
+  totalAdventureRuns: number
+  totalBreakthroughs: number
 }
