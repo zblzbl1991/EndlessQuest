@@ -1,5 +1,5 @@
 // src/__tests__/ResourceEngine.test.ts
-import { calcResourceRates } from '../systems/economy/ResourceEngine'
+import { calcResourceRates, getSpiritFieldRate } from '../systems/economy/ResourceEngine'
 
 describe('ResourceEngine', () => {
   it('should produce minimum 1 spiritEnergy/s with no buildings', () => {
@@ -38,5 +38,32 @@ describe('ResourceEngine', () => {
     const rates = calcResourceRates({ spiritField: 5, mainHall: 1 })
     expect(rates.ore).toBe(0)
     expect(rates.spiritStone).toBe(0)
+  })
+})
+
+describe('getSpiritFieldRate', () => {
+  it('should return 0 for level < 1', () => {
+    expect(getSpiritFieldRate(0)).toBe(0)
+    expect(getSpiritFieldRate(-1)).toBe(0)
+  })
+
+  it('should return correct rate for level 1', () => {
+    expect(getSpiritFieldRate(1)).toBe(1)
+  })
+
+  it('should return correct rate for level 2', () => {
+    expect(getSpiritFieldRate(2)).toBe(4)
+  })
+
+  it('should return correct rate for level 3', () => {
+    expect(getSpiritFieldRate(3)).toBe(7)
+  })
+
+  it('should return correct rate for level 5', () => {
+    expect(getSpiritFieldRate(5)).toBe(13)
+  })
+
+  it('should return correct rate for level 10', () => {
+    expect(getSpiritFieldRate(10)).toBe(28)
   })
 })

@@ -52,3 +52,13 @@ export function calcResourceRates(
     spiritStone: BASE_RATES.spiritStone,
   }
 }
+
+/**
+ * Spirit field production rate (spirit energy per second).
+ * Formula: 1 + (level - 1) * 3  (equivalently: level * 1 + max(0, level - 1) * 3 with base adjustment)
+ * L1=1, L2=4, L3=7, L5=13, L10=28
+ */
+export function getSpiritFieldRate(level: number): number {
+  if (level < 1) return 0
+  return 1 + (level - 1) * 3
+}

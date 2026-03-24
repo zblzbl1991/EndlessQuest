@@ -21,6 +21,8 @@ const dummyPlayer: CombatUnit = {
   skillCooldowns: [],
 }
 
+const dummyTeam = [dummyPlayer]
+
 describe('Roguelike MapGenerator', () => {
   it('should generate correct number of floors', () => {
     const dungeon = DUNGEONS[0] // 灵草谷, 5 layers
@@ -94,40 +96,40 @@ describe('Roguelike MapGenerator', () => {
 
 describe('EventSystem', () => {
   it('should resolve combat event', () => {
-    const result = resolveEvent({ type: 'combat', id: 'test' }, dummyPlayer, 1)
+    const result = resolveEvent({ type: 'combat', id: 'test' }, dummyTeam, 1)
     expect(result.type).toBe('combat')
     expect(result.combatResult).toBeDefined()
     expect(result.reward.spiritStone).toBeGreaterThanOrEqual(0)
   })
 
   it('should resolve rest event with healing', () => {
-    const result = resolveEvent({ type: 'rest', id: 'test' }, dummyPlayer, 1)
-    expect(result.hpChange).toBeGreaterThan(0)
+    const result = resolveEvent({ type: 'rest', id: 'test' }, dummyTeam, 1)
+    expect(result.hpChanges['p1']).toBeGreaterThan(0)
     expect(result.message).toContain('恢复')
   })
 
   it('should resolve shop event', () => {
-    const result = resolveEvent({ type: 'shop', id: 'test' }, dummyPlayer, 1)
+    const result = resolveEvent({ type: 'shop', id: 'test' }, dummyTeam, 1)
     expect(result.type).toBe('shop')
     expect(result.success).toBe(true)
   })
 
   it('should resolve random event with one of three outcomes', () => {
-    const result = resolveEvent({ type: 'random', id: 'test' }, dummyPlayer, 1)
+    const result = resolveEvent({ type: 'random', id: 'test' }, dummyTeam, 1)
     expect(result.type).toBe('random')
     expect(['发现了一处宝箱！', '路边休息，恢复了少量生命', '踩到了陷阱！']).toContain(result.message)
   })
 
   it('should resolve boss event with combat result', () => {
-    const result = resolveEvent({ type: 'boss', id: 'test' }, dummyPlayer, 1)
+    const result = resolveEvent({ type: 'boss', id: 'test' }, dummyTeam, 1)
     expect(result.type).toBe('boss')
     expect(result.combatResult).toBeDefined()
   })
 
   it('rest healing should scale with maxHp', () => {
     const tankPlayer: CombatUnit = { ...dummyPlayer, maxHp: 1000, hp: 1000 }
-    const result = resolveEvent({ type: 'rest', id: 'test' }, tankPlayer, 1)
-    expect(result.hpChange).toBe(300) // 30% of 1000
+    const result = resolveEvent({ type: 'rest', id: 'test' }, [tankPlayer], 1)
+    expect(result.hpChanges['p1']).toBe(300) // 30% of 1000
   })
 
   it('boss rewards should include fairyJade at floor 3+', () => {
@@ -135,12 +137,48 @@ describe('EventSystem', () => {
     let foundJadeReward = false
     for (let i = 0; i < 50; i++) {
       const strongPlayer: CombatUnit = { ...dummyPlayer, atk: 999, def: 999, hp: 9999, maxHp: 9999 }
-      const result = resolveEvent({ type: 'boss', id: 'test' }, strongPlayer, 5)
+      const result = resolveEvent({ type: 'boss', id: 'test' }, [strongPlayer], 5)
       if (result.success && result.reward.fairyJade > 0) {
         foundJadeReward = true
         break
       }
     }
     expect(foundJadeReward).toBe(true)
+  })
+
+  it('should support multi-unit team combat', () => {
+    const ally1: CombatUnit = { ...dummyPlayer, id: 'a1', name: 'Ally1' }
+    const ally2: CombatUnit = { ...dummyPlayer, id: 'a2', name: 'Ally2', element: 'fire' }
+    const team = [ally1, ally2]
+    const result = resolveEvent({ type: 'combat', id: 'test' }, team, 1)
+    expect(result.type).toBe('combat')
+    expect(result.combatResult).toBeDefined()
+    // HP changes should be recorded for both allies
+    expect(result.hpChanges).toHaveProperty('a1')
+    expect(result.hpChanges).toHaveProperty('a2')
+  })
+
+  it('should skip dead allies in combat', () => {
+    const alivePlayer: CombatUnit = { ...dummyPlayer, id: 'alive', name: 'Alive' }
+    const deadPlayer: CombatUnit = { ...dummyPlayer, id: 'dead', name: 'Dead', hp: 0 }
+    const team = [alivePlayer, deadPlayer]
+    const result = resolveEvent({ type: 'combat', id: 'test' }, team, 1)
+    expect(result.type).toBe('combat')
+    expect(result.combatResult).toBeDefined()
+    // Dead ally should not have an HP change entry from combat
+    expect(result.hpChanges).not.toHaveProperty('dead')
+  })
+
+  it('should return itemRewards array', () => {
+    const result = resolveEvent({ type: 'combat', id: 'test' }, dummyTeam, 1)
+    expect(Array.isArray(result.itemRewards)).toBe(true)
+  })
+
+  it('dead team should fail combat without fighting', () => {
+    const deadTeam: CombatUnit = [{ ...dummyPlayer, hp: 0 }]
+    const result = resolveEvent({ type: 'combat', id: 'test' }, deadTeam, 1)
+    expect(result.success).toBe(false)
+    expect(result.combatResult).toBeUndefined()
+    expect(result.message).toContain('全军覆没')
   })
 })

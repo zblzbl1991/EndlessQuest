@@ -1,5 +1,8 @@
 // src/systems/item/ItemGenerator.ts
-import type { Equipment, ItemQuality, EquipSlot, ItemStats } from '../../types/item'
+import type { Equipment, ItemQuality, EquipSlot, ItemStats, TechniqueScroll } from '../../types/item'
+import type { TechniqueTier } from '../../types/technique'
+import { TECHNIQUE_TIER_ORDER, TECHNIQUE_TIER_NAMES } from '../../types/technique'
+import { TECHNIQUES } from '../../data/techniquesTable'
 import { QUALITY_NAMES } from '../../data/items'
 
 export interface SlotBaseStats {
@@ -108,4 +111,48 @@ export function getEnhanceCost(item: Equipment, targetLevel: number): { spiritSt
     spiritStone: (targetLevel + 1) * mult * 50,
     ore: (targetLevel + 1) * mult * 5,
   }
+}
+
+// ---------------------------------------------------------------------------
+// Technique scroll generation
+// ---------------------------------------------------------------------------
+
+/** Map technique tier to item quality. mortal -> common, rest map directly. */
+const TIER_TO_QUALITY: Record<TechniqueTier, ItemQuality> = {
+  mortal: 'common',
+  spirit: 'spirit',
+  immortal: 'immortal',
+  divine: 'divine',
+  chaos: 'chaos',
+}
+
+/**
+ * Generate a technique scroll item for a random technique of the given tier.
+ */
+export function generateTechniqueScroll(tier: TechniqueTier): TechniqueScroll {
+  const techniquesOfTier = TECHNIQUES.filter(t => t.tier === tier)
+  if (techniquesOfTier.length === 0) {
+    throw new Error(`No techniques found for tier: ${tier}`)
+  }
+  const technique = techniquesOfTier[Math.floor(Math.random() * techniquesOfTier.length)]
+  const quality = TIER_TO_QUALITY[tier]
+
+  return {
+    id: generateId(),
+    name: `${technique.name}（功法卷轴）`,
+    quality,
+    type: 'techniqueScroll',
+    techniqueId: technique.id,
+    description: `${TECHNIQUE_TIER_NAMES[tier]}功法：${technique.description}`,
+    sellPrice: Math.floor(QUALITY_MULT[quality] * 25),
+  }
+}
+
+/**
+ * Generate a technique scroll for a random tier up to maxTier.
+ */
+export function generateRandomTechniqueScroll(maxTier: TechniqueTier): TechniqueScroll {
+  const maxIdx = TECHNIQUE_TIER_ORDER.indexOf(maxTier)
+  const tier = TECHNIQUE_TIER_ORDER[Math.floor(Math.random() * (maxIdx + 1))]
+  return generateTechniqueScroll(tier)
 }

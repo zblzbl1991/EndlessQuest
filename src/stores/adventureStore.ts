@@ -133,7 +133,7 @@ export const useAdventureStore = create<AdventureState>((set, get) => ({
       player.hp = Math.max(0, currentHp)
       if (player.hp <= 0) break
 
-      const result = resolveEvent(event, player, state.currentFloor)
+      const result = resolveEvent(event, [player], state.currentFloor)
       newEventLog.push(result)
 
       // Apply rewards
@@ -142,8 +142,9 @@ export const useAdventureStore = create<AdventureState>((set, get) => ({
       newReward.ore += result.reward.ore
       newReward.fairyJade += result.reward.fairyJade
 
-      // Apply HP change
-      currentHp = Math.max(0, Math.min(state.playerMaxHp, currentHp + result.hpChange))
+      // Apply HP change (hpChanges is a Record<string, number>)
+      const hpChange = result.hpChanges['player_1'] ?? 0
+      currentHp = Math.max(0, Math.min(state.playerMaxHp, currentHp + hpChange))
 
       // If died in combat, stop processing
       if (player.hp <= 0 && !result.success) break
