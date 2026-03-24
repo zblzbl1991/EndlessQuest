@@ -19,6 +19,7 @@ interface PlayerState {
   unequipItem: (slotIndex: number) => string | null
   equipTechnique: (techId: string, type: TechniqueType) => void
   equipSkill: (skillId: string) => void
+  addCultivation: (amount: number) => void
   getEquippedItemIds: () => (string | null)[]
   getTotalStats: (getEquipmentById: (id: string) => Equipment | undefined) => BaseStats
   reset: () => void
@@ -98,6 +99,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     gear[slotIndex] = null
     set((s) => ({ player: { ...s.player, equippedGear: gear } }))
     return prev
+  },
+  addCultivation: (amount) => {
+    set((s) => ({
+      player: { ...s.player, cultivation: s.player.cultivation + amount },
+    }))
   },
   getEquippedItemIds: () => {
     return get().player.equippedGear
