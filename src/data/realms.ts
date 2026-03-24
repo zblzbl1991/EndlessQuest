@@ -1,4 +1,4 @@
-import type { RealmStage } from '../types/player'
+import type { RealmStage } from '../types/character'
 
 export interface RealmDef {
   name: string

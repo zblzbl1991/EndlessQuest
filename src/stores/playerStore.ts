@@ -5,7 +5,7 @@ import type { TechniqueType } from '../types/skill'
 import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough } from '../systems/cultivation/CultivationEngine'
 import { getEffectiveStats } from '../systems/equipment/EquipmentEngine'
 import { calcTechniqueBonuses } from '../systems/skill/SkillSystem'
-import { getTechniqueById } from '../data/techniques'
+import { getTechniqueById } from '../data/techniquesTable'
 
 const TECHNIQUE_SLOT_INDEX: Record<TechniqueType, number> = {
   mental: 0, body: 1, spiritual: 2,

@@ -7,9 +7,23 @@ export const QUALITY_NAMES: Record<ItemQuality, string> = {
 }
 
 export const QUALITY_COLORS: Record<ItemQuality, string> = {
-  common: 'var(--color-quality-common)', spirit: 'var(--color-quality-spirit)',
-  immortal: 'var(--color-quality-immortal)', divine: 'var(--color-quality-divine)',
+  common: 'var(--color-quality-common)',
+  spirit: 'var(--color-quality-spirit)',
+  immortal: 'var(--color-quality-immortal)',
+  divine: 'var(--color-quality-divine)',
   chaos: 'var(--color-quality-chaos)',
+}
+
+/**
+ * Quality colors specifically for technique scroll items.
+ * Maps each technique tier to its display color.
+ */
+export const TECHNIQUE_SCROLL_COLORS: Record<ItemQuality, string> = {
+  common: '#8B7355',      // Brown — mortal tier
+  spirit: '#4A9EDE',      // Blue — spirit tier
+  immortal: '#A855F7',    // Purple — immortal tier
+  divine: '#F59E0B',      // Gold — divine tier
+  chaos: '#EF4444',       // Red — chaos tier
 }
 
 export const ENHANCE_RATES: number[] = [

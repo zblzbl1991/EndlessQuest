@@ -23,3 +23,16 @@ export const BUILDING_DEFS: BuildingDef[] = [
 export function getBuildingDef(type: BuildingType): BuildingDef | undefined {
   return BUILDING_DEFS.find((b) => b.type === type)
 }
+
+/**
+ * Spirit field production rate (spirit energy per second).
+ * Formula: 1 + (level - 1) * 3  (equivalently: level * 1 + max(0, level - 1) * 3 with a base adjustment)
+ * Which simplifies to: level * 1 + (level - 1) * 3 = 4*level - 3 for level >= 1
+ *
+ * Level 1: 1/s, Level 2: 4/s, Level 3: 7/s,
+ * Level 5: 13/s, Level 10: 28/s
+ */
+export function getSpiritFieldRate(level: number): number {
+  if (level < 1) return 0
+  return 1 + (level - 1) * 3
+}
