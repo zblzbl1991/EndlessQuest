@@ -1,4 +1,9 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { useGameStore } from './stores/gameStore'
+import { usePlayerStore } from './stores/playerStore'
+import { useInventoryStore } from './stores/inventoryStore'
+import { IdleEngine } from './systems/idle/IdleEngine'
 import TopBar from './components/common/TopBar'
 import BottomNav from './components/common/BottomNav'
 import MainHall from './pages/MainHall'
@@ -8,6 +13,27 @@ import Adventure from './pages/Adventure'
 import Inventory from './pages/Inventory'
 
 export default function App() {
+  useEffect(() => {
+    const engine = new IdleEngine()
+
+    engine.start((deltaSec) => {
+      const paused = useGameStore.getState().isPaused
+      if (paused) return
+
+      // 1. Resource production
+      useInventoryStore.getState().tickResourceProduction(deltaSec)
+
+      // 2. Cultivation (spend spirit energy, gain cultivation)
+      const spiritEnergy = useInventoryStore.getState().resources.spiritEnergy
+      const result = usePlayerStore.getState().tick(spiritEnergy, deltaSec)
+      if (result.spiritSpent > 0) {
+        useInventoryStore.getState().spendResource('spiritEnergy', result.spiritSpent)
+      }
+    })
+
+    return () => engine.stop()
+  }, [])
+
   return (
     <BrowserRouter>
       <TopBar />

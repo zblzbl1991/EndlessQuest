@@ -61,7 +61,7 @@ export function tick(
   const spent = SPIRIT_COST_PER_SECOND * deltaSec
 
   // Check if we can level up
-  const needed = getCultivationNeeded(player.realm, player.realmStage)
+  // TODO: auto-level-up when cultivation >= needed (Phase 3)
   let leveledUp = false
   let newRealm = player.realm
   let newStage = player.realmStage
