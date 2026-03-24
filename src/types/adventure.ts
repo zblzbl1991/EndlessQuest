@@ -17,15 +17,18 @@ export interface DungeonEvent {
 }
 
 export interface RouteOption {
+  id: string
   name: string
   description: string
   riskLevel: 'low' | 'medium' | 'high'
   events: DungeonEvent[]
+  reward: { spiritStone: number; herb: number; ore: number; fairyJade: number }
 }
 
 export interface DungeonFloor {
-  number: number
+  floor: number
   routes: RouteOption[]
+  isBossFloor: boolean
 }
 
 export interface Dungeon {

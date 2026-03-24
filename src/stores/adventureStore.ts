@@ -1,284 +1,552 @@
 import { create } from 'zustand'
-import type { Dungeon, DungeonRun } from '../types/adventure'
+import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem } from '../types'
+import { useSectStore } from './sectStore'
 import { DUNGEONS } from '../data/events'
 import { generateDungeonRun } from '../systems/roguelike/MapGenerator'
-import type { DungeonFloor, RouteNode } from '../systems/roguelike/MapGenerator'
 import { resolveEvent } from '../systems/roguelike/EventSystem'
-import type { EventResult } from '../systems/roguelike/EventSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
-import { createPlayerCombatUnit } from '../data/enemies'
+import { createCharacterCombatUnit } from '../data/enemies'
+import { getTechniqueById } from '../data/techniquesTable'
+import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 
-interface AdventureState {
-  // Dungeon list
+// ---------------------------------------------------------------------------
+// Store interface
+// ---------------------------------------------------------------------------
+
+export interface AdventureStore {
+  /** All currently active dungeon runs, keyed by run id (Record for JSON serialization) */
+  activeRuns: Record<string, DungeonRun>
+
+  /** The dungeon definitions available */
   dungeons: Dungeon[]
 
-  // Run state
-  currentRun: DungeonRun | null
-  floors: DungeonFloor[]
-  currentFloor: number
-  selectedRoute: number | null
-  eventLog: EventResult[]
-  totalReward: { spiritStone: number; herb: number; ore: number; fairyJade: number }
-  playerHp: number
-  playerMaxHp: number
-  runComplete: boolean
-  runVictory: boolean
-
-  // Completed dungeons
+  /** Previously completed dungeon IDs */
   completedDungeons: string[]
 
   // Actions
-  startRun: (dungeonId: string, mode: 'idle' | 'manual') => void
-  selectRoute: (routeIndex: number) => void
-  advanceFloor: () => void
-  retreat: () => void
-  endRun: () => void
-
-  // Idle mode
-  idleTick: () => void
-
-  // Reset
-  reset: () => void
+  startRun(dungeonId: string, characterIds: string[]): DungeonRun | null
+  selectRoute(runId: string, routeIndex: number): boolean
+  advanceFloor(runId: string): { success: boolean; message: string }
+  retreat(runId: string): void
+  idleTick(runId: string, deltaSec: number): void
+  tickAllIdle(deltaSec: number): void
+  completeRun(runId: string): void
+  failRun(runId: string): void
+  getRun(id: string): DungeonRun | undefined
+  getMaxSimultaneousRuns(): number
+  reset(): void
 }
 
-function buildPlayerUnit(): CombatUnit {
-  // Use a representative player unit based on base stats.
-  // In a full implementation this would pull from playerStore.
-  return createPlayerCombatUnit({
-    id: 'player_1',
-    name: '无名修士',
-    baseStats: { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 },
-    totalHp: 100,
-    totalAtk: 15,
-    totalDef: 8,
-    totalSpd: 10,
-    totalCrit: 0.05,
-    totalCritDmg: 1.5,
-  })
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+let _runCounter = 0
+
+function generateRunId(): string {
+  return 'run_' + Date.now() + '_' + (++_runCounter)
 }
+
+/** Find a dungeon by its ID */
+function findDungeon(dungeonId: string): Dungeon | undefined {
+  return DUNGEONS.find((d) => d.id === dungeonId)
+}
+
+/** Pick safest route index (lowest risk) from a floor */
+function pickSafestRoute(floor: DungeonFloor): number {
+  const riskOrder: Record<string, number> = { low: 0, medium: 1, high: 2 }
+  return floor.routes.reduce(
+    (best, route, idx) =>
+      (riskOrder[route.riskLevel] ?? 2) < (riskOrder[floor.routes[best].riskLevel] ?? 2) ? idx : best,
+    0,
+  )
+}
+
+/** Empty Resources object */
+function emptyResources(): Resources {
+  return {
+    spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0,
+    fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0,
+  }
+}
+
+/** Deposit resources into sectStore via addResource */
+function depositResourcesToSect(resources: Resources): void {
+  const sectStore = useSectStore.getState()
+  for (const [key, value] of Object.entries(resources)) {
+    if (value > 0) {
+      sectStore.addResource(key as keyof Resources, value)
+    }
+  }
+}
+
+/** Deposit resources at a given fraction (truncated) */
+function depositFractionResourcesToSect(resources: Resources, fraction: number): void {
+  const sectStore = useSectStore.getState()
+  for (const [key, value] of Object.entries(resources)) {
+    const amount = Math.floor(value * fraction)
+    if (amount > 0) {
+      sectStore.addResource(key as keyof Resources, amount)
+    }
+  }
+}
+
+/** Deposit item rewards into sectStore vault */
+function depositItemsToVault(items: AnyItem[]): void {
+  const sectStore = useSectStore.getState()
+  for (const item of items) {
+    sectStore.addToVault(item)
+  }
+}
+
+/** Get the sect's effective level from mainHall building */
+function getSectLevel(): number {
+  const { sect } = useSectStore.getState()
+  const mainHall = sect.buildings.find((b) => b.type === 'mainHall')
+  const mainHallLevel = mainHall?.level ?? 1
+  // Derive sect level from mainHall level (matches CharacterEngine.calcSectLevel)
+  const table = [1, 3, 5, 8, 10]
+  let level = 1
+  for (let i = 0; i < table.length; i++) {
+    if (mainHallLevel >= table[i]) level = i + 1
+    else break
+  }
+  return level
+}
+
+/** Build CombatUnits from alive team members in a run */
+function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
+  const { sect } = useSectStore.getState()
+  const units: CombatUnit[] = []
+
+  for (const charId of run.teamCharacterIds) {
+    const memberState = run.memberStates[charId]
+    if (!memberState || memberState.status === 'dead') continue
+
+    const character = sect.characters.find((c) => c.id === charId)
+    if (!character) continue
+
+    const technique = character.currentTechnique
+      ? getTechniqueById(character.currentTechnique) ?? null
+      : null
+
+    const unit = createCharacterCombatUnit(character, technique)
+    // Override HP with current member state HP (not max)
+    unit.hp = memberState.currentHp
+    units.push(unit)
+  }
+
+  return units
+}
+
+// ---------------------------------------------------------------------------
+// Store implementation
+// ---------------------------------------------------------------------------
+
+export const useAdventureStore = create<AdventureStore>((set, get) => ({
+  activeRuns: {},
+  dungeons: DUNGEONS,
+  completedDungeons: [],
+
+  startRun: (dungeonId, characterIds) => {
+    const state = get()
+    const dungeon = findDungeon(dungeonId)
+    if (!dungeon) return null
+
+    // 1. Check active run count
+    const maxRuns = state.getMaxSimultaneousRuns()
+    if (Object.keys(state.activeRuns).length >= maxRuns) return null
+
+    // 2. Check team size (1-5)
+    if (characterIds.length < 1 || characterIds.length > 5) return null
+
+    const sectStore = useSectStore.getState()
+    const { sect } = sectStore
+
+    // 3. Validate each character
+    const memberStates: DungeonRun['memberStates'] = {}
+    for (const charId of characterIds) {
+      const character = sect.characters.find((c) => c.id === charId)
+      if (!character) return null
+
+      // Check status: must be cultivating or resting (not adventuring)
+      if (character.status !== 'cultivating' && character.status !== 'resting') return null
+
+      // Check not already in another run
+      for (const run of Object.values(state.activeRuns)) {
+        if (run.teamCharacterIds.includes(charId)) return null
+      }
+
+      // Build combat unit for HP calculation
+      const technique = character.currentTechnique
+        ? getTechniqueById(character.currentTechnique) ?? null
+        : null
+      const unit = createCharacterCombatUnit(character, technique)
+
+      memberStates[charId] = {
+        currentHp: unit.maxHp,
+        maxHp: unit.maxHp,
+        status: 'alive',
+      }
+    }
+
+    // 6. Set all character statuses to 'adventuring'
+    for (const charId of characterIds) {
+      sectStore.setCharacterStatus(charId, 'adventuring')
+    }
+
+    // 7. Generate dungeon floors
+    const floors = generateDungeonRun(dungeon)
+
+    // 8. Create run
+    const runId = generateRunId()
+    const run: DungeonRun = {
+      id: runId,
+      dungeonId,
+      teamCharacterIds: [...characterIds],
+      currentFloor: 1,
+      floors,
+      memberStates,
+      totalRewards: emptyResources(),
+      itemRewards: [],
+      eventLog: [{ timestamp: Date.now(), message: `进入${dungeon.name}` }],
+      status: 'active',
+    }
+
+    set((s) => ({
+      activeRuns: { ...s.activeRuns, [runId]: run },
+    }))
+
+    return run
+  },
+
+  selectRoute: (runId, routeIndex) => {
+    const state = get()
+    const run = state.activeRuns[runId]
+    if (!run || run.status !== 'active') return false
+
+    const floor = run.floors[run.currentFloor - 1]
+    if (!floor) return false
+
+    if (routeIndex < 0 || routeIndex >= floor.routes.length) return false
+
+    // Get alive team
+    const aliveUnits = buildAliveTeamUnits(run)
+    if (aliveUnits.length === 0) {
+      get().failRun(runId)
+      return false
+    }
+
+    const route = floor.routes[routeIndex]
+    const newMemberStates = { ...run.memberStates }
+    const newRewards = { ...run.totalRewards }
+    const newItemRewards = [...run.itemRewards]
+    const newLog = [...run.eventLog]
+
+    // Resolve all events on the route
+    for (const event of route.events) {
+      // Rebuild alive team from updated states
+      const currentUnits = buildAliveTeamUnits({ ...run, memberStates: newMemberStates })
+      if (currentUnits.length === 0) break
+
+      const result = resolveEvent(event, currentUnits, run.currentFloor)
+
+      // Apply HP changes to member states
+      for (const charId of run.teamCharacterIds) {
+        const hpChange = result.hpChanges[charId]
+        if (hpChange === undefined) continue
+        const ms = newMemberStates[charId]
+        if (!ms || ms.status === 'dead') continue
+
+        ms.currentHp = Math.max(0, Math.min(ms.maxHp, ms.currentHp + hpChange))
+        if (ms.currentHp <= 0) {
+          ms.status = 'dead'
+        } else if (ms.currentHp < ms.maxHp * 0.3) {
+          ms.status = 'wounded'
+        }
+      }
+
+      // Accumulate rewards
+      newRewards.spiritStone += result.reward.spiritStone
+      newRewards.herb += result.reward.herb
+      newRewards.ore += result.reward.ore
+      newRewards.fairyJade += result.reward.fairyJade
+
+      // Accumulate item rewards
+      for (const item of result.itemRewards) {
+        newItemRewards.push(item)
+      }
+
+      // Log entry
+      newLog.push({
+        timestamp: Date.now(),
+        message: result.message,
+      })
+    }
+
+    // Check if all members are dead
+    const allDead = run.teamCharacterIds.every(
+      (cid) => newMemberStates[cid]?.status === 'dead',
+    )
+    if (allDead) {
+      // Update run state before failing
+      set((s) => ({
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...s.activeRuns[runId]!,
+            memberStates: newMemberStates,
+            totalRewards: newRewards,
+            itemRewards: newItemRewards,
+            eventLog: newLog,
+          },
+        },
+      }))
+      get().failRun(runId)
+      return false
+    }
+
+    // Increment currentFloor
+    const nextFloor = run.currentFloor + 1
+
+    // If next floor exceeds total floors, complete the run
+    if (nextFloor > run.floors.length) {
+      set((s) => ({
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...s.activeRuns[runId]!,
+            currentFloor: nextFloor,
+            memberStates: newMemberStates,
+            totalRewards: newRewards,
+            itemRewards: newItemRewards,
+            eventLog: newLog,
+          },
+        },
+      }))
+      get().completeRun(runId)
+      return true
+    }
+
+    // Update run with new floor and states
+    set((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [runId]: {
+          ...s.activeRuns[runId]!,
+          currentFloor: nextFloor,
+          memberStates: newMemberStates,
+          totalRewards: newRewards,
+          itemRewards: newItemRewards,
+          eventLog: newLog,
+        },
+      },
+    }))
+
+    return true
+  },
+
+  advanceFloor: (runId) => {
+    const state = get()
+    const run = state.activeRuns[runId]
+    if (!run || run.status !== 'active') {
+      return { success: false, message: '无法前进：未找到进行中的秘境' }
+    }
+
+    // Check if there are alive members
+    const hasAlive = run.teamCharacterIds.some(
+      (cid) => run.memberStates[cid]?.status !== 'dead',
+    )
+    if (!hasAlive) {
+      get().failRun(runId)
+      return { success: false, message: '队伍已全军覆没' }
+    }
+
+    // Check if already at or past the end
+    if (run.currentFloor > run.floors.length) {
+      return { success: false, message: '已到达最后一层' }
+    }
+
+    // Auto-pick safest route and resolve
+    const floor = run.floors[run.currentFloor - 1]
+    if (!floor) {
+      return { success: false, message: '楼层不存在' }
+    }
+
+    const safestIdx = pickSafestRoute(floor)
+    const success = state.selectRoute(runId, safestIdx)
+
+    if (success) {
+      return { success: true, message: '前进成功' }
+    }
+
+    // selectRoute handles failRun internally if needed
+    return { success: false, message: '前进失败' }
+  },
+
+  retreat: (runId) => {
+    const state = get()
+    const run = state.activeRuns[runId]
+    if (!run || run.status !== 'active') return
+
+    // 1. Deposit 50% of totalRewards
+    depositFractionResourcesToSect(run.totalRewards, 0.5)
+
+    // 2. Deposit all itemRewards to vault
+    depositItemsToVault(run.itemRewards)
+
+    // 3. Set member character statuses: alive -> cultivating, wounded/dead -> resting
+    const sectStore = useSectStore.getState()
+    for (const charId of run.teamCharacterIds) {
+      const memberState = run.memberStates[charId]
+      if (!memberState) continue
+
+      if (memberState.status === 'alive' || memberState.status === 'wounded') {
+        sectStore.setCharacterStatus(charId, 'cultivating')
+      } else {
+        // Dead characters go to resting
+        sectStore.setCharacterStatus(charId, 'resting')
+      }
+    }
+
+    // 4. Remove run
+    set((s) => {
+      const newRuns = { ...s.activeRuns }
+      delete newRuns[runId]
+      return { activeRuns: newRuns }
+    })
+  },
+
+  idleTick: (runId, _deltaSec) => {
+    const state = get()
+    const run = state.activeRuns[runId]
+    if (!run || run.status !== 'active') return
+
+    // Check if any alive member is below 30% HP -> retreat
+    for (const charId of run.teamCharacterIds) {
+      const ms = run.memberStates[charId]
+      if (!ms || ms.status === 'dead') continue
+      if (ms.currentHp < ms.maxHp * 0.3) {
+        get().retreat(runId)
+        return
+      }
+    }
+
+    // Check if there are alive members
+    const hasAlive = run.teamCharacterIds.some(
+      (cid) => run.memberStates[cid]?.status !== 'dead',
+    )
+    if (!hasAlive) {
+      get().failRun(runId)
+      return
+    }
+
+    // Check if we've cleared all floors
+    if (run.currentFloor > run.floors.length) {
+      get().completeRun(runId)
+      return
+    }
+
+    // Auto-pick safest route and advance
+    const floor = run.floors[run.currentFloor - 1]
+    if (!floor) return
+
+    const safestIdx = pickSafestRoute(floor)
+    state.selectRoute(runId, safestIdx)
+  },
+
+  tickAllIdle: (deltaSec) => {
+    const state = get()
+    for (const runId of Object.keys(state.activeRuns)) {
+      state.idleTick(runId, deltaSec)
+    }
+  },
+
+  completeRun: (runId) => {
+    const state = get()
+    const run = state.activeRuns[runId]
+    if (!run || run.status !== 'active') return
+
+    // 1. Deposit 100% of totalRewards
+    depositResourcesToSect(run.totalRewards)
+
+    // 2. Deposit all itemRewards to vault
+    depositItemsToVault(run.itemRewards)
+
+    // 3. Set character statuses: alive/wounded -> cultivating, dead -> resting
+    const sectStore = useSectStore.getState()
+    for (const charId of run.teamCharacterIds) {
+      const memberState = run.memberStates[charId]
+      if (!memberState) continue
+
+      if (memberState.status === 'alive' || memberState.status === 'wounded') {
+        sectStore.setCharacterStatus(charId, 'cultivating')
+      } else {
+        sectStore.setCharacterStatus(charId, 'resting')
+      }
+    }
+
+    // 4. Add to completed dungeons
+    set((s) => {
+      const newRuns = { ...s.activeRuns }
+      delete newRuns[runId]
+      return {
+        activeRuns: newRuns,
+        completedDungeons: s.completedDungeons.includes(run.dungeonId)
+          ? s.completedDungeons
+          : [...s.completedDungeons, run.dungeonId],
+      }
+    })
+  },
+
+  failRun: (runId) => {
+    const state = get()
+    const run = state.activeRuns[runId]
+    if (!run || run.status !== 'active') return
+
+    // 1. Deposit 50% of totalRewards
+    depositFractionResourcesToSect(run.totalRewards, 0.5)
+
+    // 2. Deposit all itemRewards to vault
+    depositItemsToVault(run.itemRewards)
+
+    // 3. Set ALL characters to resting (barely escaped)
+    const sectStore = useSectStore.getState()
+    for (const charId of run.teamCharacterIds) {
+      sectStore.setCharacterStatus(charId, 'resting')
+    }
+
+    // 4. Remove run
+    set((s) => {
+      const newRuns = { ...s.activeRuns }
+      delete newRuns[runId]
+      return { activeRuns: newRuns }
+    })
+  },
+
+  getRun: (id) => {
+    return get().activeRuns[id]
+  },
+
+  getMaxSimultaneousRuns: () => {
+    const level = getSectLevel()
+    return getMaxSimultaneousRuns(level)
+  },
+
+  reset: () =>
+    set({
+      activeRuns: {},
+      completedDungeons: [],
+    }),
+}))
+
+// ---------------------------------------------------------------------------
+// Backward-compatible helper
+// ---------------------------------------------------------------------------
 
 function isDungeonUnlocked(dungeon: Dungeon, playerRealm: number, playerStage: number): boolean {
   return playerRealm > dungeon.unlockRealm
     || (playerRealm === dungeon.unlockRealm && playerStage >= dungeon.unlockStage)
 }
-
-export const useAdventureStore = create<AdventureState>((set, get) => ({
-  dungeons: DUNGEONS,
-
-  currentRun: null,
-  floors: [],
-  currentFloor: 0,
-  selectedRoute: null,
-  eventLog: [],
-  totalReward: { spiritStone: 0, herb: 0, ore: 0, fairyJade: 0 },
-  playerHp: 0,
-  playerMaxHp: 0,
-  runComplete: false,
-  runVictory: false,
-
-  completedDungeons: [],
-
-  startRun: (dungeonId, mode) => {
-    const dungeon = DUNGEONS.find((d) => d.id === dungeonId)
-    if (!dungeon) return
-
-    const floors = generateDungeonRun(dungeon)
-    const player = buildPlayerUnit()
-
-    set({
-      currentRun: {
-        dungeonId,
-        currentLayer: 1,
-        teamHp: [],
-        mode,
-        buffs: [],
-        tempSkills: [],
-        currency: 0,
-        startedAt: Date.now(),
-        paused: false,
-      },
-      floors,
-      currentFloor: 1,
-      selectedRoute: null,
-      eventLog: [],
-      totalReward: { spiritStone: 0, herb: 0, ore: 0, fairyJade: 0 },
-      playerHp: player.maxHp,
-      playerMaxHp: player.maxHp,
-      runComplete: false,
-      runVictory: false,
-    })
-  },
-
-  selectRoute: (routeIndex: number) => {
-    const state = get()
-    if (state.runComplete) return
-
-    const floor = state.floors[state.currentFloor - 1]
-    if (!floor) return
-
-    const route: RouteNode | undefined = floor.routes[routeIndex]
-    if (!route) return
-
-    // Build current player unit with current HP
-    const player = buildPlayerUnit()
-    player.hp = state.playerHp
-
-    const newEventLog: EventResult[] = [...state.eventLog]
-    let currentHp = state.playerHp
-    const newReward = { ...state.totalReward }
-
-    // Resolve all events on the route
-    for (const event of route.events) {
-      // Update player HP before each event
-      player.hp = Math.max(0, currentHp)
-      if (player.hp <= 0) break
-
-      const result = resolveEvent(event, [player], state.currentFloor)
-      newEventLog.push(result)
-
-      // Apply rewards
-      newReward.spiritStone += result.reward.spiritStone
-      newReward.herb += result.reward.herb
-      newReward.ore += result.reward.ore
-      newReward.fairyJade += result.reward.fairyJade
-
-      // Apply HP change (hpChanges is a Record<string, number>)
-      const hpChange = result.hpChanges['player_1'] ?? 0
-      currentHp = Math.max(0, Math.min(state.playerMaxHp, currentHp + hpChange))
-
-      // If died in combat, stop processing
-      if (player.hp <= 0 && !result.success) break
-    }
-
-    // Update run layer
-    const newRun = state.currentRun ? { ...state.currentRun, currentLayer: state.currentFloor + 1 } : null
-
-    set({
-      eventLog: newEventLog,
-      totalReward: newReward,
-      playerHp: currentHp,
-      selectedRoute: routeIndex,
-      currentRun: newRun,
-    })
-
-    // Check if player died
-    if (currentHp <= 0) {
-      set({ runComplete: true, runVictory: false })
-    }
-  },
-
-  advanceFloor: () => {
-    const state = get()
-    if (state.runComplete) return
-    if (state.playerHp <= 0) {
-      set({ runComplete: true, runVictory: false })
-      return
-    }
-
-    const nextFloor = state.currentFloor + 1
-    if (nextFloor > state.floors.length) {
-      // All floors cleared - victory!
-      set({ runComplete: true, runVictory: true })
-      return
-    }
-
-    const newRun = state.currentRun ? { ...state.currentRun, currentLayer: nextFloor } : null
-
-    set({
-      currentFloor: nextFloor,
-      selectedRoute: null,
-      currentRun: newRun,
-    })
-  },
-
-  retreat: () => {
-    set({ runComplete: true, runVictory: false })
-  },
-
-  endRun: () => {
-    const state = get()
-    if (state.runVictory && state.currentRun) {
-      // Mark dungeon as completed on victory
-      set((s) => ({
-        currentRun: null,
-        floors: [],
-        currentFloor: 0,
-        selectedRoute: null,
-        eventLog: [],
-        totalReward: { spiritStone: 0, herb: 0, ore: 0, fairyJade: 0 },
-        playerHp: 0,
-        playerMaxHp: 0,
-        runComplete: false,
-        runVictory: false,
-        completedDungeons: s.currentRun && s.runVictory
-          ? [...s.completedDungeons, s.currentRun.dungeonId]
-          : s.completedDungeons,
-      }))
-    } else {
-      set({
-        currentRun: null,
-        floors: [],
-        currentFloor: 0,
-        selectedRoute: null,
-        eventLog: [],
-        totalReward: { spiritStone: 0, herb: 0, ore: 0, fairyJade: 0 },
-        playerHp: 0,
-        playerMaxHp: 0,
-        runComplete: false,
-        runVictory: false,
-      })
-    }
-  },
-
-  idleTick: () => {
-    const state = get()
-    if (!state.currentRun || state.currentRun.mode !== 'idle') return
-    if (state.runComplete) return
-
-    // If player HP is too low (< 30%), retreat
-    if (state.playerHp < state.playerMaxHp * 0.3) {
-      get().retreat()
-      return
-    }
-
-    // If no route selected for current floor, pick safest
-    if (state.selectedRoute === null) {
-      const floor = state.floors[state.currentFloor - 1]
-      if (!floor) return
-
-      // Boss floor has only one route
-      if (floor.isBossFloor) {
-        get().selectRoute(0)
-      } else {
-        // Pick safest (lowest risk) route
-        const riskOrder = { low: 0, medium: 1, high: 2 }
-        const safestIdx = floor.routes.reduce(
-          (best, route, idx) => (riskOrder[route.riskLevel] < riskOrder[floor.routes[best].riskLevel] ? idx : best),
-          0,
-        )
-        get().selectRoute(safestIdx)
-      }
-      return
-    }
-
-    // Route was selected, advance floor
-    get().advanceFloor()
-  },
-
-  reset: () =>
-    set({
-      currentRun: null,
-      floors: [],
-      currentFloor: 0,
-      selectedRoute: null,
-      eventLog: [],
-      totalReward: { spiritStone: 0, herb: 0, ore: 0, fairyJade: 0 },
-      playerHp: 0,
-      playerMaxHp: 0,
-      runComplete: false,
-      runVictory: false,
-      completedDungeons: [],
-    }),
-}))
 
 export { isDungeonUnlocked }

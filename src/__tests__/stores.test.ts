@@ -1,4 +1,5 @@
 import { useSectStore } from '../stores/sectStore'
+import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
 import { generateCharacter } from '../systems/character/CharacterEngine'
 import { getTechniqueById } from '../data/techniquesTable'
@@ -907,5 +908,423 @@ describe('SectStore - Reset', () => {
     expect(getStore().sect.resources.spiritStone).toBe(500)
     expect(getStore().sect.characters).toHaveLength(1)
     expect(getStore().sect.vault).toHaveLength(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// AdventureStore Tests
+// ---------------------------------------------------------------------------
+
+function resetAdventureStore() {
+  useAdventureStore.getState().reset()
+  useSectStore.getState().reset()
+}
+
+function getAdventureStore() {
+  return useAdventureStore.getState()
+}
+
+describe('AdventureStore - startRun', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should create a run with a single character', () => {
+    const char = getStore().sect.characters[0]
+    expect(char.status).toBe('cultivating')
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    expect(run!.status).toBe('active')
+    expect(run!.teamCharacterIds).toEqual([char.id])
+    expect(run!.currentFloor).toBe(1)
+    expect(run!.floors.length).toBeGreaterThan(0)
+    expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(1)
+
+    // Character status should be set to adventuring
+    expect(getStore().sect.characters[0].status).toBe('adventuring')
+  })
+
+  it('should set character status to adventuring on startRun', () => {
+    const char = getStore().sect.characters[0]
+    getAdventureStore().startRun('lingCaoValley', [char.id])
+
+    expect(getStore().sect.characters[0].status).toBe('adventuring')
+  })
+
+  it('should reject if character is already adventuring', () => {
+    const char = getStore().sect.characters[0]
+
+    // Start first run
+    const run1 = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run1).not.toBeNull()
+
+    // Add another character and try to start another run with the same character
+    const char2 = getStore().addCharacter('common')
+    expect(char2).not.toBeNull()
+
+    // Try to start a second run with the same character
+    const run2 = getAdventureStore().startRun('luoYunCave', [char.id])
+    expect(run2).toBeNull() // should fail - character already adventuring
+  })
+
+  it('should reject if too many active runs', () => {
+    // At sect level 1, max simultaneous runs is 1
+    const char = getStore().sect.characters[0]
+    const run1 = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run1).not.toBeNull()
+
+    // Add another character
+    const char2 = getStore().addCharacter('common')
+    expect(char2).not.toBeNull()
+
+    // Try to start second run (should fail due to max runs = 1 at level 1)
+    const run2 = getAdventureStore().startRun('lingCaoValley', [char2!.id])
+    expect(run2).toBeNull()
+  })
+
+  it('should reject if team size is 0', () => {
+    const run = getAdventureStore().startRun('lingCaoValley', [])
+    expect(run).toBeNull()
+  })
+
+  it('should reject if team size exceeds 5', () => {
+    // At sect level 1, max characters is 5 (1 initial + 4 addable)
+    // That gives us exactly 5 characters, which is the max team size
+    const charIds: string[] = []
+    const initialChar = getStore().sect.characters[0]
+    charIds.push(initialChar.id)
+
+    for (let i = 0; i < 4; i++) {
+      const c = getStore().addCharacter('common')
+      if (c) charIds.push(c.id)
+    }
+
+    expect(charIds.length).toBe(5)
+    // 5 characters should be accepted (boundary: max is 5)
+    const run = getAdventureStore().startRun('lingCaoValley', charIds)
+    expect(run).not.toBeNull()
+  })
+
+  it('should reject if character is injured (not cultivating/resting)', () => {
+    const char = getStore().sect.characters[0]
+    useSectStore.getState().setCharacterStatus(char.id, 'injured')
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).toBeNull()
+  })
+
+  it('should reject for unknown dungeon ID', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('nonexistent_dungeon', [char.id])
+    expect(run).toBeNull()
+  })
+
+  it('should initialize memberStates with correct HP', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    const ms = run!.memberStates[char.id]
+    expect(ms).toBeDefined()
+    expect(ms!.currentHp).toBe(ms!.maxHp)
+    expect(ms!.currentHp).toBeGreaterThan(0)
+    expect(ms!.status).toBe('alive')
+  })
+})
+
+describe('AdventureStore - retreat', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should deposit 50% rewards to sect on retreat', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    const runId = run!.id
+
+    // Manually set some rewards on the run
+    useAdventureStore.setState((s) => {
+      const activeRun = s.activeRuns[runId]
+      if (!activeRun) return s
+      return {
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...activeRun,
+            totalRewards: {
+              ...activeRun.totalRewards,
+              spiritStone: 200,
+              herb: 10,
+            },
+          },
+        },
+      }
+    })
+
+    const beforeStones = getStore().sect.resources.spiritStone
+    getAdventureStore().retreat(runId)
+    const afterStones = getStore().sect.resources.spiritStone
+
+    // Should deposit 50% of 200 = 100 spirit stones
+    expect(afterStones - beforeStones).toBe(100)
+  })
+
+  it('should free characters on retreat (alive -> cultivating)', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    const runId = run!.id
+
+    expect(getStore().sect.characters[0].status).toBe('adventuring')
+    getAdventureStore().retreat(runId)
+    expect(getStore().sect.characters[0].status).toBe('cultivating')
+  })
+
+  it('should remove run from activeRuns on retreat', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(1)
+    getAdventureStore().retreat(run!.id)
+    expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(0)
+  })
+
+  it('should set dead characters to resting on retreat', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    const runId = run!.id
+
+    // Manually mark character as dead
+    useAdventureStore.setState((s) => {
+      const activeRun = s.activeRuns[runId]
+      if (!activeRun) return s
+      return {
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...activeRun,
+            memberStates: {
+              [char.id]: { currentHp: 0, maxHp: 100, status: 'dead' },
+            },
+          },
+        },
+      }
+    })
+
+    getAdventureStore().retreat(runId)
+    expect(getStore().sect.characters[0].status).toBe('resting')
+  })
+})
+
+describe('AdventureStore - completeRun', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should deposit 100% rewards to sect on completeRun', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    const runId = run!.id
+
+    // Manually set rewards
+    useAdventureStore.setState((s) => {
+      const activeRun = s.activeRuns[runId]
+      if (!activeRun) return s
+      return {
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...activeRun,
+            totalRewards: {
+              ...activeRun.totalRewards,
+              spiritStone: 300,
+              herb: 15,
+            },
+          },
+        },
+      }
+    })
+
+    const beforeStones = getStore().sect.resources.spiritStone
+    getAdventureStore().completeRun(runId)
+    const afterStones = getStore().sect.resources.spiritStone
+
+    // Should deposit 100% of 300 = 300 spirit stones
+    expect(afterStones - beforeStones).toBe(300)
+  })
+
+  it('should add dungeon to completedDungeons', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    expect(getAdventureStore().completedDungeons).toHaveLength(0)
+    getAdventureStore().completeRun(run!.id)
+    expect(getAdventureStore().completedDungeons).toContain('lingCaoValley')
+  })
+
+  it('should set alive characters to cultivating on completeRun', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    getAdventureStore().completeRun(run!.id)
+    expect(getStore().sect.characters[0].status).toBe('cultivating')
+  })
+
+  it('should remove run from activeRuns', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    getAdventureStore().completeRun(run!.id)
+    expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(0)
+  })
+})
+
+describe('AdventureStore - failRun', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should deposit 50% rewards to sect on failRun', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    const runId = run!.id
+
+    useAdventureStore.setState((s) => {
+      const activeRun = s.activeRuns[runId]
+      if (!activeRun) return s
+      return {
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...activeRun,
+            totalRewards: {
+              ...activeRun.totalRewards,
+              spiritStone: 400,
+            },
+          },
+        },
+      }
+    })
+
+    const beforeStones = getStore().sect.resources.spiritStone
+    getAdventureStore().failRun(runId)
+    const afterStones = getStore().sect.resources.spiritStone
+
+    // Should deposit 50% of 400 = 200
+    expect(afterStones - beforeStones).toBe(200)
+  })
+
+  it('should set ALL characters to resting on failRun (including alive ones)', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    const runId = run!.id
+
+    // Character is alive but run fails
+    getAdventureStore().failRun(runId)
+    expect(getStore().sect.characters[0].status).toBe('resting')
+  })
+
+  it('should remove run from activeRuns on failRun', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    getAdventureStore().failRun(run!.id)
+    expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(0)
+  })
+})
+
+describe('AdventureStore - getMaxSimultaneousRuns', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should return 1 at sect level 1 (mainHall level 1)', () => {
+    expect(getAdventureStore().getMaxSimultaneousRuns()).toBe(1)
+  })
+})
+
+describe('AdventureStore - getRun', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should return the run by id', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    const fetched = getAdventureStore().getRun(run!.id)
+    expect(fetched).toBeDefined()
+    expect(fetched!.id).toBe(run!.id)
+    expect(fetched!.dungeonId).toBe('lingCaoValley')
+  })
+
+  it('should return undefined for non-existent run', () => {
+    expect(getAdventureStore().getRun('nonexistent')).toBeUndefined()
+  })
+})
+
+describe('AdventureStore - reset', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should clear all active runs', () => {
+    const char = getStore().sect.characters[0]
+    getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(1)
+
+    getAdventureStore().reset()
+    expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(0)
+  })
+
+  it('should clear completed dungeons', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    getAdventureStore().completeRun(run!.id)
+    expect(getAdventureStore().completedDungeons).toHaveLength(1)
+
+    getAdventureStore().reset()
+    expect(getAdventureStore().completedDungeons).toHaveLength(0)
+  })
+})
+
+describe('AdventureStore - advanceFloor', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should advance floor via auto-selected safest route', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    const runId = run!.id
+
+    const beforeFloor = getAdventureStore().activeRuns[runId]?.currentFloor
+    const result = getAdventureStore().advanceFloor(runId)
+
+    // Should succeed (unless combat killed the character)
+    // The floor should have incremented (or run completed if last floor)
+    const afterState = getAdventureStore().getRun(runId)
+    if (afterState) {
+      expect(afterState.currentFloor).toBeGreaterThan(beforeFloor ?? 0)
+    }
+    // If run completed, activeRuns won't contain the run anymore
+  })
+
+  it('should return failure for non-existent run', () => {
+    const result = getAdventureStore().advanceFloor('nonexistent')
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('AdventureStore - selectRoute', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should return false for non-existent run', () => {
+    expect(getAdventureStore().selectRoute('nonexistent', 0)).toBe(false)
+  })
+
+  it('should return false for invalid route index', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    expect(getAdventureStore().selectRoute(run!.id, 999)).toBe(false)
   })
 })

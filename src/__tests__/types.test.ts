@@ -105,8 +105,8 @@ describe('Character types', () => {
   })
 
   it('should accept all CharacterStatus values', () => {
-    const statuses: CharacterStatus[] = ['idle', 'cultivating', 'adventuring', 'injured', 'training']
-    expect(statuses).toHaveLength(5)
+    const statuses: CharacterStatus[] = ['idle', 'cultivating', 'adventuring', 'injured', 'resting', 'training']
+    expect(statuses).toHaveLength(6)
   })
 
   it('should accept all RealmStage values', () => {
@@ -355,15 +355,18 @@ describe('Adventure types', () => {
 
   it('should create a DungeonFloor (renamed from DungeonLayer)', () => {
     const floor: DungeonFloor = {
-      number: 1,
+      floor: 1,
+      isBossFloor: false,
       routes: [{
+        id: 'route_1_0',
         name: '安全路线',
         description: '低风险',
         riskLevel: 'low',
         events: [{ type: 'combat' }],
+        reward: { spiritStone: 100, herb: 5, ore: 3, fairyJade: 0 },
       }],
     }
-    expect(floor.number).toBe(1)
+    expect(floor.floor).toBe(1)
   })
 
   it('should create a new DungeonRun with team-based structure', () => {

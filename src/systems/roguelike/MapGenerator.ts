@@ -1,19 +1,7 @@
-import type { Dungeon, DungeonEvent } from '../../types/adventure'
+import type { Dungeon, DungeonEvent, RouteOption, DungeonFloor } from '../../types/adventure'
 
-export interface RouteNode {
-  id: string
-  name: string
-  description: string
-  riskLevel: 'low' | 'medium' | 'high'
-  events: DungeonEvent[]
-  reward: { spiritStone: number; herb: number; ore: number; fairyJade: number }
-}
-
-export interface DungeonFloor {
-  floor: number
-  routes: RouteNode[]
-  isBossFloor: boolean
-}
+// Re-export for backward compatibility
+export type { RouteOption as RouteNode, DungeonFloor }
 
 const ROUTE_NAMES = ['安全小径', '探索之路', '危险通道', '幽暗密林', '古遗迹']
 const ROUTE_DESCS: Record<string, string> = {
@@ -48,7 +36,7 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
     }
   }
 
-  const routes: RouteNode[] = []
+  const routes: RouteOption[] = []
   const numRoutes = 2 + Math.floor(Math.random() * 2) // 2-3 routes
 
   for (let i = 0; i < numRoutes; i++) {

@@ -4,7 +4,7 @@ export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
 
 export type CharacterQuality = 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
 
-export type CharacterStatus = 'idle' | 'cultivating' | 'adventuring' | 'injured' | 'training'
+export type CharacterStatus = 'idle' | 'cultivating' | 'adventuring' | 'injured' | 'resting' | 'training'
 
 export type RealmStage = 0 | 1 | 2 | 3
 
