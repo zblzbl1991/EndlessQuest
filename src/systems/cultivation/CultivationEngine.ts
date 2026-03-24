@@ -1,5 +1,7 @@
-import type { Player, BaseStats, RealmStage } from '../../types/player'
+import type { Character, BaseStats, RealmStage } from '../../types/character'
+import type { Technique } from '../../types/technique'
 import { REALMS, getCultivationNeeded } from '../../data/realms'
+import { getComprehensionEffect, getActiveBonuses } from '../technique/TechniqueSystem'
 
 // Base cultivation rate: 修为 per second
 const BASE_CULTIVATION_RATE = 5
@@ -19,24 +21,38 @@ const MAJOR_REALM_STAT_MULT = 1.8
 export interface TickResult {
   cultivationGained: number
   spiritSpent: number
-  leveledUp: boolean
-  newRealm: number
-  newStage: RealmStage
 }
 
 export interface BreakthroughResult {
   success: boolean
   newRealm: number
   newStage: RealmStage
-  oldStats: BaseStats
   newStats: BaseStats
+  oldStats: BaseStats
 }
 
-export function calcCultivationRate(player: Player): number {
-  const spiritualRoot = player.cultivationStats.spiritualRoot
-  const rootBonus = 1 + (spiritualRoot - 10) * 0.02  // base 10 = +0%, each point +2%
-  const realmMult = REALM_CULTIVATION_MULT[player.realm] ?? 0.5
-  return BASE_CULTIVATION_RATE * rootBonus * realmMult
+/**
+ * Calculate cultivation rate per second for a character.
+ *
+ * Takes optional technique into account for cultivationRate bonus.
+ */
+export function calcCultivationRate(character: Character, technique: Technique | null): number {
+  const spiritualRoot = character.cultivationStats.spiritualRoot
+  const rootBonus = 1 + (spiritualRoot - 10) * 0.02 // base 10 = +0%, each point +2%
+  const realmMult = REALM_CULTIVATION_MULT[character.realm] ?? 0.5
+
+  let rate = BASE_CULTIVATION_RATE * rootBonus * realmMult
+
+  // Apply cultivationRate bonus from technique's fixed bonuses
+  if (technique) {
+    const activeBonuses = getActiveBonuses(technique, character.techniqueComprehension)
+    const cultivationBonus = activeBonuses.find(b => b.type === 'cultivationRate')
+    if (cultivationBonus) {
+      rate *= (1 + cultivationBonus.value)
+    }
+  }
+
+  return rate
 }
 
 export function calcSpiritCostPerSecond(): number {
@@ -47,34 +63,48 @@ export function canCultivate(spiritEnergy: number): boolean {
   return spiritEnergy >= SPIRIT_COST_PER_SECOND
 }
 
+/**
+ * Tick cultivation for a single character.
+ * Returns cultivation gained and spirit energy spent.
+ */
 export function tick(
-  player: Player,
-  spiritEnergy: number,
-  deltaSec: number
+  character: Character,
+  spiritEnergyAvailable: number,
+  deltaSec: number,
 ): TickResult {
-  if (!canCultivate(spiritEnergy)) {
-    return { cultivationGained: 0, spiritSpent: 0, leveledUp: false, newRealm: player.realm, newStage: player.realmStage }
+  if (!canCultivate(spiritEnergyAvailable)) {
+    return { cultivationGained: 0, spiritSpent: 0 }
   }
 
-  const rate = calcCultivationRate(player)
+  const rate = calcCultivationRate(character, null)
   const gained = rate * deltaSec
   const spent = SPIRIT_COST_PER_SECOND * deltaSec
 
-  // Check if we can level up
-  // TODO: auto-level-up when cultivation >= needed (Phase 3)
-  let leveledUp = false
-  let newRealm = player.realm
-  let newStage = player.realmStage
-
-  // Simple: just accumulate, breakthrough is a separate explicit action
-  return { cultivationGained: gained, spiritSpent: spent, leveledUp, newRealm, newStage }
+  return { cultivationGained: gained, spiritSpent: spent }
 }
 
-export function canBreakthrough(player: Player): boolean {
-  const needed = getCultivationNeeded(player.realm, player.realmStage)
-  return player.cultivation >= needed
+/**
+ * Check if a character can breakthrough.
+ * Requires enough cultivation AND not being at the max stage of the last realm.
+ */
+export function canBreakthrough(character: Character): boolean {
+  const realm = REALMS[character.realm]
+  if (!realm) return false
+
+  // Cannot breakthrough if at the max stage of the last realm
+  const isLastRealm = character.realm >= REALMS.length - 1
+  const maxStage = realm.stages.length - 1
+  if (isLastRealm && character.realmStage >= maxStage) {
+    return false
+  }
+
+  const needed = getCultivationNeeded(character.realm, character.realmStage)
+  return character.cultivation >= needed
 }
 
+/**
+ * Calculate base stat growth for a breakthrough.
+ */
 function calcStatGrowth(currentStats: BaseStats, isMajorRealm: boolean): BaseStats {
   if (isMajorRealm) {
     return {
@@ -112,23 +142,65 @@ function calcStatGrowth(currentStats: BaseStats, isMajorRealm: boolean): BaseSta
   }
 }
 
-export function breakthrough(player: Player): BreakthroughResult {
-  if (!canBreakthrough(player)) {
-    return { success: false, newRealm: player.realm, newStage: player.realmStage, oldStats: player.baseStats, newStats: player.baseStats }
+/**
+ * Apply technique growth modifiers to base stats growth.
+ * Uses comprehension level to scale the effect.
+ */
+function applyTechniqueGrowthToStats(
+  baseGrowth: BaseStats,
+  technique: Technique,
+  comprehension: number,
+): BaseStats {
+  const effect = getComprehensionEffect(comprehension)
+  const gm = technique.growthModifiers
+
+  return {
+    hp: baseGrowth.hp * (1 + (gm.hp - 1) * effect),
+    atk: baseGrowth.atk * (1 + (gm.atk - 1) * effect),
+    def: baseGrowth.def * (1 + (gm.def - 1) * effect),
+    spd: baseGrowth.spd * (1 + (gm.spd - 1) * effect),
+    crit: baseGrowth.crit * (1 + (gm.crit - 1) * effect),
+    critDmg: baseGrowth.critDmg * (1 + (gm.critDmg - 1) * effect),
+  }
+}
+
+/**
+ * Attempt breakthrough for a character.
+ *
+ * If a technique is provided and the character has comprehension > 0,
+ * stat growth is modified by the technique's growth modifiers.
+ */
+export function breakthrough(
+  character: Character,
+  technique: Technique | null,
+): BreakthroughResult {
+  if (!canBreakthrough(character)) {
+    return {
+      success: false,
+      newRealm: character.realm,
+      newStage: character.realmStage,
+      oldStats: { ...character.baseStats },
+      newStats: { ...character.baseStats },
+    }
   }
 
-  const oldStats = { ...player.baseStats }
-  const realm = REALMS[player.realm]
-  const nextStage = (player.realmStage + 1) as RealmStage
+  const oldStats = { ...character.baseStats }
+  const realm = REALMS[character.realm]
+  const nextStage = (character.realmStage + 1) as RealmStage
   const isMajorRealm = nextStage >= realm.stages.length
 
-  const newStats = calcStatGrowth(oldStats, isMajorRealm)
+  let baseGrowth = calcStatGrowth(oldStats, isMajorRealm)
+
+  // Apply technique growth modifiers if technique is provided
+  if (technique && character.techniqueComprehension > 0) {
+    baseGrowth = applyTechniqueGrowthToStats(baseGrowth, technique, character.techniqueComprehension)
+  }
 
   return {
     success: true,
-    newRealm: isMajorRealm ? player.realm + 1 : player.realm,
+    newRealm: isMajorRealm ? character.realm + 1 : character.realm,
     newStage: isMajorRealm ? 0 : nextStage,
     oldStats,
-    newStats,
+    newStats: baseGrowth,
   }
 }
