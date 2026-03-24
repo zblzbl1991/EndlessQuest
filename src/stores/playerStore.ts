@@ -1,11 +1,17 @@
 import { create } from 'zustand'
-import type { Player, RealmStage } from '../types/player'
+import type { Player, RealmStage, BaseStats } from '../types/player'
+import type { Equipment } from '../types/item'
 import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough } from '../systems/cultivation/CultivationEngine'
+import { getEffectiveStats } from '../systems/equipment/EquipmentEngine'
 
 interface PlayerState {
   player: Player
   tick: (spiritEnergy: number, deltaSec: number) => { cultivationGained: number; spiritSpent: number }
   attemptBreakthrough: () => { success: boolean; newRealm: number; newStage: RealmStage; statsChanged: boolean }
+  equipItem: (itemId: string, slotIndex: number) => boolean
+  unequipItem: (slotIndex: number) => string | null
+  getEquippedItemIds: () => (string | null)[]
+  getTotalStats: (getEquipmentById: (id: string) => Equipment | undefined) => BaseStats
   reset: () => void
 }
 
@@ -68,6 +74,44 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       }
     }
     return { success: false, newRealm: player.realm, newStage: player.realmStage, statsChanged: false }
+  },
+  equipItem: (itemId, slotIndex) => {
+    const gear = [...get().player.equippedGear]
+    if (slotIndex < 0 || slotIndex >= gear.length) return false
+    gear[slotIndex] = itemId
+    set((s) => ({ player: { ...s.player, equippedGear: gear } }))
+    return true
+  },
+  unequipItem: (slotIndex) => {
+    const gear = [...get().player.equippedGear]
+    if (slotIndex < 0 || slotIndex >= gear.length) return null
+    const prev = gear[slotIndex]
+    gear[slotIndex] = null
+    set((s) => ({ player: { ...s.player, equippedGear: gear } }))
+    return prev
+  },
+  getEquippedItemIds: () => {
+    return get().player.equippedGear
+  },
+  getTotalStats: (getEquipmentById) => {
+    const player = get().player
+    const base: BaseStats = { ...player.baseStats }
+
+    for (const gearId of player.equippedGear) {
+      if (!gearId) continue
+      const item = getEquipmentById(gearId)
+      if (item && item.type === 'equipment') {
+        const eff = getEffectiveStats(item)
+        base.hp += eff.hp
+        base.atk += eff.atk
+        base.def += eff.def
+        base.spd += eff.spd
+        base.crit = Math.round((base.crit + eff.crit) * 1000) / 1000
+        base.critDmg = Math.round((base.critDmg + eff.critDmg) * 100) / 100
+      }
+    }
+
+    return base
   },
   reset: () => set({ player: createInitialPlayer() }),
 }))
