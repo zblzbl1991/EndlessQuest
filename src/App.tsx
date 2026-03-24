@@ -4,6 +4,7 @@ import { useGameStore } from './stores/gameStore'
 import { usePlayerStore } from './stores/playerStore'
 import { useInventoryStore } from './stores/inventoryStore'
 import { useSectStore } from './stores/sectStore'
+import { useAdventureStore } from './stores/adventureStore'
 import { IdleEngine } from './systems/idle/IdleEngine'
 import TopBar from './components/common/TopBar'
 import BottomNav from './components/common/BottomNav'
@@ -33,6 +34,11 @@ export default function App() {
 
       // 3. Disciple training
       useSectStore.getState().trainDisciples(deltaSec)
+
+      // 4. Idle dungeon progression (every ~3 seconds)
+      if (Math.floor(Date.now() / 3000) !== Math.floor((Date.now() - deltaSec * 1000) / 3000)) {
+        useAdventureStore.getState().idleTick()
+      }
     })
 
     return () => engine.stop()
