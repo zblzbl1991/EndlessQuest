@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import type { AnyItem, Resources } from '../types'
+import { calcResourceRates } from '../systems/economy/ResourceEngine'
+import { useSectStore } from './sectStore'
 
 interface InventoryState {
   items: AnyItem[]
@@ -9,6 +11,7 @@ interface InventoryState {
   removeItem: (index: number) => AnyItem | null
   addResource: (type: keyof Resources, amount: number) => void
   spendResource: (type: keyof Resources, amount: number) => boolean
+  tickResourceProduction: (deltaSec: number) => void
   reset: () => void
 }
 
@@ -39,6 +42,19 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     if (current < amount) return false
     set((s) => ({ resources: { ...s.resources, [type]: current - amount } }))
     return true
+  },
+  tickResourceProduction: (deltaSec) => {
+    const sectState = useSectStore.getState()
+    const sfLevel = sectState.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
+    const mainHallLevel = sectState.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
+    const rates = calcResourceRates({ spiritField: sfLevel, mainHall: mainHallLevel })
+    set((s) => ({
+      resources: {
+        ...s.resources,
+        spiritEnergy: s.resources.spiritEnergy + rates.spiritEnergy * deltaSec,
+        herb: s.resources.herb + rates.herb * deltaSec,
+      },
+    }))
   },
   reset: () => set({ items: [], maxSlots: 50, resources: { ...initialResources } }),
 }))

@@ -37,3 +37,45 @@ describe('Zustand stores initialization', () => {
     expect(mainHall?.unlocked).toBe(true)
   })
 })
+
+describe('Game loop store integration', () => {
+  beforeEach(() => {
+    usePlayerStore.getState().reset()
+    useInventoryStore.getState().reset()
+    useSectStore.getState().reset()
+  })
+
+  it('playerStore.tick() should accumulate cultivation', () => {
+    // Give enough spirit energy (need 2/s, test with 10 for 1 second)
+    const result = usePlayerStore.getState().tick(10, 1)
+    expect(result.cultivationGained).toBe(5)
+    expect(result.spiritSpent).toBe(2)
+    expect(usePlayerStore.getState().player.cultivation).toBe(5)
+  })
+
+  it('playerStore.tick() should not cultivate without spirit energy', () => {
+    const result = usePlayerStore.getState().tick(0, 1)
+    expect(result.cultivationGained).toBe(0)
+    expect(usePlayerStore.getState().player.cultivation).toBe(0)
+  })
+
+  it('playerStore.attemptBreakthrough() should succeed with enough cultivation', () => {
+    // Set cultivation to 100 (need 100 for first breakthrough)
+    usePlayerStore.getState().tick(100, 20) // tick 20 seconds with enough spirit = 100 cultivation gained
+    const player = usePlayerStore.getState().player
+    expect(player.cultivation).toBe(100)
+
+    const result = usePlayerStore.getState().attemptBreakthrough()
+    expect(result.success).toBe(true)
+    expect(result.newStage).toBe(1)
+    expect(usePlayerStore.getState().player.cultivation).toBe(0) // consumed
+    expect(usePlayerStore.getState().player.baseStats.hp).toBeGreaterThan(100) // stats grew
+  })
+
+  it('inventoryStore.tickResourceProduction() should produce resources', () => {
+    useInventoryStore.getState().tickResourceProduction(10)
+    const resources = useInventoryStore.getState().resources
+    expect(resources.spiritEnergy).toBe(10) // 1/s × 10s
+    expect(resources.herb).toBe(0) // no spiritField yet
+  })
+})
