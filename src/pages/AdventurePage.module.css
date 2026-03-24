@@ -1,0 +1,460 @@
+.page {
+  padding: var(--space-md);
+  padding-bottom: 80px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.pageTitle {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+/* Section */
+.section {
+  margin-bottom: var(--space-lg);
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  padding-left: var(--space-xs);
+  border-left: 2px solid var(--color-accent);
+}
+
+/* Empty */
+.empty {
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: 13px;
+  padding: var(--space-lg);
+}
+
+/* Dungeon List */
+.dungeonList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.dungeonCard {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  border-left: 3px solid var(--color-accent);
+}
+
+.dungeonLocked {
+  opacity: 0.5;
+  border-left-color: var(--color-text-tertiary);
+}
+
+.dungeonHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.dungeonName {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.lockBadge {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  background: var(--color-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.dungeonInfo {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.startBtn {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.startBtn:hover {
+  opacity: 0.85;
+}
+
+/* Run List */
+.runList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* Run Card */
+.runCard {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  border-left: 3px solid var(--color-accent);
+}
+
+.runHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+
+.runDungeonName {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.runFloor {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.runProgress {
+  margin-bottom: var(--space-md);
+}
+
+/* Team Members */
+.runTeam {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.memberItem {
+  display: grid;
+  grid-template-columns: 60px 1fr 40px;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.memberName {
+  font-size: 12px;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.memberHpBar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.memberHpText {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.memberStatus {
+  font-size: 10px;
+  text-align: right;
+}
+
+.memberAlive {
+  color: var(--color-success);
+}
+
+.memberDead {
+  color: var(--color-danger);
+}
+
+.memberWounded {
+  color: var(--color-warning);
+}
+
+/* Event Log */
+.runLog {
+  margin-bottom: var(--space-md);
+}
+
+.logTitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+  font-weight: 500;
+}
+
+.logList {
+  max-height: 100px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+}
+
+.logEntry {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  line-height: 1.4;
+}
+
+/* Run Actions */
+.runActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.advanceBtn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.advanceBtn:hover {
+  opacity: 0.85;
+}
+
+.retreatBtn {
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.retreatBtn:hover {
+  opacity: 0.8;
+}
+
+/* Overlay / Team Builder */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 100;
+}
+
+.teamBuilder {
+  background: var(--color-bg);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  width: 100%;
+  max-width: 480px;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: var(--space-lg);
+}
+
+.teamBuilderHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.teamBuilderTitle {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.dungeonTarget {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+/* Team Character List */
+.teamCharList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.teamCharItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-panel);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.teamCharItem:hover {
+  background: var(--color-panel-hover);
+}
+
+.teamCharSelected {
+  border-color: var(--color-accent);
+  background: var(--color-panel-hover);
+}
+
+.teamCharCheck {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--color-accent);
+  flex-shrink: 0;
+}
+
+.teamCharSelected .teamCharCheck {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.teamCharInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.teamCharName {
+  font-size: 13px;
+  color: var(--color-text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.teamCharQuality {
+  font-size: 10px;
+  padding: 0 4px;
+  border-radius: 2px;
+  background: var(--color-bg);
+  color: var(--color-text-tertiary);
+}
+
+.teamCharRealm {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+/* Team Stats */
+.teamStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: var(--color-panel);
+  border-radius: var(--radius-sm);
+}
+
+.teamStatItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px var(--space-xs);
+}
+
+.teamStatLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.teamStatValue {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Team Actions */
+.teamActions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+.cancelBtn {
+  flex: 1;
+  padding: var(--space-sm) var(--space-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.cancelBtn:hover {
+  opacity: 0.8;
+}
+
+.confirmBtn {
+  flex: 2;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.confirmBtn:hover {
+  opacity: 0.85;
+}
+
+.btnDisabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}

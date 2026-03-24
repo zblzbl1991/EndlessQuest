@@ -11,9 +11,8 @@ import SectPage from './pages/SectPage'
 import CharactersPage from './pages/CharactersPage'
 import BuildingsPage from './pages/BuildingsPage'
 
-// Placeholder pages for future tasks
-const AdventurePage = () => <div>秘境页面 - 待实现</div>
-const VaultPage = () => <div>仓库页面 - 待实现</div>
+import AdventurePage from './pages/AdventurePage'
+import VaultPage from './pages/VaultPage'
 
 export default function App() {
   const startGame = useGameStore((s) => s.startGame)
