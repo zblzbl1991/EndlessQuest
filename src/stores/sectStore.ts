@@ -1,16 +1,21 @@
 import { create } from 'zustand'
-import type { Building, BuildingType, Disciple, Resources } from '../types'
+import type { Building, BuildingType, Disciple, DiscipleQuality, Resources } from '../types'
 import { BUILDING_DEFS } from '../data/buildings'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
+import { recruitDisciple as recruitDiscipleFn, trainDisciple as trainDiscipleFn } from '../systems/disciple/DiscipleEngine'
 
 interface SectState {
   buildings: Building[]
   disciples: Disciple[]
   resources: Resources
-  discipleMaxOwned: Record<string, number>
+  discipleMaxOwned: Record<DiscipleQuality, number>
   upgradeBuilding: (type: BuildingType) => boolean
   unlockBuilding: (type: BuildingType) => boolean
   tryUpgradeBuilding: (type: BuildingType) => { success: boolean; reason: string }
+  recruitDisciple: () => { success: boolean; disciple: Disciple | null }
+  trainDisciples: (deltaSec: number) => void
+  healDisciple: (id: string) => boolean
+  updateMaxOwned: () => void
   reset: () => void
 }
 
@@ -71,6 +76,54 @@ export const useSectStore = create<SectState>((set, get) => ({
     // Perform upgrade
     const success = get().upgradeBuilding(type)
     return { success, reason: '' }
+  },
+  recruitDisciple: () => {
+    const { disciples } = get()
+    if (disciples.length >= 12) return { success: false, disciple: null }
+
+    // Determine max quality based on recruitmentPavilion level
+    const pavilionLevel = get().buildings.find(b => b.type === 'recruitmentPavilion')?.level ?? 0
+    const maxQuality: DiscipleQuality = pavilionLevel >= 4 ? 'divine' : pavilionLevel >= 3 ? 'immortal' : pavilionLevel >= 2 ? 'spirit' : 'common'
+
+    const result = recruitDiscipleFn(maxQuality)
+    if (result.success && result.disciple) {
+      set((s) => {
+        const newDisciples = [...s.disciples, result.disciple!]
+        // Update max owned tracking
+        const quality = result.disciple!.quality
+        const currentMax = s.discipleMaxOwned[quality as keyof typeof s.discipleMaxOwned] ?? 0
+        const currentCount = newDisciples.filter(d => d.quality === quality).length
+        const newMaxOwned = { ...s.discipleMaxOwned }
+        if (currentCount > currentMax) {
+          newMaxOwned[quality] = currentCount
+        }
+        return { disciples: newDisciples, discipleMaxOwned: newMaxOwned }
+      })
+    }
+    return result
+  },
+  trainDisciples: (deltaSec) => {
+    set((s) => ({
+      disciples: s.disciples.map(d => d.status === 'active' ? trainDiscipleFn(d, deltaSec) : d),
+    }))
+  },
+  healDisciple: (id) => {
+    const disciple = get().disciples.find(d => d.id === id)
+    if (!disciple || disciple.status !== 'wounded') return false
+    set((s) => ({
+      disciples: s.disciples.map(d => d.id === id ? { ...d, status: 'active' as const } : d),
+    }))
+    return true
+  },
+  updateMaxOwned: () => {
+    const { disciples, discipleMaxOwned } = get()
+    const newMax = { ...discipleMaxOwned }
+    for (const d of disciples) {
+      const q = d.quality as keyof typeof newMax
+      const count = disciples.filter(dd => dd.quality === d.quality).length
+      if (count > (newMax[q] ?? 0)) newMax[q] = count
+    }
+    set({ discipleMaxOwned: newMax })
   },
   reset: () => set({
     buildings: createInitialBuildings(),

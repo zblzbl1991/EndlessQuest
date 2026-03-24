@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { useGameStore } from './stores/gameStore'
 import { usePlayerStore } from './stores/playerStore'
 import { useInventoryStore } from './stores/inventoryStore'
+import { useSectStore } from './stores/sectStore'
 import { IdleEngine } from './systems/idle/IdleEngine'
 import TopBar from './components/common/TopBar'
 import BottomNav from './components/common/BottomNav'
@@ -29,6 +30,9 @@ export default function App() {
       if (result.spiritSpent > 0) {
         useInventoryStore.getState().spendResource('spiritEnergy', result.spiritSpent)
       }
+
+      // 3. Disciple training
+      useSectStore.getState().trainDisciples(deltaSec)
     })
 
     return () => engine.stop()

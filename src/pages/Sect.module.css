@@ -183,3 +183,207 @@
   line-height: 32px;
   font-weight: 500;
 }
+
+/* Tab bar */
+.tabBar {
+  display: flex;
+  gap: var(--space-sm);
+  border-bottom: 1px solid var(--color-border-light);
+  margin-bottom: var(--space-md);
+}
+
+.tab {
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-tertiary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+}
+
+.tab:hover {
+  color: var(--color-text-secondary);
+}
+
+.activeTab {
+  color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
+}
+
+/* Disciple section */
+.discipleHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.discipleCount {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.recruitBtn {
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  background: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+}
+
+.recruitBtn:hover:not(:disabled) {
+  background: var(--color-accent-hover);
+}
+
+.recruitBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emptyHint {
+  text-align: center;
+  padding: var(--space-xl) var(--space-md);
+  font-family: var(--font-serif);
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+.discipleList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.discipleCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+.discipleCard:hover {
+  background: var(--color-panel-hover);
+  box-shadow: var(--shadow-md);
+}
+
+.woundedCard {
+  border-color: var(--color-danger);
+  opacity: 0.8;
+}
+
+.discipleCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.discipleName {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.qualityBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+}
+
+.qualityBadge[data-quality="common"] {
+  color: var(--color-text-tertiary);
+}
+
+.qualityBadge[data-quality="spirit"] {
+  color: #3b82f6;
+}
+
+.qualityBadge[data-quality="immortal"] {
+  color: #a855f7;
+}
+
+.qualityBadge[data-quality="divine"] {
+  color: #f59e0b;
+}
+
+.discipleStats {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.discipleCombat {
+  display: flex;
+  gap: var(--space-md);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.discipleFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-xs);
+  padding-top: var(--space-xs);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.statusBadge {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.statusBadge[data-status="active"] {
+  color: var(--color-success);
+}
+
+.statusBadge[data-status="wounded"] {
+  color: var(--color-danger);
+}
+
+.statusBadge[data-status="dispatched"] {
+  color: #3b82f6;
+}
+
+.healBtn {
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  background: var(--color-danger);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  min-height: 44px;
+}
+
+.healBtn:hover {
+  opacity: 0.85;
+}
