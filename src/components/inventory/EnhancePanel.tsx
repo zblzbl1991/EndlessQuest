@@ -1,18 +1,20 @@
 import { useState } from 'react'
 import type { Equipment } from '../../types/item'
-import { useInventoryStore } from '../../stores/inventoryStore'
+import { useSectStore } from '../../stores/sectStore'
 import { getEnhanceCost } from '../../systems/item/ItemGenerator'
 import { getEnhanceRate } from '../../data/items'
 import styles from './EnhancePanel.module.css'
 
 interface EnhancePanelProps {
+  characterId: string
+  backpackIndex: number
   item: Equipment
   onEnhanced: () => void
 }
 
-export default function EnhancePanel({ item, onEnhanced }: EnhancePanelProps) {
-  const resources = useInventoryStore((s) => s.resources)
-  const enhanceItem = useInventoryStore((s) => s.enhanceItem)
+export default function EnhancePanel({ characterId, backpackIndex, item, onEnhanced }: EnhancePanelProps) {
+  const resources = useSectStore((s) => s.sect.resources)
+  const enhanceItem = useSectStore((s) => s.enhanceItem)
   const [result, setResult] = useState<{ success: boolean; msg: string } | null>(null)
 
   if (item.enhanceLevel >= 15) {
@@ -30,9 +32,7 @@ export default function EnhancePanel({ item, onEnhanced }: EnhancePanelProps) {
   const canAfford = resources.spiritStone >= cost.spiritStone && resources.ore >= cost.ore
 
   const handleEnhance = () => {
-    const idx = useInventoryStore.getState().items.findIndex(i => i.id === item.id)
-    if (idx < 0) return
-    const res = enhanceItem(idx)
+    const res = enhanceItem(characterId, backpackIndex)
     if (res.newLevel > item.enhanceLevel) {
       setResult({ success: true, msg: `强化成功！+${res.newLevel}` })
       onEnhanced()

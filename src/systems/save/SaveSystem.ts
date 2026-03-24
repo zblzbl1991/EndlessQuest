@@ -5,12 +5,12 @@ const SAVE_KEY = 'endlessquest_save'
 export interface SaveData {
   version: number
   timestamp: number
-  player: any
-  inventory: any
-  sect: any
-  pets: any
-  adventure: any
-  game: any
+  player?: any
+  inventory?: any
+  sect?: any
+  pets?: any
+  adventure?: any
+  game?: any
 }
 
 export function saveGame(data: SaveData): void {

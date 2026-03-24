@@ -7,7 +7,6 @@ import {
   PET_QUALITY_NAMES,
   getPetCombatUnit,
 } from '../systems/pet/PetSystem'
-import { usePetStore } from '../stores/petStore'
 
 describe('PetSystem', () => {
   describe('generatePet', () => {
@@ -162,12 +161,5 @@ describe('PetSystem', () => {
       const unit = getPetCombatUnit(pet)
       expect(unit.skills.length).toBe(2)
     })
-  })
-})
-
-describe('petStore', () => {
-  it('should import without error', () => {
-    expect(usePetStore).toBeDefined()
-    expect(usePetStore.getState).toBeDefined()
   })
 })

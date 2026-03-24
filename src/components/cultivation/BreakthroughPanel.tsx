@@ -1,25 +1,31 @@
 import { useState } from 'react'
-import { usePlayerStore } from '../../stores/playerStore'
+import { useSectStore } from '../../stores/sectStore'
 import { canBreakthrough } from '../../systems/cultivation/CultivationEngine'
 import { getCultivationNeeded, getRealmName } from '../../data/realms'
-import type { RealmStage } from '../../types/player'
+import type { RealmStage } from '../../types/character'
 import styles from './BreakthroughPanel.module.css'
 
-export default function BreakthroughPanel() {
-  const player = usePlayerStore((s) => s.player)
-  const attemptBreakthrough = usePlayerStore((s) => s.attemptBreakthrough)
+interface BreakthroughPanelProps {
+  characterId: string
+}
+
+export default function BreakthroughPanel({ characterId }: BreakthroughPanelProps) {
+  const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
+  const attemptBreakthrough = useSectStore((s) => s.attemptBreakthrough)
   const [result, setResult] = useState<{ success: boolean; msg: string } | null>(null)
   const [flashing, setFlashing] = useState(false)
 
-  const ready = canBreakthrough(player)
-  const needed = getCultivationNeeded(player.realm, player.realmStage)
-  const nextRealm = player.realmStage >= 3 ? player.realm + 1 : player.realm
-  const nextStage = player.realmStage >= 3 ? 0 : (player.realmStage + 1) as RealmStage
+  if (!character) return null
+
+  const ready = canBreakthrough(character)
+  const needed = getCultivationNeeded(character.realm, character.realmStage)
+  const nextRealm = character.realmStage >= 3 ? character.realm + 1 : character.realm
+  const nextStage = character.realmStage >= 3 ? 0 : (character.realmStage + 1) as RealmStage
   const nextName = getRealmName(nextRealm, nextStage)
 
   const handleBreakthrough = () => {
     if (!ready) return
-    const res = attemptBreakthrough()
+    const res = attemptBreakthrough(characterId)
     if (res.success) {
       setResult({ success: true, msg: `突破成功！晋升${nextName}` })
       setFlashing(true)
@@ -36,8 +42,8 @@ export default function BreakthroughPanel() {
       <div className={styles.title}>境界突破</div>
       <div className={styles.requirement}>
         <span>修为需求</span>
-        <span className={player.cultivation >= needed ? styles.ready : styles.notReady}>
-          {Math.floor(player.cultivation)} / {needed.toLocaleString()}
+        <span className={character.cultivation >= needed ? styles.ready : styles.notReady}>
+          {Math.floor(character.cultivation)} / {needed.toLocaleString()}
         </span>
       </div>
       <div className={styles.requirement}>

@@ -2,11 +2,11 @@ import { NavLink } from 'react-router-dom'
 import styles from './BottomNav.module.css'
 
 const tabs = [
-  { to: '/', icon: '🏛️', label: '大殿' },
-  { to: '/cultivation', icon: '⚔️', label: '修炼' },
-  { to: '/sect', icon: '🏔️', label: '宗门' },
-  { to: '/adventure', icon: '🗡️', label: '冒险' },
-  { to: '/inventory', icon: '🎒', label: '背包' },
+  { to: '/', label: '宗门' },
+  { to: '/characters', label: '弟子' },
+  { to: '/buildings', label: '建筑' },
+  { to: '/adventure', label: '秘境' },
+  { to: '/vault', label: '仓库' },
 ]
 
 export default function BottomNav() {
@@ -19,7 +19,6 @@ export default function BottomNav() {
           end={tab.to === '/'}
           className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
         >
-          <span className={styles.icon}>{tab.icon}</span>
           <span>{tab.label}</span>
         </NavLink>
       ))}

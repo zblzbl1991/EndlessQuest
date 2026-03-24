@@ -1,4 +1,4 @@
-import type { Character, CharacterQuality, BaseStats, CultivationStats } from '../../types/character'
+import type { Character, CharacterQuality, BaseStats } from '../../types/character'
 import type { Technique } from '../../types/technique'
 import type { Equipment } from '../../types/item'
 
@@ -180,7 +180,7 @@ export function calcCharacterTotalStats(
         const bonus = technique.fixedBonuses[i]
         const key = bonus.type as keyof BaseStats
         if (key in total) {
-          ;(total as Record<string, number>)[key] += bonus.value
+          ;(total as unknown as Record<string, number>)[key] += bonus.value
         }
       }
     }

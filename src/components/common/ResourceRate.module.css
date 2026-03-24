@@ -1,7 +1,6 @@
 .container {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
+  gap: var(--space-md);
 }
 
 .rateItem {
@@ -12,11 +11,16 @@
   color: var(--color-text-secondary);
 }
 
-.rateIcon {
-  font-size: 14px;
+.rateLabel {
+  color: var(--color-text-tertiary);
 }
 
 .rateValue {
   color: var(--color-success);
+  font-weight: 500;
+}
+
+.rateValueNegative {
+  color: var(--color-danger);
   font-weight: 500;
 }

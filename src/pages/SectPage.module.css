@@ -1,0 +1,144 @@
+.page {
+  padding: var(--space-md);
+  padding-bottom: 80px; /* space for bottom nav */
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.sectName {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.sectLevel {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+/* Section */
+.section {
+  margin-bottom: var(--space-lg);
+}
+
+.sectionTitle {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  padding-left: var(--space-xs);
+  border-left: 2px solid var(--color-accent);
+}
+
+/* Resource Grid */
+.resourceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.resourceCard {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resourceLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.resourceValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.rateRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xs) 0;
+  font-size: 12px;
+}
+
+.herbRate {
+  color: var(--color-success);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* Character Stats */
+.statsRow {
+  display: flex;
+  gap: var(--space-lg);
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+}
+
+.statCount {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-accent);
+  font-family: var(--font-sans);
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+/* Adventure Items */
+.adventureItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-panel);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-xs);
+}
+
+.adventureName {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.adventureFloor {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+/* Character List */
+.characterList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}

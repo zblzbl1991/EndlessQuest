@@ -1,0 +1,67 @@
+.card {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  border-left: 3px solid var(--color-border-light);
+  cursor: default;
+  transition: background var(--transition-fast);
+}
+
+.card[role='button'] {
+  cursor: pointer;
+}
+
+.card[role='button']:hover {
+  background: var(--color-panel-hover);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+
+.name {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.realm {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
+.technique {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-sm);
+}
+
+.progress {
+  margin-top: var(--space-xs);
+}
+
+/* Quality border colors */
+.qualityCommon {
+  border-left-color: var(--color-quality-common);
+}
+
+.qualitySpirit {
+  border-left-color: var(--color-quality-spirit);
+}
+
+.qualityImmortal {
+  border-left-color: var(--color-quality-immortal);
+}
+
+.qualityDivine {
+  border-left-color: var(--color-quality-divine);
+}
+
+.qualityChaos {
+  border-left-color: var(--color-quality-chaos);
+}
