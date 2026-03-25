@@ -1,4 +1,5 @@
 import type { AnyItem } from './item'
+import type { Talent } from './talent'
 
 export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
 
@@ -43,6 +44,7 @@ export interface Character {
   backpack: AnyItem[]
   maxBackpackSlots: number
   petIds: string[]
+  talents: Talent[]
   status: CharacterStatus
   injuryTimer: number
   createdAt: number
