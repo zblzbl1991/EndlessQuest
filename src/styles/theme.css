@@ -60,4 +60,13 @@
   --transition-fast: 150ms ease;
   --transition-normal: 300ms ease;
   --transition-slow: 500ms ease;
+
+  /* Layout */
+  --sidebar-width: 200px;
+  --topbar-height: 52px;
+  --bottomnav-height: 64px;
+
+  /* Missing - now defined */
+  --font-mono: 'Consolas', 'Courier New', monospace;
+  --color-warning: #e67e22;
 }
