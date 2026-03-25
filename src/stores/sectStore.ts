@@ -17,11 +17,17 @@ import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, ge
 import { createShopState, generateDailyItems } from '../systems/trade/TradeSystem'
 import type { ShopState } from '../systems/trade/TradeSystem'
 import { ALCHEMY_RECIPES, canCraft as canCraftAlchemy, craftPotion as craftPotionAlchemy } from '../systems/economy/AlchemySystem'
-import { FORGE_RECIPES, canForge, forgeEquipment as forgeEquipmentSystem } from '../systems/economy/ForgeSystem'
-import { generateRandomTechniqueScroll } from '../systems/item/ItemGenerator'
+import { FORGE_RECIPES, FORGE_SLOTS, canForge, forgeEquipment as forgeEquipmentSystem } from '../systems/economy/ForgeSystem'
+import { generateEquipment, generateRandomTechniqueScroll } from '../systems/item/ItemGenerator'
 import { getTechniqueById } from '../data/techniquesTable'
-import { BUILDING_DEFS } from '../data/buildings'
+import { BUILDING_DEFS, calcResourceCaps } from '../data/buildings'
 import { REALMS } from '../data/realms'
+import { tickProductionQueue, calcOfflineProduction, canStartRecipe } from '../systems/building/ProductionSystem'
+import { clampResources } from '../systems/economy/ResourceEngine'
+import type { ProductionBonuses } from '../systems/economy/ResourceEngine'
+import { getAutoRecipeById } from '../data/recipes'
+import type { AutoRecipe } from '../data/recipes'
+import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 
 // ---------------------------------------------------------------------------
 // Helper: get equipment item by ID from vault + all character backpacks
@@ -95,6 +101,7 @@ export interface SectStore {
   // Building management
   upgradeBuilding(type: BuildingType): boolean
   tryUpgradeBuilding(type: BuildingType): { success: boolean; reason: string }
+  setProductionRecipe(buildingType: BuildingType, recipeId: string | null): void
 
   // Item transfer
   transferItemToCharacter(characterId: string, vaultIndex: number): boolean
@@ -136,6 +143,27 @@ export interface SectStore {
   unassignPet(characterId: string, petId: string): void
 
   reset(): void
+}
+
+// ---------------------------------------------------------------------------
+// Helper: produce item from an AutoRecipe
+// ---------------------------------------------------------------------------
+
+function produceItemFromRecipe(recipe: AutoRecipe, buildingLevel: number): AnyItem | null {
+  if (recipe.productType === 'consumable') {
+    const alchemyRecipe = ALCHEMY_RECIPES.find(r => r.id === recipe.id)
+    if (!alchemyRecipe) return null
+    const item = craftPotionAlchemy(alchemyRecipe, buildingLevel)
+    if (item) (item as any).recipeId = recipe.id
+    return item
+  }
+  if (recipe.productType === 'equipment') {
+    const forgeRecipe = FORGE_RECIPES.find(r => r.id === recipe.id)
+    if (!forgeRecipe) return null
+    const slot = FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
+    return generateEquipment(slot, forgeRecipe.quality)
+  }
+  return null
 }
 
 // ---------------------------------------------------------------------------
@@ -385,6 +413,23 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // Perform upgrade
     const success = get().upgradeBuilding(type)
     return { success, reason: '' }
+  },
+
+  setProductionRecipe: (buildingType, recipeId) => {
+    const { sect } = get()
+    const building = sect.buildings.find((b) => b.type === buildingType)
+    if (!building || !building.unlocked) return
+    if (recipeId !== null && !canStartRecipe(recipeId, building.level)) return
+    set((state) => ({
+      sect: {
+        ...state.sect,
+        buildings: state.sect.buildings.map((b) =>
+          b.type === buildingType
+            ? { ...b, productionQueue: { recipeId, progress: 0 } }
+            : b
+        ),
+      },
+    }))
   },
 
   // ---- Item transfer ----
@@ -729,37 +774,97 @@ export const useSectStore = create<SectStore>((set, get) => ({
   tickAll: (deltaSec) => {
     const { sect } = get()
 
-    // 1. Calculate spirit production from buildings
-    const sfBuilding = sect.buildings.find((b) => b.type === 'spiritField')
-    const smBuilding = sect.buildings.find((b) => b.type === 'spiritMine')
-    const mhBuilding = sect.buildings.find((b) => b.type === 'mainHall')
-    const rates = calcResourceRates({
-      spiritField: sfBuilding?.level ?? 0,
-      spiritMine: smBuilding?.level ?? 0,
-      mainHall: mhBuilding?.level ?? 0,
-    })
+    // 1. Calculate building levels
+    const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
+    const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
+    const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
+
+    // 2. Calculate resource caps
+    const caps = calcResourceCaps(sfLevel, smLevel)
+
+    // 3. Calculate technique multiplier from best cultivating character
+    const maxTechRate = sect.characters
+      .filter((c) => c.status === 'cultivating' && c.currentTechnique)
+      .reduce((max, c) => {
+        const tech = getTechniqueById(c.currentTechnique!)
+        if (!tech) return max
+        const rate = calcCultivationRate(c, tech)
+        // Normalize: divide by base rate (BASE_CULTIVATION_RATE=5 * rootBonus * realmMult)
+        // We want just the technique bonus multiplier, so compute with and without tech
+        const baseRate = calcCultivationRate(c, null)
+        if (baseRate === 0) return max
+        return Math.max(max, rate / baseRate)
+      }, 1)
+    const bonuses: ProductionBonuses = { techniqueMultiplier: maxTechRate, discipleMultiplier: 1 }
+
+    // 4. Calculate resource rates with production bonuses
+    const rates = calcResourceRates(
+      { spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel },
+      bonuses,
+    )
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
-    // 2. Count cultivating characters
-    const cultivatingChars = sect.characters.filter((c) => c.status === 'cultivating')
-    const cultivatingCount = cultivatingChars.length
+    // 5. Process production queues (before cultivation loop)
+    const newBuildings = sect.buildings.map((b) => ({ ...b, productionQueue: { ...b.productionQueue } }))
+    const newVault = [...sect.vault]
+    const processingTypes: BuildingType[] = ['alchemyFurnace', 'forge']
+    const totalConsumed = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
+    const USE_OFFLINE_THRESHOLD = 60
+
+    for (const bType of processingTypes) {
+      const building = newBuildings.find((b) => b.type === bType)
+      if (!building || !building.unlocked || building.level === 0 || !building.productionQueue.recipeId) continue
+      const vaultFreeSlots = sect.maxVaultSlots - newVault.length
+      if (deltaSec >= USE_OFFLINE_THRESHOLD) {
+        const offlineResult = calcOfflineProduction(building.productionQueue, sect.resources, deltaSec, vaultFreeSlots)
+        totalConsumed.spiritStone += offlineResult.consumed.spiritStone
+        totalConsumed.spiritEnergy += offlineResult.consumed.spiritEnergy
+        totalConsumed.herb += offlineResult.consumed.herb
+        totalConsumed.ore += offlineResult.consumed.ore
+        for (let i = 0; i < offlineResult.itemsProduced; i++) {
+          const recipe = getAutoRecipeById(building.productionQueue.recipeId!)
+          if (recipe) {
+            const item = produceItemFromRecipe(recipe, building.level)
+            if (item && newVault.length < sect.maxVaultSlots) newVault.push(item)
+          }
+        }
+      } else {
+        const vaultFull = newVault.length >= sect.maxVaultSlots
+        const result = tickProductionQueue(building.productionQueue, sect.resources, deltaSec, vaultFull)
+        totalConsumed.spiritStone += result.consumed.spiritStone
+        totalConsumed.spiritEnergy += result.consumed.spiritEnergy
+        totalConsumed.herb += result.consumed.herb
+        totalConsumed.ore += result.consumed.ore
+        building.productionQueue.progress = result.progress
+        if (result.completed) {
+          const recipe = getAutoRecipeById(building.productionQueue.recipeId!)
+          if (recipe && newVault.length < sect.maxVaultSlots) {
+            const item = produceItemFromRecipe(recipe, building.level)
+            if (item) newVault.push(item)
+          }
+        }
+      }
+    }
+
+    // 6. Count cultivating characters
+    const cultivatingCount = sect.characters.filter((c) => c.status === 'cultivating').length
     const spiritConsumed = cultivatingCount * 2 * deltaSec
 
-    // 3. Spirit ratio
+    // 7. Spirit ratio
     let spiritRatio = 1
     if (cultivatingCount > 0) {
       spiritRatio = Math.min(1, (sect.resources.spiritEnergy + spiritProduced) / spiritConsumed)
     }
 
-    // 4. Add spirit energy
+    // 8. Add spirit energy
     let updatedSpiritEnergy = sect.resources.spiritEnergy + spiritProduced
 
-    // 5. Calculate building multipliers
+    // 9. Calculate building multipliers
     const trainingMult = getTrainingSpeedMult(sect.buildings)
     const compMult = getComprehensionSpeedMult(sect.buildings)
 
-    // 6. Process each cultivating character
+    // 10. Process each cultivating character
     const updatedCharacters = sect.characters.map((char) => {
       if (char.status !== 'cultivating') {
         // Handle resting/injured characters
@@ -811,26 +916,36 @@ export const useSectStore = create<SectStore>((set, get) => ({
       return updatedChar
     })
 
-    // 7. Recalculate sect level from mainHall building level
+    // 11. Recalculate sect level from mainHall building level
     const mainHallLevel = updatedCharacters.length > 0
       ? get().sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
       : 1
     const newSectLevel = calcSectLevel(mainHallLevel)
 
-    set((s) => ({
-      sect: {
-        ...s.sect,
-        characters: updatedCharacters,
-        resources: {
-          ...s.sect.resources,
-          spiritEnergy: updatedSpiritEnergy,
-          spiritStone: s.sect.resources.spiritStone + rates.spiritStone * deltaSec,
-          herb: s.sect.resources.herb + rates.herb * deltaSec,
-          ore: s.sect.resources.ore + rates.ore * deltaSec,
-        },
-        level: newSectLevel,
-      },
-    }))
+    // 12. Build new sect with updated resources (production + cultivation - consumed)
+    const newResources = {
+      spiritEnergy: updatedSpiritEnergy,
+      spiritStone: sect.resources.spiritStone + rates.spiritStone * deltaSec - totalConsumed.spiritStone,
+      herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb,
+      ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
+    }
+
+    // 13. Clamp resources to caps
+    const clampedResources = clampResources(newResources, caps)
+
+    // Build the updated sect for the set call
+    const newSect = {
+      ...sect,
+      characters: updatedCharacters,
+      resources: clampedResources,
+      buildings: newBuildings,
+      vault: newVault,
+      level: newSectLevel,
+    }
+
+    set({
+      sect: newSect,
+    })
 
     return {
       spiritProduced,

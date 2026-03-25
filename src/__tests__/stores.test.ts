@@ -1380,3 +1380,155 @@ describe('AdventureStore - selectRoute', () => {
     expect(getAdventureStore().selectRoute(run!.id, 999)).toBe(false)
   })
 })
+
+// ---------------------------------------------------------------------------
+// setProductionRecipe Tests
+// ---------------------------------------------------------------------------
+
+describe('setProductionRecipe', () => {
+  beforeEach(() => resetStore())
+
+  it('should set recipe on unlocked building', () => {
+    // Unlock alchemyFurnace manually
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1 } : b
+        ),
+      },
+    }))
+
+    getStore().setProductionRecipe('alchemyFurnace', 'hp_potion')
+    const furnace = getStore().sect.buildings.find((b) => b.type === 'alchemyFurnace')
+    expect(furnace?.productionQueue.recipeId).toBe('hp_potion')
+    expect(furnace?.productionQueue.progress).toBe(0)
+  })
+
+  it('should clear recipe with null', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 50 } } : b
+        ),
+      },
+    }))
+
+    getStore().setProductionRecipe('alchemyFurnace', null)
+    const furnace = getStore().sect.buildings.find((b) => b.type === 'alchemyFurnace')
+    expect(furnace?.productionQueue.recipeId).toBeNull()
+    expect(furnace?.productionQueue.progress).toBe(0)
+  })
+
+  it('should reject if building not unlocked', () => {
+    getStore().setProductionRecipe('alchemyFurnace', 'hp_potion')
+    const furnace = getStore().sect.buildings.find((b) => b.type === 'alchemyFurnace')
+    expect(furnace?.productionQueue.recipeId).toBeNull()
+  })
+
+  it('should reject if building level too low for recipe', () => {
+    // Unlock alchemyFurnace at level 1, but foundation_pill requires level 3
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1 } : b
+        ),
+      },
+    }))
+
+    getStore().setProductionRecipe('alchemyFurnace', 'foundation_pill')
+    const furnace = getStore().sect.buildings.find((b) => b.type === 'alchemyFurnace')
+    expect(furnace?.productionQueue.recipeId).toBeNull()
+  })
+
+  it('should reset progress when setting recipe', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 15 } } : b
+        ),
+      },
+    }))
+
+    getStore().setProductionRecipe('alchemyFurnace', 'hp_potion')
+    const furnace = getStore().sect.buildings.find((b) => b.type === 'alchemyFurnace')
+    expect(furnace?.productionQueue.recipeId).toBe('hp_potion')
+    expect(furnace?.productionQueue.progress).toBe(0)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// tickAll with production queue Tests
+// ---------------------------------------------------------------------------
+
+describe('tickAll with production queue', () => {
+  beforeEach(() => resetStore())
+
+  it('should consume herbs and produce items when queue is active', () => {
+    // Unlock alchemyFurnace at level 1, give herbs, set recipe
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace'
+            ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 0 } }
+            : b
+        ),
+        resources: { ...s.sect.resources, herb: 100 },
+      },
+    }))
+
+    // hp_potion: productionTime=20s, inputPerSec.herb=0.25
+    // After 20s, should produce one item and consume 5 herbs
+    getStore().tickAll(20)
+
+    const sect = getStore().sect
+    expect(sect.vault.length).toBe(1)
+    expect(sect.vault[0].type).toBe('consumable')
+    expect(sect.resources.herb).toBeLessThan(100) // herbs consumed
+  })
+
+  it('should pause production when resources insufficient', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace'
+            ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 0 } }
+            : b
+        ),
+        resources: { ...s.sect.resources, herb: 0 },
+      },
+    }))
+
+    const result = getStore().tickAll(20)
+
+    const sect = getStore().sect
+    expect(sect.vault.length).toBe(0) // nothing produced (no herbs)
+    expect(sect.resources.herb).toBe(0)
+  })
+
+  it('should clamp resources to caps after tick', () => {
+    // Spirit field level 1 -> cap = 500 + 1*300 = 800 spirit energy
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'spiritField'
+            ? { ...b, unlocked: true, level: 1 }
+            : b
+        ),
+        resources: { ...s.sect.resources, spiritEnergy: 790 },
+      },
+    }))
+
+    // Spirit field level 1 produces 3/s * delta. With delta=10, produces 30.
+    // 790 + 30 = 820 > cap of 800 -> should clamp to 800
+    getStore().tickAll(10)
+
+    expect(getStore().sect.resources.spiritEnergy).toBeLessThanOrEqual(800)
+  })
+})
