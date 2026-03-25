@@ -5,6 +5,7 @@ import { useAdventureStore } from './stores/adventureStore'
 import { useGameStore } from './stores/gameStore'
 import { IdleEngine, calcOfflineSeconds } from './systems/idle/IdleEngine'
 import { useAutoSave } from './systems/save/useAutoSave'
+import Sidebar from './components/common/Sidebar'
 import BottomNav from './components/common/BottomNav'
 import TopBar from './components/common/TopBar'
 import SectPage from './pages/SectPage'
@@ -44,6 +45,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <Sidebar />
       <TopBar />
       <div className="page-content">
         <Routes>
