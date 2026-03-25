@@ -12,3 +12,5 @@ yarn-error.log*
 /.claude/
 /.idea/
 /.superpowers/
+
+/dist
