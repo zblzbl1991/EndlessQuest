@@ -317,7 +317,14 @@ git commit -m "feat(data): add auto-production recipe table with tests"
 
 在 `src/data/buildings.ts` 中：
 
-1. 修改所有 `upgradeCost` 函数，从 `(lv) => ({ spiritStone: X * lv })` 改为 `(lv) => ({ spiritStone: Math.round(X * Math.pow(lv, 1.3)) })`
+1. 修改所有 `upgradeCost` 函数。**注意**：`lv` 是当前等级，升级成本 = `baseCost × (lv + 1)^1.3`（N 为目标等级 = currentLevel + 1）。公式改为：
+
+```typescript
+// 原始：(lv) => ({ spiritStone: X * lv })
+// 新：  (lv) => ({ spiritStone: Math.round(X * Math.pow(lv + 1, 1.3)) })
+```
+
+验证：mainHall baseCost=100，lv=3 时升级到 4 级成本 = `100 × 4^1.3 = 100 × 4.93 = 493`（与 spec 表一致）
 
 2. 新增 `calcResourceCaps` 函数：
 
@@ -344,6 +351,8 @@ export function calcResourceCaps(spiritFieldLevel: number, spiritMineLevel: numb
 productionQueue: { recipeId: null, progress: 0 }
 ```
 
+**同时修改** `src/__tests__/BuildingSystem.test.ts` 中的 `createBuildings()` 辅助函数，为每个 building 对象添加 `productionQueue: { recipeId: null, progress: 0 }`。否则所有现有测试会因为类型不匹配而编译失败。
+
 - [ ] **Step 3: 运行现有 BuildingSystem 测试**
 
 Run: `npx vitest run src/__tests__/BuildingSystem.test.ts`
@@ -353,7 +362,7 @@ Expected: 成本相关断言会 FAIL（因为成本公式改了）
 
 修改 `src/__tests__/BuildingSystem.test.ts` 中涉及具体成本的断言：
 - `expect(result.cost.spiritStone).toBe(100)` → `expect(result.cost.spiritStone).toBeCloseTo(100)`（level 1 不变）
-- `expect(result.cost.spiritStone).toBe(160)` → `expect(result.cost.spiritStone).toBeCloseTo(Math.round(80 * Math.pow(2, 1.3)))`
+- `expect(result.cost.spiritStone).toBe(160)` → `expect(result.cost.spiritStone).toBeCloseTo(Math.round(80 * Math.pow(3, 1.3)))`（spiritField lv=2，目标是 lv3 = 2+1=3）
 - `expect(result.cost.spiritStone).toBe(0)` → 保持 0（level 0 不变）
 
 - [ ] **Step 5: 运行测试**
@@ -453,7 +462,7 @@ describe('calcOfflineProduction', () => {
     // max from time: 600/20=30 items
     // max from vault: 50
     expect(result.itemsProduced).toBe(20)
-    expect(result.herbsConsumed).toBeCloseTo(100)
+    expect(result.consumed.herb).toBeCloseTo(100)
   })
 
   it('returns 0 when recipeId is null', () => {
@@ -897,10 +906,27 @@ tickAll: (deltaSec: number) => {
   }
 
   // 3. Calculate resource rates with ACTUAL bonuses (fix dead code)
-  // ... existing rate calculation, but compute real bonuses ...
+  // 计算功法加成：遍历所有修炼中的弟子，找到其功法的 cultivationRate，取最大值
+  // discipleMultiplier 暂时保持 1.0（未来可扩展）
+  const maxTechRate = sect.characters
+    .filter(c => c.status === 'cultivating' && c.techniqueId)
+    .reduce((max, c) => {
+      const tech = getTechnique(c.techniqueId!)
+      return tech ? Math.max(max, tech.cultivationRate) : max
+    }, 1)
+  const bonuses: ProductionBonuses = {
+    techniqueMultiplier: maxTechRate,
+    discipleMultiplier: 1,
+  }
+  const rates = calcResourceRates(
+    { spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel },
+    bonuses
+  )
 
   // 4. Apply production minus queue consumption
-  // ... existing resource update logic, then subtract totalConsumed * deltaSec ...
+  // 注意：totalConsumed 已经是 tickProductionQueue 返回的最终消耗量（已乘以 deltaSec），
+  // 直接减去 totalConsumed，不要再次乘以 deltaSec！
+  // ... existing resource update logic, then subtract totalConsumed (NOT totalConsumed * deltaSec) ...
 
   // 5. Clamp resources
   sect.resources = clampResources(sect.resources, caps)
@@ -911,14 +937,67 @@ tickAll: (deltaSec: number) => {
 
 - [ ] **Step 3: 添加 produceItemFromRecipe 辅助函数**
 
-在 `sectStore.ts` 或单独的 helper 中，根据配方 ID 和建筑等级生成对应物品。复用现有 `craftPotion`（AlchemySystem）和 `forgeEquipment`（ForgeSystem）的逻辑。
+在 `sectStore.ts` 或单独的 helper 中，根据配方 ID 和建筑等级生成对应物品。
+
+**关键设计**：现有 Consumable 的 `id` 是动态 UUID（如 `potion_hp_potion_1711234_1`），无法通过 ID 匹配配方。需要给 Consumable 新增 `recipeId` 字段来关联配方。
+
+1. 在 `src/types/item.ts` 的 `Consumable` 接口中新增 `recipeId?: string` 字段
+2. 修改 `AlchemySystem.craftPotion()` 返回的物品带上 `recipeId`
+3. `produceItemFromRecipe` 实现逻辑：
+
+```typescript
+function produceItemFromRecipe(recipe: AutoRecipe, buildingLevel: number): AnyItem | null {
+  if (recipe.productType === 'consumable') {
+    // 复用 ALCHEMY_RECIPES 中同名配方的 product 定义
+    const alchemyRecipe = ALCHEMY_RECIPES.find(r => r.id === recipe.id)
+    if (!alchemyRecipe) return null
+    const item = craftPotion(alchemyRecipe, buildingLevel)
+    if (item) item.recipeId = recipe.id  // 标记配方来源
+    return item
+  }
+  if (recipe.productType === 'equipment') {
+    const forgeRecipe = FORGE_RECIPES.find(r => r.id === recipe.id)
+    if (!forgeRecipe) return null
+    const slot = FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
+    return generateEquipment(slot, forgeRecipe.quality)
+  }
+  return null
+}
+```
 
 - [ ] **Step 4: 运行测试**
 
 Run: `npx vitest run src/__tests__/stores.test.ts`
 Expected: ALL PASS（新增 + 现有）
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: 新增 setProductionRecipe action**
+
+在 `sectStore.ts` 中新增 store action：
+
+```typescript
+setProductionRecipe: (buildingType: BuildingType, recipeId: string | null) => {
+  const sect = get().sect
+  const building = sect.buildings.find(b => b.type === buildingType)
+  if (!building || !building.unlocked) return
+
+  if (recipeId !== null) {
+    if (!canStartRecipe(recipeId, building.level)) return
+  }
+
+  set(state => ({
+    sect: {
+      ...state.sect,
+      buildings: state.sect.buildings.map(b =>
+        b.type === buildingType
+          ? { ...b, productionQueue: { recipeId, progress: 0 } }
+          : b
+      ),
+    },
+  }))
+}
+```
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add src/stores/sectStore.ts src/__tests__/stores.test.ts
@@ -970,23 +1049,36 @@ describe('attemptBreakthrough costs', () => {
 在 `sectStore.ts` 的 `attemptBreakthrough` 方法开头，检查并消耗突破丹 + 灵石：
 
 ```typescript
-// Check breakthrough cost (for realm transitions that require pills)
-const cost = BREAKTHROUGH_COSTS[targetRealmIndex]
+// 突破消耗仅在**大境界突破**时触发（realm 变化，而非 stage 变化）
+// 判断方式：character.realmStage === REALMS[character.realm].stages.length - 1 时为大境界突破
+const currentRealm = REALMS[character.realm]
+const isMajorBreakthrough = character.realmStage === currentRealm.stages.length - 1
+const newRealmIndex = isMajorBreakthrough ? character.realm + 1 : character.realm
+
+// 仅在大境界突破到 realm 1-4 时消耗
+const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
+
 if (cost) {
-  const hasPill = sect.vault.some(item => item.type === 'consumable' && item.id === cost.pillId)
+  // 通过 recipeId 字段查找突破丹（不是 item.id，item.id 是动态 UUID）
+  const hasPill = sect.vault.some(
+    item => item.type === 'consumable' && (item as any).recipeId === cost.pillId
+  )
   if (!hasPill) return { success: false, reason: `缺少${getAutoRecipeById(cost.pillId)?.name}` }
   if (sect.resources.spiritStone < cost.spiritStone) return { success: false, reason: '灵石不足' }
 
-  // Consume pill from vault
-  const pillIndex = sect.vault.findIndex(item => item.type === 'consumable' && item.id === cost.pillId)
+  // 消耗丹药和灵石（即使后续渡劫失败也不退还）
+  const pillIndex = sect.vault.findIndex(
+    item => item.type === 'consumable' && (item as any).recipeId === cost.pillId
+  )
   sect.vault.splice(pillIndex, 1)
   sect.resources.spiritStone -= cost.spiritStone
 }
 
-// ... proceed with existing breakthrough logic (tribulation combat etc.) ...
+// ... proceed with existing breakthrough logic ...
+// 注意：当前代码中没有实现渡劫战斗系统（breakthroughExtra 是描述性文本），
+// 因此"消耗即使渡劫失败不退还"在渡劫系统实现前无实际影响。
+// 本次仅实现消耗逻辑，渡劫战斗系统属于后续迭代。
 ```
-
-注意：需要给 consumable items 确定合适的标识字段。现有 `Consumable` 接口通过 `effect.type` 区分，可能需要在配方数据中建立 pill ID 与 Consumable 的映射。
 
 - [ ] **Step 4: 运行测试**
 
@@ -1030,16 +1122,28 @@ describe('exchangeResources', () => {
 
 ```typescript
 exchangeResources: (from: ResourceType, to: ResourceType, amount: number) => {
+  // 验证兑换方向是否合法（spec 仅定义 4 种兑换）
+  const validPairs: Array<[ResourceType, ResourceType]> = [
+    ['spiritStone', 'herb'], ['spiritStone', 'ore'],
+    ['herb', 'spiritStone'], ['ore', 'spiritStone'],
+  ]
+  if (!validPairs.some(([f, t]) => f === from && t === to)) {
+    return { success: false, reason: '不支持该兑换方向' }
+  }
+
   const sect = get().sect
   const marketLevel = getBuildingLevel(sect, 'market')
   const lossRate = Math.max(0.3, 0.667 - 0.05 * marketLevel)
 
-  // Calculate received amount
+  // Spec 公式：实际获得 = 数量 × (1 - max(0.3, 0.667 - 0.05 × marketLevel))
   let received: number
   if (from === 'spiritStone') {
-    received = amount * 2 // 1:2 buy rate
+    // 买入：1灵石 = 2原料，无损耗
+    received = amount * 2
   } else {
-    received = Math.floor(amount * (1 - lossRate) / 3) // sell with loss
+    // 卖出：3原料 = 1灵石（base），再乘以 (1 - lossRate)
+    // 3 herb × (1 - 0.667) = 3 × 0.333 = 1 stone ✓
+    received = Math.floor(amount / 3 * (1 - lossRate))
   }
 
   if (sect.resources[from as keyof Resources] < amount) {
@@ -1080,8 +1184,11 @@ git commit -m "feat(market): add resource exchange with loss formula"
 ```typescript
 const EXPEDITION_SUPPLIES = {
   basic: { spiritStone: 50, items: [] },
-  enhanced: { spiritStone: 200, items: [{ id: 'hp_potion', count: 2 }] },
-  luxury: { spiritStone: 500, items: [{ id: 'hp_potion', count: 5 }, { id: 'breakthrough_pill', count: 1 }] },
+  // 精良补给用 hp_potion（回血丹），通过 recipeId 字段匹配 vault 中的物品
+  enhanced: { spiritStone: 200, items: [{ recipeId: 'hp_potion', count: 2 }] },
+  // 豪华补给中的 breakthrough_pill 是现有 AlchemySystem 的 buff 丹（+20%突破率），
+  // 不是新的境界突破丹（foundation_pill 等）。通过 item.name 或 effect.type 匹配。
+  luxury: { spiritStone: 500, items: [{ recipeId: 'hp_potion', count: 5 }, { recipeId: 'breakthrough_pill', count: 1 }] },
 } as const
 ```
 
@@ -1126,16 +1233,7 @@ git commit -m "feat(adventure): add expedition supply system"
 ```tsx
 // RecipeDrawer - 底部抽屉，显示已解锁配方列表
 // 每个配方显示：名称、原料消耗/秒、生产时间
-// 选中后调用 store 的 setProductionRecipe action
-```
-
-- [ ] **Step 3: 新增 sectStore action**
-
-```typescript
-setProductionRecipe: (buildingType: BuildingType, recipeId: string | null) => {
-  // Validate recipe can be started at current building level
-  // Set productionQueue.recipeId = recipeId, progress = 0
-}
+// 选中后调用 store 的 setProductionRecipe action（已在 Task 8 中实现）
 ```
 
 - [ ] **Step 4: 浏览器验证**
@@ -1164,14 +1262,56 @@ git commit -m "feat(ui): add production queue UI to processing buildings"
 
 - [ ] **Step 1: 在离线 catch-up 中集成 calcOfflineProduction**
 
-在 `sectStore` 或 `App.tsx` 的离线结算路径中，对加工层建筑调用 `calcOfflineProduction`：
+**关键设计**：当前离线 catch-up 直接调用 `tickAll(offlineSeconds)`。但 `tickAll` 内部使用 `tickProductionQueue`（在线逐 tick 逻辑），而 spec 要求离线使用 `calcOfflineProduction`（净速率估算）。
+
+解决方案：在 `tickAll` 中分支处理——当 `deltaSec` 超过阈值（如 60 秒）时，对加工层建筑使用离线估算而非在线 tick：
 
 ```typescript
-// For each processing building:
-const offlineResult = calcOfflineProduction(queue, resources, offlineSeconds, vaultFreeSlots)
-// Deduct consumed resources
-// Add produced items to vault
+const USE_OFFLINE_THRESHOLD = 60 // 秒
+const processingTypes: BuildingType[] = ['alchemyFurnace', 'forge']
+
+for (const bType of processingTypes) {
+  const building = sect.buildings.find(b => b.type === bType)
+  if (!building || !building.unlocked || building.level === 0 || !building.productionQueue.recipeId) continue
+
+  const vaultFreeSlots = sect.maxVaultSlots - sect.vault.length
+
+  if (deltaSec >= USE_OFFLINE_THRESHOLD) {
+    // 离线估算：使用净速率
+    const offlineResult = calcOfflineProduction(
+      building.productionQueue, sect.resources, deltaSec, vaultFreeSlots
+    )
+    totalConsumed.spiritStone += offlineResult.consumed.spiritStone
+    totalConsumed.herb += offlineResult.consumed.herb
+    totalConsumed.ore += offlineResult.consumed.ore
+    // 批量产出物品
+    for (let i = 0; i < offlineResult.itemsProduced; i++) {
+      const recipe = getAutoRecipeById(building.productionQueue.recipeId!)
+      if (recipe) {
+        const item = produceItemFromRecipe(recipe, building.level)
+        if (item && sect.vault.length < sect.maxVaultSlots) sect.vault.push(item)
+      }
+    }
+  } else {
+    // 在线 tick：逐秒精度
+    const vaultFull = sect.vault.length >= sect.maxVaultSlots
+    const result = tickProductionQueue(building.productionQueue, sect.resources, deltaSec, vaultFull)
+    totalConsumed.spiritStone += result.consumed.spiritStone
+    totalConsumed.herb += result.consumed.herb
+    totalConsumed.ore += result.consumed.ore
+    building.productionQueue.progress = result.progress
+    if (result.completed) {
+      const recipe = getAutoRecipeById(building.productionQueue.recipeId!)
+      if (recipe && sect.vault.length < sect.maxVaultSlots) {
+        const item = produceItemFromRecipe(recipe, building.level)
+        if (item) sect.vault.push(item)
+      }
+    }
+  }
+}
 ```
+
+这样 `tickAll` 既能处理在线短间隔（< 60s），也能处理离线长间隔（> 60s），无需修改 `App.tsx` 的调用方式。
 
 - [ ] **Step 2: 测试离线结算**
 
