@@ -39,8 +39,8 @@ const QUALITY_TALENT_CONFIG: Record<CharacterQuality, {
   common: { talentCount: { min: 0, max: 1, probabilities: [0.6, 0.4] }, rarityWeights: { common: 0.70, rare: 0.30, epic: 0 } },
   spirit: { talentCount: { min: 0, max: 1, probabilities: [0.5, 0.5] }, rarityWeights: { common: 0.60, rare: 0.35, epic: 0.05 } },
   immortal: { talentCount: { min: 0, max: 2, probabilities: [0.4, 0.35, 0.25] }, rarityWeights: { common: 0.50, rare: 0.40, epic: 0.10 } },
-  divine: { talentCount: { min: 1, max: 2, probabilities: [0.2, 0.4, 0.4] }, rarityWeights: { common: 0.40, rare: 0.45, epic: 0.15 } },
-  chaos: { talentCount: { min: 1, max: 3, probabilities: [0, 0.3, 0.3, 0.2, 0.2] }, rarityWeights: { common: 0.30, rare: 0.45, epic: 0.25 } },
+  divine: { talentCount: { min: 1, max: 2, probabilities: [0.6, 0.4] }, rarityWeights: { common: 0.40, rare: 0.45, epic: 0.15 } },
+  chaos: { talentCount: { min: 1, max: 3, probabilities: [0.5, 0.3, 0.2] }, rarityWeights: { common: 0.30, rare: 0.45, epic: 0.25 } },
 }
 
 function rollTalents(quality: CharacterQuality): Talent[] {
@@ -348,7 +348,7 @@ export function calcSectLevel(mainHallLevel: number): number {
 // Recruit cost and quality unlock
 // ---------------------------------------------------------------------------
 
-const RECRUIT_COSTS: Partial<Record<CharacterQuality, number>> = {
+export const RECRUIT_COSTS: Partial<Record<CharacterQuality, number>> = {
   common: 100,
   spirit: 500,
   immortal: 2000,
