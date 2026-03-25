@@ -14,6 +14,9 @@ import { tickComprehension, canLearnTechnique } from '../systems/technique/Techn
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
 import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, getForgeBuff, getBuildingLevel } from '../systems/economy/BuildingEffects'
+import { ALCHEMY_RECIPES, canCraft as canCraftAlchemy, craftPotion as craftPotionAlchemy } from '../systems/economy/AlchemySystem'
+import { FORGE_RECIPES, canForge, forgeEquipment as forgeEquipmentSystem } from '../systems/economy/ForgeSystem'
+import { generateRandomTechniqueScroll } from '../systems/item/ItemGenerator'
 import { getTechniqueById } from '../data/techniquesTable'
 import { BUILDING_DEFS } from '../data/buildings'
 
@@ -107,6 +110,11 @@ export interface SectStore {
 
   // Main tick (called every second)
   tickAll(deltaSec: number): { spiritProduced: number; spiritConsumed: number }
+
+  // Building feature actions
+  craftPotion(recipeId: string): { success: boolean; reason: string }
+  forgeEquipment(recipeId: string): { success: boolean; reason: string }
+  studyTechnique(): { success: boolean; reason: string }
 
   // Pet management
   addPet(pet: Pet): void
@@ -767,6 +775,59 @@ export const useSectStore = create<SectStore>((set, get) => ({
       spiritProduced,
       spiritConsumed: cultivatingCount > 0 ? Math.min(spiritConsumed, spiritProduced + sect.resources.spiritEnergy) : 0,
     }
+  },
+
+  // ---- Building feature actions ----
+
+  craftPotion: (recipeId) => {
+    const { sect } = get()
+    const furnaceLevel = sect.buildings.find(b => b.type === 'alchemyFurnace')?.level ?? 0
+    const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId)
+    if (!recipe) return { success: false, reason: '未知丹方' }
+    if (!canCraftAlchemy(recipe, { herb: sect.resources.herb, spiritStone: sect.resources.spiritStone }, furnaceLevel))
+      return { success: false, reason: '资源或等级不足' }
+    const potion = craftPotionAlchemy(recipe, furnaceLevel)
+    if (!potion) return { success: false, reason: '炼制失败' }
+    // Deduct resources
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, herb: s.sect.resources.herb - recipe.cost.herb, spiritStone: s.sect.resources.spiritStone - (recipe.cost.spiritStone ?? 0) } } }))
+    // Add to vault
+    get().addToVault(potion)
+    return { success: true, reason: '' }
+  },
+
+  forgeEquipment: (recipeId) => {
+    const { sect } = get()
+    const forgeLevel = sect.buildings.find(b => b.type === 'forge')?.level ?? 0
+    const recipe = FORGE_RECIPES.find(r => r.id === recipeId)
+    if (!recipe) return { success: false, reason: '未知配方' }
+    if (!canForge(recipe, { ore: sect.resources.ore, spiritStone: sect.resources.spiritStone }, forgeLevel))
+      return { success: false, reason: '资源或等级不足' }
+    const { successBonus } = getForgeBuff(forgeLevel)
+    // Deduct resources first
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, ore: s.sect.resources.ore - recipe.cost.ore, spiritStone: s.sect.resources.spiritStone - recipe.cost.spiritStone } } }))
+    const item = forgeEquipmentSystem(recipe, forgeLevel, successBonus)
+    if (!item) return { success: false, reason: '锻造失败' }
+    get().addToVault(item)
+    return { success: true, reason: '' }
+  },
+
+  studyTechnique: () => {
+    const { sect } = get()
+    const scriptureLevel = sect.buildings.find(b => b.type === 'scriptureHall')?.level ?? 0
+    if (scriptureLevel < 3) return { success: false, reason: '藏经阁等级不足' }
+    const cost = 100 * sect.level
+    if (sect.resources.spiritStone < cost) return { success: false, reason: '灵石不足' }
+    // Generate scroll matching highest realm among characters
+    const maxRealm = Math.max(...sect.characters.map(c => c.realm), 0)
+    const tierMap = ['mortal', 'spirit', 'immortal', 'divine', 'chaos'] as const
+    const maxTier = tierMap[Math.min(maxRealm, tierMap.length - 1)] ?? 'mortal'
+    // Try to generate, fallback to mortal if no techniques at tier
+    let scroll: ReturnType<typeof generateRandomTechniqueScroll>
+    try { scroll = generateRandomTechniqueScroll(maxTier) } catch { scroll = generateRandomTechniqueScroll('mortal') }
+    // Deduct resources
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - cost } } }))
+    get().addToVault(scroll)
+    return { success: true, reason: '' }
   },
 
   // ---- Pet management ----

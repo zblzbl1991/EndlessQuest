@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
-import { BUILDING_DEFS, getSpiritFieldRate } from '../data/buildings'
+import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
 import {
   getMaxCharacters,
   getRecruitCost,
@@ -13,19 +13,16 @@ import type { Character } from '../types/character'
 import type { Talent } from '../types/talent'
 import { TALENT_RARITY_NAMES } from '../types/talent'
 import ItemCard from '../components/inventory/ItemCard'
+import AlchemyPanel from '../components/building/AlchemyPanel'
+import ForgePanel from '../components/building/ForgePanel'
+import StudyPanel from '../components/building/StudyPanel'
 import styles from './BuildingsPage.module.css'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-type TabKey = 'buildings' | 'recruit' | 'vault'
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'buildings', label: '建筑' },
-  { key: 'recruit', label: '招收' },
-  { key: 'vault', label: '仓库' },
-]
+type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study'
 
 const QUALITY_LABELS: Record<CharacterQuality, string> = {
   common: '凡品',
@@ -83,11 +80,34 @@ function getTalentClass(rarity: Talent['rarity']): string {
 
 export default function BuildingsPage() {
   const [tab, setTab] = useState<TabKey>('buildings')
+  const sect = useSectStore((s) => s.sect)
+
+  const availableTabs = useMemo(() => {
+    const tabs: { key: TabKey; label: string }[] = [
+      { key: 'buildings', label: '建筑' },
+      { key: 'recruit', label: '招收' },
+      { key: 'vault', label: '仓库' },
+    ]
+    const af = sect.buildings.find(b => b.type === 'alchemyFurnace')
+    if (af && af.unlocked && af.level >= 3) tabs.push({ key: 'alchemy', label: '炼丹' })
+    const fg = sect.buildings.find(b => b.type === 'forge')
+    if (fg && fg.unlocked && fg.level >= 3) tabs.push({ key: 'forge', label: '锻造' })
+    const sh = sect.buildings.find(b => b.type === 'scriptureHall')
+    if (sh && sh.unlocked && sh.level >= 3) tabs.push({ key: 'study', label: '参悟' })
+    return tabs
+  }, [sect.buildings])
+
+  // Reset tab if current tab is no longer available
+  useEffect(() => {
+    if (!availableTabs.some(t => t.key === tab)) {
+      setTab('buildings')
+    }
+  }, [availableTabs, tab])
 
   return (
     <div className={styles.page}>
       <div className={styles.tabs}>
-        {TABS.map((t) => (
+        {availableTabs.map((t) => (
           <button
             key={t.key}
             className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
@@ -101,6 +121,9 @@ export default function BuildingsPage() {
       {tab === 'buildings' && <BuildingsTab />}
       {tab === 'recruit' && <RecruitTab />}
       {tab === 'vault' && <VaultTab />}
+      {tab === 'alchemy' && <AlchemyPanel />}
+      {tab === 'forge' && <ForgePanel />}
+      {tab === 'study' && <StudyPanel />}
     </div>
   )
 }
@@ -134,7 +157,6 @@ function BuildingsTab() {
         const isMaxLevel = building.level >= def.maxLevel
         const cost = def.upgradeCost(building.level)
         const canAfford = sect.resources.spiritStone >= cost.spiritStone
-        const spiritRate = def.type === 'spiritField' ? getSpiritFieldRate(building.level) : 0
 
         return (
           <div key={def.type} className={`${styles.buildingCard} ${!isUnlocked ? styles.buildingLocked : ''}`}>
@@ -145,11 +167,14 @@ function BuildingsTab() {
               </span>
             </div>
             <div className={styles.buildingDesc}>{def.description}</div>
-            {spiritRate > 0 && (
-              <div className={styles.buildingEffect}>
-                灵气产出: +{spiritRate}/s
-              </div>
-            )}
+            {(() => {
+              const effectText = getBuildingEffectText(building)
+              return effectText && <div className={styles.buildingEffect}>{effectText}</div>
+            })()}
+            {!isUnlocked && (() => {
+              const unlockText = getBuildingUnlockText(building)
+              return unlockText && <div className={styles.buildingUnlockPreview}>{unlockText}</div>
+            })()}
             {isUnlocked && !isMaxLevel && (
               <button
                 className={`${styles.upgradeBtn} ${canAfford ? styles.upgradeReady : styles.upgradeDisabled}`}

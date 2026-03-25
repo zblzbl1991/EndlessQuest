@@ -94,6 +94,13 @@
   margin-bottom: var(--space-sm);
 }
 
+.buildingUnlockPreview {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  margin-bottom: var(--space-sm);
+}
+
 .upgradeBtn {
   width: 100%;
   padding: 8px;
