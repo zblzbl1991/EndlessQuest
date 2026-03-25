@@ -13,8 +13,8 @@ import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakt
 import { tickComprehension, canLearnTechnique } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
-import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, getForgeBuff, getBuildingLevel, getMarketBuff } from '../systems/economy/BuildingEffects'
-import { createShopState, generateDailyItems, shouldRefreshDaily } from '../systems/trade/TradeSystem'
+import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, getForgeBuff, getBuildingLevel } from '../systems/economy/BuildingEffects'
+import { createShopState, generateDailyItems } from '../systems/trade/TradeSystem'
 import type { ShopState } from '../systems/trade/TradeSystem'
 import { ALCHEMY_RECIPES, canCraft as canCraftAlchemy, craftPotion as craftPotionAlchemy } from '../systems/economy/AlchemySystem'
 import { FORGE_RECIPES, canForge, forgeEquipment as forgeEquipmentSystem } from '../systems/economy/ForgeSystem'
@@ -55,6 +55,7 @@ function createInitialState(): { sect: Sect } {
         type: def.type,
         level: def.type === 'mainHall' ? 1 : 0,
         unlocked: def.type === 'mainHall' || def.type === 'spiritMine',
+        productionQueue: { recipeId: null, progress: 0 },
       })),
       characters: [generateCharacter('common')],
       vault: [],
@@ -85,7 +86,7 @@ export interface SectStore {
   canRecruit(quality: CharacterQuality): { allowed: boolean; reason: string }
   removeCharacter(id: string): void
   promoteCharacter(id: string, newTitle: CharacterTitle): void
-  setCharacterStatus(id: string, status: CharacterStatus): void
+  setCharacterStatus(id: string, status: CharacterStatus, opts?: { injuryTimer?: number }): void
 
   // Technique management
   learnTechnique(characterId: string, backpackIndex: number): boolean
@@ -253,12 +254,14 @@ export const useSectStore = create<SectStore>((set, get) => ({
     }))
   },
 
-  setCharacterStatus: (id, status) => {
+  setCharacterStatus: (id, status, opts) => {
     set((s) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === id ? { ...c, status } : c
+          c.id === id
+            ? { ...c, status, ...(opts?.injuryTimer !== undefined ? { injuryTimer: opts.injuryTimer } : {}) }
+            : c
         ),
       },
     }))
@@ -760,8 +763,8 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const updatedCharacters = sect.characters.map((char) => {
       if (char.status !== 'cultivating') {
         // Handle resting/injured characters
-        if (char.status === 'injured') {
-          // Heal 1 HP/s equivalent (reduce injuryTimer)
+        if (char.status === 'injured' || char.status === 'resting') {
+          // Reduce injuryTimer (reused as recovery timer for resting)
           const newTimer = Math.max(0, char.injuryTimer - deltaSec)
           if (newTimer <= 0) {
             return { ...char, status: 'cultivating' as const, injuryTimer: 0 }

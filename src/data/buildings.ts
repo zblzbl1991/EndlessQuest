@@ -1,4 +1,4 @@
-import type { BuildingType, Building } from '../types/sect'
+import type { BuildingType, Building, ResourceCaps } from '../types/sect'
 import { getMarketBuff, getAlchemyBuff, getForgeBuff, getScriptureBuff, getRecruitBuff, getTrainingBuff } from '../systems/economy/BuildingEffects'
 
 export interface BuildingDef {
@@ -11,15 +11,15 @@ export interface BuildingDef {
 }
 
 export const BUILDING_DEFS: BuildingDef[] = [
-  { type: 'mainHall', name: '宗门大殿', description: '宗门核心建筑', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: 100 * lv }), unlockCondition: '初始' },
-  { type: 'spiritMine', name: '灵石矿', description: '产出灵石和矿材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: 100 * lv }), unlockCondition: '初始' },
-  { type: 'spiritField', name: '灵田', description: '产出灵草和灵材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: 80 * lv }), unlockCondition: '大殿 Lv1' },
-  { type: 'market', name: '坊市', description: 'NPC 商店', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: 100 * lv }), unlockCondition: '大殿 Lv1' },
-  { type: 'alchemyFurnace', name: '丹炉', description: '炼制丹药', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: 150 * lv }), unlockCondition: '大殿 Lv2 + 灵田 Lv2' },
-  { type: 'forge', name: '炼器坊', description: '锻造和强化装备', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: 150 * lv }), unlockCondition: '大殿 Lv2' },
-  { type: 'scriptureHall', name: '藏经阁', description: '学习功法', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: 200 * lv }), unlockCondition: '大殿 Lv3' },
-  { type: 'recruitmentPavilion', name: '聚仙台', description: '招募弟子', maxLevel: 6, upgradeCost: (lv) => ({ spiritStone: 300 * lv }), unlockCondition: '大殿 Lv3' },
-  { type: 'trainingHall', name: '传功殿', description: '弟子修炼', maxLevel: 6, upgradeCost: (lv) => ({ spiritStone: 250 * lv }), unlockCondition: '大殿 Lv4' },
+  { type: 'mainHall', name: '宗门大殿', description: '宗门核心建筑', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '初始' },
+  { type: 'spiritMine', name: '灵石矿', description: '产出灵石和矿材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '初始' },
+  { type: 'spiritField', name: '灵田', description: '产出灵草和灵材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: Math.round(80 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv1' },
+  { type: 'market', name: '坊市', description: 'NPC 商店', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv1' },
+  { type: 'alchemyFurnace', name: '丹炉', description: '炼制丹药', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(150 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv2 + 灵田 Lv2' },
+  { type: 'forge', name: '炼器坊', description: '锻造和强化装备', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(150 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv2' },
+  { type: 'scriptureHall', name: '藏经阁', description: '学习功法', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(200 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv3' },
+  { type: 'recruitmentPavilion', name: '聚仙台', description: '招募弟子', maxLevel: 6, upgradeCost: (lv) => ({ spiritStone: Math.round(300 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv3' },
+  { type: 'trainingHall', name: '传功殿', description: '弟子修炼', maxLevel: 6, upgradeCost: (lv) => ({ spiritStone: Math.round(250 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv4' },
 ]
 
 export function getBuildingDef(type: BuildingType): BuildingDef | undefined {
@@ -46,6 +46,18 @@ export function getSpiritMineRate(level: number): number {
 export function getSpiritMineOreRate(level: number): number {
   if (level < 1) return 0
   return 0.05 * level
+}
+
+/**
+ * Calculate resource storage caps based on spirit field and mine levels.
+ * These are runtime-calculated limits, not persisted.
+ */
+export function calcResourceCaps(spiritFieldLevel: number, spiritMineLevel: number): ResourceCaps {
+  return {
+    spiritEnergy: 500 + spiritFieldLevel * 300,
+    herb: 200 + spiritFieldLevel * 100,
+    ore: 200 + spiritMineLevel * 100,
+  }
 }
 
 // ---------------------------------------------------------------------------

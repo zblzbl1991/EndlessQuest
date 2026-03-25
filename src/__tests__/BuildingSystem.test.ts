@@ -18,6 +18,7 @@ function createBuildings(overrides?: Partial<Record<string, { level: number; unl
   return Object.entries({ ...defaults, ...overrides }).map(([type, val]) => ({
     type: type as Building['type'],
     ...val,
+    productionQueue: { recipeId: null, progress: 0 },
   }))
 }
 
@@ -123,9 +124,9 @@ describe('checkBuildingUnlock', () => {
 describe('canUpgradeBuilding', () => {
   it('should allow upgrade with sufficient spirit stone', () => {
     const buildings = createBuildings({ mainHall: { level: 1, unlocked: true } })
-    const result = canUpgradeBuilding('mainHall', buildings, 200)
+    const result = canUpgradeBuilding('mainHall', buildings, 300)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(100) // 100 * level1
+    expect(result.cost.spiritStone).toBe(Math.round(100 * Math.pow(2, 1.3))) // 100 * 2^1.3 ≈ 246
   })
 
   it('should reject upgrade without enough spirit stone', () => {
@@ -151,22 +152,22 @@ describe('canUpgradeBuilding', () => {
 
   it('should show correct cost for level 2 spirit field upgrade', () => {
     const buildings = createBuildings({ spiritField: { level: 2, unlocked: true } })
-    const result = canUpgradeBuilding('spiritField', buildings, 200)
+    const result = canUpgradeBuilding('spiritField', buildings, 400)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(160) // 80 * 2
+    expect(result.cost.spiritStone).toBe(Math.round(80 * Math.pow(3, 1.3))) // 80 * 3^1.3 ≈ 334
   })
 
-  it('canUpgradeBuilding should allow spiritMine level 0→1 for free', () => {
+  it('canUpgradeBuilding should show correct spiritMine level 0→1 cost', () => {
     const buildings = createBuildings({ spiritMine: { level: 0, unlocked: true } })
-    const result = canUpgradeBuilding('spiritMine', buildings, 0)
+    const result = canUpgradeBuilding('spiritMine', buildings, 100)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(0) // 100 * 0 = 0
+    expect(result.cost.spiritStone).toBe(Math.round(100 * Math.pow(1, 1.3))) // 100 * 1^1.3 = 100
   })
 
   it('canUpgradeBuilding should show correct spiritMine level 1→2 cost', () => {
     const buildings = createBuildings({ spiritMine: { level: 1, unlocked: true } })
-    const result = canUpgradeBuilding('spiritMine', buildings, 200)
+    const result = canUpgradeBuilding('spiritMine', buildings, 300)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(100) // 100 * 1 = 100
+    expect(result.cost.spiritStone).toBe(Math.round(100 * Math.pow(2, 1.3))) // 100 * 2^1.3 ≈ 246
   })
 })
