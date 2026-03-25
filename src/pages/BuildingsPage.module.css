@@ -604,6 +604,206 @@
   font-size: 13px;
 }
 
+/* ===== Production Queue (Processing Buildings) ===== */
+
+.productionSection {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-light);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.productionStatus {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.productionIdle {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+.productionRecipeName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.productionInputRate {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
+}
+
+.progressBar {
+  width: 100%;
+  height: 6px;
+  background: var(--color-bg);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+
+.productionTime {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.recipeSelectBtn {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: var(--font-serif);
+}
+
+.recipeSelectBtn:hover {
+  background: var(--color-bg-paper);
+  border-color: var(--color-accent);
+}
+
+/* ===== Recipe Drawer ===== */
+
+.recipeDrawerOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: flex-end;
+  z-index: 30;
+}
+
+.recipeDrawer {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-panel);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.recipeDrawerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xs);
+}
+
+.recipeDrawerTitle {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.recipeDrawerClose {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  font-size: 16px;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.recipeDrawerClose:hover {
+  background: var(--color-bg);
+}
+
+.recipeList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.recipeItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-bg);
+  border: 2px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  transition: all var(--transition-fast);
+}
+
+.recipeItem:hover {
+  background: var(--color-bg-paper);
+}
+
+.recipeItemActive {
+  border-color: var(--color-accent);
+  background: rgba(139, 90, 43, 0.1);
+}
+
+.recipeItemName {
+  font-weight: 600;
+  font-family: var(--font-serif);
+}
+
+.recipeItemDetails {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.recipeItemRate {
+  color: var(--color-text-secondary);
+}
+
+.recipeItemTime {
+  color: var(--color-text-tertiary);
+}
+
+.recipeStopBtn {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--color-danger, #e53935);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: 13px;
+  color: var(--color-danger, #e53935);
+  cursor: pointer;
+  margin-top: var(--space-xs);
+  font-family: var(--font-serif);
+}
+
+.recipeStopBtn:hover {
+  background: rgba(229, 57, 53, 0.08);
+}
+
 @media (min-width: 1024px) {
   .buildingsGrid {
     display: grid;
@@ -623,6 +823,17 @@
   }
 
   .transferModalContent {
+    max-width: 600px;
+    border-radius: var(--radius-lg);
+    max-height: 80vh;
+  }
+
+  .recipeDrawerOverlay {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .recipeDrawer {
     max-width: 600px;
     border-radius: var(--radius-lg);
     max-height: 80vh;

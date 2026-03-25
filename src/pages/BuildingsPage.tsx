@@ -1,12 +1,15 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
 import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
+import { getAutoRecipesForBuilding, getAutoRecipeById } from '../data/recipes'
+import type { AutoRecipe } from '../data/recipes'
 import {
   getMaxCharacters,
   getRecruitCost,
   getAvailableQualities,
   getQualityStats,
+  getQualityUnlockMainHallLevel,
 } from '../systems/character/CharacterEngine'
 import type { BuildingType, CharacterQuality } from '../types'
 import type { AnyItem } from '../types/item'
@@ -33,13 +36,6 @@ const QUALITY_LABELS: Record<CharacterQuality, string> = {
   immortal: '仙品',
   divine: '神品',
   chaos: '混沌',
-}
-
-const QUALITY_UNLOCK_LEVEL: Partial<Record<CharacterQuality, number>> = {
-  common: 1,
-  spirit: 2,
-  immortal: 3,
-  divine: 4,
 }
 
 /** Base combat stats before variance -- used for stat coloring comparison. */
@@ -77,6 +73,24 @@ function getTalentClass(rarity: Talent['rarity']): string {
   return ''
 }
 
+/** Building types that support auto-production queues. */
+const PROCESSING_BUILDINGS: BuildingType[] = ['alchemyFurnace', 'forge']
+
+function formatInputPerSec(recipe: AutoRecipe): string {
+  const parts: string[] = []
+  if (recipe.inputPerSec.herb) parts.push(`${recipe.inputPerSec.herb}/秒灵草`)
+  if (recipe.inputPerSec.ore) parts.push(`${recipe.inputPerSec.ore}/秒矿石`)
+  if (recipe.inputPerSec.spiritStone) parts.push(`${recipe.inputPerSec.spiritStone}/秒灵石`)
+  return parts.join(' + ') || '无消耗'
+}
+
+function formatProductionTime(seconds: number): string {
+  if (seconds < 60) return `${seconds}秒`
+  const min = Math.floor(seconds / 60)
+  const sec = seconds % 60
+  return sec > 0 ? `${min}分${sec}秒` : `${min}分钟`
+}
+
 // ---------------------------------------------------------------------------
 // BuildingsPage
 // ---------------------------------------------------------------------------
@@ -88,9 +102,10 @@ export default function BuildingsPage() {
   const availableTabs = useMemo(() => {
     const tabs: { key: TabKey; label: string }[] = [
       { key: 'buildings', label: '建筑' },
-      { key: 'recruit', label: '招收' },
       { key: 'vault', label: '仓库' },
     ]
+    const rp = sect.buildings.find(b => b.type === 'recruitmentPavilion')
+    if (rp && rp.unlocked) tabs.push({ key: 'recruit', label: '招收' })
     const af = sect.buildings.find(b => b.type === 'alchemyFurnace')
     if (af && af.unlocked && af.level >= 3) tabs.push({ key: 'alchemy', label: '炼丹' })
     const fg = sect.buildings.find(b => b.type === 'forge')
@@ -144,7 +159,9 @@ export default function BuildingsPage() {
 function BuildingsTab() {
   const sect = useSectStore((s) => s.sect)
   const tryUpgradeBuilding = useSectStore((s) => s.tryUpgradeBuilding)
+  const setProductionRecipe = useSectStore((s) => s.setProductionRecipe)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
+  const [drawerBuilding, setDrawerBuilding] = useState<string | null>(null)
 
   const handleUpgrade = (type: BuildingType) => {
     const result = tryUpgradeBuilding(type)
@@ -156,6 +173,11 @@ function BuildingsTab() {
     setTimeout(() => setMessage(null), 2000)
   }
 
+  const handleSelectRecipe = useCallback((buildingType: BuildingType, recipeId: string | null) => {
+    setProductionRecipe(buildingType, recipeId)
+    setDrawerBuilding(null)
+  }, [setProductionRecipe])
+
   return (
     <div className={styles.buildingsGrid}>
       {BUILDING_DEFS.map((def) => {
@@ -166,6 +188,15 @@ function BuildingsTab() {
         const isMaxLevel = building.level >= def.maxLevel
         const cost = def.upgradeCost(building.level)
         const canAfford = sect.resources.spiritStone >= cost.spiritStone
+        const isProcessing = PROCESSING_BUILDINGS.includes(def.type)
+
+        // Production queue info
+        const activeRecipe = building.productionQueue.recipeId
+          ? getAutoRecipeById(building.productionQueue.recipeId)
+          : null
+        const progressPercent = activeRecipe
+          ? Math.min((building.productionQueue.progress / activeRecipe.productionTime) * 100, 100)
+          : 0
 
         return (
           <div key={def.type} className={`${styles.buildingCard} ${!isUnlocked ? styles.buildingLocked : ''}`}>
@@ -184,6 +215,42 @@ function BuildingsTab() {
               const unlockText = getBuildingUnlockText(building)
               return unlockText && <div className={styles.buildingUnlockPreview}>{unlockText}</div>
             })()}
+
+            {/* Production queue section for processing buildings */}
+            {isUnlocked && isProcessing && (
+              <div className={styles.productionSection}>
+                {!activeRecipe ? (
+                  <div className={styles.productionStatus}>
+                    <span className={styles.productionIdle}>未设置生产配方</span>
+                  </div>
+                ) : (
+                  <div className={styles.productionStatus}>
+                    <div className={styles.productionRecipeName}>
+                      {activeRecipe.name}
+                      <span className={styles.productionInputRate}>
+                        {formatInputPerSec(activeRecipe)}
+                      </span>
+                    </div>
+                    <div className={styles.progressBar}>
+                      <div
+                        className={styles.progressBarFill}
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
+                    <div className={styles.productionTime}>
+                      {formatProductionTime(activeRecipe.productionTime)}
+                    </div>
+                  </div>
+                )}
+                <button
+                  className={styles.recipeSelectBtn}
+                  onClick={() => setDrawerBuilding(def.type)}
+                >
+                  选择配方
+                </button>
+              </div>
+            )}
+
             {isUnlocked && !isMaxLevel && (
               <button
                 className={`${styles.upgradeBtn} ${canAfford ? styles.upgradeReady : styles.upgradeDisabled}`}
@@ -222,6 +289,17 @@ function BuildingsTab() {
         <div className={`${styles.message} ${message.success ? styles.messageSuccess : styles.messageFail}`}>
           {message.text}
         </div>
+      )}
+
+      {/* Recipe selection drawer */}
+      {drawerBuilding && (
+        <RecipeDrawer
+          buildingType={drawerBuilding as 'alchemyFurnace' | 'forge'}
+          buildingLevel={sect.buildings.find(b => b.type === drawerBuilding)?.level ?? 1}
+          currentRecipeId={sect.buildings.find(b => b.type === drawerBuilding)?.productionQueue.recipeId ?? null}
+          onSelect={handleSelectRecipe}
+          onClose={() => setDrawerBuilding(null)}
+        />
       )}
     </div>
   )
@@ -295,7 +373,7 @@ function RecruitTab() {
       <div className={styles.qualitySelect}>
         {(['common', 'spirit', 'immortal', 'divine'] as CharacterQuality[]).map((quality) => {
           const available = availableQualities.includes(quality)
-          const unlockLevel = QUALITY_UNLOCK_LEVEL[quality]
+          const unlockMainHall = getQualityUnlockMainHallLevel(quality)
           const qualityCost = getRecruitCost(quality)
           return (
             <button
@@ -306,8 +384,8 @@ function RecruitTab() {
             >
               {QUALITY_LABELS[quality]}
               <span className={styles.qualityCost}>{qualityCost}灵石</span>
-              {!available && unlockLevel != null && (
-                <span className={styles.qualityLockHint}>Lv{unlockLevel}解锁</span>
+              {!available && unlockMainHall != null && (
+                <span className={styles.qualityLockHint}>大殿Lv{unlockMainHall}解锁</span>
               )}
             </button>
           )
@@ -336,7 +414,6 @@ function RecruitTab() {
             <div className={styles.targetedQualitySelect}>
               {targetedOptions.map((quality) => {
                 const qCost = getRecruitCost(quality) * 2
-                const canAfford = sect.resources.spiritStone >= qCost && sect.resources.herb >= 10
                 const isSelected = targetedQuality === quality
                 return (
                   <button
@@ -446,6 +523,70 @@ function RecruitResultModal({ character, onClose }: { character: Character; onCl
         <button className={styles.recruitCloseBtn} onClick={onClose}>
           收下弟子
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// RecipeDrawer
+// ---------------------------------------------------------------------------
+
+function RecipeDrawer({
+  buildingType,
+  buildingLevel,
+  currentRecipeId,
+  onSelect,
+  onClose,
+}: {
+  buildingType: 'alchemyFurnace' | 'forge'
+  buildingLevel: number
+  currentRecipeId: string | null
+  onSelect: (buildingType: BuildingType, recipeId: string | null) => void
+  onClose: () => void
+}) {
+  const recipes = getAutoRecipesForBuilding(buildingType, buildingLevel)
+
+  return (
+    <div className={styles.recipeDrawerOverlay} onClick={onClose}>
+      <div className={styles.recipeDrawer} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.recipeDrawerHeader}>
+          <span className={styles.recipeDrawerTitle}>
+            {buildingType === 'alchemyFurnace' ? '炼丹配方' : '锻造配方'}
+          </span>
+          <button className={styles.recipeDrawerClose} onClick={onClose}>x</button>
+        </div>
+
+        <div className={styles.recipeList}>
+          {recipes.map((recipe) => {
+            const isActive = recipe.id === currentRecipeId
+            return (
+              <button
+                key={recipe.id}
+                className={`${styles.recipeItem} ${isActive ? styles.recipeItemActive : ''}`}
+                onClick={() => onSelect(buildingType, recipe.id)}
+              >
+                <div className={styles.recipeItemName}>{recipe.name}</div>
+                <div className={styles.recipeItemDetails}>
+                  <span className={styles.recipeItemRate}>{formatInputPerSec(recipe)}</span>
+                  <span className={styles.recipeItemTime}>{formatProductionTime(recipe.productionTime)}</span>
+                </div>
+              </button>
+            )
+          })}
+          {recipes.length === 0 && (
+            <div className={styles.empty}>暂无可用配方</div>
+          )}
+        </div>
+
+        {currentRecipeId && (
+          <button
+            className={styles.recipeStopBtn}
+            onClick={() => onSelect(buildingType, null)}
+          >
+            停止生产
+          </button>
+        )}
       </div>
     </div>
   )
