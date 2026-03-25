@@ -1,5 +1,5 @@
 // src/__tests__/ResourceEngine.test.ts
-import { calcResourceRates } from '../systems/economy/ResourceEngine'
+import { calcResourceRates, clampResources } from '../systems/economy/ResourceEngine'
 import { getSpiritFieldRate } from '../data/buildings'
 
 describe('ResourceEngine', () => {
@@ -50,4 +50,34 @@ test('calcResourceRates spirit energy matches getSpiritFieldRate for level >= 1'
     const rates = calcResourceRates({ spiritField: level, spiritMine: 0, mainHall: 1 })
     expect(rates.spiritEnergy).toBe(getSpiritFieldRate(level))
   }
+})
+
+describe('clampResources', () => {
+  it('does not clamp when below caps', () => {
+    const resources = { spiritStone: 100, spiritEnergy: 200, herb: 50, ore: 30 }
+    const caps = { spiritEnergy: 500, herb: 200, ore: 200 }
+    const result = clampResources(resources, caps)
+    expect(result.spiritEnergy).toBe(200)
+    expect(result.herb).toBe(50)
+    expect(result.ore).toBe(30)
+    expect(result.spiritStone).toBe(100)
+  })
+
+  it('clamps resources to caps', () => {
+    const resources = { spiritStone: 9999, spiritEnergy: 800, herb: 300, ore: 250 }
+    const caps = { spiritEnergy: 500, herb: 200, ore: 200 }
+    const result = clampResources(resources, caps)
+    expect(result.spiritEnergy).toBe(500)
+    expect(result.herb).toBe(200)
+    expect(result.ore).toBe(200)
+    expect(result.spiritStone).toBe(9999)
+  })
+
+  it('returns new object without mutating original', () => {
+    const resources = { spiritStone: 100, spiritEnergy: 600, herb: 300, ore: 300 }
+    const caps = { spiritEnergy: 500, herb: 200, ore: 200 }
+    const result = clampResources(resources, caps)
+    expect(resources.spiritEnergy).toBe(600) // original unchanged
+    expect(result.spiritEnergy).toBe(500) // clamped copy
+  })
 })

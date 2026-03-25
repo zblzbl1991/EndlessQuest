@@ -1,6 +1,9 @@
 // src/systems/economy/ResourceEngine.ts
 
 import { getSpiritFieldRate, getSpiritMineRate, getSpiritMineOreRate } from '../../data/buildings'
+import type { ResourceCaps, Resources } from '../../types/sect'
+
+export type { Resources }
 
 export interface BuildingLevels {
   spiritField: number
@@ -34,4 +37,13 @@ export function calcResourceRates(
   const ore = smLevel > 0 ? getSpiritMineOreRate(smLevel) * totalMult : 0
 
   return { spiritEnergy, spiritStone, herb, ore }
+}
+
+export function clampResources(resources: Resources, caps: ResourceCaps): Resources {
+  return {
+    spiritStone: resources.spiritStone,
+    spiritEnergy: Math.min(resources.spiritEnergy, caps.spiritEnergy),
+    herb: Math.min(resources.herb, caps.herb),
+    ore: Math.min(resources.ore, caps.ore),
+  }
 }
