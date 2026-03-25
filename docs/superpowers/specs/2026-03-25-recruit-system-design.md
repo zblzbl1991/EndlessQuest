@@ -28,17 +28,24 @@
 ```typescript
 export type TalentId = string
 
+export type TalentStat =
+  | 'spiritualRoot' | 'comprehension' | 'fortune'
+  | 'hp' | 'atk' | 'def' | 'spd' | 'crit' | 'critDmg'
+  | 'maxSpiritPower'
+
+export type TalentRarity = 'common' | 'rare' | 'epic'
+
+export interface TalentEffect {
+  stat: TalentStat
+  value: number
+}
+
 export interface Talent {
   id: TalentId
   name: string
   description: string
-  effect: {
-    stat: 'spiritualRoot' | 'comprehension' | 'fortune'
-          | 'hp' | 'atk' | 'def' | 'spd' | 'crit' | 'critDmg'
-          | 'maxSpiritPower'
-    value: number
-  }
-  rarity: 'common' | 'rare' | 'epic'
+  effect: TalentEffect[]  // 统一为数组，单属性天赋也是单元素数组
+  rarity: TalentRarity
 }
 
 export const TALENT_RARITY_NAMES: Record<TalentRarity, string> = {
@@ -46,8 +53,6 @@ export const TALENT_RARITY_NAMES: Record<TalentRarity, string> = {
   rare: '良',
   epic: '绝',
 }
-
-export type TalentRarity = 'common' | 'rare' | 'epic'
 ```
 
 ### 1.2 Character 类型变更
@@ -70,22 +75,22 @@ export interface Character {
 
 ### 2.1 天赋池（12个）
 
+所有天赋的 effect 统一为 `TalentEffect[]` 数组：
+
 | ID | 名称 | 稀有度 | 效果 |
 |----|------|--------|------|
-| wugu | 武骨 | common | atk +3 |
-| tiebi | 铁壁 | common | def +2 |
-| feiying | 飞影 | common | spd +2 |
-| huixin_combat | 会心 | common | crit +0.03 |
-| shayi | 杀意 | common | critDmg +0.2 |
-| lingxin | 灵心 | common | maxSpiritPower +20 |
-| tianmai | 天脉 | rare | spiritualRoot +5 |
-| huixin | 慧心 | rare | comprehension +5 |
-| qiyun | 气运 | rare | fortune +5 |
-| xianti | 仙体 | rare | hp +15 |
-| taiji | 太极 | epic | spiritualRoot +8, comprehension +3 |
-| busizun | 不死尊 | epic | hp +30, def +5 |
-
-注：taiji 和 busizun 是双属性天赋，effect 为数组。
+| wugu | 武骨 | common | [{ stat: 'atk', value: 3 }] |
+| tiebi | 铁壁 | common | [{ stat: 'def', value: 2 }] |
+| feiying | 飞影 | common | [{ stat: 'spd', value: 2 }] |
+| huixin_combat | 会心 | common | [{ stat: 'crit', value: 0.03 }] |
+| shayi | 杀意 | common | [{ stat: 'critDmg', value: 0.2 }] |
+| lingxin | 灵心 | common | [{ stat: 'maxSpiritPower', value: 20 }] |
+| tianmai | 天脉 | rare | [{ stat: 'spiritualRoot', value: 5 }] |
+| huixin | 慧心 | rare | [{ stat: 'comprehension', value: 5 }] |
+| qiyun | 气运 | rare | [{ stat: 'fortune', value: 5 }] |
+| xianti | 仙体 | rare | [{ stat: 'hp', value: 15 }] |
+| taiji | 太极 | epic | [{ stat: 'spiritualRoot', value: 8 }, { stat: 'comprehension', value: 3 }] |
+| busizun | 不死尊 | epic | [{ stat: 'hp', value: 30 }, { stat: 'def', value: 5 }] |
 
 ### 2.2 品质天赋权重
 
@@ -136,31 +141,45 @@ export interface Character {
 3. 根据品质天赋权重表 roll 天赋数量
 4. 按权重随机选取天赋（不重复）
 5. 天赋效果叠加到对应属性
-6. 混沌品质特殊处理：仅通过神品 0.5% 升级触发
+6. 混沌品质特殊处理：仅通过神品 0.5% 升级触发（见 3.6 节）
 7. 返回完整 Character（含 talents 字段）
 
-### 3.4 新增导出函数
+### 3.4 混沌升级规则（澄清）
+
+当玩家选择招募神品弟子时，在 generateCharacter 内部执行以下逻辑：
+
+1. 先按**神品**参数（基础属性、±12%浮动范围、神品天赋权重）完整生成弟子
+2. 生成完成后，以 0.5% 概率触发混沌升级：
+   - `quality` 改为 `'chaos'`
+   - **保留已生成的属性和天赋不变**（不重新 roll）
+   - 混沌品质的弟子拥有神品的属性但标注为混沌品质，这已经是幸运了
+3. 招募费用仍按神品 8000 灵石计算（不额外扣费）
+
+### 3.5 初始弟子处理
+
+`createInitialState()` 中通过 `generateCharacter('common')` 创建初始弟子。改造后初始弟子也会获得属性浮动和天赋（如果 roll 到的话）。这符合 Roguelike 设计——每次开局都不同。
+
+### 3.6 新增导出函数
 
 ```typescript
-// 招募费用
-export const RECRUIT_COSTS: Record<CharacterQuality, number> = {
+// 招募费用（不含 chaos，混沌不可直接招募）
+export const RECRUIT_COSTS: Partial<Record<CharacterQuality, number>> = {
   common: 100,
   spirit: 500,
   immortal: 2000,
   divine: 8000,
-  chaos: 50000,  // 不可直接招募，仅参考
 }
 
 export function getRecruitCost(quality: CharacterQuality): number
 
-// 解锁检查
+// 解锁检查（chaos 永远返回 false）
 export function isQualityUnlocked(quality: CharacterQuality, sectLevel: number): boolean
 
-// 可招募品质列表
+// 可招募品质列表（不含 chaos）
 export function getAvailableQualities(sectLevel: number): CharacterQuality[]
 ```
 
-### 3.5 解锁等级表
+### 3.7 解锁等级表
 
 | 品质 | 所需宗门等级 |
 |------|------------|
@@ -183,12 +202,13 @@ addCharacter(quality: CharacterQuality): Character | null
 ```
 
 流程：
-1. 检查人数上限（不变）
-2. 获取招募费用 `getRecruitCost(quality)`
-3. 检查灵石是否足够，不足返回 null
-4. 扣除灵石
-5. 调用 `generateCharacter(quality)` 生成弟子
-6. 返回弟子
+1. 检查品质是否已解锁（`isQualityUnlocked`），未解锁返回 null
+2. 检查人数上限（不变）
+3. 获取招募费用 `getRecruitCost(quality)`
+4. 检查灵石是否足够，不足返回 null
+5. 扣除灵石
+6. 调用 `generateCharacter(quality)` 生成弟子
+7. 返回弟子
 
 ### 4.2 新增 canRecruit 方法
 
@@ -198,9 +218,9 @@ canRecruit(quality: CharacterQuality): { allowed: boolean; reason: string }
 
 返回值示例：
 - `{ allowed: true, reason: '' }`
+- `{ allowed: false, reason: '宗门等级不足' }`
 - `{ allowed: false, reason: '灵石不足' }`
 - `{ allowed: false, reason: '弟子已满' }`
-- `{ allowed: false, reason: '宗门等级不足' }`
 
 ---
 
@@ -236,7 +256,19 @@ canRecruit(quality: CharacterQuality): { allowed: boolean; reason: string }
 
 ---
 
-## 6. 文件变更清单
+## 6. 存档兼容
+
+### 6.1 v2 存档迁移
+
+现有 v2 存档中的 Character 对象没有 `talents` 字段。加载时需要在 `loadGame()` 中为每个 Character 补充 `talents: []` 默认值。
+
+具体做法：在 SaveSystem.ts 的 `loadGame()` 中，加载 sect 数据后遍历 `characters` 数组，对缺少 `talents` 字段的 Character 补充 `talents: []`。
+
+存档版本号保持在 `2` 不变——这是一个向前兼容的补充，不需要完整的版本迁移。
+
+---
+
+## 7. 文件变更清单
 
 | 操作 | 文件 |
 |------|------|
@@ -245,15 +277,16 @@ canRecruit(quality: CharacterQuality): { allowed: boolean; reason: string }
 | 修改 | `src/types/character.ts`（新增 talents 字段） |
 | 修改 | `src/types/index.ts`（导出 Talent 类型） |
 | 修改 | `src/systems/character/CharacterEngine.ts`（属性浮动 + 天赋 + 费用函数） |
-| 修改 | `src/stores/sectStore.ts`（addCharacter 消费灵石 + canRecruit） |
+| 修改 | `src/stores/sectStore.ts`（addCharacter 消费灵石 + 品质检查 + canRecruit） |
+| 修改 | `src/systems/save/SaveSystem.ts`（v2 存档 talents 兼容） |
 | 修改 | `src/pages/BuildingsPage.tsx`（RecruitTab 费用显示 + 结果弹层） |
 | 修改 | `src/pages/BuildingsPage.module.css`（天赋样式 + 属性颜色） |
-| 新建 | `src/__tests__/CharacterEngine.test.ts`（扩展浮动 + 天赋测试） |
+| 修改 | `src/__tests__/CharacterEngine.test.ts`（改为范围断言） |
 | 新建 | `src/__tests__/talents.test.ts`（天赋数据 + 权重测试） |
+| 修改 | `src/__tests__/stores.test.ts`（addCharacter 费用测试修正） |
 
-## 7. 不变的部分
+## 8. 不变的部分
 
 - 宗门等级系统（已有）
 - 解锁进度（复用 sect.level）
 - 混沌品质的 Type 定义（已有，不可直接选择）
-- SaveSystem（talents 在 Character 上，自动跟随现有存档结构）
