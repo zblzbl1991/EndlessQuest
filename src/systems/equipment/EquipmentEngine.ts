@@ -59,17 +59,18 @@ export function getEffectiveStats(item: Equipment): ItemStats {
 /**
  * Attempt to enhance equipment by 1 level
  */
-export function attemptEnhance(item: Equipment): EnhanceResult {
+export function attemptEnhance(item: Equipment, successBonus = 0, costReduction = 0): EnhanceResult {
   const nextLevel = item.enhanceLevel + 1
   if (nextLevel > 15) {
     return { success: false, newLevel: item.enhanceLevel, cost: { spiritStone: 0, ore: 0 } }
   }
 
-  const rate = getEnhanceRate(nextLevel)
+  const rate = Math.min(1, getEnhanceRate(nextLevel) + successBonus)
   const qualityMult = QUALITY_MULT[item.quality]
+  const costMult = 1 - costReduction
   const cost = {
-    spiritStone: Math.floor((nextLevel + 1) * qualityMult * 50),
-    ore: Math.floor((nextLevel + 1) * qualityMult * 5),
+    spiritStone: Math.floor((nextLevel + 1) * qualityMult * 50 * costMult),
+    ore: Math.floor((nextLevel + 1) * qualityMult * 5 * costMult),
   }
 
   const success = Math.random() < rate
@@ -83,9 +84,10 @@ export function attemptEnhance(item: Equipment): EnhanceResult {
 /**
  * Refine equipment -- add/replace a random bonus stat
  */
-export function refineEquipment(item: Equipment): RefineResult {
+export function refineEquipment(item: Equipment, costReduction = 0): RefineResult {
   const qualityMult = QUALITY_MULT[item.quality]
-  const cost = { spiritStone: Math.floor(100 * qualityMult) }
+  const costMult = 1 - costReduction
+  const cost = { spiritStone: Math.floor(100 * qualityMult * costMult) }
 
   // Pick a random stat to refine
   const statKeys: (keyof ItemStats)[] = ['hp', 'atk', 'def', 'spd']

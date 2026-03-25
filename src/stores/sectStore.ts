@@ -13,6 +13,7 @@ import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakt
 import { tickComprehension, canLearnTechnique } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
+import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, getForgeBuff, getBuildingLevel } from '../systems/economy/BuildingEffects'
 import { getTechniqueById } from '../data/techniquesTable'
 import { BUILDING_DEFS } from '../data/buildings'
 
@@ -135,7 +136,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (sect.characters.length >= getMaxCharacters(sect.level)) return null
 
     // Check spirit stone cost
-    const cost = getRecruitCost(quality)
+    const baseCost = getRecruitCost(quality)
+    const costMult = getRecruitCostMult(sect.buildings)
+    const cost = Math.floor(baseCost * costMult)
     if (sect.resources.spiritStone < cost) return null
 
     // Deduct stones
@@ -491,7 +494,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
       return { success: false, newLevel: 0, cost: { spiritStone: 0, ore: 0 } }
     }
 
-    const result = attemptEnhance(item)
+    const forgeLevel = getBuildingLevel(sect.buildings, 'forge')
+    const forgeBuff = getForgeBuff(forgeLevel)
+    const result = attemptEnhance(item, forgeBuff.successBonus, forgeBuff.costReduction)
 
     // Check if we have enough resources
     if (sect.resources.spiritStone < result.cost.spiritStone) {
@@ -684,7 +689,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // 4. Add spirit energy
     let updatedSpiritEnergy = sect.resources.spiritEnergy + spiritProduced
 
-    // 5. Process each cultivating character
+    // 5. Calculate building multipliers
+    const trainingMult = getTrainingSpeedMult(sect.buildings)
+    const compMult = getComprehensionSpeedMult(sect.buildings)
+
+    // 6. Process each cultivating character
     const updatedCharacters = sect.characters.map((char) => {
       if (char.status !== 'cultivating') {
         // Handle resting/injured characters
@@ -701,11 +710,12 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
       const effectiveSpirit = 2 * spiritRatio * deltaSec
       const result = cultivationTick(char, effectiveSpirit, deltaSec)
+      const gained = result.cultivationGained * trainingMult
 
       let updatedChar: Character = {
         ...char,
-        cultivation: char.cultivation + result.cultivationGained,
-        totalCultivation: char.totalCultivation + result.cultivationGained,
+        cultivation: char.cultivation + gained,
+        totalCultivation: char.totalCultivation + gained,
       }
 
       // Deduct spirit energy
@@ -718,7 +728,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
           const compResult = tickComprehension(updatedChar, technique, deltaSec)
           updatedChar = {
             ...updatedChar,
-            techniqueComprehension: Math.max(0, Math.min(100, updatedChar.techniqueComprehension + compResult.gained)),
+            techniqueComprehension: Math.max(0, Math.min(100, updatedChar.techniqueComprehension + compResult.gained * compMult)),
           }
 
           // If comprehension reaches 100 and technique not yet in learnedTechniques, add it
@@ -734,7 +744,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       return updatedChar
     })
 
-    // 6. Recalculate sect level from mainHall building level
+    // 7. Recalculate sect level from mainHall building level
     const mainHallLevel = updatedCharacters.length > 0
       ? get().sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
       : 1
