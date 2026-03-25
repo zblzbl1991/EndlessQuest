@@ -9,10 +9,25 @@
   position: sticky;
   top: 0;
   z-index: 50;
-  max-width: 480px;
-  margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+}
+
+@media (max-width: 1023px) {
+  .topBar {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .topBar {
+    padding-left: var(--sidebar-width);
+  }
+
+  .topBar .resources {
+    display: none;
+  }
 }
 
 .title {

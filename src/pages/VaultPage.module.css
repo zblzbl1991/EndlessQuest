@@ -5,6 +5,13 @@
   margin: 0 auto;
 }
 
+@media (min-width: 1024px) {
+  .page {
+    max-width: none;
+    padding-bottom: var(--space-lg);
+  }
+}
+
 /* Header */
 .header {
   margin-bottom: var(--space-lg);
@@ -256,4 +263,15 @@
   appearance: none;
   cursor: pointer;
   min-height: 44px;
+}
+
+@media (min-width: 1024px) {
+  .itemGrid {
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-sm);
+  }
+
+  .charSelector {
+    max-height: 300px;
+  }
 }

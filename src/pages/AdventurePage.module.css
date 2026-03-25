@@ -5,6 +5,13 @@
   margin: 0 auto;
 }
 
+@media (min-width: 1024px) {
+  .page {
+    max-width: none;
+    padding-bottom: var(--space-lg);
+  }
+}
+
 /* Header */
 .header {
   margin-bottom: var(--space-lg);
@@ -457,4 +464,33 @@
 .btnDisabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+@media (min-width: 1024px) {
+  .dungeonList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
+
+  .memberItem {
+    grid-template-columns: 100px 1fr 60px;
+  }
+
+  .logList {
+    max-height: 250px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .overlay {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .teamBuilder {
+    max-width: 600px;
+    border-radius: var(--radius-lg);
+    max-height: 85vh;
+  }
 }

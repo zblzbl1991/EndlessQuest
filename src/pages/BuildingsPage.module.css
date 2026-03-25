@@ -7,6 +7,13 @@
   margin: 0 auto;
 }
 
+@media (min-width: 1024px) {
+  .page {
+    max-width: none;
+    padding-bottom: var(--space-lg);
+  }
+}
+
 /* Tabs */
 .tabs {
   display: flex;
@@ -369,4 +376,29 @@
   padding: var(--space-xl) 0;
   color: var(--color-text-tertiary);
   font-size: 13px;
+}
+
+@media (min-width: 1024px) {
+  .buildingsGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
+
+  .qualitySelect {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .transferModal {
+    align-items: center;
+    justify-content: center;
+  }
+
+  .transferModalContent {
+    max-width: 600px;
+    border-radius: var(--radius-lg);
+    max-height: 80vh;
+  }
 }
