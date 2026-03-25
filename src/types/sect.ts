@@ -32,4 +32,5 @@ export interface Sect {
   pets: Pet[]
   totalAdventureRuns: number
   totalBreakthroughs: number
+  lastTransmissionTime: number
 }

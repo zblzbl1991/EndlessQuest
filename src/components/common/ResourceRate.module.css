@@ -24,3 +24,9 @@
   color: var(--color-danger);
   font-weight: 500;
 }
+
+.rateHint {
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  font-size: 11px;
+}

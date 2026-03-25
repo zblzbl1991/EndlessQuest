@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
-import { BUILDING_DEFS, getSpiritFieldRate } from '../data/buildings'
+import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
 import {
   getMaxCharacters,
   getRecruitCost,
@@ -13,19 +13,18 @@ import type { Character } from '../types/character'
 import type { Talent } from '../types/talent'
 import { TALENT_RARITY_NAMES } from '../types/talent'
 import ItemCard from '../components/inventory/ItemCard'
+import AlchemyPanel from '../components/building/AlchemyPanel'
+import ForgePanel from '../components/building/ForgePanel'
+import StudyPanel from '../components/building/StudyPanel'
+import MarketPanel from '../components/building/MarketPanel'
+import TransmissionPanel from '../components/building/TransmissionPanel'
 import styles from './BuildingsPage.module.css'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-type TabKey = 'buildings' | 'recruit' | 'vault'
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'buildings', label: '建筑' },
-  { key: 'recruit', label: '招收' },
-  { key: 'vault', label: '仓库' },
-]
+type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' | 'market' | 'transmission'
 
 const QUALITY_LABELS: Record<CharacterQuality, string> = {
   common: '凡品',
@@ -83,11 +82,38 @@ function getTalentClass(rarity: Talent['rarity']): string {
 
 export default function BuildingsPage() {
   const [tab, setTab] = useState<TabKey>('buildings')
+  const sect = useSectStore((s) => s.sect)
+
+  const availableTabs = useMemo(() => {
+    const tabs: { key: TabKey; label: string }[] = [
+      { key: 'buildings', label: '建筑' },
+      { key: 'recruit', label: '招收' },
+      { key: 'vault', label: '仓库' },
+    ]
+    const af = sect.buildings.find(b => b.type === 'alchemyFurnace')
+    if (af && af.unlocked && af.level >= 3) tabs.push({ key: 'alchemy', label: '炼丹' })
+    const fg = sect.buildings.find(b => b.type === 'forge')
+    if (fg && fg.unlocked && fg.level >= 3) tabs.push({ key: 'forge', label: '锻造' })
+    const sh = sect.buildings.find(b => b.type === 'scriptureHall')
+    if (sh && sh.unlocked && sh.level >= 3) tabs.push({ key: 'study', label: '参悟' })
+    const mk = sect.buildings.find(b => b.type === 'market')
+    if (mk && mk.unlocked && mk.level >= 3) tabs.push({ key: 'market', label: '坊市' })
+    const th = sect.buildings.find(b => b.type === 'trainingHall')
+    if (th && th.unlocked && th.level >= 3) tabs.push({ key: 'transmission', label: '传功' })
+    return tabs
+  }, [sect.buildings])
+
+  // Reset tab if current tab is no longer available
+  useEffect(() => {
+    if (!availableTabs.some(t => t.key === tab)) {
+      setTab('buildings')
+    }
+  }, [availableTabs, tab])
 
   return (
     <div className={styles.page}>
       <div className={styles.tabs}>
-        {TABS.map((t) => (
+        {availableTabs.map((t) => (
           <button
             key={t.key}
             className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
@@ -101,6 +127,11 @@ export default function BuildingsPage() {
       {tab === 'buildings' && <BuildingsTab />}
       {tab === 'recruit' && <RecruitTab />}
       {tab === 'vault' && <VaultTab />}
+      {tab === 'alchemy' && <AlchemyPanel />}
+      {tab === 'forge' && <ForgePanel />}
+      {tab === 'study' && <StudyPanel />}
+      {tab === 'market' && <MarketPanel />}
+      {tab === 'transmission' && <TransmissionPanel />}
     </div>
   )
 }
@@ -134,7 +165,6 @@ function BuildingsTab() {
         const isMaxLevel = building.level >= def.maxLevel
         const cost = def.upgradeCost(building.level)
         const canAfford = sect.resources.spiritStone >= cost.spiritStone
-        const spiritRate = def.type === 'spiritField' ? getSpiritFieldRate(building.level) : 0
 
         return (
           <div key={def.type} className={`${styles.buildingCard} ${!isUnlocked ? styles.buildingLocked : ''}`}>
@@ -145,11 +175,14 @@ function BuildingsTab() {
               </span>
             </div>
             <div className={styles.buildingDesc}>{def.description}</div>
-            {spiritRate > 0 && (
-              <div className={styles.buildingEffect}>
-                灵气产出: +{spiritRate}/s
-              </div>
-            )}
+            {(() => {
+              const effectText = getBuildingEffectText(building)
+              return effectText && <div className={styles.buildingEffect}>{effectText}</div>
+            })()}
+            {!isUnlocked && (() => {
+              const unlockText = getBuildingUnlockText(building)
+              return unlockText && <div className={styles.buildingUnlockPreview}>{unlockText}</div>
+            })()}
             {isUnlocked && !isMaxLevel && (
               <button
                 className={`${styles.upgradeBtn} ${canAfford ? styles.upgradeReady : styles.upgradeDisabled}`}
@@ -187,13 +220,22 @@ function RecruitTab() {
   const sect = useSectStore((s) => s.sect)
   const canRecruit = useSectStore((s) => s.canRecruit)
   const addCharacter = useSectStore((s) => s.addCharacter)
+  const targetedRecruit = useSectStore((s) => s.targetedRecruit)
   const [selectedQuality, setSelectedQuality] = useState<CharacterQuality>('common')
   const [recruitedCharacter, setRecruitedCharacter] = useState<Character | null>(null)
+  const [targetedQuality, setTargetedQuality] = useState<CharacterQuality>('spirit')
+  const [targetedMessage, setTargetedMessage] = useState<string | null>(null)
 
   const maxChars = getMaxCharacters(sect.level)
   const availableQualities = getAvailableQualities(sect.level)
   const recruitCheck = canRecruit(selectedQuality)
   const cost = getRecruitCost(selectedQuality)
+
+  const recruitmentPavilionLevel = sect.buildings.find(b => b.type === 'recruitmentPavilion')?.level ?? 0
+  const hasTargetedRecruit = recruitmentPavilionLevel >= 3
+
+  // Targeted recruit qualities: spirit, immortal, divine (minimum)
+  const targetedOptions: CharacterQuality[] = ['spirit', 'immortal', 'divine']
 
   // If the currently selected quality is no longer available, fall back
   useEffect(() => {
@@ -209,6 +251,20 @@ function RecruitTab() {
       setRecruitedCharacter(character)
     }
   }
+
+  const handleTargetedRecruit = () => {
+    const character = targetedRecruit(targetedQuality)
+    if (character) {
+      setRecruitedCharacter(character)
+      setTargetedMessage(null)
+    } else {
+      setTargetedMessage('招募失败，资源不足或弟子已满')
+      setTimeout(() => setTargetedMessage(null), 2000)
+    }
+  }
+
+  // Compute targeted cost display
+  const targetedStoneCost = targetedQuality ? getRecruitCost(targetedQuality) * 2 : 0
 
   return (
     <div className={styles.recruitPanel}>
@@ -252,6 +308,48 @@ function RecruitTab() {
           ? recruitCheck.reason
           : `招收${QUALITY_LABELS[selectedQuality]}弟子 (${cost}灵石)`}
       </button>
+
+      {/* Targeted Recruitment Section */}
+      {hasTargetedRecruit && (
+        <>
+          <div className={styles.targetedSection}>
+            <div className={styles.targetedHeader}>定向招募</div>
+            <div className={styles.targetedDesc}>
+              聚仙台 Lv3+ 解锁。保证招募不低于指定品质的弟子。
+            </div>
+
+            <div className={styles.targetedQualitySelect}>
+              {targetedOptions.map((quality) => {
+                const qCost = getRecruitCost(quality) * 2
+                const canAfford = sect.resources.spiritStone >= qCost && sect.resources.herb >= 10
+                const isSelected = targetedQuality === quality
+                return (
+                  <button
+                    key={quality}
+                    className={`${styles.targetedQualityBtn} ${isSelected ? styles.targetedQualityActive : ''}`}
+                    onClick={() => setTargetedQuality(quality)}
+                  >
+                    {QUALITY_LABELS[quality]}+
+                    <span className={styles.targetedCost}>{qCost}灵石 + 10灵草</span>
+                  </button>
+                )
+              })}
+            </div>
+
+            <button
+              className={`${styles.targetedBtn} ${targetedMessage ? styles.recruitDisabled : ''}`}
+              onClick={handleTargetedRecruit}
+              disabled={!!targetedMessage}
+            >
+              定向招募{QUALITY_LABELS[targetedQuality]}+弟子 ({targetedStoneCost}灵石 + 10灵草)
+            </button>
+
+            {targetedMessage && (
+              <div className={styles.targetedFailMsg}>{targetedMessage}</div>
+            )}
+          </div>
+        </>
+      )}
 
       {recruitedCharacter && (
         <RecruitResultModal

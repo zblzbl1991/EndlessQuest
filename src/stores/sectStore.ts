@@ -13,8 +13,15 @@ import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakt
 import { tickComprehension, canLearnTechnique } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
+import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, getForgeBuff, getBuildingLevel, getMarketBuff } from '../systems/economy/BuildingEffects'
+import { createShopState, generateDailyItems, shouldRefreshDaily } from '../systems/trade/TradeSystem'
+import type { ShopState } from '../systems/trade/TradeSystem'
+import { ALCHEMY_RECIPES, canCraft as canCraftAlchemy, craftPotion as craftPotionAlchemy } from '../systems/economy/AlchemySystem'
+import { FORGE_RECIPES, canForge, forgeEquipment as forgeEquipmentSystem } from '../systems/economy/ForgeSystem'
+import { generateRandomTechniqueScroll } from '../systems/item/ItemGenerator'
 import { getTechniqueById } from '../data/techniquesTable'
 import { BUILDING_DEFS } from '../data/buildings'
+import { REALMS } from '../data/realms'
 
 // ---------------------------------------------------------------------------
 // Helper: get equipment item by ID from vault + all character backpacks
@@ -55,6 +62,7 @@ function createInitialState(): { sect: Sect } {
       pets: [],
       totalAdventureRuns: 0,
       totalBreakthroughs: 0,
+      lastTransmissionTime: 0,
     },
   }
 }
@@ -65,6 +73,12 @@ function createInitialState(): { sect: Sect } {
 
 export interface SectStore {
   sect: Sect
+  shopState: ShopState | null
+
+  // Shop
+  initShop(): void
+  buyFromShop(shopItemIndex: number, isDaily: boolean): { success: boolean; reason: string }
+  refreshDailyShop(): void
 
   // Character management
   addCharacter(quality: CharacterQuality): Character | null
@@ -107,6 +121,13 @@ export interface SectStore {
   // Main tick (called every second)
   tickAll(deltaSec: number): { spiritProduced: number; spiritConsumed: number }
 
+  // Building feature actions
+  craftPotion(recipeId: string): { success: boolean; reason: string }
+  forgeEquipment(recipeId: string): { success: boolean; reason: string }
+  studyTechnique(): { success: boolean; reason: string }
+  groupTransmission(): { success: boolean; reason: string; charactersUpdated: number }
+  targetedRecruit(minQuality: CharacterQuality): Character | null
+
   // Pet management
   addPet(pet: Pet): void
   removePet(petId: string): void
@@ -122,6 +143,47 @@ export interface SectStore {
 
 export const useSectStore = create<SectStore>((set, get) => ({
   sect: createInitialState().sect,
+  shopState: null as ShopState | null,
+
+  // ---- Shop ----
+
+  initShop: () => {
+    const { sect } = get()
+    const marketLevel = sect.buildings.find(b => b.type === 'market')?.level ?? 0
+    const shop = createShopState(marketLevel)
+    set({ shopState: shop })
+  },
+
+  buyFromShop: (shopItemIndex, isDaily) => {
+    const { sect } = get()
+    const shop = get().shopState
+    if (!shop) return { success: false, reason: '商店未初始化' }
+    const items = isDaily ? shop.dailyItems : shop.fixedItems
+    const shopItem = items[shopItemIndex]
+    if (!shopItem) return { success: false, reason: '商品不存在' }
+    if (shopItem.stock === 0) return { success: false, reason: '已售罄' }
+    if (sect.resources.spiritStone < shopItem.price) return { success: false, reason: '灵石不足' }
+    // Deduct and add to vault
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - shopItem.price } } }))
+    get().addToVault(shopItem.item)
+    // Mark as sold
+    if (isDaily) {
+      const newDaily = [...shop.dailyItems]
+      newDaily[shopItemIndex] = { ...shopItem, stock: (shopItem.stock === -1 ? -1 : shopItem.stock - 1) }
+      set({ shopState: { ...shop, dailyItems: newDaily } })
+    }
+    return { success: true, reason: '' }
+  },
+
+  refreshDailyShop: () => {
+    const { sect } = get()
+    const marketLevel = sect.buildings.find(b => b.type === 'market')?.level ?? 0
+    const newDailyItems = generateDailyItems(marketLevel)
+    const shop = get().shopState
+    if (shop) {
+      set({ shopState: { ...shop, dailyItems: newDailyItems, lastRefreshTime: Date.now() } })
+    }
+  },
 
   // ---- Character management ----
 
@@ -135,7 +197,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (sect.characters.length >= getMaxCharacters(sect.level)) return null
 
     // Check spirit stone cost
-    const cost = getRecruitCost(quality)
+    const baseCost = getRecruitCost(quality)
+    const costMult = getRecruitCostMult(sect.buildings)
+    const cost = Math.floor(baseCost * costMult)
     if (sect.resources.spiritStone < cost) return null
 
     // Deduct stones
@@ -491,7 +555,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
       return { success: false, newLevel: 0, cost: { spiritStone: 0, ore: 0 } }
     }
 
-    const result = attemptEnhance(item)
+    const forgeLevel = getBuildingLevel(sect.buildings, 'forge')
+    const forgeBuff = getForgeBuff(forgeLevel)
+    const result = attemptEnhance(item, forgeBuff.successBonus, forgeBuff.costReduction)
 
     // Check if we have enough resources
     if (sect.resources.spiritStone < result.cost.spiritStone) {
@@ -684,7 +750,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // 4. Add spirit energy
     let updatedSpiritEnergy = sect.resources.spiritEnergy + spiritProduced
 
-    // 5. Process each cultivating character
+    // 5. Calculate building multipliers
+    const trainingMult = getTrainingSpeedMult(sect.buildings)
+    const compMult = getComprehensionSpeedMult(sect.buildings)
+
+    // 6. Process each cultivating character
     const updatedCharacters = sect.characters.map((char) => {
       if (char.status !== 'cultivating') {
         // Handle resting/injured characters
@@ -701,11 +771,12 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
       const effectiveSpirit = 2 * spiritRatio * deltaSec
       const result = cultivationTick(char, effectiveSpirit, deltaSec)
+      const gained = result.cultivationGained * trainingMult
 
       let updatedChar: Character = {
         ...char,
-        cultivation: char.cultivation + result.cultivationGained,
-        totalCultivation: char.totalCultivation + result.cultivationGained,
+        cultivation: char.cultivation + gained,
+        totalCultivation: char.totalCultivation + gained,
       }
 
       // Deduct spirit energy
@@ -718,7 +789,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
           const compResult = tickComprehension(updatedChar, technique, deltaSec)
           updatedChar = {
             ...updatedChar,
-            techniqueComprehension: Math.max(0, Math.min(100, updatedChar.techniqueComprehension + compResult.gained)),
+            techniqueComprehension: Math.max(0, Math.min(100, updatedChar.techniqueComprehension + compResult.gained * compMult)),
           }
 
           // If comprehension reaches 100 and technique not yet in learnedTechniques, add it
@@ -734,7 +805,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       return updatedChar
     })
 
-    // 6. Recalculate sect level from mainHall building level
+    // 7. Recalculate sect level from mainHall building level
     const mainHallLevel = updatedCharacters.length > 0
       ? get().sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
       : 1
@@ -757,6 +828,174 @@ export const useSectStore = create<SectStore>((set, get) => ({
       spiritProduced,
       spiritConsumed: cultivatingCount > 0 ? Math.min(spiritConsumed, spiritProduced + sect.resources.spiritEnergy) : 0,
     }
+  },
+
+  // ---- Building feature actions ----
+
+  craftPotion: (recipeId) => {
+    const { sect } = get()
+    const furnaceLevel = sect.buildings.find(b => b.type === 'alchemyFurnace')?.level ?? 0
+    const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId)
+    if (!recipe) return { success: false, reason: '未知丹方' }
+    if (!canCraftAlchemy(recipe, { herb: sect.resources.herb, spiritStone: sect.resources.spiritStone }, furnaceLevel))
+      return { success: false, reason: '资源或等级不足' }
+    const potion = craftPotionAlchemy(recipe, furnaceLevel)
+    if (!potion) return { success: false, reason: '炼制失败' }
+    // Deduct resources
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, herb: s.sect.resources.herb - recipe.cost.herb, spiritStone: s.sect.resources.spiritStone - (recipe.cost.spiritStone ?? 0) } } }))
+    // Add to vault
+    get().addToVault(potion)
+    return { success: true, reason: '' }
+  },
+
+  forgeEquipment: (recipeId) => {
+    const { sect } = get()
+    const forgeLevel = sect.buildings.find(b => b.type === 'forge')?.level ?? 0
+    const recipe = FORGE_RECIPES.find(r => r.id === recipeId)
+    if (!recipe) return { success: false, reason: '未知配方' }
+    if (!canForge(recipe, { ore: sect.resources.ore, spiritStone: sect.resources.spiritStone }, forgeLevel))
+      return { success: false, reason: '资源或等级不足' }
+    const { successBonus } = getForgeBuff(forgeLevel)
+    // Deduct resources first
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, ore: s.sect.resources.ore - recipe.cost.ore, spiritStone: s.sect.resources.spiritStone - recipe.cost.spiritStone } } }))
+    const item = forgeEquipmentSystem(recipe, forgeLevel, successBonus)
+    if (!item) return { success: false, reason: '锻造失败' }
+    get().addToVault(item)
+    return { success: true, reason: '' }
+  },
+
+  studyTechnique: () => {
+    const { sect } = get()
+    const scriptureLevel = sect.buildings.find(b => b.type === 'scriptureHall')?.level ?? 0
+    if (scriptureLevel < 3) return { success: false, reason: '藏经阁等级不足' }
+    const cost = 100 * sect.level
+    if (sect.resources.spiritStone < cost) return { success: false, reason: '灵石不足' }
+    // Generate scroll matching highest realm among characters
+    const maxRealm = Math.max(...sect.characters.map(c => c.realm), 0)
+    const tierMap = ['mortal', 'spirit', 'immortal', 'divine', 'chaos'] as const
+    const maxTier = tierMap[Math.min(maxRealm, tierMap.length - 1)] ?? 'mortal'
+    // Try to generate, fallback to mortal if no techniques at tier
+    let scroll: ReturnType<typeof generateRandomTechniqueScroll>
+    try { scroll = generateRandomTechniqueScroll(maxTier) } catch { scroll = generateRandomTechniqueScroll('mortal') }
+    // Deduct resources
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - cost } } }))
+    get().addToVault(scroll)
+    return { success: true, reason: '' }
+  },
+
+  groupTransmission: () => {
+    const { sect } = get()
+    const trainingHall = sect.buildings.find(b => b.type === 'trainingHall')
+    if (!trainingHall || trainingHall.level < 3) return { success: false, reason: '传功殿等级不足（需要Lv3）', charactersUpdated: 0 }
+
+    // Check cooldown (60 seconds)
+    if (Date.now() - sect.lastTransmissionTime < 60000) {
+      const remaining = Math.ceil((60000 - (Date.now() - sect.lastTransmissionTime)) / 1000)
+      return { success: false, reason: `传功冷却中（${remaining}秒）`, charactersUpdated: 0 }
+    }
+
+    // Count cultivating characters
+    const cultivatingChars = sect.characters.filter(c => c.status === 'cultivating')
+    if (cultivatingChars.length === 0) return { success: false, reason: '没有修炼中的弟子', charactersUpdated: 0 }
+
+    const cost = 50 * cultivatingChars.length
+    if (sect.resources.spiritEnergy < cost) return { success: false, reason: `灵气不足（需要${cost}）`, charactersUpdated: 0 }
+
+    // Apply cultivation boost to each cultivating character
+    const updatedCharacters = sect.characters.map(char => {
+      if (char.status !== 'cultivating') return char
+
+      // Calculate next realm cultivation requirement
+      let nextRealm = char.realm
+      let nextStage = char.realmStage + 1
+      if (nextStage > 3) {
+        nextRealm++
+        nextStage = 0
+      }
+      // Check if at max realm
+      if (nextRealm >= REALMS.length) return char
+
+      const nextRealmDef = REALMS[nextRealm]
+      if (!nextRealmDef) return char
+      const needed = nextRealmDef.cultivationCosts[nextStage]
+      if (needed == null || !isFinite(needed)) return char
+
+      const boost = Math.floor(needed * 0.1)
+      return {
+        ...char,
+        cultivation: char.cultivation + boost,
+        totalCultivation: char.totalCultivation + boost,
+      }
+    })
+
+    // Deduct spirit energy and update timestamp
+    set(s => ({
+      sect: {
+        ...s.sect,
+        characters: updatedCharacters,
+        resources: {
+          ...s.sect.resources,
+          spiritEnergy: s.sect.resources.spiritEnergy - cost,
+        },
+        lastTransmissionTime: Date.now(),
+      },
+    }))
+
+    return { success: true, reason: '', charactersUpdated: cultivatingChars.length }
+  },
+
+  targetedRecruit: (minQuality) => {
+    const { sect } = get()
+    const recruitmentPavilion = sect.buildings.find(b => b.type === 'recruitmentPavilion')
+    if (!recruitmentPavilion || recruitmentPavilion.level < 3) return null
+
+    // Check character cap
+    const maxChars = getMaxCharacters(sect.level)
+    if (sect.characters.length >= maxChars) return null
+
+    // Quality ordering for comparison
+    const QUALITY_ORDER: CharacterQuality[] = ['common', 'spirit', 'immortal', 'divine', 'chaos']
+    const minIndex = QUALITY_ORDER.indexOf(minQuality)
+
+    // Calculate cost: 2x normal recruit cost for the min quality + 10 herb
+    const baseCost = getRecruitCost(minQuality)
+    const costMult = getRecruitCostMult(sect.buildings)
+    const stoneCost = Math.floor(baseCost * costMult * 2)
+    const herbCost = 10
+
+    if (sect.resources.spiritStone < stoneCost) return null
+    if (sect.resources.herb < herbCost) return null
+
+    // Generate characters until one matches quality >= minQuality (up to 10 attempts)
+    // If minQuality is 'common', just roll once normally
+    let character: Character | null = null
+    const maxAttempts = minQuality === 'common' ? 1 : 10
+
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      const candidate = generateCharacter(minQuality)
+      const candidateIndex = QUALITY_ORDER.indexOf(candidate.quality)
+      if (candidateIndex >= minIndex) {
+        character = candidate
+        break
+      }
+    }
+
+    if (!character) return null
+
+    // Deduct resources and add character
+    set(s => ({
+      sect: {
+        ...s.sect,
+        characters: [...s.sect.characters, character!],
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone - stoneCost,
+          herb: s.sect.resources.herb - herbCost,
+        },
+      },
+    }))
+
+    return character
   },
 
   // ---- Pet management ----
@@ -819,5 +1058,5 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   // ---- Reset ----
 
-  reset: () => set(createInitialState()),
+  reset: () => set({ ...createInitialState(), shopState: null }),
 }))
