@@ -1,8 +1,15 @@
 .page {
   padding: var(--space-md);
-  padding-bottom: 80px; /* space for bottom nav */
+  padding-bottom: 80px;
   max-width: 480px;
   margin: 0 auto;
+}
+
+@media (min-width: 1024px) {
+  .page {
+    max-width: none;
+    padding-bottom: var(--space-lg);
+  }
 }
 
 /* Header */
@@ -141,4 +148,16 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
+}
+
+@media (min-width: 1024px) {
+  .resourceGrid {
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+
+  .characterList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
 }
