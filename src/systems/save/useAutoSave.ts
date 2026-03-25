@@ -1,21 +1,39 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { saveGame, loadGame } from './SaveSystem'
+import { getDB } from './db'
 import { useGameStore } from '../../stores/gameStore'
 
 const SAVE_INTERVAL = 30000 // auto-save every 30 seconds
 
-export function useAutoSave() {
-  const loaded = useRef(false)
+export function useAutoSave(): { isLoaded: boolean } {
+  const [isLoaded, setIsLoaded] = useState(false)
+  const loadingRef = useRef<Promise<void> | null>(null)
 
-  // Load on mount
   useEffect(() => {
-    if (loaded.current) return
-    loadGame()
-    loaded.current = true
+    if (!loadingRef.current) {
+      loadingRef.current = (async () => {
+        try {
+          await getDB()
+          await loadGame()
+        } catch (e) {
+          console.error('Failed to load save:', e)
+        }
+      })()
+    }
+
+    let cancelled = false
+    loadingRef.current.then(() => {
+      if (!cancelled) {
+        setIsLoaded(true)
+      }
+    })
+
+    return () => { cancelled = true }
   }, [])
 
-  // Auto-save periodically (only when not paused)
   useEffect(() => {
+    if (!isLoaded) return
+
     const interval = setInterval(() => {
       const isPaused = useGameStore.getState().isPaused
       if (!isPaused) {
@@ -24,5 +42,7 @@ export function useAutoSave() {
     }, SAVE_INTERVAL)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [isLoaded])
+
+  return { isLoaded }
 }
