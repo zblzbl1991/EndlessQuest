@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
+import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
 import {
   getMaxCharacters,
   getRecruitCost,
@@ -195,11 +196,25 @@ function BuildingsTab() {
             {isMaxLevel && (
               <span className={styles.maxLevelTag}>已满级</span>
             )}
-            {!isUnlocked && (
-              <div className={styles.unlockInfo}>
-                <span className={styles.unlockCondition}>解锁条件: {def.unlockCondition}</span>
-              </div>
-            )}
+            {!isUnlocked && (() => {
+              const unlockCheck = checkBuildingUnlock(def.type, sect.buildings)
+              if (unlockCheck.unlocked) {
+                const buildCost = def.upgradeCost(building.level)
+                return (
+                  <button
+                    className={styles.upgradeBtn}
+                    onClick={() => handleUpgrade(def.type)}
+                  >
+                    建造 ({buildCost.spiritStone}灵石)
+                  </button>
+                )
+              }
+              return (
+                <div className={styles.unlockInfo}>
+                  <span className={styles.unlockCondition}>解锁条件: {def.unlockCondition}</span>
+                </div>
+              )
+            })()}
           </div>
         )
       })}
