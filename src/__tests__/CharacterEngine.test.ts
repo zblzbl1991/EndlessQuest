@@ -5,6 +5,9 @@ import {
   getMaxCharacters,
   getMaxSimultaneousRuns,
   calcSectLevel,
+  getRecruitCost,
+  isQualityUnlocked,
+  getAvailableQualities,
 } from '../systems/character/CharacterEngine'
 import type { CharacterQuality } from '../types/character'
 import type { Technique } from '../types/technique'
@@ -47,28 +50,39 @@ function makeTechnique(overrides: Partial<Technique> = {}): Technique {
 
 describe('CharacterEngine', () => {
   describe('generateCharacter', () => {
-    it('should generate common character with correct base stats', () => {
+    it('should generate common character with correct quality', () => {
       const c = generateCharacter('common')
       expect(c.quality).toBe('common')
-      expect(c.baseStats).toEqual({ hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 })
-      expect(c.cultivationStats.spiritualRoot).toBe(10)
-      expect(c.cultivationStats.comprehension).toBe(10)
-      expect(c.cultivationStats.fortune).toBe(5)
+      // Base stats vary ±20% around base values
+      expect(c.baseStats.hp).toBeGreaterThanOrEqual(80)
+      expect(c.baseStats.hp).toBeLessThanOrEqual(120)
+      expect(c.cultivationStats.spiritualRoot).toBeGreaterThanOrEqual(8)
+      expect(c.cultivationStats.spiritualRoot).toBeLessThanOrEqual(12)
+      expect(c.cultivationStats.comprehension).toBeGreaterThanOrEqual(8)
+      expect(c.cultivationStats.comprehension).toBeLessThanOrEqual(12)
+      expect(c.cultivationStats.fortune).toBeGreaterThanOrEqual(4)
+      expect(c.cultivationStats.fortune).toBeLessThanOrEqual(6)
     })
 
-    it('should generate spirit character with higher spiritualRoot (15)', () => {
+    it('should generate spirit character with higher base stats', () => {
       const c = generateCharacter('spirit')
       expect(c.quality).toBe('spirit')
-      expect(c.cultivationStats.spiritualRoot).toBe(15)
-      expect(c.cultivationStats.comprehension).toBe(13)
-      expect(c.cultivationStats.fortune).toBe(8)
+      // spiritualRoot base 15 ±18% => ~12-18, talent can add up to +8
+      expect(c.cultivationStats.spiritualRoot).toBeGreaterThanOrEqual(12)
+      // comprehension base 13 ±18% => ~11-15, talent can add up to +5
+      expect(c.cultivationStats.comprehension).toBeGreaterThanOrEqual(11)
+      // fortune base 8 ±18% => ~7-9, talent can add up to +5
+      expect(c.cultivationStats.fortune).toBeGreaterThanOrEqual(7)
     })
 
-    it('should generate divine character with spiritualRoot 28', () => {
+    it('should generate divine character with high stats', () => {
       const c = generateCharacter('divine')
-      expect(c.cultivationStats.spiritualRoot).toBe(28)
-      expect(c.cultivationStats.comprehension).toBe(25)
-      expect(c.cultivationStats.fortune).toBe(18)
+      // spiritualRoot base 28 ±12% => ~24-31, talent can add up to +8
+      expect(c.cultivationStats.spiritualRoot).toBeGreaterThanOrEqual(24)
+      // comprehension base 25 ±12% => ~22-28, talent can add up to +5
+      expect(c.cultivationStats.comprehension).toBeGreaterThanOrEqual(22)
+      // fortune base 18 ±12% => ~16-20, talent can add up to +5
+      expect(c.cultivationStats.fortune).toBeGreaterThanOrEqual(16)
     })
 
     it('should assign unique IDs', () => {
@@ -116,7 +130,14 @@ describe('CharacterEngine', () => {
     it('should return base stats when no equipment or technique', () => {
       const c = generateCharacter('common')
       const result = calcCharacterTotalStats(c, null, () => undefined)
-      expect(result).toEqual(c.baseStats)
+      // calcCharacterTotalStats rounds values, so compare each field
+      expect(result.hp).toBe(c.baseStats.hp)
+      expect(result.atk).toBe(c.baseStats.atk)
+      expect(result.def).toBe(c.baseStats.def)
+      expect(result.spd).toBe(c.baseStats.spd)
+      expect(result.crit).toBe(c.baseStats.crit)
+      // critDmg may differ by rounding (base rounded to 3dp, total rounded to 2dp)
+      expect(Math.abs(result.critDmg - c.baseStats.critDmg)).toBeLessThan(0.01)
     })
 
     it('should add equipment stats', () => {
@@ -124,9 +145,9 @@ describe('CharacterEngine', () => {
       c.equippedGear = ['eq_1']
       const eq = makeEquipment({ hp: 50, atk: 10 })
       const result = calcCharacterTotalStats(c, null, (id) => id === 'eq_1' ? eq : undefined)
-      expect(result.hp).toBe(150)
-      expect(result.atk).toBe(25)
-      expect(result.def).toBe(8) // unchanged
+      expect(result.hp).toBe(c.baseStats.hp + 50)
+      expect(result.atk).toBe(c.baseStats.atk + 10)
+      expect(result.def).toBe(c.baseStats.def)
     })
 
     it('should apply technique growth modifiers at full comprehension', () => {
@@ -134,12 +155,12 @@ describe('CharacterEngine', () => {
       c.techniqueComprehension = 80 // 70-100 => effect 1.0
       const tech = makeTechnique({ growthModifiers: { hp: 0.2, atk: 0.1, def: 0.05, spd: 0, crit: 0.01, critDmg: 0.1 } })
       const result = calcCharacterTotalStats(c, tech, () => undefined)
-      // base hp=100, growth=100*0.2=20 => total 120
-      expect(result.hp).toBe(120)
-      // base atk=15, growth=15*0.1=1.5 => total 16.5
-      expect(result.atk).toBe(16.5)
-      // base def=8, growth=8*0.05=0.4 => total 8.4
-      expect(result.def).toBe(8.4)
+      // hp: base * (1 + 0.2 * 1.0) = base * 1.2
+      expect(result.hp).toBeCloseTo(c.baseStats.hp * 1.2, 2)
+      // atk: base * (1 + 0.1 * 1.0) = base * 1.1
+      expect(result.atk).toBeCloseTo(c.baseStats.atk * 1.1, 2)
+      // def: base * (1 + 0.05 * 1.0) = base * 1.05
+      expect(result.def).toBeCloseTo(c.baseStats.def * 1.05, 2)
     })
 
     it('should apply technique growth modifiers at partial comprehension (30%)', () => {
@@ -147,10 +168,10 @@ describe('CharacterEngine', () => {
       c.techniqueComprehension = 30 // 30-70 => effect 0.7
       const tech = makeTechnique({ growthModifiers: { hp: 0.2, atk: 0.1, def: 0.05, spd: 0, crit: 0.01, critDmg: 0.1 } })
       const result = calcCharacterTotalStats(c, tech, () => undefined)
-      // hp: 100 + 100*0.2*0.7 = 100 + 14 = 114
-      expect(result.hp).toBe(114)
-      // atk: 15 + 15*0.1*0.7 = 15 + 1.05 = 16.05
-      expect(result.atk).toBeCloseTo(16.05, 5)
+      // hp: base * (1 + 0.2 * 0.7) = base * 1.14
+      expect(result.hp).toBeCloseTo(c.baseStats.hp * 1.14, 2)
+      // atk: base * (1 + 0.1 * 0.7) = base * 1.07
+      expect(result.atk).toBeCloseTo(c.baseStats.atk * 1.07, 5)
     })
 
     it('should apply technique flat bonuses based on comprehension threshold', () => {
@@ -165,12 +186,12 @@ describe('CharacterEngine', () => {
         ],
       })
       const result = calcCharacterTotalStats(c, tech, () => undefined)
-      // base atk=15, bonus 5 = 20
-      expect(result.atk).toBe(20)
-      // base hp=100, bonus 100 = 200
-      expect(result.hp).toBe(200)
+      // base atk + bonus 5
+      expect(result.atk).toBe(c.baseStats.atk + 5)
+      // base hp + bonus 100
+      expect(result.hp).toBe(c.baseStats.hp + 100)
       // crit bonus 0.02 not applied because 80 < 100
-      expect(result.crit).toBe(0.05)
+      expect(result.crit).toBe(c.baseStats.crit)
     })
   })
 
@@ -212,5 +233,122 @@ describe('CharacterEngine', () => {
     it('should return 5 for mainHall 10', () => {
       expect(calcSectLevel(10)).toBe(5)
     })
+  })
+})
+
+describe('generateCharacter with variance', () => {
+  it('should generate common character with stats within ±20% range', () => {
+    for (let i = 0; i < 50; i++) {
+      const c = generateCharacter('common')
+      // Base stats can be boosted by talents (e.g., +30 hp from busizun, +15 hp from xianti)
+      expect(c.baseStats.hp).toBeGreaterThanOrEqual(80)
+      expect(c.baseStats.atk).toBeGreaterThanOrEqual(12)
+      expect(c.cultivationStats.spiritualRoot).toBeGreaterThanOrEqual(8)
+      expect(c.cultivationStats.maxSpiritPower).toBeGreaterThanOrEqual(80)
+      expect(c.cultivationStats.spiritPower).toBe(0)
+    }
+  })
+
+  it('should generate divine character with stats within ±12% range', () => {
+    for (let i = 0; i < 50; i++) {
+      const c = generateCharacter('divine')
+      // hp base 100 ±12% => 88-112, talent can add up to +45
+      expect(c.baseStats.hp).toBeGreaterThanOrEqual(88)
+      // spiritualRoot base 28 ±12% => ~24-31, talent can add up to +8
+      expect(c.cultivationStats.spiritualRoot).toBeGreaterThanOrEqual(24)
+    }
+  })
+
+  it('should have talents array on every character', () => {
+    const c = generateCharacter('common')
+    expect(Array.isArray(c.talents)).toBe(true)
+  })
+
+  it('should not have duplicate talents', () => {
+    for (let i = 0; i < 100; i++) {
+      const c = generateCharacter('immortal')
+      const ids = c.talents.map(t => t.id)
+      expect(new Set(ids).size).toBe(ids.length)
+    }
+  })
+})
+
+describe('getRecruitCost', () => {
+  it('should return correct costs', () => {
+    expect(getRecruitCost('common')).toBe(100)
+    expect(getRecruitCost('spirit')).toBe(500)
+    expect(getRecruitCost('immortal')).toBe(2000)
+    expect(getRecruitCost('divine')).toBe(8000)
+  })
+
+  it('should return 0 for chaos (not directly recruitable)', () => {
+    expect(getRecruitCost('chaos')).toBe(0)
+  })
+})
+
+describe('isQualityUnlocked', () => {
+  it('common at level 1', () => expect(isQualityUnlocked('common', 1)).toBe(true))
+  it('spirit at level 1', () => expect(isQualityUnlocked('spirit', 1)).toBe(false))
+  it('spirit at level 2', () => expect(isQualityUnlocked('spirit', 2)).toBe(true))
+  it('immortal at level 3', () => expect(isQualityUnlocked('immortal', 3)).toBe(true))
+  it('divine at level 4', () => expect(isQualityUnlocked('divine', 4)).toBe(true))
+  it('chaos always locked', () => expect(isQualityUnlocked('chaos', 5)).toBe(false))
+})
+
+describe('getAvailableQualities', () => {
+  it('level 1 should return [common]', () => expect(getAvailableQualities(1)).toEqual(['common']))
+  it('level 2 should return [common, spirit]', () => expect(getAvailableQualities(2)).toEqual(['common', 'spirit']))
+  it('level 4 should return [common, spirit, immortal, divine]', () => expect(getAvailableQualities(4)).toEqual(['common', 'spirit', 'immortal', 'divine']))
+  it('level 5+ should also return [common, spirit, immortal, divine]', () => expect(getAvailableQualities(5)).toEqual(['common', 'spirit', 'immortal', 'divine']))
+})
+
+describe('chaos upgrade from divine', () => {
+  it('should occasionally produce chaos quality when recruiting divine', () => {
+    let chaosCount = 0
+    const n = 2000
+    for (let i = 0; i < n; i++) {
+      const c = generateCharacter('divine')
+      if (c.quality === 'chaos') chaosCount++
+    }
+    expect(chaosCount).toBeGreaterThan(0)
+    expect(chaosCount).toBeLessThan(n * 0.05)
+  })
+})
+
+describe('talent weight distribution', () => {
+  it('common quality: ~40% should have exactly 1 talent', () => {
+    let countWithTalent = 0
+    const n = 500
+    for (let i = 0; i < n; i++) {
+      const c = generateCharacter('common')
+      if (c.talents.length >= 1) countWithTalent++
+    }
+    expect(countWithTalent).toBeGreaterThan(n * 0.25)
+    expect(countWithTalent).toBeLessThan(n * 0.55)
+  })
+
+  it('divine quality: all should have at least 1 talent', () => {
+    for (let i = 0; i < 100; i++) {
+      const c = generateCharacter('divine')
+      expect(c.talents.length).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('talent rarity distribution should follow weights', () => {
+    const rarityCounts = { common: 0, rare: 0, epic: 0 }
+    for (let i = 0; i < 500; i++) {
+      const c = generateCharacter('immortal')
+      for (const t of c.talents) {
+        rarityCounts[t.rarity]++
+      }
+    }
+    const total = rarityCounts.common + rarityCounts.rare + rarityCounts.epic
+    if (total > 0) {
+      expect(rarityCounts.common / total).toBeGreaterThan(0.3)
+      expect(rarityCounts.rare / total).toBeGreaterThan(0.2)
+      if (rarityCounts.epic > 0) {
+        expect(rarityCounts.epic / total).toBeLessThan(0.3)
+      }
+    }
   })
 })
