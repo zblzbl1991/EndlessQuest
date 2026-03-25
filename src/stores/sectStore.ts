@@ -43,7 +43,6 @@ function createInitialState(): { sect: Sect } {
       level: 1,
       resources: {
         spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0,
-        fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0,
       },
       buildings: BUILDING_DEFS.map((def) => ({
         type: def.type,

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useSectStore } from '../../stores/sectStore'
-import { getSpiritFieldRate } from '../../systems/economy/ResourceEngine'
+import { getSpiritFieldRate } from '../../data/buildings'
 import styles from './ResourceRate.module.css'
 
 export default function ResourceRate() {

@@ -22,7 +22,7 @@ export interface RouteOption {
   description: string
   riskLevel: 'low' | 'medium' | 'high'
   events: DungeonEvent[]
-  reward: { spiritStone: number; herb: number; ore: number; fairyJade: number }
+  reward: { spiritStone: number; herb: number; ore: number }
 }
 
 export interface DungeonFloor {

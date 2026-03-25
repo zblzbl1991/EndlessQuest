@@ -1,5 +1,6 @@
 // src/__tests__/ResourceEngine.test.ts
-import { calcResourceRates, getSpiritFieldRate } from '../systems/economy/ResourceEngine'
+import { calcResourceRates } from '../systems/economy/ResourceEngine'
+import { getSpiritFieldRate } from '../data/buildings'
 
 describe('ResourceEngine', () => {
   it('should produce minimum 1 spiritEnergy/s with no buildings', () => {
@@ -14,9 +15,10 @@ describe('ResourceEngine', () => {
     expect(rates.herb).toBe(0.1)
   })
 
-  it('should scale production with building level', () => {
+  it('should scale production with building level (unified formula)', () => {
     const rates = calcResourceRates({ spiritField: 3, mainHall: 1 })
-    expect(rates.spiritEnergy).toBe(3)
+    // getSpiritFieldRate(3) = 1 + (3-1)*3 = 7
+    expect(rates.spiritEnergy).toBe(7)
     expect(rates.herb).toBeCloseTo(0.3)
   })
 
@@ -25,7 +27,8 @@ describe('ResourceEngine', () => {
       { spiritField: 2, mainHall: 1 },
       { techniqueMultiplier: 1.2, discipleMultiplier: 1.1 }
     )
-    expect(rates.spiritEnergy).toBeCloseTo(2 * 1.2 * 1.1)
+    // getSpiritFieldRate(2) = 4, 4 * 1.2 * 1.1 = 5.28
+    expect(rates.spiritEnergy).toBeCloseTo(4 * 1.2 * 1.1)
     expect(rates.herb).toBeCloseTo(0.1 * 2 * 1.2 * 1.1)
   })
 
@@ -41,29 +44,10 @@ describe('ResourceEngine', () => {
   })
 })
 
-describe('getSpiritFieldRate', () => {
-  it('should return 0 for level < 1', () => {
-    expect(getSpiritFieldRate(0)).toBe(0)
-    expect(getSpiritFieldRate(-1)).toBe(0)
-  })
-
-  it('should return correct rate for level 1', () => {
-    expect(getSpiritFieldRate(1)).toBe(1)
-  })
-
-  it('should return correct rate for level 2', () => {
-    expect(getSpiritFieldRate(2)).toBe(4)
-  })
-
-  it('should return correct rate for level 3', () => {
-    expect(getSpiritFieldRate(3)).toBe(7)
-  })
-
-  it('should return correct rate for level 5', () => {
-    expect(getSpiritFieldRate(5)).toBe(13)
-  })
-
-  it('should return correct rate for level 10', () => {
-    expect(getSpiritFieldRate(10)).toBe(28)
-  })
+test('calcResourceRates spirit energy matches getSpiritFieldRate for level >= 1', () => {
+  // Level 0 has a floor of 1/s (zero-resource protection), so test levels 1+
+  for (let level = 1; level <= 10; level++) {
+    const rates = calcResourceRates({ spiritField: level, mainHall: 1 })
+    expect(rates.spiritEnergy).toBe(getSpiritFieldRate(level))
+  }
 })

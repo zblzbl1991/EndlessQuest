@@ -8,7 +8,7 @@ import { simulateCombat } from '../combat/CombatEngine'
 export interface EventResult {
   type: DungeonEvent['type']
   success: boolean
-  reward: { spiritStone: number; herb: number; ore: number; fairyJade: number }
+  reward: { spiritStone: number; herb: number; ore: number }
   itemRewards: AnyItem[]
   combatResult?: CombatResult
   message: string
@@ -45,7 +45,7 @@ export function resolveEvent(
   team: CombatUnit[],
   floorNumber: number,
 ): EventResult {
-  const emptyReward = { spiritStone: 0, herb: 0, ore: 0, fairyJade: 0 }
+  const emptyReward = { spiritStone: 0, herb: 0, ore: 0 }
 
   switch (event.type) {
     case 'combat': {
@@ -78,7 +78,7 @@ export function resolveEvent(
         type: 'combat',
         success: victory,
         reward: victory
-          ? { spiritStone: 50 * floorNumber, herb: 3 * floorNumber, ore: 2 * floorNumber, fairyJade: 0 }
+          ? { spiritStone: 50 * floorNumber, herb: 3 * floorNumber, ore: 2 * floorNumber }
           : emptyReward,
         itemRewards: [],
         combatResult: result,
@@ -94,7 +94,7 @@ export function resolveEvent(
         return {
           type: 'random',
           success: true,
-          reward: { spiritStone: 30 * floorNumber, herb: 2 * floorNumber, ore: 0, fairyJade: 0 },
+          reward: { spiritStone: 30 * floorNumber, herb: 2 * floorNumber, ore: 0 },
           itemRewards: [],
           message: '发现了一处宝箱！',
           hpChanges: {},
@@ -198,9 +198,8 @@ export function resolveEvent(
               spiritStone: 200 * floorNumber,
               herb: 10 * floorNumber,
               ore: 5 * floorNumber,
-              fairyJade: floorNumber >= 3 ? 1 : 0,
             }
-          : { spiritStone: 50 * floorNumber, herb: 2 * floorNumber, ore: 0, fairyJade: 0 },
+          : { spiritStone: 50 * floorNumber, herb: 2 * floorNumber, ore: 0 },
         itemRewards: [],
         combatResult: result,
         message: victory ? '击败了 Boss！' : 'Boss 太强了...',

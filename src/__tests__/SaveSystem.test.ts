@@ -80,7 +80,6 @@ describe('SaveSystem', () => {
           },
           totalRewards: {
             spiritStone: 200, spiritEnergy: 0, herb: 10, ore: 0,
-            fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0,
           },
           itemRewards: [],
           eventLog: [{ timestamp: Date.now(), message: 'test log' }],
@@ -119,7 +118,7 @@ describe('SaveSystem', () => {
       sectStore: {
         sect: {
           name: '测试宗门', level: 1,
-          resources: { spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0, fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0 },
+          resources: { spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0 },
           buildings: [], characters: [oldChar], vault: [], maxVaultSlots: 50, pets: [], totalAdventureRuns: 0, totalBreakthroughs: 0,
         },
       },

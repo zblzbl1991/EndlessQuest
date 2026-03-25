@@ -6,17 +6,13 @@ export type BuildingType =
   | 'mainHall' | 'spiritField' | 'market' | 'alchemyFurnace'
   | 'forge' | 'scriptureHall' | 'recruitmentPavilion' | 'trainingHall'
 
-export type ResourceType = 'spiritStone' | 'spiritEnergy' | 'herb' | 'ore' | 'fairyJade' | 'scrollFragment' | 'heavenlyTreasure' | 'beastSoul'
+export type ResourceType = 'spiritStone' | 'spiritEnergy' | 'herb' | 'ore'
 
 export interface Resources {
   spiritStone: number
   spiritEnergy: number
   herb: number
   ore: number
-  fairyJade: number
-  scrollFragment: number
-  heavenlyTreasure: number
-  beastSoul: number
 }
 
 export interface Building {
