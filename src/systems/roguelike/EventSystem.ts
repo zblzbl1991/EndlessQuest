@@ -1,9 +1,11 @@
 // src/systems/roguelike/EventSystem.ts
 import type { DungeonEvent } from '../../types/adventure'
-import type { AnyItem } from '../../types/item'
+import type { AnyItem, ItemQuality, EquipSlot } from '../../types/item'
 import { ENEMY_TEMPLATES, createCombatUnitFromEnemy } from '../../data/enemies'
 import type { CombatUnit, CombatResult } from '../combat/CombatEngine'
 import { simulateCombat } from '../combat/CombatEngine'
+import { generateEquipment } from '../item/ItemGenerator'
+import { FORGE_SLOTS } from '../economy/ForgeSystem'
 
 export interface EventResult {
   type: DungeonEvent['type']
@@ -17,6 +19,23 @@ export interface EventResult {
 
 function getNonBossTemplates() {
   return ENEMY_TEMPLATES.filter((e) => !e.isBoss)
+}
+
+function randomSlot(): EquipSlot {
+  return FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
+}
+
+function rollEquipmentDrop(qualityOptions: { quality: ItemQuality; weight: number }[]): AnyItem[] {
+  const totalWeight = qualityOptions.reduce((s, o) => s + o.weight, 0)
+  let roll = Math.random() * totalWeight
+  for (const option of qualityOptions) {
+    roll -= option.weight
+    if (roll <= 0) {
+      return [generateEquipment(randomSlot(), option.quality)]
+    }
+  }
+  // Fallback (should not reach here)
+  return [generateEquipment(randomSlot(), qualityOptions[0].quality)]
 }
 
 /**
@@ -74,13 +93,18 @@ export function resolveEvent(
         hpChanges[aliveTeam[i].id] = -(original - remaining)
       }
 
+      // Combat victory: 15% chance to drop equipment (70% common, 30% spirit)
+      const combatItemRewards: AnyItem[] = victory && Math.random() < 0.15
+        ? rollEquipmentDrop([{ quality: 'common', weight: 70 }, { quality: 'spirit', weight: 30 }])
+        : []
+
       return {
         type: 'combat',
         success: victory,
         reward: victory
           ? { spiritStone: 50 * floorNumber, herb: 3 * floorNumber, ore: 2 * floorNumber }
           : emptyReward,
-        itemRewards: [],
+        itemRewards: combatItemRewards,
         combatResult: result,
         message: victory ? '战斗胜利！' : '战斗失败...',
         hpChanges,
@@ -190,6 +214,11 @@ export function resolveEvent(
         hpChanges[aliveTeam[i].id] = -(original - remaining)
       }
 
+      // Boss victory: 40% chance to drop equipment (60% spirit, 40% immortal)
+      const bossItemRewards: AnyItem[] = victory && Math.random() < 0.4
+        ? rollEquipmentDrop([{ quality: 'spirit', weight: 60 }, { quality: 'immortal', weight: 40 }])
+        : []
+
       return {
         type: 'boss',
         success: victory,
@@ -200,7 +229,7 @@ export function resolveEvent(
               ore: 5 * floorNumber,
             }
           : { spiritStone: 50 * floorNumber, herb: 2 * floorNumber, ore: 0 },
-        itemRewards: [],
+        itemRewards: bossItemRewards,
         combatResult: result,
         message: victory ? '击败了 Boss！' : 'Boss 太强了...',
         hpChanges,

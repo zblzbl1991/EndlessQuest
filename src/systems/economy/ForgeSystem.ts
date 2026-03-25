@@ -21,7 +21,7 @@ export const FORGE_RECIPES: ForgeRecipe[] = [
     cost: { ore: 1000, spiritStone: 5000 }, successRate: 0.25 },
 ]
 
-const FORGE_SLOTS: EquipSlot[] = [
+export const FORGE_SLOTS: EquipSlot[] = [
   'head', 'armor', 'bracer', 'belt', 'boots',
   'weapon', 'accessory1', 'accessory2', 'talisman',
 ]
