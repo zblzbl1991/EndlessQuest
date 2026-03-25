@@ -21,9 +21,11 @@ export default function App() {
   const tickAllIdle = useAdventureStore((s) => s.tickAllIdle)
   const lastOnlineTime = useGameStore((s) => s.lastOnlineTime)
 
-  useAutoSave()
+  const { isLoaded } = useAutoSave()
 
   useEffect(() => {
+    if (!isLoaded) return
+
     startGame()
 
     // Offline catch-up
@@ -41,7 +43,18 @@ export default function App() {
     })
     engine.start()
     return () => engine.stop()
-  }, [])
+  }, [isLoaded])
+
+  if (!isLoaded) {
+    return (
+      <div className="loading-screen" style={{
+        display: 'flex', justifyContent: 'center', alignItems: 'center',
+        height: '100vh', fontFamily: 'serif', color: '#5a4a3a', background: '#f5f0e8',
+      }}>
+        <span style={{ fontSize: '1.25rem', opacity: 0.7 }}>Loading...</span>
+      </div>
+    )
+  }
 
   return (
     <BrowserRouter basename="/EndlessQuest">
