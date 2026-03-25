@@ -7,6 +7,13 @@
   margin: 0 auto;
 }
 
+@media (min-width: 1024px) {
+  .page {
+    max-width: none;
+    padding-bottom: var(--space-lg);
+  }
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;
@@ -494,4 +501,20 @@
 .skillEmpty {
   font-size: 11px;
   color: var(--color-text-tertiary);
+}
+
+@media (min-width: 1024px) {
+  .gridView {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr;
+  }
+
+  .backpackGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xs);
+  }
 }
