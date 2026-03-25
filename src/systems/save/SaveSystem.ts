@@ -1,4 +1,4 @@
-import type { Sect } from '../../types'
+import type { Sect, Character } from '../../types'
 import type { DungeonRun } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
@@ -72,7 +72,7 @@ export async function loadGame(): Promise<boolean> {
     const saveRecord = await db.get('save', 1)
     if (saveRecord?.sect) {
       const migratedCharacters = (saveRecord.sect.characters ?? []).map(
-        (char: Record<string, unknown>) => ({
+        (char: Character) => ({
           ...char,
           talents: char.talents ?? [],
         }),
@@ -152,7 +152,7 @@ async function migrateV2ToV3(): Promise<void> {
   const sectData = data.sectStore as { sect?: Sect } | undefined
   if (sectData?.sect) {
     const migratedCharacters = (sectData.sect.characters ?? []).map(
-      (char: Record<string, unknown>) => ({
+      (char: Character) => ({
         ...char,
         talents: char.talents ?? [],
       }),
