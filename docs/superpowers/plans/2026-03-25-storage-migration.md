@@ -58,6 +58,12 @@ import 'fake-indexeddb/auto'
 import { getDB } from '../systems/save/db'
 
 describe('db', () => {
+  beforeEach(async () => {
+    _resetDB()
+    // Also delete the underlying database to prevent data leaking between tests
+    await indexedDB.deleteDatabase('endlessquest_db')
+  })
+
   it('should open the database and return a valid IDB instance', async () => {
     const db = await getDB()
     expect(db).toBeDefined()
@@ -122,9 +128,12 @@ export async function getDB(): Promise<IDBPDatabase> {
   return _db
 }
 
-/** Reset the internal db reference. Only used in tests. */
+/** Reset the internal db reference and delete the database. Only used in tests. */
 export function _resetDB(): void {
-  _db = null
+  if (_db) {
+    _db.close()
+    _db = null
+  }
 }
 ```
 
@@ -163,6 +172,7 @@ import { useGameStore } from '../stores/gameStore'
 describe('SaveSystem (IndexedDB)', () => {
   beforeEach(async () => {
     _resetDB()
+    await indexedDB.deleteDatabase('endlessquest_db')
     localStorage.clear()
     useSectStore.getState().reset()
     useAdventureStore.getState().reset()
@@ -256,7 +266,7 @@ describe('SaveSystem (IndexedDB)', () => {
         sect: {
           name: '测试宗门', level: 1,
           resources: { spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0 },
-          buildings: [], characters: [oldChar], vault: [], maxVaultSlots: 50, pets: [], totalAdventureRuns: 0, totalBreakthroughs: 0,
+          buildings: [], characters: [oldChar], vault: [], maxVaultSlots: 50, pets: [], totalAdventureRuns: 0, totalBreakthroughs: 0, lastTransmissionTime: 0,
         },
       },
       adventureStore: { activeRuns: {} },
@@ -287,6 +297,20 @@ describe('SaveSystem (IndexedDB)', () => {
     expect(hasSaveData()).toBe(false)
     expect(await loadGame()).toBe(false)
     expect(localStorage.getItem('endlessquest_save')).toBeNull()
+  })
+
+  it('should handle v1 save migration path (clean up, return false)', async () => {
+    // v1 save with no eq_save_meta should trigger migration attempt,
+    // which detects version < 2, cleans up old key, and returns false
+    localStorage.setItem('endlessquest_save', JSON.stringify({
+      version: 1,
+      timestamp: Date.now(),
+      player: { name: 'old' },
+    }))
+    const loaded = await loadGame()
+    expect(loaded).toBe(false)
+    expect(localStorage.getItem('endlessquest_save')).toBeNull()
+    expect(hasSaveData()).toBe(false)
   })
 })
 ```
@@ -553,27 +577,29 @@ const SAVE_INTERVAL = 30000 // auto-save every 30 seconds
 
 export function useAutoSave(): { isLoaded: boolean } {
   const [isLoaded, setIsLoaded] = useState(false)
-  const loaded = useRef(false)
+  const loadingRef = useRef<Promise<void> | null>(null)
 
-  // Load on mount (async)
+  // Load on mount (async). Works correctly with React StrictMode re-mounts:
+  // if loading is already in progress, we await the existing promise rather than
+  // skipping or starting a duplicate load.
   useEffect(() => {
-    if (loaded.current) return
-    loaded.current = true
+    if (!loadingRef.current) {
+      loadingRef.current = (async () => {
+        try {
+          await getDB()
+          await loadGame()
+        } catch (e) {
+          console.error('Failed to load save:', e)
+        }
+      })()
+    }
 
     let cancelled = false
-
-    ;(async () => {
-      try {
-        // Ensure DB is initialized
-        await getDB()
-        await loadGame()
-      } catch (e) {
-        console.error('Failed to load save:', e)
-      }
+    loadingRef.current.then(() => {
       if (!cancelled) {
         setIsLoaded(true)
       }
-    })()
+    })
 
     return () => { cancelled = true }
   }, [])
@@ -719,12 +745,13 @@ Create `src/__tests__/HistoryStore.test.ts`:
 
 ```typescript
 import 'fake-indexeddb/auto'
-import { addHistory, queryHistory, _resetDB } from '../systems/save/db'
+import { _resetDB } from '../systems/save/db'
 import { addHistoryEntry, queryHistoryEntries } from '../systems/save/HistoryStore'
 
 describe('HistoryStore', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     _resetDB()
+    await indexedDB.deleteDatabase('endlessquest_db')
   })
 
   it('should add and query history entries', async () => {
@@ -857,46 +884,9 @@ import { _resetDB } from '../systems/save/db'
 import { getCachedResource, setCachedResource } from '../systems/save/ResourceCache'
 
 describe('ResourceCache', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     _resetDB()
-  })
-
-  it('should store and retrieve a blob', async () => {
-    const blob = new Blob(['hello world'], { type: 'text/plain' })
-    await setCachedResource('test/hello.txt', blob, 'v1')
-
-    const cached = await getCachedResource('test/hello.txt')
-    expect(cached).toBeDefined()
-    expect(cached!.version).toBe('v1')
-    expect(await cached!.blob.text()).toBe('hello world')
-  })
-
-  it('should return undefined for missing key', async () => {
-    const cached = await getCachedResource('nonexistent')
-    expect(cached).toBeUndefined()
-  })
-
-  it('should overwrite existing cache', async () => {
-    await setCachedResource('test/hello.txt', new Blob(['old']), { toString() { return 'v1' } } as string)
-    await setCachedResource('test/hello.txt', new Blob(['new']), { toString() { return 'v2' } } as string)
-
-    const cached = await getCachedResource('test/hello.txt')
-    expect(cached!.version).toBe('v2')
-    expect(await cached!.blob.text()).toBe('new')
-  })
-})
-```
-
-Wait — the `toString` hack above won't work. Fix the test to use proper string types:
-
-```typescript
-import 'fake-indexeddb/auto'
-import { _resetDB } from '../systems/save/db'
-import { getCachedResource, setCachedResource } from '../systems/save/ResourceCache'
-
-describe('ResourceCache', () => {
-  beforeEach(() => {
-    _resetDB()
+    await indexedDB.deleteDatabase('endlessquest_db')
   })
 
   it('should store and retrieve a blob', async () => {
