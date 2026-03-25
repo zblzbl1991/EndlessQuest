@@ -770,6 +770,118 @@ describe('SectStore - Breakthrough', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Breakthrough Cost Tests
+// ---------------------------------------------------------------------------
+
+describe('attemptBreakthrough costs', () => {
+  beforeEach(() => resetStore())
+
+  it('should consume pill and spiritStone when breaking through to new realm', () => {
+    const char = getFirstCharacter()
+    // Set character at max stage (stage 3) of realm 0 with max cultivation
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
+        ),
+        resources: { ...s.sect.resources, spiritStone: 1000 },
+        vault: [
+          makeConsumable('pill_1', { name: '筑基丹', effect: { type: 'breakthrough', value: 0 } }),
+        ],
+      },
+    }))
+    // Attach recipeId to the vault pill (simulating production)
+    const vault = getStore().sect.vault
+    ;(vault[0] as any).recipeId = 'foundation_pill'
+
+    const result = getStore().attemptBreakthrough(char.id)
+    expect(result.success).toBe(true)
+    expect(result.newRealm).toBe(1)
+    expect(result.newStage).toBe(0)
+
+    // Pill should be consumed
+    expect(getStore().sect.vault).toHaveLength(0)
+    // spiritStone should be deducted (500 for foundation_pill breakthrough)
+    expect(getStore().sect.resources.spiritStone).toBe(1000 - 500)
+  })
+
+  it('should fail without required pill', () => {
+    const char = getFirstCharacter()
+    // Set character at max stage (stage 3) of realm 0 with max cultivation
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
+        ),
+        resources: { ...s.sect.resources, spiritStone: 1000 },
+        // Vault has wrong pill (spirit_potion, not foundation_pill)
+        vault: [
+          makeConsumable('pill_wrong', { name: '灵气丹' }),
+        ],
+      },
+    }))
+    ;(getStore().sect.vault[0] as any).recipeId = 'spirit_potion'
+
+    const result = getStore().attemptBreakthrough(char.id)
+    expect(result.success).toBe(false)
+    expect(result.newRealm).toBe(0)
+    expect(result.newStage).toBe(3)
+
+    // Pill should NOT be consumed
+    expect(getStore().sect.vault).toHaveLength(1)
+    // spiritStone should NOT be deducted
+    expect(getStore().sect.resources.spiritStone).toBe(1000)
+  })
+
+  it('should fail without enough spiritStone even if pill exists', () => {
+    const char = getFirstCharacter()
+    // Set character at max stage (stage 3) of realm 0 with max cultivation
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
+        ),
+        // Only 100 spiritStone, but need 500
+        resources: { ...s.sect.resources, spiritStone: 100 },
+        vault: [
+          makeConsumable('pill_2', { name: '筑基丹', effect: { type: 'breakthrough', value: 0 } }),
+        ],
+      },
+    }))
+    ;(getStore().sect.vault[0] as any).recipeId = 'foundation_pill'
+
+    const result = getStore().attemptBreakthrough(char.id)
+    expect(result.success).toBe(false)
+    expect(result.newRealm).toBe(0)
+    expect(result.newStage).toBe(3)
+
+    // Pill should NOT be consumed
+    expect(getStore().sect.vault).toHaveLength(1)
+    // spiritStone should NOT be deducted
+    expect(getStore().sect.resources.spiritStone).toBe(100)
+  })
+
+  it('should not require pill for sub-level breakthrough', () => {
+    const char = getFirstCharacter()
+    // Character at realm 0, stage 0 with enough cultivation for stage 1
+    setCharacterCultivation(char.id, 100)
+
+    const result = getStore().attemptBreakthrough(char.id)
+    expect(result.success).toBe(true)
+    expect(result.newRealm).toBe(0)
+    expect(result.newStage).toBe(1)
+
+    // No vault items should be consumed
+    expect(getStore().sect.vault).toHaveLength(0)
+    // spiritStone should NOT be deducted (sub-level breakthrough is free)
+    expect(getStore().sect.resources.spiritStone).toBe(500)
+  })
+})
+
+// ---------------------------------------------------------------------------
 // tickAll Tests
 // ---------------------------------------------------------------------------
 
@@ -1530,5 +1642,252 @@ describe('tickAll with production queue', () => {
     getStore().tickAll(10)
 
     expect(getStore().sect.resources.spiritEnergy).toBeLessThanOrEqual(800)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// exchangeResources Tests
+// ---------------------------------------------------------------------------
+
+describe('exchangeResources', () => {
+  beforeEach(() => resetStore())
+
+  it('should exchange spiritStone to herb at 1:2 rate', () => {
+    const result = getStore().exchangeResources('spiritStone', 'herb', 100)
+    expect(result.success).toBe(true)
+    expect(result.received).toBe(200)
+    expect(getStore().sect.resources.spiritStone).toBe(400) // 500 - 100
+    expect(getStore().sect.resources.herb).toBe(200)
+  })
+
+  it('should exchange herb to spiritStone with loss', () => {
+    // Give 300 herb for the test
+    getStore().addResource('herb', 300)
+
+    // At market level 0: lossRate = max(0.3, 0.667 - 0) = 0.667
+    // 300 herb -> floor(300/3 * (1-0.667)) = floor(100 * 0.333) = 33 stone
+    const result = getStore().exchangeResources('herb', 'spiritStone', 300)
+    expect(result.success).toBe(true)
+    expect(result.received).toBe(33)
+    expect(getStore().sect.resources.herb).toBe(0)
+    expect(getStore().sect.resources.spiritStone).toBe(533) // 500 + 33
+  })
+
+  it('should reject unsupported exchange direction', () => {
+    // herb -> ore should fail
+    getStore().addResource('herb', 100)
+    const result = getStore().exchangeResources('herb', 'ore', 10)
+    expect(result.success).toBe(false)
+    expect(result.reason).toBe('不支持该兑换方向')
+    // Resources should be unchanged
+    expect(getStore().sect.resources.herb).toBe(100)
+  })
+
+  it('should reject if insufficient source resource', () => {
+    // Set spiritStone to 0
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 0 } },
+    }))
+    const result = getStore().exchangeResources('spiritStone', 'herb', 10)
+    expect(result.success).toBe(false)
+    expect(result.reason).toBe('资源不足')
+  })
+
+  it('should reduce loss at higher market levels', () => {
+    // Give 300 herb and set market to level 7
+    getStore().addResource('herb', 300)
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'market' ? { ...b, unlocked: true, level: 7 } : b
+        ),
+      },
+    }))
+
+    // At market level 7: lossRate = max(0.3, 0.667 - 0.35) = max(0.3, 0.317) = 0.317
+    // 300 herb -> floor(300/3 * (1-0.317)) = floor(100 * 0.683) = floor(68.3) = 68 stone
+    const result = getStore().exchangeResources('herb', 'spiritStone', 300)
+    expect(result.success).toBe(true)
+    expect(result.received).toBe(68)
+    expect(getStore().sect.resources.herb).toBe(0)
+    expect(getStore().sect.resources.spiritStone).toBe(568) // 500 + 68
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Expedition Supply Tests
+// ---------------------------------------------------------------------------
+
+describe('expedition supply', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('basic supply should cost 50 spiritStone', () => {
+    const char = getStore().sect.characters[0]
+    const beforeStones = getStore().sect.resources.spiritStone
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'basic')
+    expect(run).not.toBeNull()
+    expect(getStore().sect.resources.spiritStone).toBe(beforeStones - 50)
+    expect(run!.supplyLevel).toBe('basic')
+    expect(run!.rewardMultiplier).toBe(1.0)
+  })
+
+  it('basic supply should be the default when supplyLevel is undefined', () => {
+    const char = getStore().sect.characters[0]
+    const beforeStones = getStore().sect.resources.spiritStone
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+    expect(getStore().sect.resources.spiritStone).toBe(beforeStones - 50)
+    expect(run!.supplyLevel).toBe('basic')
+  })
+
+  it('enhanced supply should cost 200 spiritStone + 2 hp_potion', () => {
+    const char = getStore().sect.characters[0]
+    const beforeStones = getStore().sect.resources.spiritStone
+
+    // Add 2 hp_potion items to vault with recipeId
+    const hpPotion1 = makeConsumable('pot_1')
+    const hpPotion2 = makeConsumable('pot_2')
+    ;(hpPotion1 as any).recipeId = 'hp_potion'
+    ;(hpPotion2 as any).recipeId = 'hp_potion'
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [hpPotion1, hpPotion2] },
+    }))
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'enhanced')
+    expect(run).not.toBeNull()
+    expect(getStore().sect.resources.spiritStone).toBe(beforeStones - 200)
+    expect(getStore().sect.vault).toHaveLength(0) // both potions consumed
+    expect(run!.supplyLevel).toBe('enhanced')
+    expect(run!.rewardMultiplier).toBe(1.0)
+  })
+
+  it('should fail enhanced supply without enough pills', () => {
+    const char = getStore().sect.characters[0]
+    const beforeStones = getStore().sect.resources.spiritStone
+
+    // Only 1 hp_potion in vault, but enhanced needs 2
+    const hpPotion1 = makeConsumable('pot_1')
+    ;(hpPotion1 as any).recipeId = 'hp_potion'
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [hpPotion1] },
+    }))
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'enhanced')
+    expect(run).toBeNull()
+    // Nothing should have been consumed
+    expect(getStore().sect.resources.spiritStone).toBe(beforeStones)
+    expect(getStore().sect.vault).toHaveLength(1)
+    expect(getStore().sect.characters[0].status).toBe('cultivating')
+  })
+
+  it('should fail enhanced supply without enough spirit stones', () => {
+    const char = getStore().sect.characters[0]
+
+    // Give potions but drain spirit stones
+    const hpPotion1 = makeConsumable('pot_1')
+    const hpPotion2 = makeConsumable('pot_2')
+    ;(hpPotion1 as any).recipeId = 'hp_potion'
+    ;(hpPotion2 as any).recipeId = 'hp_potion'
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [hpPotion1, hpPotion2], resources: { ...s.sect.resources, spiritStone: 100 } },
+    }))
+
+    // 100 < 200 -> should fail
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'enhanced')
+    expect(run).toBeNull()
+    expect(getStore().sect.resources.spiritStone).toBe(100)
+    expect(getStore().sect.vault).toHaveLength(2)
+  })
+
+  it('luxury supply should give 1.5x reward multiplier', () => {
+    const char = getStore().sect.characters[0]
+    const beforeStones = getStore().sect.resources.spiritStone
+
+    // Add required vault items: 5 hp_potion + 1 breakthrough_pill
+    const vaultItems: AnyItem[] = []
+    for (let i = 0; i < 5; i++) {
+      const p = makeConsumable(`hp_${i}`)
+      ;(p as any).recipeId = 'hp_potion'
+      vaultItems.push(p)
+    }
+    const bp = makeConsumable('bp_1')
+    ;(bp as any).recipeId = 'breakthrough_pill'
+    vaultItems.push(bp)
+
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        vault: vaultItems,
+        resources: { ...s.sect.resources, spiritStone: 5000 },
+      },
+    }))
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'luxury')
+    expect(run).not.toBeNull()
+    expect(getStore().sect.resources.spiritStone).toBe(5000 - 500)
+    expect(getStore().sect.vault).toHaveLength(0) // all consumed
+    expect(run!.supplyLevel).toBe('luxury')
+    expect(run!.rewardMultiplier).toBe(1.5)
+  })
+
+  it('should fail luxury supply without enough breakthrough_pill', () => {
+    const char = getStore().sect.characters[0]
+
+    // Add 5 hp_potion but no breakthrough_pill
+    const vaultItems: AnyItem[] = []
+    for (let i = 0; i < 5; i++) {
+      const p = makeConsumable(`hp_${i}`)
+      ;(p as any).recipeId = 'hp_potion'
+      vaultItems.push(p)
+    }
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        vault: vaultItems,
+        resources: { ...s.sect.resources, spiritStone: 5000 },
+      },
+    }))
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'luxury')
+    expect(run).toBeNull()
+    expect(getStore().sect.vault).toHaveLength(5) // nothing consumed
+  })
+
+  it('should not consume vault items without matching recipeId', () => {
+    const char = getStore().sect.characters[0]
+
+    // Add 2 consumables WITHOUT recipeId (should not count as hp_potion)
+    const p1 = makeConsumable('pot_1')
+    const p2 = makeConsumable('pot_2')
+    // No recipeId set - these are just regular consumables
+
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [p1, p2] },
+    }))
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'enhanced')
+    expect(run).toBeNull()
+    expect(getStore().sect.vault).toHaveLength(2)
+  })
+
+  it('vault items with different recipeId should not be consumed', () => {
+    const char = getStore().sect.characters[0]
+
+    // Add 2 spirit_potion (not hp_potion) to vault
+    const s1 = makeConsumable('sp_1')
+    const s2 = makeConsumable('sp_2')
+    ;(s1 as any).recipeId = 'spirit_potion'
+    ;(s2 as any).recipeId = 'spirit_potion'
+
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, vault: [s1, s2] },
+    }))
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'enhanced')
+    expect(run).toBeNull()
+    expect(getStore().sect.vault).toHaveLength(2) // spirit_potion items not consumed
   })
 })

@@ -3,7 +3,7 @@ import type {
   Character, CharacterTitle, CharacterQuality, CharacterStatus,
 } from '../types/character'
 import type {
-  BuildingType, Resources, Sect, AnyItem, Equipment,
+  BuildingType, Resources, ResourceType, Sect, AnyItem, Equipment,
 } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 import type { Technique } from '../types/technique'
@@ -21,7 +21,7 @@ import { FORGE_RECIPES, FORGE_SLOTS, canForge, forgeEquipment as forgeEquipmentS
 import { generateEquipment, generateRandomTechniqueScroll } from '../systems/item/ItemGenerator'
 import { getTechniqueById } from '../data/techniquesTable'
 import { BUILDING_DEFS, calcResourceCaps } from '../data/buildings'
-import { REALMS } from '../data/realms'
+import { REALMS, BREAKTHROUGH_COSTS } from '../data/realms'
 import { tickProductionQueue, calcOfflineProduction, canStartRecipe } from '../systems/building/ProductionSystem'
 import { clampResources } from '../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../systems/economy/ResourceEngine'
@@ -122,6 +122,9 @@ export interface SectStore {
   // Resource operations (GLOBAL UNIQUE)
   spendResource(type: keyof Resources, amount: number): boolean
   addResource(type: keyof Resources, amount: number): void
+
+  // Market exchange
+  exchangeResources(from: ResourceType, to: ResourceType, amount: number): { success: boolean; received?: number; reason?: string }
 
   // Breakthrough
   attemptBreakthrough(characterId: string): { success: boolean; newRealm: number; newStage: number; statsChanged: boolean }
@@ -718,6 +721,57 @@ export const useSectStore = create<SectStore>((set, get) => ({
     }))
   },
 
+  // ---- Market exchange ----
+
+  exchangeResources: (from, to, amount) => {
+    const { sect } = get()
+
+    // Validate exchange direction
+    const supportedPairs: Array<[ResourceType, ResourceType]> = [
+      ['spiritStone', 'herb'],
+      ['spiritStone', 'ore'],
+      ['herb', 'spiritStone'],
+      ['ore', 'spiritStone'],
+    ]
+    const isValid = supportedPairs.some(([f, t]) => f === from && t === to)
+    if (!isValid) {
+      return { success: false, reason: '不支持该兑换方向' }
+    }
+
+    // Check source resource
+    if (sect.resources[from] < amount) {
+      return { success: false, reason: '资源不足' }
+    }
+
+    // Calculate market level and loss rate
+    const marketLevel = sect.buildings.find(b => b.type === 'market')?.level ?? 0
+    const lossRate = Math.max(0.3, 0.667 - 0.05 * marketLevel)
+
+    // Calculate received amount
+    let received: number
+    if (from === 'spiritStone') {
+      // Buying: 1 spiritStone -> 2 herb/ore
+      received = amount * 2
+    } else {
+      // Selling: herb/ore -> spiritStone with loss
+      received = Math.floor(amount / 3 * (1 - lossRate))
+    }
+
+    // Deduct source, add received
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: {
+          ...s.sect.resources,
+          [from]: s.sect.resources[from] - amount,
+          [to]: s.sect.resources[to] + received,
+        },
+      },
+    }))
+
+    return { success: true, received }
+  },
+
   // ---- Breakthrough ----
 
   attemptBreakthrough: (characterId) => {
@@ -729,6 +783,40 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     if (!canBreakthrough(char)) {
       return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
+    }
+
+    // Check if this is a major realm breakthrough (at max stage of current realm)
+    const realmDef = REALMS[char.realm]
+    const isMajorRealm = char.realmStage >= realmDef.stages.length - 1
+    if (isMajorRealm) {
+      const targetRealm = char.realm + 1
+      const cost = BREAKTHROUGH_COSTS[targetRealm]
+      if (cost) {
+        // Check spiritStone
+        if (sect.resources.spiritStone < cost.spiritStone) {
+          return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
+        }
+        // Find pill in vault by recipeId
+        const pillIndex = sect.vault.findIndex(
+          (item) => item.type === 'consumable' && (item as any).recipeId === cost.pillId
+        )
+        if (pillIndex === -1) {
+          return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
+        }
+
+        // Consume pill and spiritStone
+        const newVault = sect.vault.filter((_, i) => i !== pillIndex)
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            vault: newVault,
+            resources: {
+              ...s.sect.resources,
+              spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
+            },
+          },
+        }))
+      }
     }
 
     // Get technique if character has one
