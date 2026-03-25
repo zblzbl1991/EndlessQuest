@@ -1,9 +1,10 @@
 // src/systems/economy/ResourceEngine.ts
 
-import { getSpiritFieldRate } from '../../data/buildings'
+import { getSpiritFieldRate, getSpiritMineRate, getSpiritMineOreRate } from '../../data/buildings'
 
 export interface BuildingLevels {
-  spiritField: number  // 灵田 level, 0 = not built
+  spiritField: number
+  spiritMine: number
   mainHall: number
 }
 
@@ -13,10 +14,10 @@ export interface ProductionBonuses {
 }
 
 export interface ResourceRates {
-  spiritEnergy: number  // per second
-  herb: number          // per second
-  ore: number           // per second (0 in Phase 2)
-  spiritStone: number   // per second (0 in Phase 2)
+  spiritEnergy: number
+  herb: number
+  ore: number
+  spiritStone: number
 }
 
 export function calcResourceRates(
@@ -25,18 +26,12 @@ export function calcResourceRates(
 ): ResourceRates {
   const totalMult = bonuses.techniqueMultiplier * bonuses.discipleMultiplier
   const sfLevel = buildingLevels.spiritField
+  const smLevel = buildingLevels.spiritMine
 
-  // Spirit energy: uses the canonical getSpiritFieldRate formula (1 + (level-1)*3)
-  // Minimum 1/s (zero-resource protection)
-  const spiritEnergy = Math.max(1, getSpiritFieldRate(sfLevel) * totalMult)
-
-  // Herb: only from spirit field (0.1 per level)
+  const spiritEnergy = sfLevel > 0 ? getSpiritFieldRate(sfLevel) * totalMult : 0
+  const spiritStone = smLevel > 0 ? getSpiritMineRate(smLevel) * totalMult : 0
   const herb = sfLevel > 0 ? 0.1 * sfLevel * totalMult : 0
+  const ore = smLevel > 0 ? getSpiritMineOreRate(smLevel) * totalMult : 0
 
-  return {
-    spiritEnergy,
-    herb,
-    ore: 0,
-    spiritStone: 0,
-  }
+  return { spiritEnergy, spiritStone, herb, ore }
 }
