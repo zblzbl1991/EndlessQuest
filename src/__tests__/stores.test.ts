@@ -1313,6 +1313,57 @@ describe('AdventureStore - advanceFloor', () => {
   })
 })
 
+// ---------------------------------------------------------------------------
+// Recruit Cost Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Recruit Cost', () => {
+  beforeEach(() => resetStore())
+
+  it('addCharacter should deduct spirit stones', () => {
+    const before = getStore().sect.resources.spiritStone
+    getStore().addCharacter('common') // costs 100
+    expect(getStore().sect.resources.spiritStone).toBe(before - 100)
+  })
+
+  it('addCharacter should return null when insufficient stones', () => {
+    getStore().spendResource('spiritStone', 500)
+    const char = getStore().addCharacter('common')
+    expect(char).toBeNull()
+  })
+
+  it('addCharacter should return null when quality not unlocked', () => {
+    const char = getStore().addCharacter('divine') // needs level 4, current is 1
+    expect(char).toBeNull()
+  })
+
+  it('canRecruit should report insufficient stones', () => {
+    getStore().spendResource('spiritStone', 500)
+    const result = getStore().canRecruit('common')
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('灵石不足')
+  })
+
+  it('canRecruit should report quality locked', () => {
+    const result = getStore().canRecruit('divine')
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('宗门等级不足')
+  })
+
+  it('canRecruit should report characters full', () => {
+    for (let i = 0; i < 4; i++) getStore().addCharacter('common')
+    const result = getStore().canRecruit('common')
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('弟子已满')
+  })
+
+  it('canRecruit should allow when conditions met', () => {
+    const result = getStore().canRecruit('common')
+    expect(result.allowed).toBe(true)
+    expect(result.reason).toBe('')
+  })
+})
+
 describe('AdventureStore - selectRoute', () => {
   beforeEach(() => resetAdventureStore())
 

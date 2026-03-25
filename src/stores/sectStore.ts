@@ -7,7 +7,7 @@ import type {
 } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 import type { Technique } from '../types/technique'
-import { generateCharacter, calcSectLevel, getMaxCharacters } from '../systems/character/CharacterEngine'
+import { generateCharacter, calcSectLevel, getMaxCharacters, getRecruitCost, isQualityUnlocked } from '../systems/character/CharacterEngine'
 import { calcResourceRates } from '../systems/economy/ResourceEngine'
 import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough } from '../systems/cultivation/CultivationEngine'
 import { tickComprehension, canLearnTechnique } from '../systems/technique/TechniqueSystem'
@@ -69,6 +69,7 @@ export interface SectStore {
 
   // Character management
   addCharacter(quality: CharacterQuality): Character | null
+  canRecruit(quality: CharacterQuality): { allowed: boolean; reason: string }
   removeCharacter(id: string): void
   promoteCharacter(id: string, newTitle: CharacterTitle): void
   setCharacterStatus(id: string, status: CharacterStatus): void
@@ -127,12 +128,46 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   addCharacter: (quality) => {
     const { sect } = get()
+
+    // Check quality unlock
+    if (!isQualityUnlocked(quality, sect.level)) return null
+
+    // Check character cap
     if (sect.characters.length >= getMaxCharacters(sect.level)) return null
+
+    // Check spirit stone cost
+    const cost = getRecruitCost(quality)
+    if (sect.resources.spiritStone < cost) return null
+
+    // Deduct stones
     const character = generateCharacter(quality)
     set((s) => ({
-      sect: { ...s.sect, characters: [...s.sect.characters, character] },
+      sect: {
+        ...s.sect,
+        characters: [...s.sect.characters, character],
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone - cost,
+        },
+      },
     }))
     return character
+  },
+
+  canRecruit: (quality) => {
+    const { sect } = get()
+
+    if (!isQualityUnlocked(quality, sect.level)) {
+      return { allowed: false, reason: '宗门等级不足' }
+    }
+    if (sect.characters.length >= getMaxCharacters(sect.level)) {
+      return { allowed: false, reason: '弟子已满' }
+    }
+    const cost = getRecruitCost(quality)
+    if (sect.resources.spiritStone < cost) {
+      return { allowed: false, reason: '灵石不足' }
+    }
+    return { allowed: true, reason: '' }
   },
 
   removeCharacter: (id) => {
