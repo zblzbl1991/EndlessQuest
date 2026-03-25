@@ -7,6 +7,7 @@ function createBuildings(overrides?: Partial<Record<string, { level: number; unl
   const defaults: Record<string, { level: number; unlocked: boolean }> = {
     mainHall: { level: 1, unlocked: true },
     spiritField: { level: 0, unlocked: false },
+    spiritMine: { level: 0, unlocked: false },
     market: { level: 0, unlocked: false },
     alchemyFurnace: { level: 0, unlocked: false },
     forge: { level: 0, unlocked: false },
@@ -105,6 +106,12 @@ describe('checkBuildingUnlock', () => {
     expect(result.unlocked).toBe(true)
   })
 
+  it('spiritMine should always be unlocked (初始)', () => {
+    const buildings = createBuildings()
+    const result = checkBuildingUnlock('spiritMine', buildings)
+    expect(result.unlocked).toBe(true)
+  })
+
   it('unknown building type should return not unlocked', () => {
     const buildings = createBuildings()
     const result = checkBuildingUnlock('unknown' as any, buildings)
@@ -147,5 +154,19 @@ describe('canUpgradeBuilding', () => {
     const result = canUpgradeBuilding('spiritField', buildings, 200)
     expect(result.canUpgrade).toBe(true)
     expect(result.cost.spiritStone).toBe(160) // 80 * 2
+  })
+
+  it('canUpgradeBuilding should allow spiritMine level 0→1 for free', () => {
+    const buildings = createBuildings({ spiritMine: { level: 0, unlocked: true } })
+    const result = canUpgradeBuilding('spiritMine', buildings, 0)
+    expect(result.canUpgrade).toBe(true)
+    expect(result.cost.spiritStone).toBe(0) // 100 * 0 = 0
+  })
+
+  it('canUpgradeBuilding should show correct spiritMine level 1→2 cost', () => {
+    const buildings = createBuildings({ spiritMine: { level: 1, unlocked: true } })
+    const result = canUpgradeBuilding('spiritMine', buildings, 200)
+    expect(result.canUpgrade).toBe(true)
+    expect(result.cost.spiritStone).toBe(100) // 100 * 1 = 100
   })
 })

@@ -276,17 +276,17 @@ describe('Items data', () => {
 // ─── Buildings (spirit field rate) ───────────────────────────────────
 
 describe('Buildings data', () => {
-  it('should define 8 building types', () => {
-    expect(BUILDING_DEFS).toHaveLength(8)
+  it('should define 9 building types', () => {
+    expect(BUILDING_DEFS).toHaveLength(9)
     expect(BUILDING_DEFS[0].type).toBe('mainHall')
   })
 
-  it('getSpiritFieldRate should follow formula level * 1 + max(0, level-1) * 3', () => {
-    expect(getSpiritFieldRate(1)).toBe(1)
-    expect(getSpiritFieldRate(2)).toBe(4)
+  it('getSpiritFieldRate should follow formula 3 + (level-1) * 2', () => {
+    expect(getSpiritFieldRate(1)).toBe(3)
+    expect(getSpiritFieldRate(2)).toBe(5)
     expect(getSpiritFieldRate(3)).toBe(7)
-    expect(getSpiritFieldRate(5)).toBe(13)
-    expect(getSpiritFieldRate(10)).toBe(28)
+    expect(getSpiritFieldRate(5)).toBe(11)
+    expect(getSpiritFieldRate(10)).toBe(21)
   })
 
   it('getSpiritFieldRate should return 0 for level 0', () => {

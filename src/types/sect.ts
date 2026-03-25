@@ -3,7 +3,7 @@ import type { AnyItem } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 
 export type BuildingType =
-  | 'mainHall' | 'spiritField' | 'market' | 'alchemyFurnace'
+  | 'mainHall' | 'spiritField' | 'spiritMine' | 'market' | 'alchemyFurnace'
   | 'forge' | 'scriptureHall' | 'recruitmentPavilion' | 'trainingHall'
 
 export type ResourceType = 'spiritStone' | 'spiritEnergy' | 'herb' | 'ore'
