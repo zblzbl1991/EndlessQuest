@@ -1,4 +1,5 @@
-import type { BuildingType } from '../types/sect'
+import type { BuildingType, Building } from '../types/sect'
+import { getMarketBuff, getAlchemyBuff, getForgeBuff, getScriptureBuff, getRecruitBuff, getTrainingBuff } from '../systems/economy/BuildingEffects'
 
 export interface BuildingDef {
   type: BuildingType
@@ -35,4 +36,65 @@ export function getBuildingDef(type: BuildingType): BuildingDef | undefined {
 export function getSpiritFieldRate(level: number): number {
   if (level < 1) return 0
   return 1 + (level - 1) * 3
+}
+
+// ---------------------------------------------------------------------------
+// Building effect text for UI display
+// ---------------------------------------------------------------------------
+
+export function getBuildingEffectText(building: Building): string {
+  if (!building.unlocked || building.level === 0) return ''
+
+  switch (building.type) {
+    case 'mainHall':
+      return `宗门等级 ${Math.ceil(building.level / 2)}`
+    case 'spiritField':
+      return `灵气 +${getSpiritFieldRate(building.level)}/s · 灵草 +${(0.1 * building.level).toFixed(1)}/s`
+    case 'market': {
+      const buff = getMarketBuff(building.level)
+      return `刷新 ${buff.dailyRefreshCount}次/日`
+    }
+    case 'alchemyFurnace': {
+      const buff = getAlchemyBuff(building.level)
+      return `丹药效果 +${Math.round((buff.potionEffectMult - 1) * 100)}%`
+    }
+    case 'forge': {
+      const buff = getForgeBuff(building.level)
+      return `强化成功率 +${Math.round(buff.successBonus * 100)}% · 消耗 -${Math.round(buff.costReduction * 100)}%`
+    }
+    case 'scriptureHall': {
+      const buff = getScriptureBuff(building.level)
+      return `领悟速度 +${Math.round((buff.comprehensionMult - 1) * 100)}%`
+    }
+    case 'recruitmentPavilion': {
+      const buff = getRecruitBuff(building.level)
+      return `招募费用 -${Math.round((1 - buff.costMult) * 100)}%`
+    }
+    case 'trainingHall': {
+      const buff = getTrainingBuff(building.level)
+      return `修炼速度 +${Math.round((buff.speedMult - 1) * 100)}%`
+    }
+    default:
+      return ''
+  }
+}
+
+export function getBuildingUnlockText(building: Building): string {
+  if (building.unlocked) return ''
+  switch (building.type) {
+    case 'market':
+      return '解锁后：商店刷新+1'
+    case 'alchemyFurnace':
+      return '解锁后：丹药效果+20%'
+    case 'forge':
+      return '解锁后：强化成功率+10%'
+    case 'scriptureHall':
+      return '解锁后：领悟速度+15%'
+    case 'recruitmentPavilion':
+      return '解锁后：招募费用-10%'
+    case 'trainingHall':
+      return '解锁后：修炼速度+10%'
+    default:
+      return ''
+  }
 }
