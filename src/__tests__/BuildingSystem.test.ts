@@ -7,6 +7,7 @@ function createBuildings(overrides?: Partial<Record<string, { level: number; unl
   const defaults: Record<string, { level: number; unlocked: boolean }> = {
     mainHall: { level: 1, unlocked: true },
     spiritField: { level: 0, unlocked: false },
+    spiritMine: { level: 0, unlocked: false },
     market: { level: 0, unlocked: false },
     alchemyFurnace: { level: 0, unlocked: false },
     forge: { level: 0, unlocked: false },
