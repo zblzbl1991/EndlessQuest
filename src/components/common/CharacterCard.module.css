@@ -45,6 +45,14 @@
   margin-top: var(--space-xs);
 }
 
+.progressStats {
+  display: flex;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
 /* Quality border colors */
 .qualityCommon {
   border-left-color: var(--color-quality-common);

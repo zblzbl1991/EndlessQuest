@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
+import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import { QUALITY_NAMES } from '../data/items'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
@@ -167,8 +168,8 @@ function CharacterDetail({
     .map((id) => getTechniqueById(id))
     .filter(Boolean)
 
-  // Cultivation speed (based on spiritual root)
-  const cultivationSpeed = character.cultivationStats.spiritualRoot * 0.5
+  // Cultivation speed
+  const cultivationSpeed = calcCultivationRate(character, technique ?? null)
 
   const handleEquipFromBackpack = (bpIdx: number, slotIdx: number) => {
     equipItem(characterId, bpIdx, slotIdx)
@@ -196,7 +197,7 @@ function CharacterDetail({
         <div className={styles.detailProgress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <span className={styles.progressText}>
-            {Math.floor(character.cultivation).toLocaleString()} / {needed.toLocaleString()}
+            {Math.floor(character.cultivation).toLocaleString()} / {needed.toLocaleString()} (+{cultivationSpeed.toFixed(1)}/s)
           </span>
         </div>
       </div>

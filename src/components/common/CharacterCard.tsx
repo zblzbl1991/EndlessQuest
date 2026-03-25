@@ -1,6 +1,7 @@
 import type { Character, CharacterQuality } from '../../types/character'
 import { getRealmName, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
+import { calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
 import styles from './CharacterCard.module.css'
@@ -51,6 +52,11 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
       {character.status === 'cultivating' && (
         <div className={styles.progress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
+          <div className={styles.progressStats}>
+            <span>修为 {Math.floor(character.cultivation).toLocaleString()}/{needed.toLocaleString()}</span>
+            <span>·</span>
+            <span>+{calcCultivationRate(character, technique ?? null).toFixed(1)}/s</span>
+          </div>
         </div>
       )}
     </div>
