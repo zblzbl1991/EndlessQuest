@@ -333,12 +333,12 @@ describe('SectStore - Building Management', () => {
   beforeEach(() => resetStore())
 
   it('upgradeBuilding should upgrade mainHall', () => {
-    // mainHall upgradeCost at level 1 = 100 * 1 = 100
+    // mainHall upgradeCost at level 1 = 100 * (1+1)^1.3 ≈ 246
     const result = getStore().upgradeBuilding('mainHall')
     expect(result).toBe(true)
     const mainHall = getStore().sect.buildings.find((b) => b.type === 'mainHall')
     expect(mainHall?.level).toBe(2)
-    expect(getStore().sect.resources.spiritStone).toBe(400) // 500 - 100
+    expect(getStore().sect.resources.spiritStone).toBe(500 - Math.round(100 * Math.pow(2, 1.3))) // 500 - 246
   })
 
   it('upgradeBuilding should fail with insufficient spirit stones', () => {
