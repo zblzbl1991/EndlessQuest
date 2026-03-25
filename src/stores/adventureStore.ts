@@ -41,6 +41,7 @@ export interface AdventureStore {
   patrolProgress: number
   patrolCountToday: number
   patrolReward: number
+  patrolCharacterId: string | null
   startPatrol(characterId: string): boolean
   tickPatrol(deltaSec: number): void
   collectPatrolReward(): void
@@ -159,6 +160,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   patrolProgress: 0,
   patrolCountToday: 0,
   patrolReward: 0,
+  patrolCharacterId: null,
 
   startRun: (dungeonId, characterIds) => {
     const state = get()
@@ -551,6 +553,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       patrolActive: true,
       patrolProgress: 0,
       patrolReward: reward,
+      patrolCharacterId: characterId,
     })
     useSectStore.getState().setCharacterStatus(characterId, 'adventuring')
     return true
@@ -573,10 +576,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     depositResourcesToSect({ spiritStone: state.patrolReward, spiritEnergy: 0, herb: 0, ore: 0 })
 
     // Release the character back
-    const sect = useSectStore.getState()
-    const adventuringChars = sect.sect.characters.filter(c => c.status === 'adventuring')
-    if (adventuringChars.length > 0) {
-      useSectStore.getState().setCharacterStatus(adventuringChars[0].id, 'cultivating')
+    if (state.patrolCharacterId) {
+      useSectStore.getState().setCharacterStatus(state.patrolCharacterId, 'cultivating')
     }
 
     set({
@@ -584,6 +585,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       patrolProgress: 0,
       patrolReward: 0,
       patrolCountToday: state.patrolCountToday + 1,
+      patrolCharacterId: null,
     })
   },
 
@@ -604,6 +606,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       patrolProgress: 0,
       patrolCountToday: 0,
       patrolReward: 0,
+      patrolCharacterId: null,
     }),
 }))
 
