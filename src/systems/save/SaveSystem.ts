@@ -1,74 +1,99 @@
-// src/systems/save/SaveSystem.ts
-
 import type { Sect } from '../../types'
 import type { DungeonRun } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
 import { useGameStore } from '../../stores/gameStore'
+import { getDB } from './db'
 
-const SAVE_KEY = 'endlessquest_save'
+const META_KEY = 'eq_save_meta'
+const OLD_SAVE_KEY = 'endlessquest_save'
 
-export interface SaveData {
-  version: 2
-  timestamp: number
-  sectStore: { sect: Sect }
-  adventureStore: { activeRuns: Record<string, DungeonRun> }
-  gameStore: { saveSlot: number; lastOnlineTime: number }
+interface SaveMeta {
+  version: 3
+  lastOnlineTime: number
+  saveSlot: number
 }
 
-export function saveGame(): void {
+export async function saveGame(): Promise<void> {
   try {
-    const data: SaveData = {
-      version: 2,
+    const db = await getDB()
+    const tx = db.transaction(['save', 'adventure'], 'readwrite')
+
+    const sect = useSectStore.getState().sect
+    await tx.objectStore('save').put({
+      slot: 1,
       timestamp: Date.now(),
-      sectStore: { sect: useSectStore.getState().sect },
-      adventureStore: { activeRuns: useAdventureStore.getState().activeRuns },
-      gameStore: {
-        saveSlot: useGameStore.getState().saveSlot,
-        lastOnlineTime: useGameStore.getState().lastOnlineTime,
-      },
+      version: 3,
+      sect,
+    })
+
+    const activeRuns = useAdventureStore.getState().activeRuns
+    const advStore = tx.objectStore('adventure')
+    for (const run of Object.values(activeRuns)) {
+      await advStore.put({ id: run.id, run })
     }
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data))
+    const allKeys = await advStore.getAllKeys()
+    for (const key of allKeys) {
+      if (!(key as string in activeRuns)) {
+        await advStore.delete(key)
+      }
+    }
+
+    await tx.done
+
+    const meta: SaveMeta = {
+      version: 3,
+      lastOnlineTime: Date.now(),
+      saveSlot: useGameStore.getState().saveSlot,
+    }
+    localStorage.setItem(META_KEY, JSON.stringify(meta))
   } catch (e) {
     console.error('Save failed:', e)
   }
 }
 
-export function loadGame(): boolean {
+export async function loadGame(): Promise<boolean> {
   try {
-    const raw = localStorage.getItem(SAVE_KEY)
-    if (!raw) return false
+    if (localStorage.getItem(OLD_SAVE_KEY) && !localStorage.getItem(META_KEY)) {
+      await migrateV2ToV3()
+    }
 
-    const data = JSON.parse(raw)
-    if (data.version < 2) {
-      clearSaveData()
+    const metaRaw = localStorage.getItem(META_KEY)
+    if (!metaRaw) return false
+
+    const meta: SaveMeta = JSON.parse(metaRaw)
+    if (meta.version < 3) {
+      await clearSaveData()
       return false
     }
 
-    // Restore sect state
-    if (data.sectStore?.sect) {
-      // v2 compatibility: ensure all characters have talents field
-      const migratedCharacters = (data.sectStore.sect.characters ?? []).map((char: Record<string, unknown>) => ({
-        ...char,
-        talents: char.talents ?? [],
-      }))
+    const db = await getDB()
+
+    const saveRecord = await db.get('save', 1)
+    if (saveRecord?.sect) {
+      const migratedCharacters = (saveRecord.sect.characters ?? []).map(
+        (char: Record<string, unknown>) => ({
+          ...char,
+          talents: char.talents ?? [],
+        }),
+      )
       useSectStore.setState({
-        sect: { ...data.sectStore.sect, characters: migratedCharacters },
+        sect: { ...saveRecord.sect, characters: migratedCharacters },
       })
     }
 
-    // Restore adventure state (only activeRuns — dungeons/completedDungeons are derived)
-    if (data.adventureStore?.activeRuns) {
-      useAdventureStore.setState({ activeRuns: data.adventureStore.activeRuns })
+    const advRecords = await db.getAll('adventure')
+    if (advRecords.length > 0) {
+      const activeRuns: Record<string, DungeonRun> = {}
+      for (const rec of advRecords) {
+        activeRuns[(rec as { id: string; run: DungeonRun }).id] = (rec as { id: string; run: DungeonRun }).run
+      }
+      useAdventureStore.setState({ activeRuns })
     }
 
-    // Restore game state
-    if (data.gameStore) {
-      useGameStore.setState({
-        saveSlot: data.gameStore.saveSlot,
-        lastOnlineTime: data.gameStore.lastOnlineTime,
-      })
-    }
+    useGameStore.setState({
+      lastOnlineTime: meta.lastOnlineTime,
+    })
 
     return true
   } catch (e) {
@@ -79,15 +104,83 @@ export function loadGame(): boolean {
 
 export function hasSaveData(): boolean {
   try {
-    const raw = localStorage.getItem(SAVE_KEY)
-    if (!raw) return false
-    const data = JSON.parse(raw)
-    return data.version === 2
+    const metaRaw = localStorage.getItem(META_KEY)
+    if (!metaRaw) return false
+    const meta = JSON.parse(metaRaw)
+    return meta.version === 3
   } catch {
     return false
   }
 }
 
-export function clearSaveData(): void {
-  localStorage.removeItem(SAVE_KEY)
+export async function clearSaveData(): Promise<void> {
+  try {
+    const db = await getDB()
+    const tx = db.transaction(['save', 'adventure', 'history', 'resources'], 'readwrite')
+    await tx.objectStore('save').clear()
+    await tx.objectStore('adventure').clear()
+    await tx.objectStore('history').clear()
+    await tx.objectStore('resources').clear()
+    await tx.done
+  } catch (e) {
+    console.error('Clear failed:', e)
+  }
+  localStorage.removeItem(META_KEY)
+  localStorage.removeItem(OLD_SAVE_KEY)
+}
+
+async function migrateV2ToV3(): Promise<void> {
+  const raw = localStorage.getItem(OLD_SAVE_KEY)
+  if (!raw) return
+
+  let data: Record<string, unknown>
+  try {
+    data = JSON.parse(raw)
+  } catch {
+    localStorage.removeItem(OLD_SAVE_KEY)
+    return
+  }
+
+  if (!data.version || (data.version as number) < 2) {
+    localStorage.removeItem(OLD_SAVE_KEY)
+    return
+  }
+
+  const db = await getDB()
+  const tx = db.transaction(['save', 'adventure'], 'readwrite')
+
+  const sectData = data.sectStore as { sect?: Sect } | undefined
+  if (sectData?.sect) {
+    const migratedCharacters = (sectData.sect.characters ?? []).map(
+      (char: Record<string, unknown>) => ({
+        ...char,
+        talents: char.talents ?? [],
+      }),
+    )
+    await tx.objectStore('save').put({
+      slot: 1,
+      timestamp: (data.timestamp as number) || Date.now(),
+      version: 3,
+      sect: { ...sectData.sect, characters: migratedCharacters },
+    })
+  }
+
+  const advData = data.adventureStore as { activeRuns?: Record<string, DungeonRun> } | undefined
+  if (advData?.activeRuns) {
+    const advStore = tx.objectStore('adventure')
+    for (const run of Object.values(advData.activeRuns)) {
+      await advStore.put({ id: run.id, run })
+    }
+  }
+
+  await tx.done
+
+  const gameData = data.gameStore as { saveSlot?: number; lastOnlineTime?: number } | undefined
+  const meta: SaveMeta = {
+    version: 3,
+    lastOnlineTime: gameData?.lastOnlineTime ?? Date.now(),
+    saveSlot: gameData?.saveSlot ?? 1,
+  }
+  localStorage.setItem(META_KEY, JSON.stringify(meta))
+  localStorage.removeItem(OLD_SAVE_KEY)
 }

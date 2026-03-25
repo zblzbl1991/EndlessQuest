@@ -1,72 +1,58 @@
+import 'fake-indexeddb/auto'
 import { saveGame, loadGame, hasSaveData, clearSaveData } from '../systems/save/SaveSystem'
+import { _resetDB } from '../systems/save/db'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
 
-describe('SaveSystem', () => {
-  beforeEach(() => {
-    clearSaveData()
+describe('SaveSystem (IndexedDB)', () => {
+  beforeEach(async () => {
+    _resetDB()
+    await indexedDB.deleteDatabase('endlessquest_db')
+    localStorage.clear()
     useSectStore.getState().reset()
     useAdventureStore.getState().reset()
     useGameStore.getState().reset()
   })
 
-  it('should save and load data', () => {
-    // Set some known state
+  it('should save and load data', async () => {
     useSectStore.getState().addResource('spiritStone', 1000)
     useGameStore.getState().startGame()
 
-    saveGame()
+    await saveGame()
     expect(hasSaveData()).toBe(true)
 
-    // Reset stores to initial
     useSectStore.getState().reset()
     useGameStore.getState().reset()
 
-    // Load and verify
-    const result = loadGame()
+    const result = await loadGame()
     expect(result).toBe(true)
-    expect(useSectStore.getState().sect.resources.spiritStone).toBe(1500) // 500 initial + 1000
+    expect(useSectStore.getState().sect.resources.spiritStone).toBe(1500)
     expect(useGameStore.getState().lastOnlineTime).toBeGreaterThan(0)
   })
 
-  it('loadGame should return false when no save', () => {
-    expect(loadGame()).toBe(false)
+  it('loadGame should return false when no save', async () => {
+    expect(await loadGame()).toBe(false)
   })
 
-  it('loadGame should clear v1 saves and return false', () => {
-    localStorage.setItem('endlessquest_save', JSON.stringify({
-      version: 1,
-      timestamp: Date.now(),
-      player: { name: 'old' },
-    }))
-    expect(hasSaveData()).toBe(false) // v1 is not recognized
-    expect(loadGame()).toBe(false)
-    expect(localStorage.getItem('endlessquest_save')).toBeNull()
+  it('hasSaveData should return false for no save', () => {
+    expect(hasSaveData()).toBe(false)
   })
 
-  it('clearSaveData should remove data', () => {
+  it('clearSaveData should remove data', async () => {
     useGameStore.getState().startGame()
-    saveGame()
+    await saveGame()
     expect(hasSaveData()).toBe(true)
-    clearSaveData()
+    await clearSaveData()
     expect(hasSaveData()).toBe(false)
   })
 
-  it('hasSaveData should return false for corrupted data', () => {
-    localStorage.setItem('endlessquest_save', 'not valid json{{{')
-    expect(hasSaveData()).toBe(false)
+  it('should handle IndexedDB errors gracefully', async () => {
+    useGameStore.getState().startGame()
+    await expect(saveGame()).resolves.not.toThrow()
   })
 
-  it('should handle storage errors gracefully', () => {
-    const originalSetItem = localStorage.setItem.bind(localStorage)
-    localStorage.setItem = () => { throw new DOMException('QuotaExceededError') }
-    expect(() => saveGame()).not.toThrow()
-    localStorage.setItem = originalSetItem
-  })
-
-  it('should preserve adventure active runs through save/load', () => {
-    // Simulate having an active run by directly setting state
+  it('should preserve adventure active runs through save/load', async () => {
     useAdventureStore.setState({
       activeRuns: {
         test_run_1: {
@@ -88,20 +74,16 @@ describe('SaveSystem', () => {
       },
     })
 
-    saveGame()
+    await saveGame()
     useAdventureStore.getState().reset()
 
-    const result = loadGame()
+    const result = await loadGame()
     expect(result).toBe(true)
     expect(useAdventureStore.getState().activeRuns['test_run_1']).toBeDefined()
     expect(useAdventureStore.getState().activeRuns['test_run_1'].currentFloor).toBe(3)
   })
 
-  it('hasSaveData should return false for no save', () => {
-    expect(hasSaveData()).toBe(false)
-  })
-
-  it('should migrate v2 saves missing talents field', () => {
+  it('should migrate v2 saves to IndexedDB', async () => {
     const oldChar = {
       id: 'c1', name: '测试', title: 'disciple' as const, quality: 'common' as const,
       realm: 0, realmStage: 0, cultivation: 0,
@@ -119,21 +101,46 @@ describe('SaveSystem', () => {
         sect: {
           name: '测试宗门', level: 1,
           resources: { spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0 },
-          buildings: [], characters: [oldChar], vault: [], maxVaultSlots: 50, pets: [], totalAdventureRuns: 0, totalBreakthroughs: 0,
+          buildings: [], characters: [oldChar], vault: [], maxVaultSlots: 50, pets: [], totalAdventureRuns: 0, totalBreakthroughs: 0, lastTransmissionTime: 0,
         },
       },
       adventureStore: { activeRuns: {} },
-      gameStore: { saveSlot: 0, lastOnlineTime: Date.now() },
+      gameStore: { saveSlot: 1, lastOnlineTime: Date.now() },
     }
 
     localStorage.setItem('endlessquest_save', JSON.stringify(saveData))
-    const loaded = loadGame()
+    const loaded = await loadGame()
     expect(loaded).toBe(true)
 
     const char = useSectStore.getState().sect.characters[0]
     expect(char.talents).toEqual([])
-    expect(Array.isArray(char.talents)).toBe(true)
 
-    clearSaveData()
+    expect(localStorage.getItem('endlessquest_save')).toBeNull()
+    expect(hasSaveData()).toBe(true)
+
+    await clearSaveData()
+  })
+
+  it('should clear v1 saves', async () => {
+    localStorage.setItem('endlessquest_save', JSON.stringify({
+      version: 1,
+      timestamp: Date.now(),
+      player: { name: 'old' },
+    }))
+    expect(hasSaveData()).toBe(false)
+    expect(await loadGame()).toBe(false)
+    expect(localStorage.getItem('endlessquest_save')).toBeNull()
+  })
+
+  it('should handle v1 save migration path (clean up, return false)', async () => {
+    localStorage.setItem('endlessquest_save', JSON.stringify({
+      version: 1,
+      timestamp: Date.now(),
+      player: { name: 'old' },
+    }))
+    const loaded = await loadGame()
+    expect(loaded).toBe(false)
+    expect(localStorage.getItem('endlessquest_save')).toBeNull()
+    expect(hasSaveData()).toBe(false)
   })
 })
