@@ -130,6 +130,18 @@ describe('CultivationEngine', () => {
       expect(result.spiritSpent).toBe(2)
     })
 
+    it('should apply technique cultivationRate bonus in tick', () => {
+      const character = createCharacter({
+        realm: 1,
+        techniqueComprehension: 30,
+      })
+      // cultivationRate bonus unlocks at comprehensionDifficulty * 0.7 = 2 * 0.7 = 1.4
+      // With comprehension 30 >= 1.4, the +10% cultivationRate bonus is active
+      const result = tick(character, 20, 1, cultivationRateTechnique)
+      const baseRate = 5 * 1.0 * 0.9 // spiritualRoot=10 (+0%), realm 1 (0.9x)
+      expect(result.cultivationGained).toBe(baseRate * 1.1) // baseRate * (1 + 0.1)
+    })
+
     it('should not gain when no spirit energy', () => {
       const character = createCharacter()
       const result = tick(character, 1, 1) // only 1 spirit energy, need 2

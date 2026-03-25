@@ -71,12 +71,13 @@ export function tick(
   character: Character,
   spiritEnergyAvailable: number,
   deltaSec: number,
+  technique: Technique | null = null,
 ): TickResult {
   if (!canCultivate(spiritEnergyAvailable)) {
     return { cultivationGained: 0, spiritSpent: 0 }
   }
 
-  const rate = calcCultivationRate(character, null)
+  const rate = calcCultivationRate(character, technique)
   const gained = rate * deltaSec
   const spent = SPIRIT_COST_PER_SECOND * deltaSec
 

@@ -775,7 +775,8 @@ export const useSectStore = create<SectStore>((set, get) => ({
       }
 
       const effectiveSpirit = 2 * spiritRatio * deltaSec
-      const result = cultivationTick(char, effectiveSpirit, deltaSec)
+      const charTechnique = char.currentTechnique ? getTechniqueById(char.currentTechnique) ?? null : null
+      const result = cultivationTick(char, effectiveSpirit, deltaSec, charTechnique)
       const gained = result.cultivationGained * trainingMult
 
       let updatedChar: Character = {
