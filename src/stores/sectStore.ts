@@ -902,8 +902,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (sect.resources.spiritEnergy < cost) return { success: false, reason: `灵气不足（需要${cost}）`, charactersUpdated: 0 }
 
     // Apply cultivation boost to each cultivating character
-    const QUALITY_ORDER: CharacterQuality[] = ['common', 'spirit', 'immortal', 'divine', 'chaos']
-
     const updatedCharacters = sect.characters.map(char => {
       if (char.status !== 'cultivating') return char
 
