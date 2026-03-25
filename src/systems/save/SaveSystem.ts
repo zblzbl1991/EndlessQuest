@@ -47,7 +47,14 @@ export function loadGame(): boolean {
 
     // Restore sect state
     if (data.sectStore?.sect) {
-      useSectStore.setState({ sect: data.sectStore.sect })
+      // v2 compatibility: ensure all characters have talents field
+      const migratedCharacters = (data.sectStore.sect.characters ?? []).map((char: Record<string, unknown>) => ({
+        ...char,
+        talents: char.talents ?? [],
+      }))
+      useSectStore.setState({
+        sect: { ...data.sectStore.sect, characters: migratedCharacters },
+      })
     }
 
     // Restore adventure state (only activeRuns — dungeons/completedDungeons are derived)

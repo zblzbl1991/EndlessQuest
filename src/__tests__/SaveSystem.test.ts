@@ -101,4 +101,40 @@ describe('SaveSystem', () => {
   it('hasSaveData should return false for no save', () => {
     expect(hasSaveData()).toBe(false)
   })
+
+  it('should migrate v2 saves missing talents field', () => {
+    const oldChar = {
+      id: 'c1', name: '测试', title: 'disciple' as const, quality: 'common' as const,
+      realm: 0, realmStage: 0, cultivation: 0,
+      baseStats: { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 },
+      cultivationStats: { spiritPower: 0, maxSpiritPower: 100, comprehension: 10, spiritualRoot: 10, fortune: 5 },
+      currentTechnique: null, techniqueComprehension: 0, learnedTechniques: [],
+      equippedGear: [], equippedSkills: [], backpack: [], maxBackpackSlots: 20, petIds: [],
+      status: 'cultivating' as const, injuryTimer: 0, createdAt: Date.now(), totalCultivation: 0,
+    }
+
+    const saveData = {
+      version: 2,
+      timestamp: Date.now(),
+      sectStore: {
+        sect: {
+          name: '测试宗门', level: 1,
+          resources: { spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0, fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0 },
+          buildings: [], characters: [oldChar], vault: [], maxVaultSlots: 50, pets: [], totalAdventureRuns: 0, totalBreakthroughs: 0,
+        },
+      },
+      adventureStore: { activeRuns: {} },
+      gameStore: { saveSlot: 0, lastOnlineTime: Date.now() },
+    }
+
+    localStorage.setItem('endlessquest_save', JSON.stringify(saveData))
+    const loaded = loadGame()
+    expect(loaded).toBe(true)
+
+    const char = useSectStore.getState().sect.characters[0]
+    expect(char.talents).toEqual([])
+    expect(Array.isArray(char.talents)).toBe(true)
+
+    clearSaveData()
+  })
 })
