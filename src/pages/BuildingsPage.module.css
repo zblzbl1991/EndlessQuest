@@ -179,11 +179,19 @@
   background: var(--color-panel);
   border-radius: var(--radius-md);
   padding: var(--space-md);
+  display: flex;
+  justify-content: space-between;
 }
 
 .recruitCount {
   font-size: 14px;
   color: var(--color-text);
+}
+
+.recruitSpiritStones {
+  font-size: 13px;
+  color: var(--color-accent);
+  font-weight: 600;
 }
 
 .qualitySelect {
@@ -210,6 +218,12 @@
 
 .qualityBtn:hover:not(.qualityLocked) {
   background: var(--color-panel-hover);
+}
+
+.qualityCost {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-secondary);
 }
 
 .qualityActive {
@@ -261,6 +275,123 @@
   font-size: 14px;
   font-weight: 600;
   animation: fadeInOut 3s ease;
+}
+
+/* ===== Recruit Result Modal ===== */
+.recruitResultModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: var(--space-md);
+}
+
+.recruitResultContent {
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-panel);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.recruitCharHeader {
+  text-align: center;
+}
+
+.recruitCharName {
+  font-family: var(--font-serif);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.recruitCharQuality {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  margin-top: 4px;
+}
+
+.recruitStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 12px;
+}
+
+.recruitStatItem {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 2px 0;
+}
+
+.recruitStatLabel {
+  color: var(--color-text-secondary);
+}
+
+.recruitStatValue {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.statHigh { color: var(--color-success, #4caf50); }
+.statLow { color: var(--color-danger, #e53935); }
+
+.recruitTalents {
+  border-top: 1px solid var(--color-border-light);
+  padding-top: var(--space-sm);
+}
+
+.recruitTalentTitle {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+}
+
+.recruitTalentList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.recruitTalent {
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+}
+
+.talentRare {
+  color: var(--color-info, #2196f3);
+  border-color: var(--color-info, #2196f3);
+}
+
+.talentEpic {
+  color: var(--color-accent-purple, #9c27b0);
+  border-color: var(--color-accent-purple, #9c27b0);
+}
+
+.recruitCloseBtn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-serif);
+  cursor: pointer;
+  margin-top: var(--space-sm);
 }
 
 /* ===== Vault Tab ===== */

@@ -1,9 +1,17 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { BUILDING_DEFS, getSpiritFieldRate } from '../data/buildings'
-import { getMaxCharacters } from '../systems/character/CharacterEngine'
+import {
+  getMaxCharacters,
+  getRecruitCost,
+  getAvailableQualities,
+  getQualityStats,
+} from '../systems/character/CharacterEngine'
 import type { BuildingType, CharacterQuality } from '../types'
 import type { AnyItem } from '../types/item'
+import type { Character } from '../types/character'
+import type { Talent } from '../types/talent'
+import { TALENT_RARITY_NAMES } from '../types/talent'
 import ItemCard from '../components/inventory/ItemCard'
 import styles from './BuildingsPage.module.css'
 
@@ -19,19 +27,54 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'vault', label: '仓库' },
 ]
 
-const QUALITY_OPTIONS: { quality: CharacterQuality; label: string; unlockLevel: number }[] = [
-  { quality: 'common', label: '凡品', unlockLevel: 1 },
-  { quality: 'spirit', label: '灵品', unlockLevel: 2 },
-  { quality: 'immortal', label: '仙品', unlockLevel: 3 },
-  { quality: 'divine', label: '神品', unlockLevel: 4 },
-]
-
 const QUALITY_LABELS: Record<CharacterQuality, string> = {
   common: '凡品',
   spirit: '灵品',
   immortal: '仙品',
   divine: '神品',
   chaos: '混沌',
+}
+
+const QUALITY_UNLOCK_LEVEL: Partial<Record<CharacterQuality, number>> = {
+  common: 1,
+  spirit: 2,
+  immortal: 3,
+  divine: 4,
+}
+
+/** Base combat stats before variance -- used for stat coloring comparison. */
+const BASE_COMBAT_STATS = { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 }
+
+/** Stat display labels for the recruit result modal. */
+const STAT_LABELS: Record<string, string> = {
+  hp: '生命',
+  atk: '攻击',
+  def: '防御',
+  spd: '速度',
+  crit: '暴击',
+  critDmg: '暴伤',
+  spiritualRoot: '灵根',
+  comprehension: '悟性',
+  fortune: '机缘',
+}
+
+function getStatClass(value: number, baseValue: number): string {
+  if (baseValue === 0) return ''
+  const diff = (value - baseValue) / baseValue
+  if (diff > 0.1) return styles.statHigh
+  if (diff < -0.1) return styles.statLow
+  return ''
+}
+
+function formatStat(key: string, value: number): string {
+  if (key === 'crit') return `${Math.round(value * 100)}%`
+  return String(Math.round(value * 10) / 10)
+}
+
+function getTalentClass(rarity: Talent['rarity']): string {
+  if (rarity === 'epic') return styles.talentEpic
+  if (rarity === 'rare') return styles.talentRare
+  return ''
 }
 
 // ---------------------------------------------------------------------------
@@ -142,19 +185,28 @@ function BuildingsTab() {
 
 function RecruitTab() {
   const sect = useSectStore((s) => s.sect)
+  const canRecruit = useSectStore((s) => s.canRecruit)
   const addCharacter = useSectStore((s) => s.addCharacter)
   const [selectedQuality, setSelectedQuality] = useState<CharacterQuality>('common')
-  const [newCharacter, setNewCharacter] = useState<string | null>(null)
+  const [recruitedCharacter, setRecruitedCharacter] = useState<Character | null>(null)
 
   const maxChars = getMaxCharacters(sect.level)
-  const isFull = sect.characters.length >= maxChars
+  const availableQualities = getAvailableQualities(sect.level)
+  const recruitCheck = canRecruit(selectedQuality)
+  const cost = getRecruitCost(selectedQuality)
+
+  // If the currently selected quality is no longer available, fall back
+  useEffect(() => {
+    if (!availableQualities.includes(selectedQuality) && availableQualities.length > 0) {
+      setSelectedQuality(availableQualities[0])
+    }
+  }, [availableQualities, selectedQuality])
 
   const handleRecruit = () => {
-    if (isFull) return
+    if (!recruitCheck.allowed) return
     const character = addCharacter(selectedQuality)
     if (character) {
-      setNewCharacter(character.name)
-      setTimeout(() => setNewCharacter(null), 3000)
+      setRecruitedCharacter(character)
     }
   }
 
@@ -164,38 +216,124 @@ function RecruitTab() {
         <span className={styles.recruitCount}>
           弟子数量: {sect.characters.length} / {maxChars}
         </span>
+        <span className={styles.recruitSpiritStones}>
+          灵石: {sect.resources.spiritStone}
+        </span>
       </div>
 
       <div className={styles.qualitySelect}>
-        {QUALITY_OPTIONS.map((q) => {
-          const available = sect.level >= q.unlockLevel
+        {(['common', 'spirit', 'immortal', 'divine'] as CharacterQuality[]).map((quality) => {
+          const available = availableQualities.includes(quality)
+          const unlockLevel = QUALITY_UNLOCK_LEVEL[quality]
+          const qualityCost = getRecruitCost(quality)
           return (
             <button
-              key={q.quality}
-              className={`${styles.qualityBtn} ${selectedQuality === q.quality ? styles.qualityActive : ''} ${!available ? styles.qualityLocked : ''}`}
-              onClick={() => available && setSelectedQuality(q.quality)}
+              key={quality}
+              className={`${styles.qualityBtn} ${selectedQuality === quality ? styles.qualityActive : ''} ${!available ? styles.qualityLocked : ''}`}
+              onClick={() => available && setSelectedQuality(quality)}
               disabled={!available}
             >
-              {q.label}
-              {!available && <span className={styles.qualityLockHint}> Lv{q.unlockLevel}解锁</span>}
+              {QUALITY_LABELS[quality]}
+              <span className={styles.qualityCost}>{qualityCost}灵石</span>
+              {!available && unlockLevel != null && (
+                <span className={styles.qualityLockHint}>Lv{unlockLevel}解锁</span>
+              )}
             </button>
           )
         })}
       </div>
 
       <button
-        className={`${styles.recruitBtn} ${isFull ? styles.recruitDisabled : ''}`}
+        className={`${styles.recruitBtn} ${!recruitCheck.allowed ? styles.recruitDisabled : ''}`}
         onClick={handleRecruit}
-        disabled={isFull}
+        disabled={!recruitCheck.allowed}
       >
-        {isFull ? '弟子已满' : `招收${QUALITY_LABELS[selectedQuality]}弟子`}
+        {!recruitCheck.allowed
+          ? recruitCheck.reason
+          : `招收${QUALITY_LABELS[selectedQuality]}弟子 (${cost}灵石)`}
       </button>
 
-      {newCharacter && (
-        <div className={styles.recruitResult}>
-          成功招收弟子: {newCharacter}
-        </div>
+      {recruitedCharacter && (
+        <RecruitResultModal
+          character={recruitedCharacter}
+          onClose={() => setRecruitedCharacter(null)}
+        />
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// RecruitResultModal
+// ---------------------------------------------------------------------------
+
+function RecruitResultModal({ character, onClose }: { character: Character; onClose: () => void }) {
+  const qualityStats = getQualityStats(character.quality)
+
+  const combatEntries: { key: string; value: number; base: number }[] = [
+    { key: 'hp', value: character.baseStats.hp, base: BASE_COMBAT_STATS.hp },
+    { key: 'atk', value: character.baseStats.atk, base: BASE_COMBAT_STATS.atk },
+    { key: 'def', value: character.baseStats.def, base: BASE_COMBAT_STATS.def },
+    { key: 'spd', value: character.baseStats.spd, base: BASE_COMBAT_STATS.spd },
+    { key: 'crit', value: character.baseStats.crit, base: BASE_COMBAT_STATS.crit },
+    { key: 'critDmg', value: character.baseStats.critDmg, base: BASE_COMBAT_STATS.critDmg },
+  ]
+
+  const cultEntries: { key: string; value: number; base: number }[] = [
+    { key: 'spiritualRoot', value: character.cultivationStats.spiritualRoot, base: qualityStats.spiritualRoot },
+    { key: 'comprehension', value: character.cultivationStats.comprehension, base: qualityStats.comprehension },
+    { key: 'fortune', value: character.cultivationStats.fortune, base: qualityStats.fortune },
+  ]
+
+  return (
+    <div className={styles.recruitResultModal} onClick={onClose}>
+      <div className={styles.recruitResultContent} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.recruitCharHeader}>
+          <div className={styles.recruitCharName}>{character.name}</div>
+          <span className={styles.recruitCharQuality}>
+            {QUALITY_LABELS[character.quality]}
+          </span>
+        </div>
+
+        <div className={styles.recruitStats}>
+          {combatEntries.map(({ key, value, base }) => (
+            <div key={key} className={styles.recruitStatItem}>
+              <span className={styles.recruitStatLabel}>{STAT_LABELS[key]}</span>
+              <span className={`${styles.recruitStatValue} ${getStatClass(value, base)}`}>
+                {formatStat(key, value)}
+              </span>
+            </div>
+          ))}
+          {cultEntries.map(({ key, value, base }) => (
+            <div key={key} className={styles.recruitStatItem}>
+              <span className={styles.recruitStatLabel}>{STAT_LABELS[key]}</span>
+              <span className={`${styles.recruitStatValue} ${getStatClass(value, base)}`}>
+                {formatStat(key, value)}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {character.talents.length > 0 && (
+          <div className={styles.recruitTalents}>
+            <div className={styles.recruitTalentTitle}>天赋</div>
+            <div className={styles.recruitTalentList}>
+              {character.talents.map((talent) => (
+                <span
+                  key={talent.id}
+                  className={`${styles.recruitTalent} ${getTalentClass(talent.rarity)}`}
+                >
+                  {TALENT_RARITY_NAMES[talent.rarity]} {talent.name}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <button className={styles.recruitCloseBtn} onClick={onClose}>
+          收下弟子
+        </button>
+      </div>
     </div>
   )
 }
