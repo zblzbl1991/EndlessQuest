@@ -777,11 +777,12 @@ describe('SectStore - tickAll', () => {
   beforeEach(() => resetStore())
 
   it('tickAll should produce spirit energy', () => {
-    // Base rate is 1/s when no buildings produce.
-    // The initial character is cultivating and consumes 2/s, so net will be negative.
-    // But spiritProduced should still reflect the base rate.
+    // Upgrade spiritField to level 1 so it produces spirit energy (3/s).
+    // Also give spirit stones to upgrade. Use tryUpgradeBuilding which auto-unlocks.
+    getStore().addResource('spiritStone', 1000)
+    getStore().tryUpgradeBuilding('spiritField')
     const result = getStore().tickAll(10)
-    expect(result.spiritProduced).toBeCloseTo(10, 0) // ~10 spirit energy in 10 seconds
+    expect(result.spiritProduced).toBeCloseTo(30, 0) // 3/s * 10s = 30 spirit energy
     expect(result.spiritConsumed).toBeGreaterThan(0) // cultivator consumed some
   })
 
