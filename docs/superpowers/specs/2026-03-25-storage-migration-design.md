@@ -26,7 +26,7 @@
 | Object Store | Key | Indexes | 说明 |
 |-------------|-----|---------|------|
 | `save` | `slot` (number) | — | 完整宗门存档，当前 slot=1 |
-| `adventure` | `runId` (string) | `status`, `startedAt` | 活跃秘境 Runs |
+| `adventure` | `id` (string) | — | 活跃秘境 Runs |
 | `history` | `id` (autoIncrement) | `type`, `timestamp` | 游戏历史记录 |
 | `resources` | `key` (string) | — | 静态资源 Blob 缓存 |
 
@@ -45,12 +45,12 @@ interface SaveRecord {
 
 ```typescript
 interface AdventureRecord {
-  runId: string               // 主键
-  status: 'active' | 'completed' | 'failed'
-  startedAt: number           // 开始时间
+  id: string                  // 主键，对应 DungeonRun.id
   run: DungeonRun             // 完整 Run 数据
 }
 ```
+
+注意：保存时 `activeRuns` 中只有 `status: 'active'` 的 Run（completed/failed/retreated 的 Run 在 adventureStore 中已被删除）。因此 adventure store 在保存时只存活跃 Runs，不需要额外的 status 字段。`startedAt` 可从 `run.eventLog[0].timestamp` 获取，无需冗余存储。
 
 ### 1.3 history store 结构
 
@@ -111,7 +111,7 @@ export function hasSaveData(): boolean
 1. 从 `useSectStore.getState().sect` 收集宗门数据
 2. 从 `useAdventureStore.getState().activeRuns` 收集秘境数据
 3. 写入 IndexedDB `save` store（slot=1, 完整 sect）
-4. 写入 IndexedDB `adventure` store（每个 activeRun 一条记录，put 操作）
+4. 写入 IndexedDB `adventure` store（每个 activeRun 一条记录，以 run.id 为 key，put 操作）
 5. 同步更新 localStorage `eq_save_meta`（version, lastOnlineTime, saveSlot）
 
 ### 3.3 loadGame 流程
@@ -131,7 +131,8 @@ export function hasSaveData(): boolean
 
 在 `loadGame()` 中检测：
 - 如果 localStorage 有 `endlessquest_save` key 但无 `eq_save_meta` key → 触发迁移
-- 解析旧 JSON，将 sect 数据写入 IndexedDB `save` store（slot=1）
+- 解析旧 JSON，执行字段级兼容处理（talents 字段补全，与现有 v2 加载逻辑一致）
+- 将处理后的 sect 数据写入 IndexedDB `save` store（slot=1）
 - 将 activeRuns 写入 IndexedDB `adventure` store
 - 创建 `eq_save_meta` 到 localStorage
 - 删除旧的 `endlessquest_save` key
@@ -180,7 +181,24 @@ useAutoSave 内部：
 LoadingScreen 隐藏 → 渲染游戏界面
 ```
 
-### 5.2 LoadingScreen
+### 5.2 App.tsx 关键变化
+
+App.tsx 中现有的 `useEffect`（包含 `startGame()`、离线 catch-up、IdleEngine 启动等逻辑）**必须门控在 `isLoaded === true` 之后**。具体做法：
+
+```typescript
+// App.tsx
+const { isLoaded } = useAutoSave()
+
+// 游戏初始化 effect 必须依赖 isLoaded
+useEffect(() => {
+  if (!isLoaded) return
+  // ... 原有的 startGame, 离线 catch-up, IdleEngine 逻辑 ...
+}, [isLoaded])
+```
+
+当前 App.tsx 中这些逻辑在 `useAutoSave` 内部同步 `loadGame()` 后立即执行。改为 async 后，如果不门控 `isLoaded`，会出现竞争条件：`startGame()` 和离线 catch-up 会在存档加载完成前执行，导致使用默认初始状态而非存档数据。
+
+### 5.3 LoadingScreen
 
 简单的居中文字"加载中..."，水墨风格。无需复杂动画，只需避免白屏闪烁。
 
@@ -216,9 +234,7 @@ export async function getDB(): Promise<IDBPDatabase> {
       }
       // adventure store
       if (!db.objectStoreNames.contains('adventure')) {
-        const adv = db.createObjectStore('adventure', { keyPath: 'runId' })
-        adv.createIndex('status', 'status')
-        adv.createIndex('startedAt', 'startedAt')
+        db.createObjectStore('adventure', { keyPath: 'id' })
       }
       // history store
       if (!db.objectStoreNames.contains('history')) {
@@ -280,8 +296,9 @@ export async function getDB(): Promise<IDBPDatabase> {
 ### 8.1 SaveSystem 测试
 
 - 使用 `fake-indexeddb` mock IndexedDB 环境
+- 在 vitest setup 文件中 `import 'fake-indexeddb/auto'` 全局注册
 - 测试正常保存/加载流程
-- 测试 v2 迁移流程
+- 测试 v2 迁移流程（包括 talents 字段补全）
 - 测试无存档时的行为
 - 测试存档损坏时的错误处理
 
@@ -322,3 +339,16 @@ export async function getDB(): Promise<IDBPDatabase> {
 - UI 组件不变
 - 游戏系统（combat, cultivation, roguelike 等）不变
 - SaveSystem 的公共语义（saveGame, loadGame, hasSaveData, clearSaveData）不变，仅从同步变为异步
+
+## 11. 已知限制（既有问题，非本次引入）
+
+以下数据在当前 v2 存档中也未持久化，本次迁移保持现有行为不变，留作后续优化：
+
+| 数据 | 说明 | 影响 |
+|------|------|------|
+| `completedDungeons` | 已通关秘境列表 | 重载后重置为空，UI 上"已通关"标记丢失 |
+| 巡逻状态（patrolActive/Progress/CountToday/Reward） | 巡逻进度 | 重载后巡逻丢失，弟子可能卡在 adventuring 状态 |
+| `shopState` | 商店状态 | 重载后商店需重新初始化 |
+
+这些问题在迁移完成后可以作为独立任务逐一修复。
+
