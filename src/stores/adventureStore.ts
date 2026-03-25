@@ -35,6 +35,15 @@ export interface AdventureStore {
   getRun(id: string): DungeonRun | undefined
   getMaxSimultaneousRuns(): number
   reset(): void
+
+  // Patrol
+  patrolActive: boolean
+  patrolProgress: number
+  patrolCountToday: number
+  patrolReward: number
+  startPatrol(characterId: string): boolean
+  tickPatrol(deltaSec: number): void
+  collectPatrolReward(): void
 }
 
 // ---------------------------------------------------------------------------
@@ -146,6 +155,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   activeRuns: {},
   dungeons: DUNGEONS,
   completedDungeons: [],
+  patrolActive: false,
+  patrolProgress: 0,
+  patrolCountToday: 0,
+  patrolReward: 0,
 
   startRun: (dungeonId, characterIds) => {
     const state = get()
@@ -454,6 +467,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   },
 
   tickAllIdle: (deltaSec) => {
+    get().tickPatrol(deltaSec)
     const state = get()
     for (const runId of Object.keys(state.activeRuns)) {
       state.idleTick(runId, deltaSec)
@@ -522,6 +536,57 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     })
   },
 
+  startPatrol: (characterId) => {
+    const { sect } = useSectStore.getState()
+    const char = sect.characters.find(c => c.id === characterId)
+    if (!char) return false
+    if (get().patrolActive) return false
+    if (get().patrolCountToday >= 5) return false
+    if (char.status === 'adventuring') return false
+
+    const sectLevel = getSectLevel()
+    const reward = 50 + sectLevel * 10
+
+    set({
+      patrolActive: true,
+      patrolProgress: 0,
+      patrolReward: reward,
+    })
+    useSectStore.getState().setCharacterStatus(characterId, 'adventuring')
+    return true
+  },
+
+  tickPatrol: (deltaSec) => {
+    if (!get().patrolActive) return
+    const newProgress = get().patrolProgress + deltaSec
+    if (newProgress >= 60) {
+      set({ patrolProgress: 60 })
+    } else {
+      set({ patrolProgress: newProgress })
+    }
+  },
+
+  collectPatrolReward: () => {
+    const state = get()
+    if (!state.patrolActive || state.patrolProgress < 60) return
+
+    depositResourcesToSect({ spiritStone: state.patrolReward, spiritEnergy: 0, herb: 0, ore: 0 })
+
+    // Release the character back
+    const sect = useSectStore.getState()
+    const adventuringChars = sect.sect.characters.filter(c => c.status === 'adventuring')
+    if (adventuringChars.length > 0) {
+      useSectStore.getState().setCharacterStatus(adventuringChars[0].id, 'cultivating')
+    }
+
+    set({
+      patrolActive: false,
+      patrolProgress: 0,
+      patrolReward: 0,
+      patrolCountToday: state.patrolCountToday + 1,
+    })
+  },
+
   getRun: (id) => {
     return get().activeRuns[id]
   },
@@ -535,6 +600,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     set({
       activeRuns: {},
       completedDungeons: [],
+      patrolActive: false,
+      patrolProgress: 0,
+      patrolCountToday: 0,
+      patrolReward: 0,
     }),
 }))
 
