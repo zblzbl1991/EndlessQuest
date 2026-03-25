@@ -44,7 +44,7 @@ export default function App() {
   }, [])
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/EndlessQuest">
       <Sidebar />
       <TopBar />
       <div className="page-content">
