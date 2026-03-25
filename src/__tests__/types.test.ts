@@ -286,10 +286,6 @@ describe('Sect types', () => {
       spiritEnergy: 500,
       herb: 10,
       ore: 5,
-      fairyJade: 0,
-      scrollFragment: 0,
-      heavenlyTreasure: 0,
-      beastSoul: 0,
     }
     expect(res.spiritStone).toBe(1000)
   })
@@ -303,10 +299,6 @@ describe('Sect types', () => {
         spiritEnergy: 500,
         herb: 10,
         ore: 5,
-        fairyJade: 0,
-        scrollFragment: 0,
-        heavenlyTreasure: 0,
-        beastSoul: 0,
       },
       buildings: [{ type: 'mainHall', level: 1, unlocked: true }],
       characters: [],
@@ -333,9 +325,8 @@ describe('Sect types', () => {
   it('should accept all ResourceType values', () => {
     const types: ResourceType[] = [
       'spiritStone', 'spiritEnergy', 'herb', 'ore',
-      'fairyJade', 'scrollFragment', 'heavenlyTreasure', 'beastSoul',
     ]
-    expect(types).toHaveLength(8)
+    expect(types).toHaveLength(4)
   })
 })
 
@@ -363,7 +354,7 @@ describe('Adventure types', () => {
         description: '低风险',
         riskLevel: 'low',
         events: [{ type: 'combat' }],
-        reward: { spiritStone: 100, herb: 5, ore: 3, fairyJade: 0 },
+        reward: { spiritStone: 100, herb: 5, ore: 3 },
       }],
     }
     expect(floor.floor).toBe(1)
@@ -382,7 +373,6 @@ describe('Adventure types', () => {
       },
       totalRewards: {
         spiritStone: 100, spiritEnergy: 0, herb: 5, ore: 0,
-        fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0,
       },
       itemRewards: [],
       eventLog: [{ timestamp: Date.now(), message: '进入灵草谷' }],

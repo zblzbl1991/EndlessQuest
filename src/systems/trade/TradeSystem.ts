@@ -5,7 +5,7 @@ export interface ShopItem {
   id: string
   item: AnyItem
   price: number       // in spiritStone
-  currency: 'spiritStone' | 'fairyJade'
+  currency: 'spiritStone'
   stock: number       // -1 = unlimited
   isDaily: boolean    // refreshes daily
 }

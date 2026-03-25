@@ -66,7 +66,6 @@ function pickSafestRoute(floor: DungeonFloor): number {
 function emptyResources(): Resources {
   return {
     spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0,
-    fairyJade: 0, scrollFragment: 0, heavenlyTreasure: 0, beastSoul: 0,
   }
 }
 
@@ -270,7 +269,6 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       newRewards.spiritStone += result.reward.spiritStone
       newRewards.herb += result.reward.herb
       newRewards.ore += result.reward.ore
-      newRewards.fairyJade += result.reward.fairyJade
 
       // Accumulate item rewards
       for (const item of result.itemRewards) {

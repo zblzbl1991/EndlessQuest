@@ -35,7 +35,7 @@ export interface Consumable extends Item {
 
 export interface Material extends Item {
   type: 'material'
-  category: 'herb' | 'ore' | 'beastSoul' | 'scroll' | 'other'
+  category: 'herb' | 'ore' | 'other'
 }
 
 export interface TechniqueScroll extends Item {

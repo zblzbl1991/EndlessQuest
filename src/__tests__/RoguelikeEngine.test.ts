@@ -88,7 +88,6 @@ describe('Roguelike MapGenerator', () => {
         expect(route.reward.spiritStone).toBeGreaterThanOrEqual(0)
         expect(route.reward.herb).toBeGreaterThanOrEqual(0)
         expect(route.reward.ore).toBeGreaterThanOrEqual(0)
-        expect(route.reward.fairyJade).toBeGreaterThanOrEqual(0)
       }
     }
   })
@@ -132,18 +131,18 @@ describe('EventSystem', () => {
     expect(result.hpChanges['p1']).toBe(300) // 30% of 1000
   })
 
-  it('boss rewards should include fairyJade at floor 3+', () => {
+  it('boss rewards should scale with floor number', () => {
     // Run many times to ensure at least one victory
-    let foundJadeReward = false
+    let foundHighReward = false
     for (let i = 0; i < 50; i++) {
       const strongPlayer: CombatUnit = { ...dummyPlayer, atk: 999, def: 999, hp: 9999, maxHp: 9999 }
       const result = resolveEvent({ type: 'boss', id: 'test' }, [strongPlayer], 5)
-      if (result.success && result.reward.fairyJade > 0) {
-        foundJadeReward = true
+      if (result.success && result.reward.spiritStone >= 1000) {
+        foundHighReward = true
         break
       }
     }
-    expect(foundJadeReward).toBe(true)
+    expect(foundHighReward).toBe(true)
   })
 
   it('should support multi-unit team combat', () => {

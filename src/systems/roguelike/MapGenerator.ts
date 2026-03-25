@@ -29,7 +29,6 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
             spiritStone: 500 * floorNumber,
             herb: 20 * floorNumber,
             ore: 10 * floorNumber,
-            fairyJade: floorNumber >= 3 ? 1 : 0,
           },
         },
       ],
@@ -76,7 +75,6 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
         spiritStone: Math.floor(100 * floorNumber * rewardMult),
         herb: Math.floor(5 * floorNumber * rewardMult),
         ore: Math.floor(3 * floorNumber * rewardMult),
-        fairyJade: floorNumber >= 5 && riskLevel === 'high' ? 1 : 0,
       },
     })
   }
