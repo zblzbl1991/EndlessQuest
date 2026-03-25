@@ -54,7 +54,7 @@ function createInitialState(): { sect: Sect } {
       buildings: BUILDING_DEFS.map((def) => ({
         type: def.type,
         level: def.type === 'mainHall' ? 1 : 0,
-        unlocked: def.type === 'mainHall',
+        unlocked: def.type === 'mainHall' || def.type === 'spiritMine',
       })),
       characters: [generateCharacter('common')],
       vault: [],
@@ -728,9 +728,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // 1. Calculate spirit production from buildings
     const sfBuilding = sect.buildings.find((b) => b.type === 'spiritField')
+    const smBuilding = sect.buildings.find((b) => b.type === 'spiritMine')
     const mhBuilding = sect.buildings.find((b) => b.type === 'mainHall')
     const rates = calcResourceRates({
       spiritField: sfBuilding?.level ?? 0,
+      spiritMine: smBuilding?.level ?? 0,
       mainHall: mhBuilding?.level ?? 0,
     })
 
@@ -818,7 +820,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
         resources: {
           ...s.sect.resources,
           spiritEnergy: updatedSpiritEnergy,
+          spiritStone: s.sect.resources.spiritStone + rates.spiritStone * deltaSec,
           herb: s.sect.resources.herb + rates.herb * deltaSec,
+          ore: s.sect.resources.ore + rates.ore * deltaSec,
         },
         level: newSectLevel,
       },
