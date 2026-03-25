@@ -77,3 +77,14 @@ export function getRealmName(realmIndex: number, stage: RealmStage): string {
 export function getCultivationNeeded(realmIndex: number, stage: number): number {
   return REALMS[realmIndex]?.cultivationCosts[stage] ?? Infinity
 }
+
+/**
+ * Breakthrough costs for major realm transitions.
+ * Key = target realm index (1-4). Requires a pill from vault + spiritStone.
+ */
+export const BREAKTHROUGH_COSTS: Record<number, { pillId: string; spiritStone: number }> = {
+  1: { pillId: 'foundation_pill', spiritStone: 500 },
+  2: { pillId: 'golden_core_pill', spiritStone: 2000 },
+  3: { pillId: 'nascent_soul_pill', spiritStone: 8000 },
+  4: { pillId: 'spirit_transformation_pill', spiritStone: 30000 },
+}
