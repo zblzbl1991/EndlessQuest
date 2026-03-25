@@ -12,6 +12,7 @@ export interface BuildingDef {
 
 export const BUILDING_DEFS: BuildingDef[] = [
   { type: 'mainHall', name: '宗门大殿', description: '宗门核心建筑', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: 100 * lv }), unlockCondition: '初始' },
+  { type: 'spiritMine', name: '灵石矿', description: '产出灵石和矿材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: 100 * lv }), unlockCondition: '初始' },
   { type: 'spiritField', name: '灵田', description: '产出灵草和灵材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: 80 * lv }), unlockCondition: '大殿 Lv1' },
   { type: 'market', name: '坊市', description: 'NPC 商店', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: 100 * lv }), unlockCondition: '大殿 Lv1' },
   { type: 'alchemyFurnace', name: '丹炉', description: '炼制丹药', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: 150 * lv }), unlockCondition: '大殿 Lv2 + 灵田 Lv2' },
@@ -27,15 +28,24 @@ export function getBuildingDef(type: BuildingType): BuildingDef | undefined {
 
 /**
  * Spirit field production rate (spirit energy per second).
- * Formula: 1 + (level - 1) * 3  (equivalently: level * 1 + max(0, level - 1) * 3 with a base adjustment)
- * Which simplifies to: level * 1 + (level - 1) * 3 = 4*level - 3 for level >= 1
+ * Formula: 3 + (level - 1) * 2
  *
- * Level 1: 1/s, Level 2: 4/s, Level 3: 7/s,
- * Level 5: 13/s, Level 10: 28/s
+ * Level 1: 3/s, Level 2: 5/s, Level 3: 7/s,
+ * Level 5: 11/s, Level 10: 21/s
  */
 export function getSpiritFieldRate(level: number): number {
   if (level < 1) return 0
-  return 1 + (level - 1) * 3
+  return 3 + (level - 1) * 2
+}
+
+export function getSpiritMineRate(level: number): number {
+  if (level < 1) return 0
+  return 0.5 + (level - 1) * 0.5
+}
+
+export function getSpiritMineOreRate(level: number): number {
+  if (level < 1) return 0
+  return 0.05 * level
 }
 
 // ---------------------------------------------------------------------------
@@ -50,6 +60,8 @@ export function getBuildingEffectText(building: Building): string {
       return `宗门等级 ${Math.ceil(building.level / 2)}`
     case 'spiritField':
       return `灵气 +${getSpiritFieldRate(building.level)}/s · 灵草 +${(0.1 * building.level).toFixed(1)}/s`
+    case 'spiritMine':
+      return `灵石 +${getSpiritMineRate(building.level).toFixed(1)}/s · 矿材 +${getSpiritMineOreRate(building.level).toFixed(2)}/s`
     case 'market': {
       const buff = getMarketBuff(building.level)
       return `刷新 ${buff.dailyRefreshCount}次/日`
@@ -84,6 +96,8 @@ export function getBuildingUnlockText(building: Building): string {
   switch (building.type) {
     case 'market':
       return '解锁后：商店刷新+1'
+    case 'spiritMine':
+      return '解锁后：灵石+0.5/s · 矿材+0.05/s'
     case 'alchemyFurnace':
       return '解锁后：丹药效果+20%'
     case 'forge':
