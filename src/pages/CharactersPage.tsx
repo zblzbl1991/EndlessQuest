@@ -39,6 +39,16 @@ const STAT_LABELS: Record<string, string> = {
   spd: '速度',
   crit: '暴击',
   critDmg: '暴伤',
+  cultivationRate: '修炼速度',
+}
+
+// Tier class mapping — must reference styles object directly for CSS Modules hash
+const TECHNIQUE_TIER_CLASS: Record<string, string> = {
+  mortal: styles.tierMortal,
+  spirit: styles.tierSpirit,
+  immortal: styles.tierImmortal,
+  divine: styles.tierDivine,
+  chaos: styles.tierChaos,
 }
 
 type ViewMode = 'list' | 'grid'
@@ -154,11 +164,10 @@ function CharacterDetail({
   const cultivationSpeed = calcCultivationRate(character, character.learnedTechniques)
 
   function formatBonusValue(type: string, value: number): string {
-    const label = STAT_LABELS[type] ?? type
     if (type === 'crit' || type === 'critDmg' || type === 'cultivationRate') {
-      return `${label} +${Math.round(value * 100)}%`
+      return `+${Math.round(value * 100)}%`
     }
-    return `${label} +${value}`
+    return `+${value}`
   }
 
   const handleEquipFromBackpack = (bpIdx: number, slotIdx: number) => {
@@ -273,13 +282,21 @@ function CharacterDetail({
             {character.learnedTechniques.map((techId) => {
               const tech = getTechniqueById(techId)
               if (!tech) return null
+              const tierClass = TECHNIQUE_TIER_CLASS[tech.tier] ?? ''
               return (
-                <div key={techId}>
-                  <span>{tech.name}</span>
-                  <span className={styles.techniqueItemTier}>{TECHNIQUE_TIER_NAMES[tech.tier]}</span>
-                  <div>
+                <div key={techId} className={styles.techniquePanel}>
+                  <div className={styles.techniqueName}>
+                    {tech.name}
+                    <span className={`${styles.techniqueTier} ${tierClass}`}>
+                      {TECHNIQUE_TIER_NAMES[tech.tier]}
+                    </span>
+                  </div>
+                  <div className={styles.bonuses}>
                     {tech.bonuses.map((b, i) => (
-                      <span key={i}>{formatBonusValue(b.type, b.value)}</span>
+                      <div key={i} className={styles.bonusItem}>
+                        <span className={styles.bonusLabel}>{STAT_LABELS[b.type] ?? b.type}</span>
+                        <span className={styles.bonusValue}>{formatBonusValue(b.type, b.value)}</span>
+                      </div>
                     ))}
                   </div>
                 </div>

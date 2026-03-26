@@ -244,6 +244,12 @@
 }
 
 /* Technique */
+.techniqueList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
 .techniquePanel {
   background: var(--color-panel);
   border-radius: var(--radius-md);
@@ -252,125 +258,67 @@
 
 .techniqueName {
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-xs);
 }
 
 .techniqueTier {
   font-size: 11px;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
-  background: var(--color-accent);
   color: #fff;
-}
-
-.comprehensionRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
-}
-
-.comprehensionRow > *:first-child {
   flex-shrink: 0;
 }
 
-.comprehensionRow > *:nth-child(2) {
-  flex: 1;
+.tierMortal {
+  background: rgba(158, 158, 158, 0.7);
+  color: #fff;
 }
 
-.comprehensionLabel {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-  white-space: nowrap;
+.tierSpirit {
+  background: rgba(21, 101, 192, 0.85);
 }
 
-.comprehensionValue {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
+.tierImmortal {
+  background: rgba(123, 31, 162, 0.85);
 }
 
-.effectRow {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  margin-bottom: var(--space-sm);
-  color: var(--color-text-secondary);
+.tierDivine {
+  background: rgba(245, 127, 23, 0.9);
 }
 
-.effectLabel {
-  color: var(--color-text-tertiary);
-}
-
-.effectValue {
-  color: var(--color-accent);
-  font-weight: 500;
-}
-
-.growthSection {
-  margin-bottom: var(--space-sm);
-}
-
-.growthTitle {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  margin-bottom: 4px;
-}
-
-.growthGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  font-size: 12px;
-}
-
-.growthPositive {
-  color: var(--color-success);
-  background: rgba(76, 175, 80, 0.08);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
-}
-
-.growthNegative {
-  color: var(--color-danger);
-  background: rgba(244, 67, 54, 0.08);
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+.tierChaos {
+  background: rgba(198, 40, 40, 0.9);
 }
 
 .bonuses {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  margin-bottom: var(--space-sm);
 }
 
 .bonusItem {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-size: 12px;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
-}
-
-.bonusActive {
   color: var(--color-success);
-  background: rgba(76, 175, 80, 0.08);
+  background: rgba(76, 175, 80, 0.06);
 }
 
-.bonusLocked {
-  color: var(--color-text-tertiary);
-  background: transparent;
+.bonusLabel {
+  color: var(--color-text-secondary);
 }
 
-.bonusThreshold {
-  font-size: 10px;
+.bonusValue {
+  font-weight: 500;
 }
 
 .noTechnique {
