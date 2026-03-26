@@ -103,8 +103,8 @@ export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancien
 ### 事件内容
 
 - 描述：「你发现了一处古修洞府，石壁上刻有古老的功法铭文...」
-- 选择一：「参悟铭文」→ 领悟功法，解锁图鉴 + 加入 learnedTechniques
-- 选择二：「搜刮灵石」→ 获得灵石奖励（保底选项）
+- 自动结算：领悟功法，解锁图鉴 + 加入 learnedTechniques
+- 注：现有事件系统无选择机制，采用自动结算（与 combat/rest 等事件一致）
 
 ### 事件解析与跨 Store 通信
 
@@ -113,9 +113,7 @@ export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancien
 1. `EventResult` 新增可选字段 `techniqueReward?: { techniqueId: string }`
 2. `resolveEvent()` 在 `ancient_cave` 分支中，根据品阶权重随机选择功法 ID，写入 `techniqueReward`
 3. `adventureStore.selectRoute()` 在处理事件结果时，检查 `techniqueReward`，调用 `useSectStore.getState().unlockCodexAndLearn(techniqueId, characterId)`
-4. `sectStore` 新增 action `unlockCodexAndLearn(techniqueId, characterId)`：添加到 `techniqueCodex` + 添加到指定弟子的 `learnedTechniques`
-
-选择二的灵石奖励走现有 `reward` 字段。
+4. `sectStore` 新增 action `unlockCodexAndLearn(techniqueId, characterId)`：单次 `set()` 调用同时更新 `techniqueCodex` 和 `learnedTechniques`
 
 ### 品阶与层数映射
 
@@ -126,23 +124,6 @@ export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancien
 | 11+ 层 | 仙级、神级 | 仙 70%、神 30% |
 
 混沌级功法不通过秘境事件获得，仅通过化神期突破领悟。
-
-### UI 选择机制
-
-现有事件系统已有选择机制（`rest` 事件有「休息」和「继续」两个选项）。`ancient_cave` 事件复用相同的 `choices` 结构：
-
-```typescript
-{
-  type: 'ancient_cave',
-  description: '你发现了一处古修洞府...',
-  choices: [
-    { label: '参悟铭文', techniqueReward: true },
-    { label: '搜刮灵石', reward: { spiritStone: 200 } },
-  ]
-}
-```
-
-`selectRoute` 中已有根据 `selectedChoiceIndex` 分发不同结果的逻辑。
 
 ## Section 4：初始弟子功法 + 藏经阁参悟调整
 
