@@ -6,10 +6,9 @@ import type {
   BuildingType, Resources, ResourceType, Sect, AnyItem, Equipment,
 } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
-import type { Technique } from '../types/technique'
 import { generateCharacter, calcSectLevel, getMaxCharacters, getRecruitCost, isQualityUnlocked } from '../systems/character/CharacterEngine'
 import { calcResourceRates } from '../systems/economy/ResourceEngine'
-import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough } from '../systems/cultivation/CultivationEngine'
+import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from '../systems/cultivation/CultivationEngine'
 import { tickComprehension, canLearnTechnique } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
@@ -18,8 +17,9 @@ import { createShopState, generateDailyItems } from '../systems/trade/TradeSyste
 import type { ShopState } from '../systems/trade/TradeSystem'
 import { ALCHEMY_RECIPES, canCraft as canCraftAlchemy, craftPotion as craftPotionAlchemy } from '../systems/economy/AlchemySystem'
 import { FORGE_RECIPES, FORGE_SLOTS, canForge, forgeEquipment as forgeEquipmentSystem } from '../systems/economy/ForgeSystem'
-import { generateEquipment, generateRandomTechniqueScroll } from '../systems/item/ItemGenerator'
-import { getTechniqueById } from '../data/techniquesTable'
+import { generateEquipment } from '../systems/item/ItemGenerator'
+import { getTechniqueById, TECHNIQUES } from '../data/techniquesTable'
+import { TECHNIQUE_TIER_ORDER } from '../types/technique'
 import { BUILDING_DEFS, calcResourceCaps } from '../data/buildings'
 import { REALMS, BREAKTHROUGH_COSTS } from '../data/realms'
 import { tickProductionQueue, calcOfflineProduction, canStartRecipe } from '../systems/building/ProductionSystem'
@@ -28,6 +28,8 @@ import type { ProductionBonuses } from '../systems/economy/ResourceEngine'
 import { getAutoRecipeById } from '../data/recipes'
 import type { AutoRecipe } from '../data/recipes'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
+import { emitEvent } from './eventLogStore'
+import { getRealmName } from '../data/realms'
 
 // ---------------------------------------------------------------------------
 // Helper: get equipment item by ID from vault + all character backpacks
@@ -70,6 +72,7 @@ function createInitialState(): { sect: Sect } {
       totalAdventureRuns: 0,
       totalBreakthroughs: 0,
       lastTransmissionTime: 0,
+      techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
     },
   }
 }
@@ -97,6 +100,9 @@ export interface SectStore {
   // Technique management
   learnTechnique(characterId: string, backpackIndex: number): boolean
   switchTechnique(characterId: string, techniqueId: string): boolean
+  learnTechniqueFromCodex(characterId: string, techniqueId: string): boolean
+  unlockCodexEntry(techniqueId: string): boolean
+  unlockCodexAndLearn(techniqueId: string, characterId: string): boolean
 
   // Building management
   upgradeBuilding(type: BuildingType): boolean
@@ -125,9 +131,6 @@ export interface SectStore {
 
   // Market exchange
   exchangeResources(from: ResourceType, to: ResourceType, amount: number): { success: boolean; received?: number; reason?: string }
-
-  // Breakthrough
-  attemptBreakthrough(characterId: string): { success: boolean; newRealm: number; newStage: number; statsChanged: boolean }
 
   // Main tick (called every second)
   tickAll(deltaSec: number): { spiritProduced: number; spiritConsumed: number }
@@ -236,6 +239,8 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // Deduct stones
     const character = generateCharacter(quality)
+    const qualityLabel: Record<string, string> = { common: '凡品', spirit: '灵品', immortal: '仙品', divine: '神品', chaos: '混沌' }
+    emitEvent('recruit', `招收弟子 ${character.name} (${qualityLabel[quality] ?? quality})`)
     set((s) => ({
       sect: {
         ...s.sect,
@@ -362,6 +367,77 @@ export const useSectStore = create<SectStore>((set, get) => ({
     return true
   },
 
+  learnTechniqueFromCodex: (characterId, techniqueId): boolean => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+
+    if (!sect.techniqueCodex.includes(techniqueId)) return false
+
+    const technique = getTechniqueById(techniqueId)
+    if (!technique) return false
+
+    if (!canLearnTechnique(char, technique)) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? {
+                ...c,
+                currentTechnique: technique.id,
+                techniqueComprehension: 0,
+                learnedTechniques: c.learnedTechniques.includes(technique.id)
+                  ? c.learnedTechniques
+                  : [...c.learnedTechniques, technique.id],
+              }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
+  unlockCodexEntry: (techniqueId): boolean => {
+    const { sect } = get()
+    if (sect.techniqueCodex.includes(techniqueId)) return false
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        techniqueCodex: [...s.sect.techniqueCodex, techniqueId],
+      },
+    }))
+    return true
+  },
+
+  unlockCodexAndLearn: (techniqueId, characterId): boolean => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return false
+    if (char.learnedTechniques.includes(techniqueId) && sect.techniqueCodex.includes(techniqueId)) return true
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        techniqueCodex: s.sect.techniqueCodex.includes(techniqueId)
+          ? s.sect.techniqueCodex
+          : [...s.sect.techniqueCodex, techniqueId],
+        characters: s.sect.characters.map((c) =>
+          c.id === characterId
+            ? {
+                ...c,
+                learnedTechniques: c.learnedTechniques.includes(techniqueId)
+                  ? c.learnedTechniques
+                  : [...c.learnedTechniques, techniqueId],
+              }
+            : c
+        ),
+      },
+    }))
+    return true
+  },
+
   // ---- Building management ----
 
   upgradeBuilding: (type) => {
@@ -399,6 +475,8 @@ export const useSectStore = create<SectStore>((set, get) => ({
       const unlockCheck = checkBuildingUnlock(type, sect.buildings)
       if (!unlockCheck.unlocked) return { success: false, reason: unlockCheck.reason }
       // Try to unlock
+      const bDef = BUILDING_DEFS.find(d => d.type === type)
+      emitEvent('building_build', `建造 ${bDef?.name ?? type}`)
       set((s) => ({
         sect: {
           ...s.sect,
@@ -415,6 +493,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // Perform upgrade
     const success = get().upgradeBuilding(type)
+    if (success) {
+      const bDef = BUILDING_DEFS.find(d => d.type === type)
+      const newLevel = get().sect.buildings.find(b => b.type === type)?.level ?? 0
+      emitEvent('building_upgrade', `${bDef?.name ?? type} 升级至 Lv${newLevel}`)
+    }
     return { success, reason: '' }
   },
 
@@ -774,89 +857,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   // ---- Breakthrough ----
 
-  attemptBreakthrough: (characterId) => {
-    const { sect } = get()
-    const char = sect.characters.find((c) => c.id === characterId)
-    if (!char) {
-      return { success: false, newRealm: 0, newStage: 0, statsChanged: false }
-    }
-
-    if (!canBreakthrough(char)) {
-      return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
-    }
-
-    // Check if this is a major realm breakthrough (at max stage of current realm)
-    const realmDef = REALMS[char.realm]
-    const isMajorRealm = char.realmStage >= realmDef.stages.length - 1
-    if (isMajorRealm) {
-      const targetRealm = char.realm + 1
-      const cost = BREAKTHROUGH_COSTS[targetRealm]
-      if (cost) {
-        // Check spiritStone
-        if (sect.resources.spiritStone < cost.spiritStone) {
-          return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
-        }
-        // Find pill in vault by recipeId
-        const pillIndex = sect.vault.findIndex(
-          (item) => item.type === 'consumable' && (item as any).recipeId === cost.pillId
-        )
-        if (pillIndex === -1) {
-          return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
-        }
-
-        // Consume pill and spiritStone
-        const newVault = sect.vault.filter((_, i) => i !== pillIndex)
-        set((s) => ({
-          sect: {
-            ...s.sect,
-            vault: newVault,
-            resources: {
-              ...s.sect.resources,
-              spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
-            },
-          },
-        }))
-      }
-    }
-
-    // Get technique if character has one
-    let technique: Technique | null = null
-    if (char.currentTechnique) {
-      technique = getTechniqueById(char.currentTechnique) ?? null
-    }
-
-    const result = performBreakthrough(char, technique)
-    if (!result.success) {
-      return { success: false, newRealm: char.realm, newStage: char.realmStage, statsChanged: false }
-    }
-
-    const statsChanged =
-      result.newStats.hp !== result.oldStats.hp ||
-      result.newStats.atk !== result.oldStats.atk ||
-      result.newStats.def !== result.oldStats.def ||
-      result.newStats.spd !== result.oldStats.spd
-
-    set((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? {
-                ...c,
-                realm: result.newRealm,
-                realmStage: result.newStage,
-                cultivation: 0,
-                baseStats: result.newStats,
-              }
-            : c
-        ),
-        totalBreakthroughs: s.sect.totalBreakthroughs + 1,
-      },
-    }))
-
-    return { success: true, newRealm: result.newRealm, newStage: result.newStage, statsChanged }
-  },
-
   // ---- Main tick ----
 
   tickAll: (deltaSec) => {
@@ -953,6 +953,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const compMult = getComprehensionSpeedMult(sect.buildings)
 
     // 10. Process each cultivating character
+    let breakthroughStoneCost = 0
     const updatedCharacters = sect.characters.map((char) => {
       if (char.status !== 'cultivating') {
         // Handle resting/injured characters
@@ -1001,6 +1002,65 @@ export const useSectStore = create<SectStore>((set, get) => ({
         }
       }
 
+      // Auto-breakthrough check
+      if (canBreakthrough(updatedChar)) {
+        // Check if this is a major realm breakthrough (max stage -> new realm)
+        const currentRealm = REALMS[updatedChar.realm]
+        const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
+        const newRealmIndex = isMajorBreakthrough ? updatedChar.realm + 1 : updatedChar.realm
+        const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
+
+        if (cost) {
+          // Major realm transition requires pill + spiritStone
+          const hasPill = newVault.some(
+            item => item.type === 'consumable' && (item as any).recipeId === cost.pillId
+          )
+          if (!hasPill || sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone) {
+            // Cannot breakthrough: missing pill or insufficient stones - skip
+          } else {
+            // Consume pill and spiritStone
+            const pillIndex = newVault.findIndex(
+              item => item.type === 'consumable' && (item as any).recipeId === cost.pillId
+            )
+            newVault.splice(pillIndex, 1)
+            breakthroughStoneCost += cost.spiritStone
+            const failureRate = calcBreakthroughFailureRate(updatedChar)
+            const btResult = performBreakthrough(updatedChar, charTechnique, failureRate)
+            if (btResult.success) {
+              const nextName = getRealmName(btResult.newRealm, btResult.newStage)
+              emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
+              updatedChar = {
+                ...updatedChar,
+                realm: btResult.newRealm,
+                realmStage: btResult.newStage,
+                cultivation: 0,
+                baseStats: btResult.newStats,
+              }
+            } else {
+              emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
+              updatedChar = { ...updatedChar, cultivation: 0 }
+            }
+          }
+        } else {
+          const failureRate = calcBreakthroughFailureRate(updatedChar)
+          const btResult = performBreakthrough(updatedChar, charTechnique, failureRate)
+          if (btResult.success) {
+          const nextName = getRealmName(btResult.newRealm, btResult.newStage)
+          emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
+          updatedChar = {
+            ...updatedChar,
+            realm: btResult.newRealm,
+            realmStage: btResult.newStage,
+            cultivation: 0,
+            baseStats: btResult.newStats,
+          }
+        } else {
+          emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
+          updatedChar = { ...updatedChar, cultivation: 0 }
+        }
+      }
+      }
+
       return updatedChar
     })
 
@@ -1013,7 +1073,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // 12. Build new sect with updated resources (production + cultivation - consumed)
     const newResources = {
       spiritEnergy: updatedSpiritEnergy,
-      spiritStone: sect.resources.spiritStone + rates.spiritStone * deltaSec - totalConsumed.spiritStone,
+      spiritStone: sect.resources.spiritStone + rates.spiritStone * deltaSec - totalConsumed.spiritStone - breakthroughStoneCost,
       herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb,
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
     }
@@ -1081,17 +1141,48 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (scriptureLevel < 3) return { success: false, reason: '藏经阁等级不足' }
     const cost = 100 * sect.level
     if (sect.resources.spiritStone < cost) return { success: false, reason: '灵石不足' }
-    // Generate scroll matching highest realm among characters
+
+    // Determine max tier from highest character realm
     const maxRealm = Math.max(...sect.characters.map(c => c.realm), 0)
-    const tierMap = ['mortal', 'spirit', 'immortal', 'divine', 'chaos'] as const
-    const maxTier = tierMap[Math.min(maxRealm, tierMap.length - 1)] ?? 'mortal'
-    // Try to generate, fallback to mortal if no techniques at tier
-    let scroll: ReturnType<typeof generateRandomTechniqueScroll>
-    try { scroll = generateRandomTechniqueScroll(maxTier) } catch { scroll = generateRandomTechniqueScroll('mortal') }
-    // Deduct resources
-    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - cost } } }))
-    get().addToVault(scroll)
-    return { success: true, reason: '' }
+    const maxTierIdx = Math.min(maxRealm, TECHNIQUE_TIER_ORDER.length - 1)
+
+    // Weighted random: lower tiers more likely
+    const weights: number[] = []
+    for (let i = 0; i <= maxTierIdx; i++) {
+      weights.push(Math.pow(2, maxTierIdx - i))
+    }
+    const totalWeight = weights.reduce((a, b) => a + b, 0)
+    let roll = Math.random() * totalWeight
+    let selectedTierIdx = 0
+    for (let i = 0; i < weights.length; i++) {
+      roll -= weights[i]
+      if (roll <= 0) { selectedTierIdx = i; break }
+    }
+    const selectedTier = TECHNIQUE_TIER_ORDER[selectedTierIdx]
+
+    const candidates = TECHNIQUES.filter(
+      (t) => t.tier === selectedTier && !sect.techniqueCodex.includes(t.id)
+    )
+
+    if (candidates.length === 0) {
+      return { success: false, reason: '所有该品阶功法已解锁' }
+    }
+
+    const technique = candidates[Math.floor(Math.random() * candidates.length)]
+
+    // Deduct cost and unlock
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - cost },
+        techniqueCodex: [...s.sect.techniqueCodex, technique.id],
+      },
+    }))
+
+    const techniqueName = getTechniqueById(technique.id)?.name ?? technique.id
+    emitEvent('technique_unlocked', `藏经阁参悟获得 ${techniqueName}`)
+
+    return { success: true, reason: technique.id }
   },
 
   groupTransmission: () => {
