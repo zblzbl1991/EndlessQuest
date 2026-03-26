@@ -20,6 +20,7 @@ import ItemCard from '../components/inventory/ItemCard'
 import AlchemyPanel from '../components/building/AlchemyPanel'
 import ForgePanel from '../components/building/ForgePanel'
 import StudyPanel from '../components/building/StudyPanel'
+import CodexPanel from '../components/building/CodexPanel'
 import MarketPanel from '../components/building/MarketPanel'
 import TransmissionPanel from '../components/building/TransmissionPanel'
 import styles from './BuildingsPage.module.css'
@@ -28,7 +29,7 @@ import styles from './BuildingsPage.module.css'
 // Constants
 // ---------------------------------------------------------------------------
 
-type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' | 'market' | 'transmission'
+type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' | 'codex' | 'market' | 'transmission'
 
 const QUALITY_LABELS: Record<CharacterQuality, string> = {
   common: '凡品',
@@ -112,6 +113,7 @@ export default function BuildingsPage() {
     if (fg && fg.unlocked && fg.level >= 3) tabs.push({ key: 'forge', label: '锻造' })
     const sh = sect.buildings.find(b => b.type === 'scriptureHall')
     if (sh && sh.unlocked && sh.level >= 3) tabs.push({ key: 'study', label: '参悟' })
+    if (sh && sh.unlocked) tabs.push({ key: 'codex', label: '图鉴' })
     const mk = sect.buildings.find(b => b.type === 'market')
     if (mk && mk.unlocked && mk.level >= 3) tabs.push({ key: 'market', label: '坊市' })
     const th = sect.buildings.find(b => b.type === 'trainingHall')
@@ -146,6 +148,7 @@ export default function BuildingsPage() {
       {tab === 'alchemy' && <AlchemyPanel />}
       {tab === 'forge' && <ForgePanel />}
       {tab === 'study' && <StudyPanel />}
+      {tab === 'codex' && <CodexPanel />}
       {tab === 'market' && <MarketPanel />}
       {tab === 'transmission' && <TransmissionPanel />}
     </div>

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
+import { getTechniqueById } from '../../data/techniquesTable'
+import { TECHNIQUE_TIER_NAMES } from '../../types/technique'
 import styles from './StudyPanel.module.css'
 
 export default function StudyPanel() {
@@ -20,7 +22,8 @@ export default function StudyPanel() {
   const handleStudy = () => {
     const result = studyTechnique()
     if (result.success) {
-      setMessage({ success: true, text: '参悟成功，功法卷轴已存入仓库' })
+      const technique = getTechniqueById(result.reason)
+      setMessage({ success: true, text: technique ? `参悟成功：获得 ${technique.name}（${TECHNIQUE_TIER_NAMES[technique.tier]}）` : '参悟成功' })
     } else {
       setMessage({ success: false, text: result.reason })
     }
@@ -38,7 +41,7 @@ export default function StudyPanel() {
 
       <div className={styles.studyInfo}>
         <div className={styles.studyDesc}>
-          参悟功法，随机获得一部功法卷轴存入仓库。
+          参悟功法，随机解锁一部功法至宗门功法图鉴。
         </div>
         <div className={styles.studyCost}>
           费用: {cost} 灵石

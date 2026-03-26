@@ -3,6 +3,7 @@ import { useSectStore } from '../stores/sectStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
+import { canLearnTechnique } from '../systems/technique/TechniqueSystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import { QUALITY_NAMES } from '../data/items'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
@@ -141,7 +142,9 @@ function CharacterDetail({
 }) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const learnTechnique = useSectStore((s) => s.learnTechnique)
+  const learnTechniqueFromCodex = useSectStore((s) => s.learnTechniqueFromCodex)
   const switchTechnique = useSectStore((s) => s.switchTechnique)
+  const techniqueCodex = useSectStore((s) => s.sect.techniqueCodex)
   const equipItem = useSectStore((s) => s.equipItem)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
   const sellCharacterItem = useSectStore((s) => s.sellCharacterItem)
@@ -162,6 +165,11 @@ function CharacterDetail({
   const scrollItems = character.backpack
     .map((item, idx) => ({ item, idx }))
     .filter(({ item }) => item.type === 'techniqueScroll')
+
+  // Codex-available techniques for learning
+  const codexLearnable = techniqueCodex
+    .map((id) => getTechniqueById(id))
+    .filter((t): t is NonNullable<typeof t> => t != null && canLearnTechnique(character, t))
 
   // Learned techniques for switching
   const learnedTechniques = character.learnedTechniques
@@ -330,28 +338,40 @@ function CharacterDetail({
         ) : (
           <div className={styles.noTechnique}>
             <span>未修炼功法</span>
-            {scrollItems.length > 0 ? (
-              <button className={styles.actionBtn} onClick={() => setShowLearnTechnique(!showLearnTechnique)}>
-                学习功法
-              </button>
+            {codexLearnable.length > 0 ? (
+              <>
+                <button className={styles.actionBtn} onClick={() => setShowLearnTechnique(!showLearnTechnique)}>
+                  学习功法
+                </button>
+                {showLearnTechnique && (
+                  <div className={styles.dropdown}>
+                    {codexLearnable.map((t) => (
+                      <button key={t.id} className={styles.dropdownItem}
+                        onClick={() => { learnTechniqueFromCodex(characterId, t.id); setShowLearnTechnique(false) }}>
+                        {t.name} ({TECHNIQUE_TIER_NAMES[t.tier]})
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : scrollItems.length > 0 ? (
+              <>
+                <button className={styles.actionBtn} onClick={() => setShowLearnTechnique(!showLearnTechnique)}>
+                  学习功法（背包）
+                </button>
+                {showLearnTechnique && (
+                  <div className={styles.dropdown}>
+                    {scrollItems.map(({ item, idx }) => (
+                      <button key={idx} className={styles.dropdownItem}
+                        onClick={() => { learnTechnique(characterId, idx); setShowLearnTechnique(false) }}>
+                        {item.name} ({QUALITY_NAMES[item.quality]})
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             ) : (
-              <span className={styles.noScrollHint}>背包中无可用功法卷轴</span>
-            )}
-            {showLearnTechnique && (
-              <div className={styles.dropdown}>
-                {scrollItems.map(({ item, idx }) => (
-                  <button
-                    key={idx}
-                    className={styles.dropdownItem}
-                    onClick={() => {
-                      learnTechnique(characterId, idx)
-                      setShowLearnTechnique(false)
-                    }}
-                  >
-                    {item.name} ({QUALITY_NAMES[item.quality]})
-                  </button>
-                ))}
-              </div>
+              <span className={styles.noScrollHint}>无可学功法</span>
             )}
           </div>
         )}
