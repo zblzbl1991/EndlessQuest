@@ -9,7 +9,6 @@ import { generateDungeonRun } from '../systems/roguelike/MapGenerator'
 import { resolveEvent } from '../systems/roguelike/EventSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { createCharacterCombatUnit } from '../data/enemies'
-import { getTechniqueById } from '../data/techniquesTable'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 
 // ---------------------------------------------------------------------------
@@ -170,11 +169,7 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
     const character = sect.characters.find((c) => c.id === charId)
     if (!character) continue
 
-    const technique = character.currentTechnique
-      ? getTechniqueById(character.currentTechnique) ?? null
-      : null
-
-    const unit = createCharacterCombatUnit(character, technique)
+    const unit = createCharacterCombatUnit(character, character.learnedTechniques)
     // Override HP with current member state HP (not max)
     unit.hp = memberState.currentHp
     units.push(unit)
@@ -246,10 +241,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }
 
       // Build combat unit for HP calculation
-      const technique = character.currentTechnique
-        ? getTechniqueById(character.currentTechnique) ?? null
-        : null
-      const unit = createCharacterCombatUnit(character, technique)
+      const unit = createCharacterCombatUnit(character, character.learnedTechniques)
 
       memberStates[charId] = {
         currentHp: unit.maxHp,

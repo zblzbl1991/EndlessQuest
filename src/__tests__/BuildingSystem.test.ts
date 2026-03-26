@@ -13,7 +13,6 @@ function createBuildings(overrides?: Partial<Record<string, { level: number; unl
     forge: { level: 0, unlocked: false },
     scriptureHall: { level: 0, unlocked: false },
     recruitmentPavilion: { level: 0, unlocked: false },
-    trainingHall: { level: 0, unlocked: false },
   }
   return Object.entries({ ...defaults, ...overrides }).map(([type, val]) => ({
     type: type as Building['type'],
@@ -92,18 +91,6 @@ describe('checkBuildingUnlock', () => {
   it('scriptureHall should unlock at mainHall Lv3', () => {
     const buildings = createBuildings({ mainHall: { level: 3, unlocked: true } })
     const result = checkBuildingUnlock('scriptureHall', buildings)
-    expect(result.unlocked).toBe(true)
-  })
-
-  it('trainingHall should require mainHall Lv4', () => {
-    const buildings = createBuildings({ mainHall: { level: 3, unlocked: true } })
-    const result = checkBuildingUnlock('trainingHall', buildings)
-    expect(result.unlocked).toBe(false)
-  })
-
-  it('trainingHall should unlock at mainHall Lv4', () => {
-    const buildings = createBuildings({ mainHall: { level: 4, unlocked: true } })
-    const result = checkBuildingUnlock('trainingHall', buildings)
     expect(result.unlocked).toBe(true)
   })
 

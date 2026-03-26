@@ -1,4 +1,5 @@
 import type { Character, CharacterQuality } from '../../types/character'
+import type { TechniqueTier } from '../../types/technique'
 import { getRealmName, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
@@ -28,11 +29,16 @@ interface CharacterCardProps {
 }
 
 export default function CharacterCard({ character, onClick }: CharacterCardProps) {
+  const TECHNIQUE_TIER_CLASS: Record<TechniqueTier, string> = {
+    mortal: styles.techMortal,
+    spirit: styles.techSpirit,
+    immortal: styles.techImmortal,
+    divine: styles.techDivine,
+    chaos: styles.techChaos,
+  }
+
   const realmName = getRealmName(character.realm, character.realmStage)
   const needed = getCultivationNeeded(character.realm, character.realmStage)
-  const technique = character.currentTechnique
-    ? getTechniqueById(character.currentTechnique)
-    : null
 
   return (
     <div
@@ -46,16 +52,26 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
         <StatusBadge status={character.status} />
       </div>
       <div className={styles.realm}>{realmName}</div>
-      <div className={styles.technique}>
-        {technique ? technique.name : '无功法'}
-      </div>
+      {character.learnedTechniques.length > 0 && (
+        <div className={styles.techniques}>
+          {character.learnedTechniques.map((techId) => {
+            const tech = getTechniqueById(techId)
+            if (!tech) return null
+            return (
+              <span key={techId} className={`${styles.techTag} ${TECHNIQUE_TIER_CLASS[tech.tier] ?? ''}`}>
+                {tech.name}
+              </span>
+            )
+          })}
+        </div>
+      )}
       {character.status === 'cultivating' && (
         <div className={styles.progress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <div className={styles.progressStats}>
             <span>修为 {Math.floor(character.cultivation).toLocaleString()}/{needed.toLocaleString()}</span>
             <span>·</span>
-            <span>+{calcCultivationRate(character, technique ?? null).toFixed(1)}/s</span>
+            <span>+{calcCultivationRate(character, character.learnedTechniques).toFixed(1)}/s</span>
           </div>
         </div>
       )}

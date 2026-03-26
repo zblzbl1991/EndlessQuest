@@ -1,7 +1,15 @@
 import { useSectStore } from '../../stores/sectStore'
 import { TECHNIQUES } from '../../data/techniquesTable'
 import { TECHNIQUE_TIER_NAMES } from '../../types/technique'
+import type { TechniqueBonus } from '../../types/technique'
 import styles from './CodexPanel.module.css'
+
+function formatBonusValue(type: string, value: number): string {
+  if (type === 'crit' || type === 'critDmg' || type === 'cultivationRate') {
+    return `${type} +${Math.round(value * 100)}%`
+  }
+  return `${type} +${value}`
+}
 
 export default function CodexPanel() {
   const techniqueCodex = useSectStore((s) => s.sect.techniqueCodex)
@@ -24,11 +32,9 @@ export default function CodexPanel() {
               )}
               {unlocked && (
                 <div className={styles.cardStats}>
-                  {Object.entries(tech.growthModifiers)
-                    .filter(([, v]) => v !== 1)
-                    .map(([k, v]) => (
-                      <span key={k}>{k} {v > 1 ? `+${Math.round((v - 1) * 100)}%` : `${Math.round((v - 1) * 100)}%`}</span>
-                    ))}
+                  {tech.bonuses.map((b: TechniqueBonus, i: number) => (
+                    <span key={i}>{formatBonusValue(b.type, b.value)}</span>
+                  ))}
                 </div>
               )}
             </div>

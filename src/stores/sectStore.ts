@@ -9,10 +9,10 @@ import type { Pet } from '../systems/pet/PetSystem'
 import { generateCharacter, calcSectLevel, getMaxCharacters, getRecruitCost, isQualityUnlocked } from '../systems/character/CharacterEngine'
 import { calcResourceRates } from '../systems/economy/ResourceEngine'
 import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from '../systems/cultivation/CultivationEngine'
-import { tickComprehension, canLearnTechnique, tryComprehendOnBreakthrough } from '../systems/technique/TechniqueSystem'
+import { tryComprehendOnBreakthrough } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
-import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, getForgeBuff, getBuildingLevel } from '../systems/economy/BuildingEffects'
+import { getRecruitCostMult, getForgeBuff, getBuildingLevel } from '../systems/economy/BuildingEffects'
 import { createShopState, generateDailyItems } from '../systems/trade/TradeSystem'
 import type { ShopState } from '../systems/trade/TradeSystem'
 import { ALCHEMY_RECIPES, canCraft as canCraftAlchemy, craftPotion as craftPotionAlchemy } from '../systems/economy/AlchemySystem'
@@ -98,9 +98,6 @@ export interface SectStore {
   setCharacterStatus(id: string, status: CharacterStatus, opts?: { injuryTimer?: number }): void
 
   // Technique management
-  learnTechnique(characterId: string, backpackIndex: number): boolean
-  switchTechnique(characterId: string, techniqueId: string): boolean
-  learnTechniqueFromCodex(characterId: string, techniqueId: string): boolean
   unlockCodexEntry(techniqueId: string): boolean
   unlockCodexAndLearn(techniqueId: string, characterId: string): boolean
 
@@ -139,7 +136,6 @@ export interface SectStore {
   craftPotion(recipeId: string): { success: boolean; reason: string }
   forgeEquipment(recipeId: string): { success: boolean; reason: string }
   studyTechnique(): { success: boolean; reason: string }
-  groupTransmission(): { success: boolean; reason: string; charactersUpdated: number }
   targetedRecruit(minQuality: CharacterQuality): Character | null
 
   // Pet management
@@ -304,100 +300,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
   },
 
   // ---- Technique management ----
-
-  learnTechnique: (characterId, backpackIndex) => {
-    const { sect } = get()
-    const char = sect.characters.find((c) => c.id === characterId)
-    if (!char) return false
-
-    const item = char.backpack[backpackIndex]
-    if (!item || item.type !== 'techniqueScroll') return false
-
-    const technique = getTechniqueById(item.techniqueId)
-    if (!technique) return false
-
-    if (!canLearnTechnique(char, technique)) return false
-
-    // Consume the scroll
-    const newBackpack = [...char.backpack]
-    newBackpack.splice(backpackIndex, 1)
-
-    set((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? {
-                ...c,
-                backpack: newBackpack,
-                currentTechnique: technique.id,
-                techniqueComprehension: 0,
-                learnedTechniques: c.learnedTechniques.includes(technique.id)
-                  ? c.learnedTechniques
-                  : [...c.learnedTechniques, technique.id],
-              }
-            : c
-        ),
-      },
-    }))
-    return true
-  },
-
-  switchTechnique: (characterId, techniqueId) => {
-    const { sect } = get()
-    const char = sect.characters.find((c) => c.id === characterId)
-    if (!char) return false
-
-    if (!char.learnedTechniques.includes(techniqueId)) return false
-
-    set((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? {
-                ...c,
-                currentTechnique: techniqueId,
-                techniqueComprehension: 0,
-              }
-            : c
-        ),
-      },
-    }))
-    return true
-  },
-
-  learnTechniqueFromCodex: (characterId, techniqueId): boolean => {
-    const { sect } = get()
-    const char = sect.characters.find((c) => c.id === characterId)
-    if (!char) return false
-
-    if (!sect.techniqueCodex.includes(techniqueId)) return false
-
-    const technique = getTechniqueById(techniqueId)
-    if (!technique) return false
-
-    if (!canLearnTechnique(char, technique)) return false
-
-    set((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? {
-                ...c,
-                currentTechnique: technique.id,
-                techniqueComprehension: 0,
-                learnedTechniques: c.learnedTechniques.includes(technique.id)
-                  ? c.learnedTechniques
-                  : [...c.learnedTechniques, technique.id],
-              }
-            : c
-        ),
-      },
-    }))
-    return true
-  },
 
   unlockCodexEntry: (techniqueId): boolean => {
     const { sect } = get()
@@ -872,14 +774,10 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // 3. Calculate technique multiplier from best cultivating character
     const maxTechRate = sect.characters
-      .filter((c) => c.status === 'cultivating' && c.currentTechnique)
+      .filter((c) => c.status === 'cultivating' && c.learnedTechniques.length > 0)
       .reduce((max, c) => {
-        const tech = getTechniqueById(c.currentTechnique!)
-        if (!tech) return max
-        const rate = calcCultivationRate(c, tech)
-        // Normalize: divide by base rate (BASE_CULTIVATION_RATE=5 * rootBonus * realmMult)
-        // We want just the technique bonus multiplier, so compute with and without tech
-        const baseRate = calcCultivationRate(c, null)
+        const rate = calcCultivationRate(c, c.learnedTechniques)
+        const baseRate = calcCultivationRate(c, [])
         if (baseRate === 0) return max
         return Math.max(max, rate / baseRate)
       }, 1)
@@ -948,11 +846,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // 8. Add spirit energy
     let updatedSpiritEnergy = sect.resources.spiritEnergy + spiritProduced
 
-    // 9. Calculate building multipliers
-    const trainingMult = getTrainingSpeedMult(sect.buildings)
-    const compMult = getComprehensionSpeedMult(sect.buildings)
-
-    // 10. Process each cultivating character
+    // 9. Process each cultivating character
     let breakthroughStoneCost = 0
     const updatedCharacters = sect.characters.map((char) => {
       if (char.status !== 'cultivating') {
@@ -969,9 +863,8 @@ export const useSectStore = create<SectStore>((set, get) => ({
       }
 
       const effectiveSpirit = 2 * spiritRatio * deltaSec
-      const charTechnique = char.currentTechnique ? getTechniqueById(char.currentTechnique) ?? null : null
-      const result = cultivationTick(char, effectiveSpirit, deltaSec, charTechnique)
-      const gained = result.cultivationGained * trainingMult
+      const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
+      const gained = result.cultivationGained
 
       let updatedChar: Character = {
         ...char,
@@ -981,26 +874,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
       // Deduct spirit energy
       updatedSpiritEnergy -= effectiveSpirit
-
-      // Tick comprehension if character has a technique
-      if (updatedChar.currentTechnique) {
-        const technique = getTechniqueById(updatedChar.currentTechnique)
-        if (technique && updatedChar.techniqueComprehension < 100) {
-          const compResult = tickComprehension(updatedChar, technique, deltaSec)
-          updatedChar = {
-            ...updatedChar,
-            techniqueComprehension: Math.max(0, Math.min(100, updatedChar.techniqueComprehension + compResult.gained * compMult)),
-          }
-
-          // If comprehension reaches 100 and technique not yet in learnedTechniques, add it
-          if (updatedChar.techniqueComprehension >= 100 && !updatedChar.learnedTechniques.includes(technique.id)) {
-            updatedChar = {
-              ...updatedChar,
-              learnedTechniques: [...updatedChar.learnedTechniques, technique.id],
-            }
-          }
-        }
-      }
 
       // Auto-breakthrough check
       if (canBreakthrough(updatedChar)) {
@@ -1025,7 +898,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
             newVault.splice(pillIndex, 1)
             breakthroughStoneCost += cost.spiritStone
             const failureRate = calcBreakthroughFailureRate(updatedChar)
-            const btResult = performBreakthrough(updatedChar, charTechnique, failureRate)
+            const btResult = performBreakthrough(updatedChar, failureRate)
             if (btResult.success) {
               const nextName = getRealmName(btResult.newRealm, btResult.newStage)
               emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
@@ -1045,9 +918,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
                   ...updatedChar,
                   learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
                 }
-                if (!updatedChar.currentTechnique) {
-                  updatedChar = { ...updatedChar, currentTechnique: comprehendedId, techniqueComprehension: 0 }
-                }
                 const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
                 emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
               }
@@ -1058,7 +928,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
           }
         } else {
           const failureRate = calcBreakthroughFailureRate(updatedChar)
-          const btResult = performBreakthrough(updatedChar, charTechnique, failureRate)
+          const btResult = performBreakthrough(updatedChar, failureRate)
           if (btResult.success) {
           const nextName = getRealmName(btResult.newRealm, btResult.newStage)
           emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
@@ -1077,9 +947,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
             updatedChar = {
               ...updatedChar,
               learnedTechniques: [...updatedChar.learnedTechniques, subComprehendedId],
-            }
-            if (!updatedChar.currentTechnique) {
-              updatedChar = { ...updatedChar, currentTechnique: subComprehendedId, techniqueComprehension: 0 }
             }
             const subCompName = getTechniqueById(subComprehendedId)?.name ?? subComprehendedId
             emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${subCompName}`)
@@ -1213,67 +1080,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
     emitEvent('technique_unlocked', `藏经阁参悟获得 ${techniqueName}`)
 
     return { success: true, reason: technique.id }
-  },
-
-  groupTransmission: () => {
-    const { sect } = get()
-    const trainingHall = sect.buildings.find(b => b.type === 'trainingHall')
-    if (!trainingHall || trainingHall.level < 3) return { success: false, reason: '传功殿等级不足（需要Lv3）', charactersUpdated: 0 }
-
-    // Check cooldown (60 seconds)
-    if (Date.now() - sect.lastTransmissionTime < 60000) {
-      const remaining = Math.ceil((60000 - (Date.now() - sect.lastTransmissionTime)) / 1000)
-      return { success: false, reason: `传功冷却中（${remaining}秒）`, charactersUpdated: 0 }
-    }
-
-    // Count cultivating characters
-    const cultivatingChars = sect.characters.filter(c => c.status === 'cultivating')
-    if (cultivatingChars.length === 0) return { success: false, reason: '没有修炼中的弟子', charactersUpdated: 0 }
-
-    const cost = 50 * cultivatingChars.length
-    if (sect.resources.spiritEnergy < cost) return { success: false, reason: `灵气不足（需要${cost}）`, charactersUpdated: 0 }
-
-    // Apply cultivation boost to each cultivating character
-    const updatedCharacters = sect.characters.map(char => {
-      if (char.status !== 'cultivating') return char
-
-      // Calculate next realm cultivation requirement
-      let nextRealm = char.realm
-      let nextStage = char.realmStage + 1
-      if (nextStage > 3) {
-        nextRealm++
-        nextStage = 0
-      }
-      // Check if at max realm
-      if (nextRealm >= REALMS.length) return char
-
-      const nextRealmDef = REALMS[nextRealm]
-      if (!nextRealmDef) return char
-      const needed = nextRealmDef.cultivationCosts[nextStage]
-      if (needed == null || !isFinite(needed)) return char
-
-      const boost = Math.floor(needed * 0.1)
-      return {
-        ...char,
-        cultivation: char.cultivation + boost,
-        totalCultivation: char.totalCultivation + boost,
-      }
-    })
-
-    // Deduct spirit energy and update timestamp
-    set(s => ({
-      sect: {
-        ...s.sect,
-        characters: updatedCharacters,
-        resources: {
-          ...s.sect.resources,
-          spiritEnergy: s.sect.resources.spiritEnergy - cost,
-        },
-        lastTransmissionTime: Date.now(),
-      },
-    }))
-
-    return { success: true, reason: '', charactersUpdated: cultivatingChars.length }
   },
 
   targetedRecruit: (minQuality) => {

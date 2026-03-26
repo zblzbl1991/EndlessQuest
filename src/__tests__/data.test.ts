@@ -4,7 +4,6 @@ import { createCharacterCombatUnit, createCombatUnitFromEnemy } from '../data/en
 import { QUALITY_COLORS } from '../data/items'
 import { getSpiritFieldRate, BUILDING_DEFS } from '../data/buildings'
 import type { Character } from '../types/character'
-import type { Technique } from '../types/technique'
 
 // ─── Techniques Table ────────────────────────────────────────────────
 
@@ -40,79 +39,75 @@ describe('Techniques Table', () => {
     }
   })
 
-  it('should have qingxin as neutral all-1.0 growth with no bonuses', () => {
+  it('should have qingxin as neutral with balanced bonuses', () => {
     const t = getTechniqueById('qingxin')!
     expect(t).toBeDefined()
     expect(t.element).toBe('neutral')
-    expect(t.growthModifiers).toEqual({ hp: 1.0, atk: 1.0, def: 1.0, spd: 1.0, crit: 1.0, critDmg: 1.0 })
-    expect(t.fixedBonuses).toHaveLength(0)
-    expect(t.comprehensionDifficulty).toBe(1)
+    expect(t.bonuses).toHaveLength(4)
     expect(t.requirements.minRealm).toBe(0)
     expect(t.requirements.minComprehension).toBe(5)
   })
 
-  it('should have lieyan with fire element and correct growth', () => {
+  it('should have lieyan with fire element and atk bonus', () => {
     const t = getTechniqueById('lieyan')!
     expect(t.element).toBe('fire')
-    expect(t.growthModifiers).toEqual({ hp: 0.9, atk: 1.3, def: 0.9, spd: 1.0, crit: 1.1, critDmg: 1.1 })
-    expect(t.fixedBonuses).toEqual([{ type: 'atk', value: 5 }])
-    expect(t.fixedBonuses[0].type).toBe('atk')
+    expect(t.bonuses).toEqual([
+      { type: 'atk', value: 5 },
+      { type: 'crit', value: 0.02 },
+    ])
   })
 
-  it('should have hunduntiangong as chaos tier with all-1.5 growth', () => {
+  it('should have hunduntiangong as chaos tier with many bonuses', () => {
     const t = getTechniqueById('hunduntiangong')!
     expect(t.tier).toBe('chaos')
     expect(t.element).toBe('neutral')
-    expect(t.growthModifiers).toEqual({ hp: 1.5, atk: 1.5, def: 1.5, spd: 1.5, crit: 1.5, critDmg: 1.5 })
-    expect(t.comprehensionDifficulty).toBe(5)
+    expect(t.bonuses).toHaveLength(6)
     expect(t.requirements.minRealm).toBe(4)
     expect(t.requirements.minComprehension).toBe(30)
   })
 
-  it('should have wanjianguizong as divine tier with high atk growth', () => {
+  it('should have wanjianguizong as divine tier with high atk bonus', () => {
     const t = getTechniqueById('wanjianguizong')!
     expect(t.tier).toBe('divine')
-    expect(t.growthModifiers.atk).toBe(2.0)
-    expect(t.growthModifiers.hp).toBe(0.6)
+    expect(t.bonuses.some(b => b.type === 'atk' && b.value === 25)).toBe(true)
   })
 
-  it('should have taishang with all-1.3 growth', () => {
+  it('should have taishang with ice element and balanced bonuses', () => {
     const t = getTechniqueById('taishang')!
     expect(t.element).toBe('ice')
-    expect(t.growthModifiers).toEqual({ hp: 1.3, atk: 1.3, def: 1.3, spd: 1.3, crit: 1.3, critDmg: 1.3 })
+    expect(t.bonuses.some(b => b.type === 'atk' && b.value === 15)).toBe(true)
   })
 
-  it('should have leishen with lightning element and high spd', () => {
+  it('should have leishen with lightning element', () => {
     const t = getTechniqueById('leishen')!
     expect(t.element).toBe('lightning')
-    expect(t.growthModifiers.spd).toBe(1.8)
+    expect(t.bonuses.some(b => b.type === 'spd' && b.value === 12)).toBe(true)
   })
 
-  it('should have bumiejinshen with high hp and def growth', () => {
+  it('should have bumiejinshen with high hp and def bonuses', () => {
     const t = getTechniqueById('bumiejinshen')!
     expect(t.element).toBe('neutral')
-    expect(t.growthModifiers.hp).toBe(1.8)
-    expect(t.growthModifiers.def).toBe(1.6)
+    expect(t.bonuses.some(b => b.type === 'hp' && b.value === 80)).toBe(true)
+    expect(t.bonuses.some(b => b.type === 'def' && b.value === 15)).toBe(true)
   })
 
   it('getTechniqueById should return undefined for unknown ID', () => {
     expect(getTechniqueById('nonexistent')).toBeUndefined()
   })
 
-  // Check fixedBonuses thresholds match spec
-  it('lieyan fixed bonus atk+5 triggers at 30% comprehension', () => {
+  it('lieyan has atk+5 and crit+0.02 bonuses', () => {
     const t = getTechniqueById('lieyan')!
-    expect(t.fixedBonuses).toHaveLength(1)
-    // The bonus spec: atk+5 @ 30% comprehension
-    // Stored as: { type, value } — comprehension threshold is derived from technique data
-    expect(t.fixedBonuses[0]).toEqual({ type: 'atk', value: 5 })
+    expect(t.bonuses).toHaveLength(2)
+    expect(t.bonuses[0]).toEqual({ type: 'atk', value: 5 })
+    expect(t.bonuses[1]).toEqual({ type: 'crit', value: 0.02 })
   })
 
-  it('fentian has two fixed bonuses', () => {
+  it('fentian has three bonuses', () => {
     const t = getTechniqueById('fentian')!
-    expect(t.fixedBonuses).toHaveLength(2)
-    expect(t.fixedBonuses[0]).toEqual({ type: 'atk', value: 15 })
-    expect(t.fixedBonuses[1]).toEqual({ type: 'crit', value: 0.05 })
+    expect(t.bonuses).toHaveLength(3)
+    expect(t.bonuses[0]).toEqual({ type: 'atk', value: 12 })
+    expect(t.bonuses[1]).toEqual({ type: 'crit', value: 0.03 })
+    expect(t.bonuses[2]).toEqual({ type: 'critDmg', value: 0.1 })
   })
 })
 
@@ -167,14 +162,13 @@ describe('Enemies data', () => {
       cultivation: 0,
       baseStats: { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 },
       cultivationStats: { spiritPower: 50, maxSpiritPower: 50, comprehension: 10, spiritualRoot: 10, fortune: 5 },
-      currentTechnique: null,
-      techniqueComprehension: 0,
       learnedTechniques: [],
       equippedGear: [null, null, null, null, null, null, null, null, null],
       equippedSkills: [null, null, null, null, null],
       backpack: [],
       maxBackpackSlots: 20,
       petIds: [],
+      talents: [],
       status: 'idle',
       injuryTimer: 0,
       createdAt: Date.now(),
@@ -185,7 +179,7 @@ describe('Enemies data', () => {
 
   it('should create combat unit from character with no technique', () => {
     const char = makeTestCharacter()
-    const unit = createCharacterCombatUnit(char, null)
+    const unit = createCharacterCombatUnit(char, [])
     expect(unit.id).toBe('test_char_1')
     expect(unit.name).toBe('测试角色')
     expect(unit.team).toBe('ally')
@@ -197,40 +191,40 @@ describe('Enemies data', () => {
     expect(unit.skills).toHaveLength(0)
   })
 
-  it('should apply technique growthModifiers to baseStats', () => {
+  it('should apply technique bonuses to baseStats', () => {
     const char = makeTestCharacter()
-    const technique = getTechniqueById('lieyan')!
-    const unit = createCharacterCombatUnit(char, technique)
-    // lieyan: hp:0.9 atk:1.3 def:0.9 spd:1.0 crit:1.1 critDmg:1.1
-    expect(unit.hp).toBe(Math.floor(100 * 0.9))
-    expect(unit.atk).toBe(Math.floor(15 * 1.3))
-    expect(unit.def).toBe(Math.floor(8 * 0.9))
-    expect(unit.spd).toBe(Math.floor(10 * 1.0))
-    expect(unit.crit).toBeCloseTo(0.05 * 1.1, 5)
-    expect(unit.critDmg).toBeCloseTo(1.5 * 1.1, 5)
+    // lieyan bonuses: atk+5, crit+0.02
+    const unit = createCharacterCombatUnit(char, ['lieyan'])
+    expect(unit.hp).toBe(100)    // no hp bonus from lieyan
+    expect(unit.atk).toBe(20)     // 15 + 5
+    expect(unit.def).toBe(8)      // no def bonus
+    expect(unit.spd).toBe(10)     // no spd bonus
+    expect(unit.crit).toBe(0.07)  // 0.05 + 0.02
   })
 
   it('should set element from technique', () => {
     const char = makeTestCharacter()
-    const technique = getTechniqueById('lieyan')!
-    const unit = createCharacterCombatUnit(char, technique)
+    const unit = createCharacterCombatUnit(char, ['lieyan'])
     expect(unit.element).toBe('fire')
   })
 
-  it('should apply fixed bonuses based on comprehension', () => {
-    // lieyan: atk+5 @ 30% comprehension threshold
-    const char = makeTestCharacter({ techniqueComprehension: 30 })
-    const technique = getTechniqueById('lieyan')!
-    const unit = createCharacterCombatUnit(char, technique)
-    // Base atk with growth modifier: 15 * 1.3 = 19, then +5 bonus = 24
-    expect(unit.atk).toBe(Math.floor(15 * 1.3) + 5)
+  it('should apply bonuses from all learned techniques', () => {
+    // qingxin: hp+10, atk+2, def+2, spd+1
+    // lieyan: atk+5, crit+0.02
+    const char = makeTestCharacter()
+    const unit = createCharacterCombatUnit(char, ['qingxin', 'lieyan'])
+    expect(unit.hp).toBe(110)    // 100 + 10
+    expect(unit.atk).toBe(22)     // 15 + 2 + 5
+    expect(unit.def).toBe(10)     // 8 + 2
+    expect(unit.spd).toBe(11)     // 10 + 1
+    expect(unit.crit).toBe(0.07)  // 0.05 + 0.02
   })
 
   it('should use equippedSkills for skills list', () => {
     const char = makeTestCharacter({
       equippedSkills: ['sword_qi', 'fire_palm', null, null, null],
     })
-    const unit = createCharacterCombatUnit(char, null)
+    const unit = createCharacterCombatUnit(char, [])
     expect(unit.skills).toHaveLength(2)
     expect(unit.skills[0].id).toBe('sword_qi')
     expect(unit.skills[1].id).toBe('fire_palm')
@@ -240,7 +234,7 @@ describe('Enemies data', () => {
     const char = makeTestCharacter({
       cultivationStats: { spiritPower: 30, maxSpiritPower: 80, comprehension: 10, spiritualRoot: 10, fortune: 5 },
     })
-    const unit = createCharacterCombatUnit(char, null)
+    const unit = createCharacterCombatUnit(char, [])
     expect(unit.spiritPower).toBe(30)
     expect(unit.maxSpiritPower).toBe(80)
   })
@@ -275,8 +269,8 @@ describe('Items data', () => {
 // ─── Buildings (spirit field rate) ───────────────────────────────────
 
 describe('Buildings data', () => {
-  it('should define 9 building types', () => {
-    expect(BUILDING_DEFS).toHaveLength(9)
+  it('should define 8 building types', () => {
+    expect(BUILDING_DEFS).toHaveLength(8)
     expect(BUILDING_DEFS[0].type).toBe('mainHall')
   })
 

@@ -72,14 +72,13 @@ describe('Character types', () => {
       cultivation: 0,
       baseStats,
       cultivationStats,
-      currentTechnique: null,
-      techniqueComprehension: 0,
       learnedTechniques: [],
       equippedGear: [null, null, null, null, null, null, null, null, null],
       equippedSkills: [null, null, null, null, null],
       backpack: [],
       maxBackpackSlots: 20,
       petIds: [],
+      talents: [],
       status: 'idle',
       injuryTimer: 0,
       createdAt: Date.now(),
@@ -123,14 +122,21 @@ describe('Technique types', () => {
       description: '上古心法',
       tier: 'spirit',
       element: 'fire',
-      growthModifiers: { hp: 10, atk: 5, def: 3, spd: 2, crit: 0.01, critDmg: 0.1 },
-      fixedBonuses: [{ type: 'spiritPower', value: 20 }],
+      bonuses: [
+        { type: 'hp', value: 10 },
+        { type: 'atk', value: 5 },
+        { type: 'def', value: 3 },
+        { type: 'spd', value: 2 },
+        { type: 'crit', value: 0.01 },
+        { type: 'critDmg', value: 0.1 },
+        { type: 'spiritPower', value: 20 },
+      ],
       requirements: { minRealm: 0, minComprehension: 5 },
-      comprehensionDifficulty: 3,
     }
     expect(technique.tier).toBe('spirit')
-    expect(technique.growthModifiers.hp).toBe(10)
-    expect(technique.fixedBonuses[0].type).toBe('spiritPower')
+    expect(technique.bonuses[0].type).toBe('hp')
+    expect(technique.bonuses[0].value).toBe(10)
+    expect(technique.bonuses[6].type).toBe('spiritPower')
   })
 
   it('should accept all TechniqueTier values', () => {
@@ -276,6 +282,7 @@ describe('Sect types', () => {
       type: 'mainHall',
       level: 1,
       unlocked: true,
+      productionQueue: { recipeId: null, progress: 0 },
     }
     expect(building.type).toBe('mainHall')
   })
@@ -300,13 +307,15 @@ describe('Sect types', () => {
         herb: 10,
         ore: 5,
       },
-      buildings: [{ type: 'mainHall', level: 1, unlocked: true }],
+      buildings: [{ type: 'mainHall', level: 1, unlocked: true, productionQueue: { recipeId: null, progress: 0 } }],
       characters: [],
       vault: [],
       maxVaultSlots: 50,
       pets: [],
       totalAdventureRuns: 0,
       totalBreakthroughs: 0,
+      lastTransmissionTime: 0,
+      techniqueCodex: [],
     }
     expect(sect.name).toBe('青云宗')
     expect(sect.level).toBe(1)
@@ -316,8 +325,8 @@ describe('Sect types', () => {
 
   it('should accept all BuildingType values', () => {
     const types: BuildingType[] = [
-      'mainHall', 'spiritField', 'market', 'alchemyFurnace',
-      'forge', 'scriptureHall', 'recruitmentPavilion', 'trainingHall',
+      'mainHall', 'spiritField', 'spiritMine', 'market', 'alchemyFurnace',
+      'forge', 'scriptureHall', 'recruitmentPavilion',
     ]
     expect(types).toHaveLength(8)
   })

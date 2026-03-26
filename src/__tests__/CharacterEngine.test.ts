@@ -38,10 +38,8 @@ function makeTechnique(overrides: Partial<Technique> = {}): Technique {
     description: 'A test technique',
     tier: 'mortal',
     element: 'neutral',
-    growthModifiers: { hp: 0.1, atk: 0.1, def: 0.1, spd: 0.1, crit: 0.01, critDmg: 0.1 },
-    fixedBonuses: [],
+    bonuses: [{ type: 'hp', value: 10 }],
     requirements: { minRealm: 0, minComprehension: 0 },
-    comprehensionDifficulty: 50,
     ...overrides,
   }
 }
@@ -93,10 +91,9 @@ describe('CharacterEngine', () => {
       expect(ids.size).toBe(100)
     })
 
-    it('should have empty backpack, no technique, no gear', () => {
+    it('should have empty backpack, no gear, default technique learned', () => {
       const c = generateCharacter('common')
       expect(c.backpack).toEqual([])
-      expect(c.currentTechnique).toBe('qingxin')
       expect(c.equippedGear).toEqual([])
       expect(c.equippedSkills).toEqual([])
       expect(c.learnedTechniques).toEqual(['qingxin'])
@@ -127,70 +124,48 @@ describe('CharacterEngine', () => {
   })
 
   describe('calcCharacterTotalStats', () => {
-    it('should return base stats when no equipment or technique', () => {
+    it('should return base stats + default technique when no equipment', () => {
       const c = generateCharacter('common')
-      const result = calcCharacterTotalStats(c, null, () => undefined)
-      // calcCharacterTotalStats rounds values, so compare each field
-      expect(result.hp).toBe(c.baseStats.hp)
-      expect(result.atk).toBe(c.baseStats.atk)
-      expect(result.def).toBe(c.baseStats.def)
-      expect(result.spd).toBe(c.baseStats.spd)
-      expect(result.crit).toBe(c.baseStats.crit)
-      // critDmg may differ by rounding (base rounded to 3dp, total rounded to 2dp)
-      expect(Math.abs(result.critDmg - c.baseStats.critDmg)).toBeLessThan(0.01)
+      const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
+      // default technique qingxin: hp +10, atk +2, def +2, spd +1
+      expect(result.hp).toBe(c.baseStats.hp + 10)
+      expect(result.atk).toBe(c.baseStats.atk + 2)
+      expect(result.def).toBe(c.baseStats.def + 2)
+      expect(result.spd).toBe(c.baseStats.spd + 1)
     })
 
     it('should add equipment stats', () => {
       const c = generateCharacter('common')
       c.equippedGear = ['eq_1']
       const eq = makeEquipment({ hp: 50, atk: 10 })
-      const result = calcCharacterTotalStats(c, null, (id) => id === 'eq_1' ? eq : undefined)
-      expect(result.hp).toBe(c.baseStats.hp + 50)
-      expect(result.atk).toBe(c.baseStats.atk + 10)
+      const result = calcCharacterTotalStats(c, c.learnedTechniques, (id) => id === 'eq_1' ? eq : undefined)
+      // base + qingxin bonuses + equipment
+      expect(result.hp).toBe(c.baseStats.hp + 10 + 50)
+      expect(result.atk).toBe(c.baseStats.atk + 2 + 10)
+      expect(result.def).toBe(c.baseStats.def + 2)
+    })
+
+    it('should sum flat bonuses from all learned techniques', () => {
+      const c = generateCharacter('common')
+      // qingxin: hp +10, atk +2, def +2, spd +1
+      // lieyan: atk +5, crit +0.02
+      c.learnedTechniques = ['qingxin', 'lieyan']
+      const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
+      expect(result.hp).toBe(c.baseStats.hp + 10)
+      expect(result.atk).toBe(c.baseStats.atk + 2 + 5)
+      expect(result.def).toBe(c.baseStats.def + 2)
+      expect(result.spd).toBe(c.baseStats.spd + 1)
+      expect(result.crit).toBeCloseTo(c.baseStats.crit + 0.02, 3)
+    })
+
+    it('should return base stats when no techniques learned', () => {
+      const c = generateCharacter('common')
+      c.learnedTechniques = []
+      const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
+      expect(result.hp).toBe(c.baseStats.hp)
+      expect(result.atk).toBe(c.baseStats.atk)
       expect(result.def).toBe(c.baseStats.def)
-    })
-
-    it('should apply technique growth modifiers at full comprehension', () => {
-      const c = generateCharacter('common')
-      c.techniqueComprehension = 80 // 70-100 => effect 1.0
-      const tech = makeTechnique({ growthModifiers: { hp: 0.2, atk: 0.1, def: 0.05, spd: 0, crit: 0.01, critDmg: 0.1 } })
-      const result = calcCharacterTotalStats(c, tech, () => undefined)
-      // hp: base * (1 + 0.2 * 1.0) = base * 1.2
-      expect(result.hp).toBeCloseTo(c.baseStats.hp * 1.2, 2)
-      // atk: base * (1 + 0.1 * 1.0) = base * 1.1
-      expect(result.atk).toBeCloseTo(c.baseStats.atk * 1.1, 2)
-      // def: base * (1 + 0.05 * 1.0) = base * 1.05
-      expect(result.def).toBeCloseTo(c.baseStats.def * 1.05, 2)
-    })
-
-    it('should apply technique growth modifiers at partial comprehension (30%)', () => {
-      const c = generateCharacter('common')
-      c.techniqueComprehension = 30 // 30-70 => effect 0.7
-      const tech = makeTechnique({ growthModifiers: { hp: 0.2, atk: 0.1, def: 0.05, spd: 0, crit: 0.01, critDmg: 0.1 } })
-      const result = calcCharacterTotalStats(c, tech, () => undefined)
-      // hp: base * (1 + 0.2 * 0.7) = base * 1.14
-      expect(result.hp).toBeCloseTo(c.baseStats.hp * 1.14, 2)
-      // atk: base * (1 + 0.1 * 0.7) = base * 1.07
-      expect(result.atk).toBeCloseTo(c.baseStats.atk * 1.07, 5)
-    })
-
-    it('should apply technique flat bonuses based on comprehension threshold', () => {
-      const c = generateCharacter('common')
-      c.techniqueComprehension = 80
-      const tech = makeTechnique({
-        growthModifiers: { hp: 0, atk: 0, def: 0, spd: 0, crit: 0, critDmg: 0 },
-        fixedBonuses: [
-          { type: 'atk', value: 5 },   // unlocked at comprehension 30
-          { type: 'hp', value: 100 },   // unlocked at comprehension 70
-          { type: 'crit', value: 0.02 }, // unlocked at comprehension 100 — should NOT apply at 80
-        ],
-      })
-      const result = calcCharacterTotalStats(c, tech, () => undefined)
-      // base atk + bonus 5
-      expect(result.atk).toBe(c.baseStats.atk + 5)
-      // base hp + bonus 100
-      expect(result.hp).toBe(c.baseStats.hp + 100)
-      // crit bonus 0.02 not applied because 80 < 100
+      expect(result.spd).toBe(c.baseStats.spd)
       expect(result.crit).toBe(c.baseStats.crit)
     })
   })

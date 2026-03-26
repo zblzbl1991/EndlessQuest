@@ -22,14 +22,13 @@ import ForgePanel from '../components/building/ForgePanel'
 import StudyPanel from '../components/building/StudyPanel'
 import CodexPanel from '../components/building/CodexPanel'
 import MarketPanel from '../components/building/MarketPanel'
-import TransmissionPanel from '../components/building/TransmissionPanel'
 import styles from './BuildingsPage.module.css'
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' | 'codex' | 'market' | 'transmission'
+type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' | 'codex' | 'market'
 
 const QUALITY_LABELS: Record<CharacterQuality, string> = {
   common: '凡品',
@@ -116,8 +115,6 @@ export default function BuildingsPage() {
     if (sh && sh.unlocked) tabs.push({ key: 'codex', label: '图鉴' })
     const mk = sect.buildings.find(b => b.type === 'market')
     if (mk && mk.unlocked && mk.level >= 3) tabs.push({ key: 'market', label: '坊市' })
-    const th = sect.buildings.find(b => b.type === 'trainingHall')
-    if (th && th.unlocked && th.level >= 3) tabs.push({ key: 'transmission', label: '传功' })
     return tabs
   }, [sect.buildings])
 
@@ -150,7 +147,6 @@ export default function BuildingsPage() {
       {tab === 'study' && <StudyPanel />}
       {tab === 'codex' && <CodexPanel />}
       {tab === 'market' && <MarketPanel />}
-      {tab === 'transmission' && <TransmissionPanel />}
     </div>
   )
 }

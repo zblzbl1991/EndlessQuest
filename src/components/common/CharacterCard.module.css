@@ -41,6 +41,45 @@
   margin-bottom: var(--space-sm);
 }
 
+.techniques {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--space-xs);
+}
+
+.techTag {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  font-weight: 500;
+}
+
+.techMortal {
+  background: rgba(158, 158, 158, 0.12);
+  color: var(--color-text-tertiary);
+}
+
+.techSpirit {
+  background: rgba(66, 165, 245, 0.1);
+  color: #1565c0;
+}
+
+.techImmortal {
+  background: rgba(171, 71, 188, 0.1);
+  color: #7b1fa2;
+}
+
+.techDivine {
+  background: rgba(255, 193, 7, 0.12);
+  color: #f57f17;
+}
+
+.techChaos {
+  background: rgba(244, 67, 54, 0.1);
+  color: #c62828;
+}
+
 .progress {
   margin-top: var(--space-xs);
 }

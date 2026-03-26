@@ -3,9 +3,7 @@ import { useSectStore } from '../stores/sectStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
-import { canLearnTechnique, getComprehensionEffect } from '../systems/technique/TechniqueSystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
-import { QUALITY_NAMES } from '../data/items'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
 import CharacterCard from '../components/common/CharacterCard'
 import StatusBadge from '../components/common/StatusBadge'
@@ -141,52 +139,19 @@ function CharacterDetail({
   onBack: () => void
 }) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
-  const learnTechnique = useSectStore((s) => s.learnTechnique)
-  const learnTechniqueFromCodex = useSectStore((s) => s.learnTechniqueFromCodex)
-  const switchTechnique = useSectStore((s) => s.switchTechnique)
-  const techniqueCodex = useSectStore((s) => s.sect.techniqueCodex)
   const equipItem = useSectStore((s) => s.equipItem)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
   const sellCharacterItem = useSectStore((s) => s.sellCharacterItem)
 
-  const [showTechniqueSwitch, setShowTechniqueSwitch] = useState(false)
-  const [showLearnTechnique, setShowLearnTechnique] = useState(false)
   const [selectedBackpackIdx, setSelectedBackpackIdx] = useState<number | null>(null)
 
   if (!character) return null
 
   const realmName = getRealmName(character.realm, character.realmStage)
   const needed = getCultivationNeeded(character.realm, character.realmStage)
-  const technique = character.currentTechnique
-    ? getTechniqueById(character.currentTechnique)
-    : null
-
-  // Technique scrolls in backpack
-  const scrollItems = character.backpack
-    .map((item, idx) => ({ item, idx }))
-    .filter(({ item }) => item.type === 'techniqueScroll')
-
-  // Codex-available techniques for learning
-  const codexLearnable = techniqueCodex
-    .map((id) => getTechniqueById(id))
-    .filter((t): t is NonNullable<typeof t> => t != null && canLearnTechnique(character, t))
-
-  // Learned techniques for switching
-  const learnedTechniques = character.learnedTechniques
-    .map((id) => getTechniqueById(id))
-    .filter(Boolean)
 
   // Cultivation speed
-  const cultivationSpeed = calcCultivationRate(character, technique ?? null)
-
-  // Technique effects
-  const comprehensionEffect = technique ? getComprehensionEffect(character.techniqueComprehension) : 0
-
-  const growthModEntries: Array<[string, number]> = technique
-    ? (Object.entries(technique.growthModifiers) as Array<[string, number]>)
-        .filter(([, v]) => v !== 1)
-        .map(([k, v]) => [k, Math.round((v - 1) * 100)])
-    : []
+  const cultivationSpeed = calcCultivationRate(character, character.learnedTechniques)
 
   function formatBonusValue(type: string, value: number): string {
     const label = STAT_LABELS[type] ?? type
@@ -303,114 +268,26 @@ function CharacterDetail({
       {/* Technique */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>功法</div>
-        {technique ? (
-          <div className={styles.techniquePanel}>
-            <div className={styles.techniqueName}>
-              {technique.name}
-              <span className={styles.techniqueTier}>{TECHNIQUE_TIER_NAMES[technique.tier]}</span>
-            </div>
-            <div className={styles.comprehensionRow}>
-              <span className={styles.comprehensionLabel}>领悟度</span>
-              <ProgressBar value={character.techniqueComprehension} max={100} variant="ink" />
-              <span className={styles.comprehensionValue}>{Math.floor(character.techniqueComprehension)}%</span>
-            </div>
-            <div className={styles.effectRow}>
-              <span className={styles.effectLabel}>领悟效果</span>
-              <span className={styles.effectValue}>
-                {comprehensionEffect >= 1 ? '大成' : comprehensionEffect >= 0.7 ? '小成' : '初悟'}
-                （{Math.round(comprehensionEffect * 100)}%）
-              </span>
-            </div>
-            {/* Growth modifiers */}
-            {growthModEntries.length > 0 && (
-              <div className={styles.growthSection}>
-                <div className={styles.growthTitle}>突破成长加成</div>
-                <div className={styles.growthGrid}>
-                  {growthModEntries.map(([stat, pct]) => (
-                    <div key={stat} className={pct >= 0 ? styles.growthPositive : styles.growthNegative}>
-                      {STAT_LABELS[stat] ?? stat} {pct > 0 ? `+${pct}%` : `${pct}%`}
-                    </div>
-                  ))}
+        {character.learnedTechniques.length > 0 ? (
+          <div className={styles.techniqueList}>
+            {character.learnedTechniques.map((techId) => {
+              const tech = getTechniqueById(techId)
+              if (!tech) return null
+              return (
+                <div key={techId}>
+                  <span>{tech.name}</span>
+                  <span className={styles.techniqueItemTier}>{TECHNIQUE_TIER_NAMES[tech.tier]}</span>
+                  <div>
+                    {tech.bonuses.map((b, i) => (
+                      <span key={i}>{formatBonusValue(b.type, b.value)}</span>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
-            {technique.fixedBonuses.length > 0 && (
-              <div className={styles.bonuses}>
-                {technique.fixedBonuses.map((bonus, i) => {
-                  const threshold = [30, 70][i] ?? 100
-                  const active = character.techniqueComprehension >= threshold
-                  return (
-                    <div key={i} className={`${styles.bonusItem} ${active ? styles.bonusActive : styles.bonusLocked}`}>
-                      <span>{formatBonusValue(bonus.type, bonus.value)}</span>
-                      <span className={styles.bonusThreshold}>{threshold}%</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            {learnedTechniques.length > 1 && (
-              <button className={styles.actionBtn} onClick={() => setShowTechniqueSwitch(!showTechniqueSwitch)}>
-                更换功法
-              </button>
-            )}
-            {showTechniqueSwitch && (
-              <div className={styles.dropdown}>
-                {learnedTechniques.map((t) =>
-                  t && t.id !== character.currentTechnique ? (
-                    <button
-                      key={t.id}
-                      className={styles.dropdownItem}
-                      onClick={() => {
-                        switchTechnique(characterId, t.id)
-                        setShowTechniqueSwitch(false)
-                      }}
-                    >
-                      {t.name} ({TECHNIQUE_TIER_NAMES[t.tier]})
-                    </button>
-                  ) : null
-                )}
-              </div>
-            )}
+              )
+            })}
           </div>
         ) : (
-          <div className={styles.noTechnique}>
-            <span>未修炼功法</span>
-            {codexLearnable.length > 0 ? (
-              <>
-                <button className={styles.actionBtn} onClick={() => setShowLearnTechnique(!showLearnTechnique)}>
-                  学习功法
-                </button>
-                {showLearnTechnique && (
-                  <div className={styles.dropdown}>
-                    {codexLearnable.map((t) => (
-                      <button key={t.id} className={styles.dropdownItem}
-                        onClick={() => { learnTechniqueFromCodex(characterId, t.id); setShowLearnTechnique(false) }}>
-                        {t.name} ({TECHNIQUE_TIER_NAMES[t.tier]})
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : scrollItems.length > 0 ? (
-              <>
-                <button className={styles.actionBtn} onClick={() => setShowLearnTechnique(!showLearnTechnique)}>
-                  学习功法（背包）
-                </button>
-                {showLearnTechnique && (
-                  <div className={styles.dropdown}>
-                    {scrollItems.map(({ item, idx }) => (
-                      <button key={idx} className={styles.dropdownItem}
-                        onClick={() => { learnTechnique(characterId, idx); setShowLearnTechnique(false) }}>
-                        {item.name} ({QUALITY_NAMES[item.quality]})
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <span className={styles.noScrollHint}>无可学功法</span>
-            )}
-          </div>
+          <div className={styles.noTechnique}>未领悟功法</div>
         )}
       </section>
 
@@ -469,17 +346,6 @@ function CharacterDetail({
                 <div className={styles.itemActions}>
                   {item.type === 'equipment' && (
                     <span className={styles.itemHint}>点击装备栏空槽位穿戴</span>
-                  )}
-                  {item.type === 'techniqueScroll' && !character.currentTechnique && (
-                    <button
-                      className={styles.itemActionBtn}
-                      onClick={() => {
-                        learnTechnique(characterId, idx)
-                        setSelectedBackpackIdx(null)
-                      }}
-                    >
-                      学习
-                    </button>
                   )}
                   <button
                     className={styles.itemActionBtn}

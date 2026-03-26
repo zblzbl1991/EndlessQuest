@@ -1,9 +1,6 @@
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
-import { useGameStore } from '../stores/gameStore'
-import { generateCharacter } from '../systems/character/CharacterEngine'
-import { getTechniqueById } from '../data/techniquesTable'
-import type { Character, Equipment, Consumable, TechniqueScroll, AnyItem } from '../types'
+import type { Character, Equipment, Consumable, AnyItem } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 
 // ---------------------------------------------------------------------------
@@ -36,19 +33,6 @@ function makeConsumable(id: string, overrides?: Partial<Consumable>): Consumable
     description: '',
     sellPrice: 50,
     effect: { type: 'hp', value: 10 },
-    ...overrides,
-  }
-}
-
-function makeTechniqueScroll(id: string, techniqueId: string, overrides?: Partial<TechniqueScroll>): TechniqueScroll {
-  return {
-    id,
-    name: 'Technique Scroll',
-    quality: 'common',
-    type: 'techniqueScroll',
-    description: '',
-    sellPrice: 100,
-    techniqueId,
     ...overrides,
   }
 }
@@ -204,124 +188,6 @@ describe('SectStore - Character Management', () => {
   it('setCharacterStatus should ignore unknown character', () => {
     getStore().setCharacterStatus('nonexistent', 'injured')
     expect(getFirstCharacter().status).toBe('cultivating')
-  })
-})
-
-// ---------------------------------------------------------------------------
-// Technique Management Tests
-// ---------------------------------------------------------------------------
-
-describe('SectStore - Technique Management', () => {
-  beforeEach(() => resetStore())
-
-  it('learnTechnique should consume scroll and set technique', () => {
-    const char = getFirstCharacter()
-    const scroll = makeTechniqueScroll('scroll_qingxin', 'qingxin')
-
-    // Put scroll in character's backpack
-    useSectStore.setState((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [scroll] } : c
-        ),
-      },
-    }))
-
-    const result = getStore().learnTechnique(char.id, 0)
-    expect(result).toBe(true)
-    const updatedChar = getStore().sect.characters[0]
-    expect(updatedChar.currentTechnique).toBe('qingxin')
-    expect(updatedChar.backpack).toHaveLength(0)
-    expect(updatedChar.techniqueComprehension).toBe(0)
-  })
-
-  it('learnTechnique should reject if item is not techniqueScroll', () => {
-    const char = getFirstCharacter()
-    const potion = makeConsumable('potion_1')
-    useSectStore.setState((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [potion] } : c
-        ),
-      },
-    }))
-
-    const result = getStore().learnTechnique(char.id, 0)
-    expect(result).toBe(false)
-    expect(getStore().sect.characters[0].currentTechnique).toBe('qingxin')
-  })
-
-  it('learnTechnique should reject if character not found', () => {
-    const scroll = makeTechniqueScroll('scroll_qingxin', 'qingxin')
-    useSectStore.setState((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === c.id ? { ...c, backpack: [scroll] } : c
-        ),
-      },
-    }))
-
-    const result = getStore().learnTechnique('nonexistent', 0)
-    expect(result).toBe(false)
-  })
-
-  it('learnTechnique should reject if requirements not met', () => {
-    // 'fentian' requires minRealm 1 — character starts at realm 0
-    const char = getFirstCharacter()
-    const scroll = makeTechniqueScroll('scroll_fentian', 'fentian')
-    useSectStore.setState((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [scroll] } : c
-        ),
-      },
-    }))
-
-    const result = getStore().learnTechnique(char.id, 0)
-    expect(result).toBe(false)
-  })
-
-  it('switchTechnique should change to learned technique', () => {
-    const char = getFirstCharacter()
-    const scroll1 = makeTechniqueScroll('scroll_qingxin', 'qingxin')
-    const scroll2 = makeTechniqueScroll('scroll_lieyan', 'lieyan')
-    useSectStore.setState((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [scroll1, scroll2] } : c
-        ),
-      },
-    }))
-
-    getStore().learnTechnique(char.id, 0)
-    getStore().learnTechnique(char.id, 0) // learns lieyan (now at index 0 after first removal)
-
-    // Set some comprehension on current technique
-    useSectStore.setState((s) => ({
-      sect: {
-        ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, techniqueComprehension: 50 } : c
-        ),
-      },
-    }))
-
-    const result = getStore().switchTechnique(char.id, 'qingxin')
-    expect(result).toBe(true)
-    const updatedChar = getStore().sect.characters[0]
-    expect(updatedChar.currentTechnique).toBe('qingxin')
-    expect(updatedChar.techniqueComprehension).toBe(0) // reset
-  })
-
-  it('switchTechnique should reject unknown technique', () => {
-    const char = getFirstCharacter()
-    const result = getStore().switchTechnique(char.id, 'nonexistent_technique')
-    expect(result).toBe(false)
   })
 })
 

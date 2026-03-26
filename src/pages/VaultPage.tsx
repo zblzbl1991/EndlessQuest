@@ -186,7 +186,6 @@ function VaultTab() {
 function BackpackTab() {
   const characters = useSectStore((s) => s.sect.characters)
   const equipItem = useSectStore((s) => s.equipItem)
-  const learnTechnique = useSectStore((s) => s.learnTechnique)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
   const sellCharacterItem = useSectStore((s) => s.sellCharacterItem)
   // selectedKey: "charId-index" compound key for per-character selection
@@ -202,11 +201,6 @@ function BackpackTab() {
     if (slotIndex >= 0) {
       equipItem(charId, bpIdx, slotIndex)
     }
-    setSelectedKey(null)
-  }
-
-  const handleLearn = (charId: string, bpIdx: number) => {
-    learnTechnique(charId, bpIdx)
     setSelectedKey(null)
   }
 
@@ -276,14 +270,6 @@ function BackpackTab() {
                       onClick={() => handleEquip(char.id, selIdx)}
                     >
                       装备
-                    </button>
-                  )}
-                  {selectedItem.type === 'techniqueScroll' && (
-                    <button
-                      className={styles.actionLearn}
-                      onClick={() => handleLearn(char.id, selIdx)}
-                    >
-                      学习
                     </button>
                   )}
                   <button

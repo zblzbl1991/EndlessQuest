@@ -9,7 +9,7 @@ const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
 
 interface SaveMeta {
-  version: 3
+  version: 4
   lastOnlineTime: number
   saveSlot: number
 }
@@ -23,7 +23,7 @@ export async function saveGame(): Promise<void> {
     await tx.objectStore('save').put({
       slot: 1,
       timestamp: Date.now(),
-      version: 3,
+      version: 4,
       sect,
     })
 
@@ -42,7 +42,7 @@ export async function saveGame(): Promise<void> {
     await tx.done
 
     const meta: SaveMeta = {
-      version: 3,
+      version: 4,
       lastOnlineTime: Date.now(),
       saveSlot: useGameStore.getState().saveSlot,
     }
@@ -62,7 +62,7 @@ export async function loadGame(): Promise<boolean> {
     if (!metaRaw) return false
 
     const meta: SaveMeta = JSON.parse(metaRaw)
-    if (meta.version < 3) {
+    if (meta.version < 4) {
       await clearSaveData()
       return false
     }
@@ -72,21 +72,27 @@ export async function loadGame(): Promise<boolean> {
     const saveRecord = await db.get('save', 1)
     if (saveRecord?.sect) {
       const migratedCharacters = (saveRecord.sect.characters ?? []).map(
-        (char: Character) => ({
+        (char: any) => ({
           ...char,
           talents: char.talents ?? [],
-          // Migrate characters with no technique to have qingxin
-          ...(char.currentTechnique == null ? {
-            currentTechnique: 'qingxin',
-            learnedTechniques: char.learnedTechniques?.includes('qingxin')
-              ? char.learnedTechniques
-              : [...(char.learnedTechniques ?? []), 'qingxin'],
-          } : {}),
+          learnedTechniques: char.learnedTechniques ?? [],
         }),
+      )
+      // v3→v4: ensure currentTechnique value is in learnedTechniques
+      for (const c of migratedCharacters) {
+        const ct = (c as any).currentTechnique
+        if (ct && !c.learnedTechniques.includes(ct)) {
+          c.learnedTechniques = [...c.learnedTechniques, ct]
+        }
+      }
+      // v3→v4: remove trainingHall buildings
+      const migratedBuildings = (saveRecord.sect.buildings ?? []).filter(
+        (b: any) => b.type !== 'trainingHall',
       )
       const migratedSect = {
         ...saveRecord.sect,
         characters: migratedCharacters,
+        buildings: migratedBuildings,
         techniqueCodex: saveRecord.sect.techniqueCodex ?? ['qingxin', 'lieyan', 'houtu'],
       }
       useSectStore.setState({ sect: migratedSect })
@@ -123,7 +129,7 @@ export function hasSaveData(): boolean {
     const metaRaw = localStorage.getItem(META_KEY)
     if (!metaRaw) return false
     const meta = JSON.parse(metaRaw)
-    return meta.version === 3
+    return meta.version >= 3 && meta.version <= 4
   } catch {
     return false
   }
@@ -176,7 +182,7 @@ async function migrateV2ToV3(): Promise<void> {
     await tx.objectStore('save').put({
       slot: 1,
       timestamp: (data.timestamp as number) || Date.now(),
-      version: 3,
+      version: 4,
       sect: { ...sectData.sect, characters: migratedCharacters },
     })
   }
@@ -193,7 +199,7 @@ async function migrateV2ToV3(): Promise<void> {
 
   const gameData = data.gameStore as { saveSlot?: number; lastOnlineTime?: number } | undefined
   const meta: SaveMeta = {
-    version: 3,
+    version: 4,
     lastOnlineTime: gameData?.lastOnlineTime ?? Date.now(),
     saveSlot: gameData?.saveSlot ?? 1,
   }

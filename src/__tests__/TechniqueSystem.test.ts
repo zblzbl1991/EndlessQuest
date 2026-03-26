@@ -9,7 +9,7 @@ describe('tryComprehendOnBreakthrough', () => {
 
   it('should return null when random roll fails (sub-level)', () => {
     const result = tryComprehendOnBreakthrough(
-      { learnedTechniques: ['qingxin'], realm: 1, realmStage: 0, currentTechnique: 'qingxin' },
+      { learnedTechniques: ['qingxin'], realm: 1, cultivationStats: { comprehension: 30 } },
       codex,
       false,
       () => 0.99,
@@ -19,7 +19,7 @@ describe('tryComprehendOnBreakthrough', () => {
 
   it('should return technique when random roll succeeds (sub-level)', () => {
     const result = tryComprehendOnBreakthrough(
-      { learnedTechniques: ['qingxin', 'lieyan'], realm: 1, realmStage: 0, currentTechnique: 'qingxin' },
+      { learnedTechniques: ['qingxin', 'lieyan'], realm: 1, cultivationStats: { comprehension: 30 } },
       codex,
       false,
       () => 0.14,
@@ -30,7 +30,7 @@ describe('tryComprehendOnBreakthrough', () => {
 
   it('should use 40% threshold for major breakthrough', () => {
     const result = tryComprehendOnBreakthrough(
-      { learnedTechniques: ['qingxin'], realm: 1, realmStage: 3, currentTechnique: 'qingxin' },
+      { learnedTechniques: ['qingxin'], realm: 1, cultivationStats: { comprehension: 30 } },
       codex,
       true,
       () => 0.39,
@@ -40,7 +40,7 @@ describe('tryComprehendOnBreakthrough', () => {
 
   it('should return null when all codex techniques already learned', () => {
     const result = tryComprehendOnBreakthrough(
-      { learnedTechniques: codex, realm: 4, realmStage: 0, currentTechnique: 'qingxin' },
+      { learnedTechniques: codex, realm: 4, cultivationStats: { comprehension: 30 } },
       codex,
       true,
       () => 0,
@@ -50,12 +50,22 @@ describe('tryComprehendOnBreakthrough', () => {
 
   it('should respect tier ceiling (realm 0 = mortal only)', () => {
     const result = tryComprehendOnBreakthrough(
-      { learnedTechniques: ['qingxin', 'lieyan'], realm: 0, realmStage: 0, currentTechnique: 'qingxin' },
+      { learnedTechniques: ['qingxin', 'lieyan'], realm: 0, cultivationStats: { comprehension: 30 } },
       ['qingxin', 'lieyan', 'houtu', 'fentian', 'xuanbing', 'leishen'],
       true,
       () => 0,
     )
     expect(result).toBe('houtu')
+  })
+
+  it('should return null when comprehension too low for all candidates', () => {
+    const result = tryComprehendOnBreakthrough(
+      { learnedTechniques: ['qingxin'], realm: 2, cultivationStats: { comprehension: 5 } },
+      ['leishen', 'bumiejinshen', 'jiuzhuan'],
+      true,
+      () => 0,
+    )
+    expect(result).toBeNull()
   })
 })
 
