@@ -75,18 +75,34 @@ export async function loadGame(): Promise<boolean> {
         (char: Character) => ({
           ...char,
           talents: char.talents ?? [],
+          // Migrate characters with no technique to have qingxin
+          ...(char.currentTechnique == null ? {
+            currentTechnique: 'qingxin',
+            learnedTechniques: char.learnedTechniques?.includes('qingxin')
+              ? char.learnedTechniques
+              : [...(char.learnedTechniques ?? []), 'qingxin'],
+          } : {}),
         }),
       )
-      useSectStore.setState({
-        sect: { ...saveRecord.sect, characters: migratedCharacters },
-      })
+      const migratedSect = {
+        ...saveRecord.sect,
+        characters: migratedCharacters,
+        techniqueCodex: saveRecord.sect.techniqueCodex ?? ['qingxin', 'lieyan', 'houtu'],
+      }
+      useSectStore.setState({ sect: migratedSect })
     }
 
     const advRecords = await db.getAll('adventure')
     if (advRecords.length > 0) {
       const activeRuns: Record<string, DungeonRun> = {}
       for (const rec of advRecords) {
-        activeRuns[(rec as { id: string; run: DungeonRun }).id] = (rec as { id: string; run: DungeonRun }).run
+        const raw = (rec as { id: string; run: DungeonRun }).run as unknown as Record<string, unknown>
+        const migrated: DungeonRun = {
+          ...raw as unknown as DungeonRun,
+          supplyLevel: (raw.supplyLevel as DungeonRun['supplyLevel']) ?? 'basic',
+          rewardMultiplier: (raw.rewardMultiplier as number) ?? 1.0,
+        }
+        activeRuns[(rec as { id: string; run: DungeonRun }).id] = migrated
       }
       useAdventureStore.setState({ activeRuns })
     }

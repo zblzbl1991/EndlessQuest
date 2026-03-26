@@ -232,9 +232,9 @@ export function generateCharacter(quality: CharacterQuality): Character {
     cultivation: 0,
     baseStats,
     cultivationStats,
-    currentTechnique: null,
+    currentTechnique: 'qingxin',
     techniqueComprehension: 0,
-    learnedTechniques: [],
+    learnedTechniques: ['qingxin'],
     equippedGear: [],
     equippedSkills: [],
     backpack: [],
@@ -375,4 +375,12 @@ export function isQualityUnlocked(quality: CharacterQuality, sectLevel: number):
 export function getAvailableQualities(sectLevel: number): CharacterQuality[] {
   const qualities: CharacterQuality[] = ['common', 'spirit', 'immortal', 'divine']
   return qualities.filter(q => isQualityUnlocked(q, sectLevel))
+}
+
+/** Get the mainHall level required to unlock a character quality (for UI display) */
+export function getQualityUnlockMainHallLevel(quality: CharacterQuality): number | undefined {
+  const sectLvl = QUALITY_UNLOCK_LEVEL[quality]
+  if (sectLvl === undefined) return undefined
+  const entry = SECT_LEVEL_TABLE[sectLvl - 1]
+  return entry?.mainHallRequired
 }
