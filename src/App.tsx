@@ -1,10 +1,11 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSectStore } from './stores/sectStore'
 import { useAdventureStore } from './stores/adventureStore'
 import { useGameStore } from './stores/gameStore'
 import { IdleEngine, calcOfflineSeconds } from './systems/idle/IdleEngine'
-import { useAutoSave } from './systems/save/useAutoSave'
+import { loadGame } from './systems/save/SaveSystem'
+import { startAutoSave } from './systems/save/startAutoSave'
 import Sidebar from './components/common/Sidebar'
 import BottomNav from './components/common/BottomNav'
 import TopBar from './components/common/TopBar'
@@ -22,10 +23,27 @@ export default function App() {
   const tickAllIdle = useAdventureStore((s) => s.tickAllIdle)
   const lastOnlineTime = useGameStore((s) => s.lastOnlineTime)
 
-  const { isLoaded } = useAutoSave()
+  const [isLoaded, setIsLoaded] = useState(false)
+  const loadingRef = useRef(false)
+
+  useEffect(() => {
+    if (loadingRef.current) return
+    loadingRef.current = true
+
+    ;(async () => {
+      try {
+        await loadGame()
+      } catch (e) {
+        console.error('Failed to load save:', e)
+      }
+      setIsLoaded(true)
+    })()
+  }, [])
 
   useEffect(() => {
     if (!isLoaded) return
+
+    const cleanup = startAutoSave()
 
     startGame()
 
@@ -43,7 +61,11 @@ export default function App() {
       tickAllIdle(delta)
     })
     engine.start()
-    return () => engine.stop()
+
+    return () => {
+      engine.stop()
+      cleanup()
+    }
   }, [isLoaded])
 
   if (!isLoaded) {
