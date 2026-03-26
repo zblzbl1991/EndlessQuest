@@ -13,20 +13,11 @@ export interface Technique {
   description: string
   tier: TechniqueTier
   element: Element
-  growthModifiers: {
-    hp: number
-    atk: number
-    def: number
-    spd: number
-    crit: number
-    critDmg: number
-  }
-  fixedBonuses: TechniqueBonus[]
+  bonuses: TechniqueBonus[]
   requirements: {
     minRealm: number
     minComprehension: number
   }
-  comprehensionDifficulty: number
 }
 
 export const TECHNIQUE_TIER_NAMES: Record<TechniqueTier, string> = {

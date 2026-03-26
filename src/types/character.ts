@@ -36,8 +36,6 @@ export interface Character {
   cultivation: number
   baseStats: BaseStats
   cultivationStats: CultivationStats
-  currentTechnique: string | null
-  techniqueComprehension: number
   learnedTechniques: string[]
   equippedGear: (string | null)[]
   equippedSkills: (string | null)[]
