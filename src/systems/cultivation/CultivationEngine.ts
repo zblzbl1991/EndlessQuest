@@ -1,7 +1,6 @@
 import type { Character, BaseStats, RealmStage } from '../../types/character'
-import type { Technique } from '../../types/technique'
 import { REALMS, getCultivationNeeded } from '../../data/realms'
-import { getComprehensionEffect, getActiveBonuses } from '../technique/TechniqueSystem'
+import { getTechniqueById } from '../../data/techniquesTable'
 
 // Base cultivation rate: 修为 per second
 const BASE_CULTIVATION_RATE = 5
@@ -76,19 +75,20 @@ export function calcBreakthroughFailureRate(character: Character): number {
 /**
  * Calculate cultivation rate per second for a character.
  *
- * Takes optional technique into account for cultivationRate bonus.
+ * Sums cultivationRate bonuses from all learned techniques.
  */
-export function calcCultivationRate(character: Character, technique: Technique | null): number {
+export function calcCultivationRate(character: Character, learnedTechniques: string[]): number {
   const spiritualRoot = character.cultivationStats.spiritualRoot
   const rootBonus = 1 + (spiritualRoot - 10) * 0.02 // base 10 = +0%, each point +2%
   const realmMult = REALM_CULTIVATION_MULT[character.realm] ?? 0.5
 
   let rate = BASE_CULTIVATION_RATE * rootBonus * realmMult
 
-  // Apply cultivationRate bonus from technique's fixed bonuses
-  if (technique) {
-    const activeBonuses = getActiveBonuses(technique, character.techniqueComprehension)
-    const cultivationBonus = activeBonuses.find(b => b.type === 'cultivationRate')
+  // Sum cultivationRate bonuses from all learned techniques
+  for (const techId of learnedTechniques) {
+    const technique = getTechniqueById(techId)
+    if (!technique) continue
+    const cultivationBonus = technique.bonuses.find(b => b.type === 'cultivationRate')
     if (cultivationBonus) {
       rate *= (1 + cultivationBonus.value)
     }
@@ -113,13 +113,13 @@ export function tick(
   character: Character,
   spiritEnergyAvailable: number,
   deltaSec: number,
-  technique: Technique | null = null,
+  learnedTechniques: string[] = [],
 ): TickResult {
   if (!canCultivate(spiritEnergyAvailable)) {
     return { cultivationGained: 0, spiritSpent: 0 }
   }
 
-  const rate = calcCultivationRate(character, technique)
+  const rate = calcCultivationRate(character, learnedTechniques)
   const gained = rate * deltaSec
   const spent = SPIRIT_COST_PER_SECOND * deltaSec
 
@@ -186,39 +186,13 @@ function calcStatGrowth(currentStats: BaseStats, isMajorRealm: boolean): BaseSta
 }
 
 /**
- * Apply technique growth modifiers to base stats growth.
- * Uses comprehension level to scale the effect.
- */
-function applyTechniqueGrowthToStats(
-  baseGrowth: BaseStats,
-  technique: Technique,
-  comprehension: number,
-): BaseStats {
-  const effect = getComprehensionEffect(comprehension)
-  const gm = technique.growthModifiers
-
-  return {
-    hp: baseGrowth.hp * (1 + (gm.hp - 1) * effect),
-    atk: baseGrowth.atk * (1 + (gm.atk - 1) * effect),
-    def: baseGrowth.def * (1 + (gm.def - 1) * effect),
-    spd: baseGrowth.spd * (1 + (gm.spd - 1) * effect),
-    crit: baseGrowth.crit * (1 + (gm.crit - 1) * effect),
-    critDmg: baseGrowth.critDmg * (1 + (gm.critDmg - 1) * effect),
-  }
-}
-
-/**
  * Attempt breakthrough for a character.
- *
- * If a technique is provided and the character has comprehension > 0,
- * stat growth is modified by the technique's growth modifiers.
  *
  * failureRate: probability of failure (0~1). On failure, realm/stage stay the same
  * and the caller should reset cultivation to 0.
  */
 export function breakthrough(
   character: Character,
-  technique: Technique | null,
   failureRate: number = 0,
 ): BreakthroughResult {
   if (!canBreakthrough(character)) {
@@ -247,18 +221,13 @@ export function breakthrough(
   const nextStage = (character.realmStage + 1) as RealmStage
   const isMajorRealm = nextStage >= realm.stages.length
 
-  let baseGrowth = calcStatGrowth(oldStats, isMajorRealm)
-
-  // Apply technique growth modifiers if technique is provided
-  if (technique && character.techniqueComprehension > 0) {
-    baseGrowth = applyTechniqueGrowthToStats(baseGrowth, technique, character.techniqueComprehension)
-  }
+  const newStats = calcStatGrowth(oldStats, isMajorRealm)
 
   return {
     success: true,
     newRealm: isMajorRealm ? character.realm + 1 : character.realm,
     newStage: isMajorRealm ? 0 : nextStage,
     oldStats,
-    newStats: baseGrowth,
+    newStats,
   }
 }

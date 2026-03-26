@@ -1,8 +1,8 @@
 import type { Character, CharacterQuality, BaseStats } from '../../types/character'
-import type { Technique } from '../../types/technique'
 import type { Equipment } from '../../types/item'
 import type { Talent, TalentRarity } from '../../types/talent'
 import { ALL_TALENTS } from '../../data/talents'
+import { getTechniqueById } from '../../data/techniquesTable'
 
 // ---------------------------------------------------------------------------
 // Quality stat table
@@ -149,22 +149,6 @@ function generateName(): string {
 let _idCounter = 0
 
 // ---------------------------------------------------------------------------
-// Comprehension effect tiers
-// ---------------------------------------------------------------------------
-
-/**
- * Returns a multiplier (0.3, 0.7, or 1.0) based on technique comprehension level.
- * - 0-29   -> 0.3
- * - 30-69  -> 0.7
- * - 70-100 -> 1.0
- */
-function getComprehensionEffect(comprehension: number): number {
-  if (comprehension >= 70) return 1.0
-  if (comprehension >= 30) return 0.7
-  return 0.3
-}
-
-// ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
@@ -232,8 +216,6 @@ export function generateCharacter(quality: CharacterQuality): Character {
     cultivation: 0,
     baseStats,
     cultivationStats,
-    currentTechnique: 'qingxin',
-    techniqueComprehension: 0,
     learnedTechniques: ['qingxin'],
     equippedGear: [],
     equippedSkills: [],
@@ -249,11 +231,11 @@ export function generateCharacter(quality: CharacterQuality): Character {
 }
 
 /**
- * Calculate total stats for a character, factoring in equipment and technique.
+ * Calculate total stats for a character, factoring in equipment and all learned techniques.
  */
 export function calcCharacterTotalStats(
   character: Character,
-  technique: Technique | null,
+  learnedTechniques: string[],
   getEquipmentById: (id: string) => Equipment | undefined,
 ): BaseStats {
   // 1. Start with base stats
@@ -272,31 +254,14 @@ export function calcCharacterTotalStats(
     total.critDmg += eq.stats.critDmg
   }
 
-  // 3. Apply technique if present
-  if (technique) {
-    const effect = getComprehensionEffect(character.techniqueComprehension)
-
-    // Multiplicative growth modifiers scaled by comprehension effect
-    total.hp *= 1 + technique.growthModifiers.hp * effect
-    total.atk *= 1 + technique.growthModifiers.atk * effect
-    total.def *= 1 + technique.growthModifiers.def * effect
-    total.spd *= 1 + technique.growthModifiers.spd * effect
-    total.crit *= 1 + technique.growthModifiers.crit * effect
-    total.critDmg *= 1 + technique.growthModifiers.critDmg * effect
-
-    // Flat fixed bonuses based on comprehension thresholds
-    // Bonus index 0: unlocked at comprehension >= 30
-    // Bonus index 1: unlocked at comprehension >= 70
-    // Bonus index 2: unlocked at comprehension >= 100
-    const thresholds = [30, 70, 100]
-    for (let i = 0; i < technique.fixedBonuses.length; i++) {
-      const threshold = thresholds[i] ?? 100
-      if (character.techniqueComprehension >= threshold) {
-        const bonus = technique.fixedBonuses[i]
-        const key = bonus.type as keyof BaseStats
-        if (key in total) {
-          ;(total as unknown as Record<string, number>)[key] += bonus.value
-        }
+  // 3. Sum all bonuses from learned techniques (flat additive to baseStats)
+  for (const techId of learnedTechniques) {
+    const technique = getTechniqueById(techId)
+    if (!technique) continue
+    for (const bonus of technique.bonuses) {
+      const key = bonus.type as keyof BaseStats
+      if (key in total) {
+        (total as unknown as Record<string, number>)[key] += bonus.value
       }
     }
   }

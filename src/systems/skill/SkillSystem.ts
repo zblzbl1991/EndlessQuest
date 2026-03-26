@@ -1,6 +1,6 @@
 import type { ActiveSkill } from '../../types/skill'
-import type { Technique, TechniqueBonus } from '../../types/technique'
 import type { BaseStats, CultivationStats } from '../../types/character'
+import { getTechniqueById } from '../../data/techniquesTable'
 
 export interface TotalStatsResult {
   baseStats: BaseStats
@@ -8,31 +8,19 @@ export interface TotalStatsResult {
 }
 
 /**
- * Calculate total bonuses from technique growth modifiers and fixed bonuses
+ * Calculate total bonuses from all learned techniques.
+ * Sums all technique bonuses (flat additive).
  */
 export function calcTechniqueBonuses(
-  technique: Technique | null,
-  comprehension: number,
+  learnedTechniques: string[],
 ): Record<string, number> {
   const bonus: Record<string, number> = {}
 
-  if (!technique) return bonus
-
-  // Growth modifiers scaled by comprehension (0-100)
-  const scale = Math.min(comprehension / 100, 1)
-  for (const [stat, modifier] of Object.entries(technique.growthModifiers)) {
-    if (modifier > 0) {
-      bonus[stat] = (bonus[stat] ?? 0) + modifier * scale
-    }
-  }
-
-  // Fixed bonuses based on comprehension thresholds
-  const thresholds = [30, 70, 100]
-  for (let i = 0; i < technique.fixedBonuses.length; i++) {
-    const threshold = thresholds[i] ?? 100
-    if (comprehension >= threshold) {
-      const fb: TechniqueBonus = technique.fixedBonuses[i]
-      bonus[fb.type] = (bonus[fb.type] ?? 0) + fb.value
+  for (const techId of learnedTechniques) {
+    const technique = getTechniqueById(techId)
+    if (!technique) continue
+    for (const b of technique.bonuses) {
+      bonus[b.type] = (bonus[b.type] ?? 0) + b.value
     }
   }
 

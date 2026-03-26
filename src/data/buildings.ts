@@ -1,5 +1,5 @@
 import type { BuildingType, Building, ResourceCaps } from '../types/sect'
-import { getMarketBuff, getAlchemyBuff, getForgeBuff, getScriptureBuff, getRecruitBuff, getTrainingBuff } from '../systems/economy/BuildingEffects'
+import { getMarketBuff, getAlchemyBuff, getForgeBuff, getRecruitBuff } from '../systems/economy/BuildingEffects'
 
 export interface BuildingDef {
   type: BuildingType
@@ -19,7 +19,6 @@ export const BUILDING_DEFS: BuildingDef[] = [
   { type: 'forge', name: '炼器坊', description: '锻造和强化装备', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(150 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv2' },
   { type: 'scriptureHall', name: '藏经阁', description: '学习功法', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(200 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv3' },
   { type: 'recruitmentPavilion', name: '聚仙台', description: '招募弟子', maxLevel: 6, upgradeCost: (lv) => ({ spiritStone: Math.round(300 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv3' },
-  { type: 'trainingHall', name: '传功殿', description: '弟子修炼', maxLevel: 6, upgradeCost: (lv) => ({ spiritStone: Math.round(250 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv4' },
 ]
 
 export function getBuildingDef(type: BuildingType): BuildingDef | undefined {
@@ -86,17 +85,11 @@ export function getBuildingEffectText(building: Building): string {
       const buff = getForgeBuff(building.level)
       return `强化成功率 +${Math.round(buff.successBonus * 100)}% · 消耗 -${Math.round(buff.costReduction * 100)}%`
     }
-    case 'scriptureHall': {
-      const buff = getScriptureBuff(building.level)
-      return `领悟速度 +${Math.round((buff.comprehensionMult - 1) * 100)}%`
-    }
+    case 'scriptureHall':
+      return '学习功法'
     case 'recruitmentPavilion': {
       const buff = getRecruitBuff(building.level)
       return `招募费用 -${Math.round((1 - buff.costMult) * 100)}%`
-    }
-    case 'trainingHall': {
-      const buff = getTrainingBuff(building.level)
-      return `修炼速度 +${Math.round((buff.speedMult - 1) * 100)}%`
     }
     default:
       return ''
@@ -118,8 +111,6 @@ export function getBuildingUnlockText(building: Building): string {
       return '解锁后：领悟速度+15%'
     case 'recruitmentPavilion':
       return '解锁后：招募费用-10%'
-    case 'trainingHall':
-      return '解锁后：修炼速度+10%'
     default:
       return ''
   }

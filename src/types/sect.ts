@@ -4,7 +4,7 @@ import type { Pet } from '../systems/pet/PetSystem'
 
 export type BuildingType =
   | 'mainHall' | 'spiritField' | 'spiritMine' | 'market' | 'alchemyFurnace'
-  | 'forge' | 'scriptureHall' | 'recruitmentPavilion' | 'trainingHall'
+  | 'forge' | 'scriptureHall' | 'recruitmentPavilion'
 
 export type ResourceType = 'spiritStone' | 'spiritEnergy' | 'herb' | 'ore'
 

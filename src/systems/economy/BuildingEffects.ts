@@ -1,5 +1,5 @@
 // src/systems/economy/BuildingEffects.ts
-// Buff calculation functions for all 6 "empty" buildings.
+// Buff calculation functions for buildings.
 
 import type { BuildingType } from '../../types/sect'
 
@@ -73,18 +73,8 @@ export function getForgeUnlockLevel(): number {
 }
 
 // ---------------------------------------------------------------------------
-// Scripture Hall (藏经阁) – comprehension +15% per level
+// Scripture Hall (藏经阁) – study unlock
 // ---------------------------------------------------------------------------
-
-export interface ScriptureBuff {
-  comprehensionMult: number
-}
-
-export function getScriptureBuff(scriptureLevel: number): ScriptureBuff {
-  return {
-    comprehensionMult: 1 + 0.15 * scriptureLevel,
-  }
-}
 
 export function getStudyUnlockLevel(): number {
   return 3
@@ -109,32 +99,8 @@ export function getTargetedRecruitUnlockLevel(): number {
 }
 
 // ---------------------------------------------------------------------------
-// Training Hall (传功殿) – cultivation speed +10% per level
-// ---------------------------------------------------------------------------
-
-export interface TrainingBuff {
-  speedMult: number
-}
-
-export function getTrainingBuff(trainingLevel: number): TrainingBuff {
-  return {
-    speedMult: 1 + 0.1 * trainingLevel,
-  }
-}
-
-export function getGroupTransmissionUnlockLevel(): number {
-  return 3
-}
-
-// ---------------------------------------------------------------------------
 // Convenience multipliers that take buildings array directly
 // ---------------------------------------------------------------------------
-
-export function getTrainingSpeedMult(
-  buildings: { type: BuildingType; level: number }[],
-): number {
-  return getTrainingBuff(getBuildingLevel(buildings, 'trainingHall')).speedMult
-}
 
 export function getEnhanceSuccessBonus(
   buildings: { type: BuildingType; level: number }[],
@@ -152,14 +118,6 @@ export function getRecruitCostMult(
   buildings: { type: BuildingType; level: number }[],
 ): number {
   return getRecruitBuff(getBuildingLevel(buildings, 'recruitmentPavilion')).costMult
-}
-
-export function getComprehensionSpeedMult(
-  buildings: { type: BuildingType; level: number }[],
-): number {
-  // BUG FIX: return comprehensionMult (not speedMult) as intended by the
-  // building system design.
-  return getScriptureBuff(getBuildingLevel(buildings, 'scriptureHall')).comprehensionMult
 }
 
 export function getPotionEffectMult(

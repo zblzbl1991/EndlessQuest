@@ -1,8 +1,8 @@
 import type { Enemy } from '../types/adventure'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import type { Character } from '../types/character'
-import type { Technique } from '../types/technique'
-import { getActiveBonuses } from './techniquesTable'
+import { TECHNIQUE_TIER_ORDER } from '../types/technique'
+import { getTechniqueById } from './techniquesTable'
 import type { ActiveSkill } from '../types/skill'
 import { getActiveSkillById } from './activeSkills'
 
@@ -44,64 +44,54 @@ export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUn
 }
 
 /**
- * Create a combat unit from a Character and optional technique.
+ * Create a combat unit from a Character and their learned techniques.
  *
  * Steps:
  * 1. Start with character.baseStats
- * 2. Apply technique growthModifiers (multiply each stat)
- * 3. Apply technique fixedBonuses (add flat bonuses based on comprehension)
- * 4. Use character.cultivationStats.spiritPower/maxSpiritPower
- * 5. Resolve equippedSkills to ActiveSkill objects
- * 6. Use technique.element, or 'neutral' if no technique
+ * 2. Sum bonuses from all learned techniques (flat additive)
+ * 3. Use character.cultivationStats.spiritPower/maxSpiritPower
+ * 4. Resolve equippedSkills to ActiveSkill objects
+ * 5. Use highest tier technique's element, or 'neutral' if no techniques
  */
 export function createCharacterCombatUnit(
   character: Character,
-  technique: Technique | null,
+  learnedTechniques: string[],
 ): CombatUnit {
   const base = character.baseStats
 
-  // If no technique, use raw base stats with neutral element
-  if (!technique) {
-    const skills = resolveSkills(character.equippedSkills)
-    return {
-      id: character.id,
-      name: character.name,
-      team: 'ally',
-      hp: base.hp,
-      maxHp: base.hp,
-      atk: base.atk,
-      def: base.def,
-      spd: base.spd,
-      crit: base.crit,
-      critDmg: base.critDmg,
-      element: 'neutral',
-      spiritPower: character.cultivationStats.spiritPower,
-      maxSpiritPower: character.cultivationStats.maxSpiritPower,
-      skills,
-      skillCooldowns: new Array(skills.length).fill(0),
+  let hp = base.hp
+  let atk = base.atk
+  let def = base.def
+  let spd = base.spd
+  let crit = base.crit
+  let critDmg = base.critDmg
+
+  // Collect bonuses from all techniques
+  let highestTierIdx = -1
+  let element: string = 'neutral'
+
+  for (const techId of learnedTechniques) {
+    const technique = getTechniqueById(techId)
+    if (!technique) continue
+
+    // Track highest tier for element
+    const tierIdx = TECHNIQUE_TIER_ORDER.indexOf(technique.tier)
+    if (tierIdx > highestTierIdx) {
+      highestTierIdx = tierIdx
+      element = technique.element
     }
-  }
 
-  // Apply growth modifiers
-  const gm = technique.growthModifiers
-  let hp = Math.floor(base.hp * gm.hp)
-  let atk = Math.floor(base.atk * gm.atk)
-  let def = Math.floor(base.def * gm.def)
-  let spd = Math.floor(base.spd * gm.spd)
-  let crit = Math.round(base.crit * gm.crit * 10000) / 10000
-  let critDmg = Math.round(base.critDmg * gm.critDmg * 100) / 100
-
-  // Apply fixed bonuses based on comprehension
-  const activeBonuses = getActiveBonuses(technique, character.techniqueComprehension)
-  for (const bonus of activeBonuses) {
-    switch (bonus.type) {
-      case 'hp': hp += bonus.value; break
-      case 'atk': atk += bonus.value; break
-      case 'def': def += bonus.value; break
-      case 'spd': spd += bonus.value; break
-      case 'crit': crit = Math.round((crit + bonus.value) * 10000) / 10000; break
-      case 'critDmg': critDmg = Math.round((critDmg + bonus.value) * 100) / 100; break
-      // cultivationRate and other non-stat bonuses are handled elsewhere
+    // Sum bonuses
+    for (const bonus of technique.bonuses) {
+      switch (bonus.type) {
+        case 'hp': hp += bonus.value; break
+        case 'atk': atk += bonus.value; break
+        case 'def': def += bonus.value; break
+        case 'spd': spd += bonus.value; break
+        case 'crit': crit = Math.round((crit + bonus.value) * 10000) / 10000; break
+        case 'critDmg': critDmg = Math.round((critDmg + bonus.value) * 100) / 100; break
+        // cultivationRate and other non-stat bonuses are handled elsewhere
+      }
     }
   }
 
@@ -118,7 +108,7 @@ export function createCharacterCombatUnit(
     spd,
     crit,
     critDmg,
-    element: technique.element,
+    element,
     spiritPower: character.cultivationStats.spiritPower,
     maxSpiritPower: character.cultivationStats.maxSpiritPower,
     skills,
