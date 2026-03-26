@@ -107,14 +107,14 @@ export default function BuildingsPage() {
     const rp = sect.buildings.find(b => b.type === 'recruitmentPavilion')
     if (rp && rp.unlocked) tabs.push({ key: 'recruit', label: '招收' })
     const af = sect.buildings.find(b => b.type === 'alchemyFurnace')
-    if (af && af.unlocked && af.level >= 3) tabs.push({ key: 'alchemy', label: '炼丹' })
+    if (af && af.unlocked) tabs.push({ key: 'alchemy', label: '炼丹' })
     const fg = sect.buildings.find(b => b.type === 'forge')
-    if (fg && fg.unlocked && fg.level >= 3) tabs.push({ key: 'forge', label: '锻造' })
+    if (fg && fg.unlocked) tabs.push({ key: 'forge', label: '锻造' })
     const sh = sect.buildings.find(b => b.type === 'scriptureHall')
-    if (sh && sh.unlocked && sh.level >= 3) tabs.push({ key: 'study', label: '参悟' })
+    if (sh && sh.unlocked) tabs.push({ key: 'study', label: '参悟' })
     if (sh && sh.unlocked) tabs.push({ key: 'codex', label: '图鉴' })
     const mk = sect.buildings.find(b => b.type === 'market')
-    if (mk && mk.unlocked && mk.level >= 3) tabs.push({ key: 'market', label: '坊市' })
+    if (mk && mk.unlocked) tabs.push({ key: 'market', label: '坊市' })
     return tabs
   }, [sect.buildings])
 
@@ -266,10 +266,12 @@ function BuildingsTab() {
               const unlockCheck = checkBuildingUnlock(def.type, sect.buildings)
               if (unlockCheck.unlocked) {
                 const buildCost = def.upgradeCost(building.level)
+                const canBuild = sect.resources.spiritStone >= buildCost.spiritStone
                 return (
                   <button
-                    className={styles.upgradeBtn}
+                    className={`${styles.upgradeBtn} ${canBuild ? styles.upgradeReady : styles.upgradeDisabled}`}
                     onClick={() => handleUpgrade(def.type)}
+                    disabled={!canBuild}
                   >
                     建造 ({buildCost.spiritStone}灵石)
                   </button>

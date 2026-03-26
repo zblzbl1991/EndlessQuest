@@ -29,12 +29,12 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const cost = isMajor ? BREAKTHROUGH_COSTS[nextRealm] : null
   const pillRecipe = cost ? getAutoRecipeById(cost.pillId) : null
   const hasPill = cost
-    ? vault.some(item => item.type === 'consumable' && (item as any).recipeId === cost.pillId)
+    ? vault.some(item => item.type === 'consumable' && item.recipeId === cost.pillId)
     : true
   const hasStones = cost ? spiritStone >= cost.spiritStone : true
 
   // Hint text
-  let hint = '修炼中'
+  let hint = character.status === 'cultivating' ? '修炼中' : character.status === 'resting' ? '休息中' : '冒险中'
   let hintClass = ''
   if (ready) {
     if (isMajor && cost) {

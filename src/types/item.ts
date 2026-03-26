@@ -31,6 +31,7 @@ export interface Equipment extends Item {
 export interface Consumable extends Item {
   type: 'consumable'
   effect: { type: string; value: number }
+  recipeId?: string
 }
 
 export interface Material extends Item {

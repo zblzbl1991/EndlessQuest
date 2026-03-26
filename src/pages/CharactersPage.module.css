@@ -407,21 +407,23 @@
 }
 
 .itemActionBtn {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-light);
+  background: transparent;
+  border: 1px solid var(--color-accent);
   border-radius: var(--radius-sm);
   padding: 4px 10px;
   font-size: 11px;
-  color: var(--color-text-secondary);
+  color: var(--color-accent);
   cursor: pointer;
-  transition: background var(--transition-fast);
+  transition: opacity var(--transition-fast);
+  font-family: var(--font-serif);
 }
 
 .itemActionBtn:hover {
-  background: var(--color-bg-paper);
+  opacity: 0.75;
 }
 
 .sellAction {
+  border-color: var(--color-danger);
   color: var(--color-danger);
 }
 

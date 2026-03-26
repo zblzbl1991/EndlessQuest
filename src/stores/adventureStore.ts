@@ -44,9 +44,11 @@ export interface AdventureStore {
   patrolCountToday: number
   patrolReward: number
   patrolCharacterId: string | null
+  patrolLastDate: string
   startPatrol(characterId: string): boolean
   tickPatrol(deltaSec: number): void
   collectPatrolReward(): void
+  resetPatrolIfNeeded(): void
 }
 
 // ---------------------------------------------------------------------------
@@ -141,7 +143,7 @@ function setCharacterResting(charId: string, timerSec: number): void {
 /** Count vault items matching a given recipeId */
 function countVaultItemsByRecipeId(recipeId: string): number {
   const { sect } = useSectStore.getState()
-  return sect.vault.filter((item) => (item as any).recipeId === recipeId).length
+  return sect.vault.filter((item) => item.type === 'consumable' && item.recipeId === recipeId).length
 }
 
 /** Remove N items from vault matching a given recipeId. Returns number actually removed. */
@@ -149,7 +151,7 @@ function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
   let removed = 0
   const sectStore = useSectStore.getState()
   while (removed < count) {
-    const idx = sectStore.sect.vault.findIndex((item) => (item as any).recipeId === recipeId)
+    const idx = sectStore.sect.vault.findIndex((item) => item.type === 'consumable' && item.recipeId === recipeId)
     if (idx === -1) break
     sectStore.removeVaultItem(idx)
     removed++
@@ -191,6 +193,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   patrolCountToday: 0,
   patrolReward: 0,
   patrolCharacterId: null,
+  patrolLastDate: todayDateStr(),
 
   startRun: (dungeonId, characterIds, supplyLevel = 'basic') => {
     const state = get()
@@ -624,12 +627,15 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   },
 
   startPatrol: (characterId) => {
+    const state = get()
+    state.resetPatrolIfNeeded()
+
     const { sect } = useSectStore.getState()
     const char = sect.characters.find(c => c.id === characterId)
     if (!char) return false
     if (get().patrolActive) return false
     if (get().patrolCountToday >= 5) return false
-    if (char.status === 'adventuring') return false
+    if (char.status === 'adventuring' || char.status === 'patrolling') return false
 
     const sectLevel = getSectLevel()
     const reward = 50 + sectLevel * 10
@@ -640,7 +646,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       patrolReward: reward,
       patrolCharacterId: characterId,
     })
-    useSectStore.getState().setCharacterStatus(characterId, 'adventuring')
+    useSectStore.getState().setCharacterStatus(characterId, 'patrolling')
     return true
   },
 
@@ -684,6 +690,14 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     return getMaxSimultaneousRuns(level)
   },
 
+  resetPatrolIfNeeded: () => {
+    const today = todayDateStr()
+    const last = get().patrolLastDate
+    if (last !== today) {
+      set({ patrolCountToday: 0, patrolLastDate: today })
+    }
+  },
+
   reset: () =>
     set({
       activeRuns: {},
@@ -693,8 +707,17 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       patrolCountToday: 0,
       patrolReward: 0,
       patrolCharacterId: null,
+      patrolLastDate: todayDateStr(),
     }),
 }))
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function todayDateStr(): string {
+  return new Date().toISOString().slice(0, 10)
+}
 
 // ---------------------------------------------------------------------------
 // Backward-compatible helper

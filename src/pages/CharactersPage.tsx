@@ -57,7 +57,7 @@ type FilterTab = 'all' | 'cultivating' | 'adventuring' | 'resting'
 const FILTER_TABS: { key: FilterTab; label: string; match: (s: CharacterStatus) => boolean }[] = [
   { key: 'all', label: '全部', match: () => true },
   { key: 'cultivating', label: '修炼中', match: (s) => s === 'cultivating' || s === 'training' },
-  { key: 'adventuring', label: '冒险中', match: (s) => s === 'adventuring' },
+  { key: 'adventuring', label: '冒险中', match: (s) => s === 'adventuring' || s === 'patrolling' },
   { key: 'resting', label: '休息', match: (s) => s === 'resting' || s === 'idle' || s === 'injured' },
 ]
 

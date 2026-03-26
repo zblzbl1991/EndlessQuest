@@ -9,6 +9,7 @@ import { startAutoSave } from './systems/save/startAutoSave'
 import Sidebar from './components/common/Sidebar'
 import BottomNav from './components/common/BottomNav'
 import TopBar from './components/common/TopBar'
+import ErrorBoundary from './components/common/ErrorBoundary'
 import SectPage from './pages/SectPage'
 import CharactersPage from './pages/CharactersPage'
 import BuildingsPage from './pages/BuildingsPage'
@@ -74,7 +75,7 @@ export default function App() {
         display: 'flex', justifyContent: 'center', alignItems: 'center',
         height: '100vh', fontFamily: 'serif', color: '#5a4a3a', background: '#f5f0e8',
       }}>
-        <span style={{ fontSize: '1.25rem', opacity: 0.7 }}>Loading...</span>
+        <span style={{ fontSize: '1.25rem', opacity: 0.7 }}>加载中...</span>
       </div>
     )
   }
@@ -84,14 +85,16 @@ export default function App() {
       <Sidebar />
       <TopBar />
       <div className="page-content">
-        <Routes>
-          <Route path="/" element={<SectPage />} />
-          <Route path="/characters" element={<CharactersPage />} />
-          <Route path="/buildings" element={<BuildingsPage />} />
-          <Route path="/adventure" element={<AdventurePage />} />
-          <Route path="/vault" element={<VaultPage />} />
-          <Route path="/log" element={<EventLogPage />} />
-        </Routes>
+        <ErrorBoundary>
+          <Routes>
+            <Route path="/" element={<SectPage />} />
+            <Route path="/characters" element={<CharactersPage />} />
+            <Route path="/buildings" element={<BuildingsPage />} />
+            <Route path="/adventure" element={<AdventurePage />} />
+            <Route path="/vault" element={<VaultPage />} />
+            <Route path="/log" element={<EventLogPage />} />
+          </Routes>
+        </ErrorBoundary>
       </div>
       <BottomNav />
     </BrowserRouter>

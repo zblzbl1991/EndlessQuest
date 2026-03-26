@@ -14,7 +14,7 @@ export default function SectPage() {
 
   const characterStats = useMemo(() => {
     const cultivating = sect.characters.filter((c) => c.status === 'cultivating').length
-    const adventuring = sect.characters.filter((c) => c.status === 'adventuring').length
+    const adventuring = sect.characters.filter((c) => c.status === 'adventuring' || c.status === 'patrolling').length
     const resting = sect.characters.filter(
       (c) => c.status === 'resting' || c.status === 'injured' || c.status === 'idle',
     ).length

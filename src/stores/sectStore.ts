@@ -156,7 +156,7 @@ function produceItemFromRecipe(recipe: AutoRecipe, buildingLevel: number): AnyIt
     const alchemyRecipe = ALCHEMY_RECIPES.find(r => r.id === recipe.id)
     if (!alchemyRecipe) return null
     const item = craftPotionAlchemy(alchemyRecipe, buildingLevel)
-    if (item) (item as any).recipeId = recipe.id
+    if (item) item.recipeId = recipe.id
     return item
   }
   if (recipe.productType === 'equipment') {
@@ -370,15 +370,15 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   tryUpgradeBuilding: (type) => {
     const { sect } = get()
+    const bDef = BUILDING_DEFS.find(d => d.type === type)
+    const isNewBuilding = !sect.buildings.find((b) => b.type === type)?.unlocked
 
     // Check unlock first
     const building = sect.buildings.find((b) => b.type === type)
     if (!building?.unlocked) {
       const unlockCheck = checkBuildingUnlock(type, sect.buildings)
       if (!unlockCheck.unlocked) return { success: false, reason: unlockCheck.reason }
-      // Try to unlock
-      const bDef = BUILDING_DEFS.find(d => d.type === type)
-      emitEvent('building_build', `建造 ${bDef?.name ?? type}`)
+      // Unlock the building (no event yet — emit after upgrade to avoid duplicate)
       set((s) => ({
         sect: {
           ...s.sect,
@@ -396,9 +396,12 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // Perform upgrade
     const success = get().upgradeBuilding(type)
     if (success) {
-      const bDef = BUILDING_DEFS.find(d => d.type === type)
       const newLevel = get().sect.buildings.find(b => b.type === type)?.level ?? 0
-      emitEvent('building_upgrade', `${bDef?.name ?? type} 升级至 Lv${newLevel}`)
+      if (isNewBuilding) {
+        emitEvent('building_build', `建造 ${bDef?.name ?? type}`)
+      } else {
+        emitEvent('building_upgrade', `${bDef?.name ?? type} 升级至 Lv${newLevel}`)
+      }
     }
     return { success, reason: '' }
   },
@@ -886,14 +889,14 @@ export const useSectStore = create<SectStore>((set, get) => ({
         if (cost) {
           // Major realm transition requires pill + spiritStone
           const hasPill = newVault.some(
-            item => item.type === 'consumable' && (item as any).recipeId === cost.pillId
+            item => item.type === 'consumable' && item.recipeId === cost.pillId
           )
           if (!hasPill || sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone) {
             // Cannot breakthrough: missing pill or insufficient stones - skip
           } else {
             // Consume pill and spiritStone
             const pillIndex = newVault.findIndex(
-              item => item.type === 'consumable' && (item as any).recipeId === cost.pillId
+              item => item.type === 'consumable' && item.recipeId === cost.pillId
             )
             newVault.splice(pillIndex, 1)
             breakthroughStoneCost += cost.spiritStone
@@ -969,8 +972,8 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // 12. Build new sect with updated resources (production + cultivation - consumed)
     const newResources = {
-      spiritEnergy: updatedSpiritEnergy,
-      spiritStone: sect.resources.spiritStone + rates.spiritStone * deltaSec - totalConsumed.spiritStone - breakthroughStoneCost,
+      spiritEnergy: Math.max(0, updatedSpiritEnergy),
+      spiritStone: Math.max(0, sect.resources.spiritStone + rates.spiritStone * deltaSec - totalConsumed.spiritStone - breakthroughStoneCost),
       herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb,
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
     }
@@ -1024,10 +1027,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (!canForge(recipe, { ore: sect.resources.ore, spiritStone: sect.resources.spiritStone }, forgeLevel))
       return { success: false, reason: '资源或等级不足' }
     const { successBonus } = getForgeBuff(forgeLevel)
-    // Deduct resources first
-    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, ore: s.sect.resources.ore - recipe.cost.ore, spiritStone: s.sect.resources.spiritStone - recipe.cost.spiritStone } } }))
+    // Attempt forge before deducting resources
     const item = forgeEquipmentSystem(recipe, forgeLevel, successBonus)
     if (!item) return { success: false, reason: '锻造失败' }
+    // Deduct resources only on success
+    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, ore: s.sect.resources.ore - recipe.cost.ore, spiritStone: s.sect.resources.spiritStone - recipe.cost.spiritStone } } }))
     get().addToVault(item)
     return { success: true, reason: '' }
   },

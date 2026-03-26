@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { DUNGEONS } from '../data/events'
@@ -43,6 +43,10 @@ export default function AdventurePage() {
   const patrolReward = useAdventureStore((s) => s.patrolReward)
   const startPatrol = useAdventureStore((s) => s.startPatrol)
   const collectPatrolReward = useAdventureStore((s) => s.collectPatrolReward)
+  const resetPatrolIfNeeded = useAdventureStore((s) => s.resetPatrolIfNeeded)
+
+  // Reset patrol count on day change
+  useEffect(() => { resetPatrolIfNeeded() }, [resetPatrolIfNeeded])
 
   // Use the highest realm character for unlock checks
   const maxRealmChar = useMemo(() => {
