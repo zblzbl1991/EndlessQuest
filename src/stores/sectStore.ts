@@ -9,7 +9,7 @@ import type { Pet } from '../systems/pet/PetSystem'
 import { generateCharacter, calcSectLevel, getMaxCharacters, getRecruitCost, isQualityUnlocked } from '../systems/character/CharacterEngine'
 import { calcResourceRates } from '../systems/economy/ResourceEngine'
 import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from '../systems/cultivation/CultivationEngine'
-import { tickComprehension, canLearnTechnique } from '../systems/technique/TechniqueSystem'
+import { tickComprehension, canLearnTechnique, tryComprehendOnBreakthrough } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
 import { getTrainingSpeedMult, getComprehensionSpeedMult, getRecruitCostMult, getForgeBuff, getBuildingLevel } from '../systems/economy/BuildingEffects'
@@ -1036,6 +1036,21 @@ export const useSectStore = create<SectStore>((set, get) => ({
                 cultivation: 0,
                 baseStats: btResult.newStats,
               }
+              // Breakthrough comprehension (major)
+              const comprehendedId = tryComprehendOnBreakthrough(
+                updatedChar, get().sect.techniqueCodex, isMajorBreakthrough
+              )
+              if (comprehendedId) {
+                updatedChar = {
+                  ...updatedChar,
+                  learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+                }
+                if (!updatedChar.currentTechnique) {
+                  updatedChar = { ...updatedChar, currentTechnique: comprehendedId, techniqueComprehension: 0 }
+                }
+                const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
+                emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
+              }
             } else {
               emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
               updatedChar = { ...updatedChar, cultivation: 0 }
@@ -1053,6 +1068,21 @@ export const useSectStore = create<SectStore>((set, get) => ({
             realmStage: btResult.newStage,
             cultivation: 0,
             baseStats: btResult.newStats,
+          }
+          // Breakthrough comprehension (sub-level)
+          const subComprehendedId = tryComprehendOnBreakthrough(
+            updatedChar, get().sect.techniqueCodex, false
+          )
+          if (subComprehendedId) {
+            updatedChar = {
+              ...updatedChar,
+              learnedTechniques: [...updatedChar.learnedTechniques, subComprehendedId],
+            }
+            if (!updatedChar.currentTechnique) {
+              updatedChar = { ...updatedChar, currentTechnique: subComprehendedId, techniqueComprehension: 0 }
+            }
+            const subCompName = getTechniqueById(subComprehendedId)?.name ?? subComprehendedId
+            emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${subCompName}`)
           }
         } else {
           emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)

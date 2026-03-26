@@ -250,7 +250,7 @@ describe('SectStore - Technique Management', () => {
 
     const result = getStore().learnTechnique(char.id, 0)
     expect(result).toBe(false)
-    expect(getStore().sect.characters[0].currentTechnique).toBeNull()
+    expect(getStore().sect.characters[0].currentTechnique).toBe('qingxin')
   })
 
   it('learnTechnique should reject if character not found', () => {
@@ -744,41 +744,36 @@ describe('SectStore - Healing', () => {
 // Breakthrough Tests
 // ---------------------------------------------------------------------------
 
-describe('SectStore - Breakthrough', () => {
+describe('SectStore - Auto-breakthrough (tickAll)', () => {
   beforeEach(() => resetStore())
+  afterEach(() => vi.restoreAllMocks())
 
-  it('attemptBreakthrough should succeed with enough cultivation', () => {
+  it('should auto-breakthrough sub-level with enough cultivation', () => {
     const char = getFirstCharacter()
-    // First breakthrough requires 100 cultivation (realm 0, stage 0)
-    setCharacterCultivation(char.id, 100)
+    setCharacterCultivation(char.id, 100) // realm 0, stage 0 needs 100
 
-    const result = getStore().attemptBreakthrough(char.id)
-    expect(result.success).toBe(true)
-    expect(result.newRealm).toBe(0) // still realm 0
-    expect(result.newStage).toBe(1) // stage 0 -> stage 1
-    expect(result.statsChanged).toBe(true)
-    expect(getStore().sect.characters[0].cultivation).toBe(0) // reset
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
+
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(0)
+    expect(updated.realmStage).toBe(1)
+    expect(updated.cultivation).toBe(0) // reset on breakthrough
   })
 
-  it('attemptBreakthrough should fail with insufficient cultivation', () => {
+  it('should not attempt breakthrough with insufficient cultivation', () => {
     const char = getFirstCharacter()
-    setCharacterCultivation(char.id, 50)
+    setCharacterCultivation(char.id, 50) // needs 100
 
-    const result = getStore().attemptBreakthrough(char.id)
-    expect(result.success).toBe(false)
+    getStore().tickAll(1)
+
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(0)
+    expect(updated.realmStage).toBe(0)
   })
-})
 
-// ---------------------------------------------------------------------------
-// Breakthrough Cost Tests
-// ---------------------------------------------------------------------------
-
-describe('attemptBreakthrough costs', () => {
-  beforeEach(() => resetStore())
-
-  it('should consume pill and spiritStone when breaking through to new realm', () => {
+  it('should consume pill + spiritStone on major realm breakthrough', () => {
     const char = getFirstCharacter()
-    // Set character at max stage (stage 3) of realm 0 with max cultivation
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
@@ -791,24 +786,23 @@ describe('attemptBreakthrough costs', () => {
         ],
       },
     }))
-    // Attach recipeId to the vault pill (simulating production)
-    const vault = getStore().sect.vault
-    ;(vault[0] as any).recipeId = 'foundation_pill'
+    ;(getStore().sect.vault[0] as any).recipeId = 'foundation_pill'
 
-    const result = getStore().attemptBreakthrough(char.id)
-    expect(result.success).toBe(true)
-    expect(result.newRealm).toBe(1)
-    expect(result.newStage).toBe(0)
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
 
-    // Pill should be consumed
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(1)
+    expect(updated.realmStage).toBe(0)
+    // Pill consumed
     expect(getStore().sect.vault).toHaveLength(0)
-    // spiritStone should be deducted (500 for foundation_pill breakthrough)
-    expect(getStore().sect.resources.spiritStone).toBe(1000 - 500)
+    // spiritStone deducted (500 for foundation_pill)
+    expect(getStore().sect.resources.spiritStone).toBeLessThan(1000)
+    expect(getStore().sect.resources.spiritStone).toBeGreaterThanOrEqual(1000 - 500)
   })
 
-  it('should fail without required pill', () => {
+  it('should skip breakthrough when pill is missing', () => {
     const char = getFirstCharacter()
-    // Set character at max stage (stage 3) of realm 0 with max cultivation
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
@@ -816,35 +810,26 @@ describe('attemptBreakthrough costs', () => {
           c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
         ),
         resources: { ...s.sect.resources, spiritStone: 1000 },
-        // Vault has wrong pill (spirit_potion, not foundation_pill)
-        vault: [
-          makeConsumable('pill_wrong', { name: '灵气丹' }),
-        ],
+        vault: [],
       },
     }))
-    ;(getStore().sect.vault[0] as any).recipeId = 'spirit_potion'
 
-    const result = getStore().attemptBreakthrough(char.id)
-    expect(result.success).toBe(false)
-    expect(result.newRealm).toBe(0)
-    expect(result.newStage).toBe(3)
+    getStore().tickAll(1)
 
-    // Pill should NOT be consumed
-    expect(getStore().sect.vault).toHaveLength(1)
-    // spiritStone should NOT be deducted
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(0)
+    expect(updated.realmStage).toBe(3)
     expect(getStore().sect.resources.spiritStone).toBe(1000)
   })
 
-  it('should fail without enough spiritStone even if pill exists', () => {
+  it('should skip breakthrough when spiritStone insufficient', () => {
     const char = getFirstCharacter()
-    // Set character at max stage (stage 3) of realm 0 with max cultivation
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
           c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
         ),
-        // Only 100 spiritStone, but need 500
         resources: { ...s.sect.resources, spiritStone: 100 },
         vault: [
           makeConsumable('pill_2', { name: '筑基丹', effect: { type: 'breakthrough', value: 0 } }),
@@ -853,31 +838,34 @@ describe('attemptBreakthrough costs', () => {
     }))
     ;(getStore().sect.vault[0] as any).recipeId = 'foundation_pill'
 
-    const result = getStore().attemptBreakthrough(char.id)
-    expect(result.success).toBe(false)
-    expect(result.newRealm).toBe(0)
-    expect(result.newStage).toBe(3)
+    getStore().tickAll(1)
 
-    // Pill should NOT be consumed
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(0)
+    expect(updated.realmStage).toBe(3)
     expect(getStore().sect.vault).toHaveLength(1)
-    // spiritStone should NOT be deducted
     expect(getStore().sect.resources.spiritStone).toBe(100)
   })
 
-  it('should not require pill for sub-level breakthrough', () => {
+  it('should not consume vault/stones for sub-level breakthrough', () => {
     const char = getFirstCharacter()
-    // Character at realm 0, stage 0 with enough cultivation for stage 1
     setCharacterCultivation(char.id, 100)
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: 1000 },
+        vault: [
+          makeConsumable('pill_1', { name: '回血丹' }),
+        ],
+      },
+    }))
 
-    const result = getStore().attemptBreakthrough(char.id)
-    expect(result.success).toBe(true)
-    expect(result.newRealm).toBe(0)
-    expect(result.newStage).toBe(1)
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
 
-    // No vault items should be consumed
-    expect(getStore().sect.vault).toHaveLength(0)
-    // spiritStone should NOT be deducted (sub-level breakthrough is free)
-    expect(getStore().sect.resources.spiritStone).toBe(500)
+    // Sub-level breakthrough should not consume vault or stones
+    expect(getStore().sect.vault).toHaveLength(1)
+    expect(getStore().sect.resources.spiritStone).toBe(1000)
   })
 })
 

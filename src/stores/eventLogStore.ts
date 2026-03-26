@@ -16,6 +16,7 @@ export type EventType =
   | 'patrol_complete'
   | 'item_crafted'
   | 'technique_unlocked'
+  | 'breakthrough_comprehension'
 
 export interface GameEvent {
   id: string
