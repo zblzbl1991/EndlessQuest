@@ -296,6 +296,54 @@
   white-space: nowrap;
 }
 
+.effectRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  margin-bottom: var(--space-sm);
+  color: var(--color-text-secondary);
+}
+
+.effectLabel {
+  color: var(--color-text-tertiary);
+}
+
+.effectValue {
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.growthSection {
+  margin-bottom: var(--space-sm);
+}
+
+.growthTitle {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+}
+
+.growthGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.growthPositive {
+  color: var(--color-success);
+  background: rgba(76, 175, 80, 0.08);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.growthNegative {
+  color: var(--color-danger);
+  background: rgba(244, 67, 54, 0.08);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+
 .bonuses {
   display: flex;
   flex-direction: column;

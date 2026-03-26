@@ -218,9 +218,8 @@ describe('Enemies data', () => {
   })
 
   it('should apply fixed bonuses based on comprehension', () => {
-    // lieyan: atk+5 @ 30% comprehension — need comprehension >= 0.3 * difficulty
-    // difficulty 1, so 30% = 0.3, comprehension of 1 would be >= 0.3
-    const char = makeTestCharacter({ techniqueComprehension: 1 })
+    // lieyan: atk+5 @ 30% comprehension threshold
+    const char = makeTestCharacter({ techniqueComprehension: 30 })
     const technique = getTechniqueById('lieyan')!
     const unit = createCharacterCombatUnit(char, technique)
     // Base atk with growth modifier: 15 * 1.3 = 19, then +5 bonus = 24

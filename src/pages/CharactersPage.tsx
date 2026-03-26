@@ -3,7 +3,7 @@ import { useSectStore } from '../stores/sectStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
-import { canLearnTechnique } from '../systems/technique/TechniqueSystem'
+import { canLearnTechnique, getComprehensionEffect } from '../systems/technique/TechniqueSystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import { QUALITY_NAMES } from '../data/items'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
@@ -179,6 +179,23 @@ function CharacterDetail({
   // Cultivation speed
   const cultivationSpeed = calcCultivationRate(character, technique ?? null)
 
+  // Technique effects
+  const comprehensionEffect = technique ? getComprehensionEffect(character.techniqueComprehension) : 0
+
+  const growthModEntries: Array<[string, number]> = technique
+    ? (Object.entries(technique.growthModifiers) as Array<[string, number]>)
+        .filter(([, v]) => v !== 1)
+        .map(([k, v]) => [k, Math.round((v - 1) * 100)])
+    : []
+
+  function formatBonusValue(type: string, value: number): string {
+    const label = STAT_LABELS[type] ?? type
+    if (type === 'crit' || type === 'critDmg' || type === 'cultivationRate') {
+      return `${label} +${Math.round(value * 100)}%`
+    }
+    return `${label} +${value}`
+  }
+
   const handleEquipFromBackpack = (bpIdx: number, slotIdx: number) => {
     equipItem(characterId, bpIdx, slotIdx)
     setSelectedBackpackIdx(null)
@@ -297,6 +314,26 @@ function CharacterDetail({
               <ProgressBar value={character.techniqueComprehension} max={100} variant="ink" />
               <span className={styles.comprehensionValue}>{Math.floor(character.techniqueComprehension)}%</span>
             </div>
+            <div className={styles.effectRow}>
+              <span className={styles.effectLabel}>领悟效果</span>
+              <span className={styles.effectValue}>
+                {comprehensionEffect >= 1 ? '大成' : comprehensionEffect >= 0.7 ? '小成' : '初悟'}
+                （{Math.round(comprehensionEffect * 100)}%）
+              </span>
+            </div>
+            {/* Growth modifiers */}
+            {growthModEntries.length > 0 && (
+              <div className={styles.growthSection}>
+                <div className={styles.growthTitle}>突破成长加成</div>
+                <div className={styles.growthGrid}>
+                  {growthModEntries.map(([stat, pct]) => (
+                    <div key={stat} className={pct >= 0 ? styles.growthPositive : styles.growthNegative}>
+                      {STAT_LABELS[stat] ?? stat} {pct > 0 ? `+${pct}%` : `${pct}%`}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {technique.fixedBonuses.length > 0 && (
               <div className={styles.bonuses}>
                 {technique.fixedBonuses.map((bonus, i) => {
@@ -304,7 +341,7 @@ function CharacterDetail({
                   const active = character.techniqueComprehension >= threshold
                   return (
                     <div key={i} className={`${styles.bonusItem} ${active ? styles.bonusActive : styles.bonusLocked}`}>
-                      <span>{STAT_LABELS[bonus.type] ?? bonus.type} +{bonus.type === 'crit' ? `${Math.round(bonus.value * 100)}%` : bonus.type === 'critDmg' ? `${Math.round(bonus.value * 100)}%` : bonus.type === 'cultivationRate' ? `${Math.round(bonus.value * 100)}%` : bonus.value}</span>
+                      <span>{formatBonusValue(bonus.type, bonus.value)}</span>
                       <span className={styles.bonusThreshold}>{threshold}%</span>
                     </div>
                   )

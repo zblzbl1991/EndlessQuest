@@ -4,10 +4,9 @@ import type { Technique } from '../types/technique'
  * All 12 techniques organized by tier.
  *
  * fixedBonuses are stored in order of their comprehension threshold:
- *   threshold = comprehensionNeeded (technique index in the bonuses array + 1)
- *   Each technique has at most 2 bonuses at 30% and 70% of its comprehensionDifficulty.
+ *   Each technique has at most 2 bonuses at 30% and 70% comprehension.
  *
- * comprehensionNeeded for bonus[i] = technique.comprehensionDifficulty * [0.3, 0.7][i]
+ * comprehensionNeeded for bonus[0] = 30, bonus[1] = 70
  */
 
 export const TECHNIQUES: Technique[] = [
@@ -193,15 +192,15 @@ export function getTechniqueById(id: string): Technique | undefined {
  * Get the comprehension thresholds for a technique's fixed bonuses.
  * Returns an array of comprehension values needed to unlock each bonus.
  * Bonus 0 requires comprehensionDifficulty * 0.3
- * Bonus 1 requires comprehensionDifficulty * 0.7
+ * Bonus 0 unlocks at 30% comprehension, Bonus 1 at 70%.
  */
 export function getBonusThresholds(technique: Technique): number[] {
   const thresholds: number[] = []
   if (technique.fixedBonuses.length >= 1) {
-    thresholds.push(technique.comprehensionDifficulty * 0.3)
+    thresholds.push(30)
   }
   if (technique.fixedBonuses.length >= 2) {
-    thresholds.push(technique.comprehensionDifficulty * 0.7)
+    thresholds.push(70)
   }
   return thresholds
 }

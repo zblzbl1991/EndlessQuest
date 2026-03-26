@@ -105,10 +105,10 @@ describe('CultivationEngine', () => {
     })
 
     it('should apply cultivationRate bonus from technique at sufficient comprehension', () => {
-      // cultivationRate bonus unlocks at comprehensionDifficulty * 0.7 = 2 * 0.7 = 1.4
+      // cultivationRate bonus is the 2nd fixed bonus, threshold = 70%
       const character = createCharacter({
         realm: 1,
-        techniqueComprehension: 30,
+        techniqueComprehension: 70,
       })
       const rate = calcCultivationRate(character, cultivationRateTechnique)
       const baseRate = 5 * 1.0 * 0.9 // spiritualRoot=10 (+0%), realm 1 (0.9x)
@@ -133,10 +133,10 @@ describe('CultivationEngine', () => {
     it('should apply technique cultivationRate bonus in tick', () => {
       const character = createCharacter({
         realm: 1,
-        techniqueComprehension: 30,
+        techniqueComprehension: 70,
       })
-      // cultivationRate bonus unlocks at comprehensionDifficulty * 0.7 = 2 * 0.7 = 1.4
-      // With comprehension 30 >= 1.4, the +10% cultivationRate bonus is active
+      // cultivationRate bonus is the 2nd fixed bonus, threshold = 70%
+      // With comprehension 70 >= 70, the +10% cultivationRate bonus is active
       const result = tick(character, 20, 1, cultivationRateTechnique)
       const baseRate = 5 * 1.0 * 0.9 // spiritualRoot=10 (+0%), realm 1 (0.9x)
       expect(result.cultivationGained).toBe(baseRate * 1.1) // baseRate * (1 + 0.1)
