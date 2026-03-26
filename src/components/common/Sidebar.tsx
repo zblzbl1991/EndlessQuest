@@ -8,6 +8,7 @@ const navItems = [
   { to: '/buildings', label: '建筑', icon: '🏯' },
   { to: '/adventure', label: '秘境', icon: '⚔' },
   { to: '/vault', label: '仓库', icon: '📦' },
+  { to: '/log', label: '记录', icon: '📜' },
 ]
 
 export default function Sidebar() {

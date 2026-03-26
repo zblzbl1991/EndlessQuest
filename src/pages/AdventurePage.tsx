@@ -326,6 +326,11 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
   // Last 5 log entries
   const recentLogs = run.eventLog.slice(-5)
 
+  // Floor timer countdown
+  const floorTimer = run.floorTimer ?? 0
+  const FLOOR_TICK_SECONDS = 10
+  const remainingSec = Math.max(0, Math.ceil(FLOOR_TICK_SECONDS - floorTimer))
+
   const hasAlive = run.teamCharacterIds.some(
     (cid) => run.memberStates[cid]?.status !== 'dead'
   )
@@ -357,6 +362,11 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
           max={totalFloors}
           variant="ink"
         />
+        {!isCompleted && (
+          <span className={styles.floorCountdown}>
+            {remainingSec}秒后自动推进
+          </span>
+        )}
       </div>
 
       {/* Team members */}

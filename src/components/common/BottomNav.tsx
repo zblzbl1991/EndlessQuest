@@ -7,6 +7,7 @@ const tabs = [
   { to: '/buildings', label: '建筑' },
   { to: '/adventure', label: '秘境' },
   { to: '/vault', label: '仓库' },
+  { to: '/log', label: '记录' },
 ]
 
 export default function BottomNav() {

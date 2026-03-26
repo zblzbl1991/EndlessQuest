@@ -15,4 +15,5 @@
 
 .fillInk {
   background: linear-gradient(90deg, #2c2c2c, #6b6b6b);
+  transition: width 1s linear;
 }

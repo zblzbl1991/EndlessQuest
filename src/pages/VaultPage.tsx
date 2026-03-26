@@ -185,141 +185,125 @@ function VaultTab() {
 
 function BackpackTab() {
   const characters = useSectStore((s) => s.sect.characters)
-  const [selectedCharId, setSelectedCharId] = useState<string | null>(
-    characters.length > 0 ? characters[0].id : null
-  )
   const equipItem = useSectStore((s) => s.equipItem)
   const learnTechnique = useSectStore((s) => s.learnTechnique)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
   const sellCharacterItem = useSectStore((s) => s.sellCharacterItem)
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
+  // selectedKey: "charId-index" compound key for per-character selection
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
 
-  const selectedChar = characters.find((c) => c.id === selectedCharId) ?? null
-  const backpack = selectedChar?.backpack ?? []
-  const selectedItem = selectedIndex !== null ? backpack[selectedIndex] ?? null : null
-
-  const handleEquip = (bpIdx: number) => {
-    if (!selectedChar || bpIdx === null) return
-    const item = backpack[bpIdx]
+  const handleEquip = (charId: string, bpIdx: number) => {
+    const character = characters.find((c) => c.id === charId)
+    if (!character) return
+    const item = character.backpack[bpIdx]
     if (!item || item.type !== 'equipment') return
-    // Determine slot from equipment
     const slotIndex = ['head', 'armor', 'bracer', 'belt', 'boots', 'weapon', 'accessory1', 'accessory2', 'talisman']
       .indexOf(item.slot)
     if (slotIndex >= 0) {
-      equipItem(selectedChar.id, bpIdx, slotIndex)
+      equipItem(charId, bpIdx, slotIndex)
     }
-    setSelectedIndex(null)
+    setSelectedKey(null)
   }
 
-  const handleLearn = (bpIdx: number) => {
-    if (!selectedChar) return
-    learnTechnique(selectedChar.id, bpIdx)
-    setSelectedIndex(null)
+  const handleLearn = (charId: string, bpIdx: number) => {
+    learnTechnique(charId, bpIdx)
+    setSelectedKey(null)
   }
 
-  const handleTransferToVault = (bpIdx: number) => {
-    if (!selectedChar) return
-    transferItemToVault(selectedChar.id, bpIdx)
-    setSelectedIndex(null)
+  const handleTransferToVault = (charId: string, bpIdx: number) => {
+    transferItemToVault(charId, bpIdx)
+    setSelectedKey(null)
   }
 
-  const handleSell = (bpIdx: number) => {
-    if (!selectedChar) return
-    sellCharacterItem(selectedChar.id, bpIdx)
-    setSelectedIndex(null)
+  const handleSell = (charId: string, bpIdx: number) => {
+    sellCharacterItem(charId, bpIdx)
+    setSelectedKey(null)
   }
 
-  // If the selected character no longer exists, reset
-  if (selectedCharId && !characters.find((c) => c.id === selectedCharId)) {
-    setSelectedCharId(characters.length > 0 ? characters[0].id : null)
+  if (characters.length === 0) {
+    return (
+      <div className={styles.tabContent}>
+        <div className={styles.empty}>暂无弟子</div>
+      </div>
+    )
   }
 
   return (
     <div className={styles.tabContent}>
-      {/* Character selector */}
-      <div className={styles.charSelectorTop}>
-        {characters.length === 0 ? (
-          <div className={styles.empty}>暂无弟子</div>
-        ) : (
-          <select
-            className={styles.charDropdown}
-            value={selectedCharId ?? ''}
-            onChange={(e) => {
-              setSelectedCharId(e.target.value || null)
-              setSelectedIndex(null)
-            }}
-          >
-            {characters.map((char) => (
-              <option key={char.id} value={char.id}>
-                {char.name} ({char.backpack.length}/{char.maxBackpackSlots})
-              </option>
-            ))}
-          </select>
-        )}
-      </div>
+      {characters.map((char) => {
+        const key = (idx: number) => `${char.id}-${idx}`
+        const bp = char.backpack
+        const selCharId = selectedKey?.split('-')[0]
+        const selIdx = selectedKey ? parseInt(selectedKey.split('-').slice(1).join('-'), 10) : null
+        const isThisChar = selCharId === char.id
+        const selectedItem = isThisChar && selIdx !== null ? bp[selIdx] ?? null : null
 
-      {selectedChar && (
-        <>
-          {/* Backpack items */}
-          {backpack.length === 0 ? (
-            <div className={styles.empty}>背包为空</div>
-          ) : (
-            <div className={styles.itemGrid}>
-              {backpack.map((item, idx) => (
-                <div key={item.id + '-' + idx} className={styles.itemWrapper}>
-                  <ItemCard
-                    item={item}
-                    selected={selectedIndex === idx}
-                    onClick={() => setSelectedIndex(selectedIndex === idx ? null : idx)}
-                  />
+        return (
+          <div key={char.id} className={styles.charSection}>
+            <div className={styles.charSectionHeader}>
+              <span className={styles.charSectionName}>{char.name}</span>
+              <span className={styles.charSectionCount}>{bp.length}/{char.maxBackpackSlots}</span>
+            </div>
+
+            {bp.length === 0 ? (
+              <div className={styles.empty}>背包为空</div>
+            ) : (
+              <div className={styles.itemGrid}>
+                {bp.map((item, idx) => (
+                  <div key={item.id + '-' + idx} className={styles.itemWrapper}>
+                    <ItemCard
+                      item={item}
+                      selected={isThisChar && selIdx === idx}
+                      onClick={() => setSelectedKey(selectedKey === key(idx) ? null : key(idx))}
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {selectedItem && isThisChar && selIdx !== null && (
+              <div className={styles.itemDetail}>
+                <div className={styles.detailName}>{selectedItem.name}</div>
+                <div className={styles.detailQuality} style={{ color: `var(--color-quality-${selectedItem.quality})` }}>
+                  {QUALITY_NAMES[selectedItem.quality]}
                 </div>
-              ))}
-            </div>
-          )}
+                <div className={styles.detailPrice}>售价: {selectedItem.sellPrice} 灵石</div>
 
-          {/* Item actions */}
-          {selectedItem && selectedIndex !== null && (
-            <div className={styles.itemDetail}>
-              <div className={styles.detailName}>{selectedItem.name}</div>
-              <div className={styles.detailQuality} style={{ color: `var(--color-quality-${selectedItem.quality})` }}>
-                {QUALITY_NAMES[selectedItem.quality]}
-              </div>
-              <div className={styles.detailPrice}>售价: {selectedItem.sellPrice} 灵石</div>
-
-              <div className={styles.detailActions}>
-                {selectedItem.type === 'equipment' && (
+                <div className={styles.detailActions}>
+                  {selectedItem.type === 'equipment' && (
+                    <button
+                      className={styles.actionEquip}
+                      onClick={() => handleEquip(char.id, selIdx)}
+                    >
+                      装备
+                    </button>
+                  )}
+                  {selectedItem.type === 'techniqueScroll' && (
+                    <button
+                      className={styles.actionLearn}
+                      onClick={() => handleLearn(char.id, selIdx)}
+                    >
+                      学习
+                    </button>
+                  )}
                   <button
-                    className={styles.actionEquip}
-                    onClick={() => handleEquip(selectedIndex)}
+                    className={styles.actionTransfer}
+                    onClick={() => handleTransferToVault(char.id, selIdx)}
                   >
-                    装备
+                    转移到仓库
                   </button>
-                )}
-                {selectedItem.type === 'techniqueScroll' && (
                   <button
-                    className={styles.actionLearn}
-                    onClick={() => handleLearn(selectedIndex)}
+                    className={styles.actionSell}
+                    onClick={() => handleSell(char.id, selIdx)}
                   >
-                    学习
+                    出售
                   </button>
-                )}
-                <button
-                  className={styles.actionTransfer}
-                  onClick={() => handleTransferToVault(selectedIndex)}
-                >
-                  转移到仓库
-                </button>
-                <button
-                  className={styles.actionSell}
-                  onClick={() => handleSell(selectedIndex)}
-                >
-                  出售
-                </button>
+                </div>
               </div>
-            </div>
-          )}
-        </>
-      )}
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

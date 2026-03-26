@@ -154,6 +154,14 @@
   margin-bottom: var(--space-md);
 }
 
+.floorCountdown {
+  display: block;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  text-align: right;
+  margin-top: 2px;
+}
+
 /* Team Members */
 .runTeam {
   display: flex;

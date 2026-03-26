@@ -14,6 +14,7 @@ import BuildingsPage from './pages/BuildingsPage'
 
 import AdventurePage from './pages/AdventurePage'
 import VaultPage from './pages/VaultPage'
+import EventLogPage from './pages/EventLogPage'
 
 export default function App() {
   const startGame = useGameStore((s) => s.startGame)
@@ -67,6 +68,7 @@ export default function App() {
           <Route path="/buildings" element={<BuildingsPage />} />
           <Route path="/adventure" element={<AdventurePage />} />
           <Route path="/vault" element={<VaultPage />} />
+          <Route path="/log" element={<EventLogPage />} />
         </Routes>
       </div>
       <BottomNav />

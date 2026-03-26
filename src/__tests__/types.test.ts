@@ -377,10 +377,14 @@ describe('Adventure types', () => {
       itemRewards: [],
       eventLog: [{ timestamp: Date.now(), message: '进入灵草谷' }],
       status: 'active',
+      supplyLevel: 'basic',
+      rewardMultiplier: 1.0,
     }
     expect(run.teamCharacterIds).toHaveLength(2)
     expect(run.memberStates['char1'].status).toBe('alive')
     expect(run.status).toBe('active')
+    expect(run.supplyLevel).toBe('basic')
+    expect(run.rewardMultiplier).toBe(1.0)
   })
 
   it('MemberState should accept all status values', () => {

@@ -32,6 +32,48 @@ export interface BreakthroughResult {
 }
 
 /**
+ * Get the effective tribulation power for a realm at a given stage.
+ * If the realm has tribulationStages, returns the stage-specific value.
+ * Otherwise falls back to tribulationPower (default 0).
+ */
+function getTribulationPower(realmIndex: number, stage: RealmStage): number {
+  const realm = REALMS[realmIndex]
+  if (!realm) return 0
+  if (realm.tribulationStages && realm.tribulationStages[stage] !== undefined) {
+    return realm.tribulationStages[stage]
+  }
+  return realm.tribulationPower ?? 0
+}
+
+/**
+ * Check if the next breakthrough would be a major realm transition.
+ */
+export function isMajorRealmBreakthrough(realm: number, stage: RealmStage): boolean {
+  const r = REALMS[realm]
+  if (!r) return false
+  return (stage + 1) >= r.stages.length
+}
+
+/**
+ * Calculate the failure rate (0~1) for a breakthrough attempt.
+ *
+ * Sub-level:  5% + tribulationPower × 15%
+ * Major realm: 10% + target tribulationPower × 25%
+ */
+export function calcBreakthroughFailureRate(character: Character): number {
+  const major = isMajorRealmBreakthrough(character.realm, character.realmStage)
+  if (major) {
+    // Use target realm's tribulation power
+    const targetPower = getTribulationPower(character.realm + 1, 0)
+    return 0.10 + targetPower * 0.25
+  }
+  // Sub-level: use current realm's tribulation power at next stage
+  const nextStage = (character.realmStage + 1) as RealmStage
+  const power = getTribulationPower(character.realm, nextStage)
+  return 0.05 + power * 0.15
+}
+
+/**
  * Calculate cultivation rate per second for a character.
  *
  * Takes optional technique into account for cultivationRate bonus.
@@ -170,12 +212,27 @@ function applyTechniqueGrowthToStats(
  *
  * If a technique is provided and the character has comprehension > 0,
  * stat growth is modified by the technique's growth modifiers.
+ *
+ * failureRate: probability of failure (0~1). On failure, realm/stage stay the same
+ * and the caller should reset cultivation to 0.
  */
 export function breakthrough(
   character: Character,
   technique: Technique | null,
+  failureRate: number = 0,
 ): BreakthroughResult {
   if (!canBreakthrough(character)) {
+    return {
+      success: false,
+      newRealm: character.realm,
+      newStage: character.realmStage,
+      oldStats: { ...character.baseStats },
+      newStats: { ...character.baseStats },
+    }
+  }
+
+  // Roll for failure
+  if (failureRate > 0 && Math.random() < failureRate) {
     return {
       success: false,
       newRealm: character.realm,
