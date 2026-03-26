@@ -1,121 +1,156 @@
-import type { Sect, Character } from '../../types'
+import type { Sect } from '../../types'
 import type { DungeonRun } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
 import { useGameStore } from '../../stores/gameStore'
+import { useEventLogStore } from '../../stores/eventLogStore'
 import { getDB } from './db'
 
 const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
 
+// ---------------------------------------------------------------------------
+// SaveMeta v5 — stored in IndexedDB 'meta' store (keyPath: slot)
+// ---------------------------------------------------------------------------
+
 interface SaveMeta {
-  version: 4
+  slot: number
+  version: 5
   lastOnlineTime: number
-  saveSlot: number
+  sectName: string
+  sectLevel: number
+  resources: Sect['resources']
+  techniqueCodex: string[]
+  maxVaultSlots: number
+  totalAdventureRuns: number
+  totalBreakthroughs: number
+  lastTransmissionTime: number
 }
+
+// ---------------------------------------------------------------------------
+// saveGame — write sect data to per-entity stores
+// ---------------------------------------------------------------------------
 
 export async function saveGame(): Promise<void> {
   try {
-    const db = await getDB()
-    const tx = db.transaction(['save', 'adventure'], 'readwrite')
-
     const sect = useSectStore.getState().sect
-    await tx.objectStore('save').put({
+    const db = await getDB()
+    const storeNames = ['meta', 'characters', 'buildings', 'vault', 'pets'] as const
+    const tx = db.transaction(storeNames, 'readwrite')
+
+    // Write meta
+    await tx.objectStore('meta').put({
       slot: 1,
-      timestamp: Date.now(),
-      version: 4,
-      sect,
+      version: 5,
+      lastOnlineTime: Date.now(),
+      sectName: sect.name,
+      sectLevel: sect.level,
+      resources: sect.resources,
+      techniqueCodex: sect.techniqueCodex,
+      maxVaultSlots: sect.maxVaultSlots,
+      totalAdventureRuns: sect.totalAdventureRuns,
+      totalBreakthroughs: sect.totalBreakthroughs,
+      lastTransmissionTime: sect.lastTransmissionTime,
     })
 
-    const activeRuns = useAdventureStore.getState().activeRuns
-    const advStore = tx.objectStore('adventure')
-    for (const run of Object.values(activeRuns)) {
-      await advStore.put({ id: run.id, run })
+    // Write characters
+    const charStore = tx.objectStore('characters')
+    for (const c of sect.characters) await charStore.put(c)
+    const charKeys = await charStore.getAllKeys()
+    for (const k of charKeys) {
+      if (!sect.characters.some(c => c.id === k)) await charStore.delete(k)
     }
-    const allKeys = await advStore.getAllKeys()
-    for (const key of allKeys) {
-      if (!(key as string in activeRuns)) {
-        await advStore.delete(key)
-      }
+
+    // Write buildings (keyPath is 'type', put overwrites)
+    const bldgStore = tx.objectStore('buildings')
+    for (const b of sect.buildings) await bldgStore.put(b)
+
+    // Write vault items
+    const vaultStore = tx.objectStore('vault')
+    for (const i of sect.vault) await vaultStore.put(i)
+    const vaultKeys = await vaultStore.getAllKeys()
+    for (const k of vaultKeys) {
+      if (!sect.vault.some(i => i.id === k)) await vaultStore.delete(k)
+    }
+
+    // Write pets
+    const petStore = tx.objectStore('pets')
+    for (const p of sect.pets) await petStore.put(p)
+    const petKeys = await petStore.getAllKeys()
+    for (const k of petKeys) {
+      if (!sect.pets.some(p => p.id === k)) await petStore.delete(k)
     }
 
     await tx.done
-
-    const meta: SaveMeta = {
-      version: 4,
-      lastOnlineTime: Date.now(),
-      saveSlot: useGameStore.getState().saveSlot,
-    }
-    localStorage.setItem(META_KEY, JSON.stringify(meta))
   } catch (e) {
     console.error('Save failed:', e)
   }
 }
 
+// ---------------------------------------------------------------------------
+// loadGame — reconstruct Sect from per-entity stores
+// ---------------------------------------------------------------------------
+
 export async function loadGame(): Promise<boolean> {
   try {
-    if (localStorage.getItem(OLD_SAVE_KEY) && !localStorage.getItem(META_KEY)) {
-      await migrateV2ToV3()
-    }
+    const db = await getDB()
+    const meta = await db.get('meta', 1) as SaveMeta | undefined
 
-    const metaRaw = localStorage.getItem(META_KEY)
-    if (!metaRaw) return false
+    // Clean up stale localStorage regardless
+    if (localStorage.getItem(META_KEY)) localStorage.removeItem(META_KEY)
+    if (localStorage.getItem(OLD_SAVE_KEY)) localStorage.removeItem(OLD_SAVE_KEY)
 
-    const meta: SaveMeta = JSON.parse(metaRaw)
-    if (meta.version < 4) {
-      await clearSaveData()
+    if (!meta) return false
+
+    // Read per-entity stores
+    const characters = await db.getAll('characters') as Sect['characters']
+    const buildings = await db.getAll('buildings') as Sect['buildings']
+    const vault = await db.getAll('vault') as Sect['vault']
+    const pets = await db.getAll('pets') as Sect['pets']
+
+    // Integrity check: if meta exists but all entity stores are empty, corrupted
+    if (characters.length === 0 && buildings.length === 0) {
       return false
     }
 
-    const db = await getDB()
-
-    const saveRecord = await db.get('save', 1)
-    if (saveRecord?.sect) {
-      const migratedCharacters = (saveRecord.sect.characters ?? []).map(
-        (char: any) => ({
-          ...char,
-          talents: char.talents ?? [],
-          learnedTechniques: char.learnedTechniques ?? [],
-        }),
-      )
-      // v3→v4: ensure currentTechnique value is in learnedTechniques
-      for (const c of migratedCharacters) {
-        const ct = (c as any).currentTechnique
-        if (ct && !c.learnedTechniques.includes(ct)) {
-          c.learnedTechniques = [...c.learnedTechniques, ct]
-        }
-      }
-      // v3→v4: remove trainingHall buildings
-      const migratedBuildings = (saveRecord.sect.buildings ?? []).filter(
-        (b: any) => b.type !== 'trainingHall',
-      )
-      const migratedSect = {
-        ...saveRecord.sect,
-        characters: migratedCharacters,
-        buildings: migratedBuildings,
-        techniqueCodex: saveRecord.sect.techniqueCodex ?? ['qingxin', 'lieyan', 'houtu'],
-      }
-      useSectStore.setState({ sect: migratedSect })
+    const sect: Sect = {
+      name: meta.sectName,
+      level: meta.sectLevel,
+      resources: meta.resources,
+      buildings: buildings ?? [],
+      characters: characters ?? [],
+      vault: vault ?? [],
+      maxVaultSlots: meta.maxVaultSlots,
+      pets: pets ?? [],
+      totalAdventureRuns: meta.totalAdventureRuns,
+      totalBreakthroughs: meta.totalBreakthroughs,
+      lastTransmissionTime: meta.lastTransmissionTime,
+      techniqueCodex: meta.techniqueCodex,
     }
 
+    useSectStore.setState({ sect })
+
+    // Load adventure runs
     const advRecords = await db.getAll('adventure')
     if (advRecords.length > 0) {
       const activeRuns: Record<string, DungeonRun> = {}
       for (const rec of advRecords) {
-        const raw = (rec as { id: string; run: DungeonRun }).run as unknown as Record<string, unknown>
-        const migrated: DungeonRun = {
-          ...raw as unknown as DungeonRun,
-          supplyLevel: (raw.supplyLevel as DungeonRun['supplyLevel']) ?? 'basic',
-          rewardMultiplier: (raw.rewardMultiplier as number) ?? 1.0,
-        }
-        activeRuns[(rec as { id: string; run: DungeonRun }).id] = migrated
+        const r = rec as { id: string; run: DungeonRun }
+        activeRuns[r.id] = r.run
       }
       useAdventureStore.setState({ activeRuns })
     }
 
-    useGameStore.setState({
-      lastOnlineTime: meta.lastOnlineTime,
-    })
+    // Load event log from history store
+    const historyRecords = await db.getAll('history')
+    if (historyRecords.length > 0) {
+      const events = (historyRecords as any[])
+        .sort((a: any, b: any) => b.timestamp - a.timestamp)
+        .slice(0, 200)
+      useEventLogStore.setState({ events })
+    }
+
+    useGameStore.setState({ lastOnlineTime: meta.lastOnlineTime })
 
     return true
   } catch (e) {
@@ -124,22 +159,36 @@ export async function loadGame(): Promise<boolean> {
   }
 }
 
-export function hasSaveData(): boolean {
+// ---------------------------------------------------------------------------
+// hasSaveData — async (queries IndexedDB)
+// ---------------------------------------------------------------------------
+
+export async function hasSaveData(): Promise<boolean> {
   try {
-    const metaRaw = localStorage.getItem(META_KEY)
-    if (!metaRaw) return false
-    const meta = JSON.parse(metaRaw)
-    return meta.version >= 3 && meta.version <= 4
+    const db = await getDB()
+    const meta = await db.get('meta', 1)
+    return meta != null
   } catch {
     return false
   }
 }
 
+// ---------------------------------------------------------------------------
+// clearSaveData — clear all stores, no localStorage
+// ---------------------------------------------------------------------------
+
 export async function clearSaveData(): Promise<void> {
   try {
     const db = await getDB()
-    const tx = db.transaction(['save', 'adventure', 'history', 'resources'], 'readwrite')
-    await tx.objectStore('save').clear()
+    const tx = db.transaction(
+      ['meta', 'characters', 'buildings', 'vault', 'pets', 'adventure', 'history', 'resources'],
+      'readwrite',
+    )
+    await tx.objectStore('meta').clear()
+    await tx.objectStore('characters').clear()
+    await tx.objectStore('buildings').clear()
+    await tx.objectStore('vault').clear()
+    await tx.objectStore('pets').clear()
     await tx.objectStore('adventure').clear()
     await tx.objectStore('history').clear()
     await tx.objectStore('resources').clear()
@@ -147,62 +196,4 @@ export async function clearSaveData(): Promise<void> {
   } catch (e) {
     console.error('Clear failed:', e)
   }
-  localStorage.removeItem(META_KEY)
-  localStorage.removeItem(OLD_SAVE_KEY)
-}
-
-async function migrateV2ToV3(): Promise<void> {
-  const raw = localStorage.getItem(OLD_SAVE_KEY)
-  if (!raw) return
-
-  let data: Record<string, unknown>
-  try {
-    data = JSON.parse(raw)
-  } catch {
-    localStorage.removeItem(OLD_SAVE_KEY)
-    return
-  }
-
-  if (!data.version || (data.version as number) < 2) {
-    localStorage.removeItem(OLD_SAVE_KEY)
-    return
-  }
-
-  const db = await getDB()
-  const tx = db.transaction(['save', 'adventure'], 'readwrite')
-
-  const sectData = data.sectStore as { sect?: Sect } | undefined
-  if (sectData?.sect) {
-    const migratedCharacters = (sectData.sect.characters ?? []).map(
-      (char: Character) => ({
-        ...char,
-        talents: char.talents ?? [],
-      }),
-    )
-    await tx.objectStore('save').put({
-      slot: 1,
-      timestamp: (data.timestamp as number) || Date.now(),
-      version: 4,
-      sect: { ...sectData.sect, characters: migratedCharacters },
-    })
-  }
-
-  const advData = data.adventureStore as { activeRuns?: Record<string, DungeonRun> } | undefined
-  if (advData?.activeRuns) {
-    const advStore = tx.objectStore('adventure')
-    for (const run of Object.values(advData.activeRuns)) {
-      await advStore.put({ id: run.id, run })
-    }
-  }
-
-  await tx.done
-
-  const gameData = data.gameStore as { saveSlot?: number; lastOnlineTime?: number } | undefined
-  const meta: SaveMeta = {
-    version: 4,
-    lastOnlineTime: gameData?.lastOnlineTime ?? Date.now(),
-    saveSlot: gameData?.saveSlot ?? 1,
-  }
-  localStorage.setItem(META_KEY, JSON.stringify(meta))
-  localStorage.removeItem(OLD_SAVE_KEY)
 }
