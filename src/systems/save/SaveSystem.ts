@@ -34,8 +34,9 @@ interface SaveMeta {
 export async function saveGame(): Promise<void> {
   try {
     const sect = useSectStore.getState().sect
+    const activeRuns = useAdventureStore.getState().activeRuns
     const db = await getDB()
-    const storeNames = ['meta', 'characters', 'buildings', 'vault', 'pets'] as const
+    const storeNames = ['meta', 'characters', 'buildings', 'vault', 'pets', 'adventure'] as const
     const tx = db.transaction(storeNames, 'readwrite')
 
     // Write meta
@@ -79,6 +80,16 @@ export async function saveGame(): Promise<void> {
     const petKeys = await petStore.getAllKeys()
     for (const k of petKeys) {
       if (!sect.pets.some(p => p.id === k)) await petStore.delete(k)
+    }
+
+    // Write adventure runs
+    const advStore = tx.objectStore('adventure')
+    for (const run of Object.values(activeRuns)) {
+      await advStore.put({ id: run.id, run })
+    }
+    const advKeys = await advStore.getAllKeys()
+    for (const k of advKeys) {
+      if (!(k as string in activeRuns)) await advStore.delete(k)
     }
 
     await tx.done
