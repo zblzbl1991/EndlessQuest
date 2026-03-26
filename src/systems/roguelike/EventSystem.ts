@@ -15,6 +15,7 @@ export interface EventResult {
   combatResult?: CombatResult
   message: string
   hpChanges: Record<string, number> // unit id -> hp change (positive = healed, negative = damage)
+  techniqueReward?: { techniqueId: string }
 }
 
 function getNonBossTemplates() {

@@ -47,4 +47,5 @@ export interface Sect {
   totalAdventureRuns: number
   totalBreakthroughs: number
   lastTransmissionTime: number
+  techniqueCodex: string[]  // 已解锁功法 ID 列表
 }
