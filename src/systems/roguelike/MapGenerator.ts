@@ -53,11 +53,15 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
     for (let e = 0; e < eventsPerRoute; e++) {
       const roll = Math.random()
       let type: DungeonEvent['type']
-      if (roll < 0.4) type = 'combat'
+      if (roll < 0.40) type = 'combat'
       else if (roll < 0.65) type = 'random'
-      else if (roll < 0.8) type = 'shop'
-      else if (roll < 0.9) type = 'rest'
+      else if (roll < 0.80) type = 'shop'
+      else if (roll < 0.90) type = 'rest'
+      else if (roll < 0.95) type = 'ancient_cave'
       else type = 'boss'
+
+      // Only generate ancient_cave on floor 3+
+      if (type === 'ancient_cave' && floorNumber < 3) type = 'random'
 
       // Don't add boss on non-boss floors
       if (type === 'boss' && !isBossFloor) type = 'combat'

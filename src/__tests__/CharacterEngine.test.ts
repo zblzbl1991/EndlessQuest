@@ -96,10 +96,10 @@ describe('CharacterEngine', () => {
     it('should have empty backpack, no technique, no gear', () => {
       const c = generateCharacter('common')
       expect(c.backpack).toEqual([])
-      expect(c.currentTechnique).toBeNull()
+      expect(c.currentTechnique).toBe('qingxin')
       expect(c.equippedGear).toEqual([])
       expect(c.equippedSkills).toEqual([])
-      expect(c.learnedTechniques).toEqual([])
+      expect(c.learnedTechniques).toEqual(['qingxin'])
       expect(c.petIds).toEqual([])
     })
 

@@ -3,6 +3,8 @@ import type { DungeonEvent } from '../../types/adventure'
 import type { AnyItem, ItemQuality, EquipSlot } from '../../types/item'
 import { ENEMY_TEMPLATES, createCombatUnitFromEnemy } from '../../data/enemies'
 import type { CombatUnit, CombatResult } from '../combat/CombatEngine'
+import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
+import { getTechniqueById } from '../../data/techniquesTable'
 import { simulateCombat } from '../combat/CombatEngine'
 import { generateEquipment } from '../item/ItemGenerator'
 import { FORGE_SLOTS } from '../economy/ForgeSystem'
@@ -234,6 +236,19 @@ export function resolveEvent(
         combatResult: result,
         message: victory ? '击败了 Boss！' : 'Boss 太强了...',
         hpChanges,
+      }
+    }
+    case 'ancient_cave': {
+      const techniqueId = pickTechniqueForFloor(floorNumber)
+      const techniqueName = getTechniqueById(techniqueId)?.name ?? techniqueId
+      return {
+        type: event.type,
+        success: true,
+        reward: { spiritStone: 0, herb: 0, ore: 0 },
+        itemRewards: [],
+        message: `古修洞府中发现功法铭文：${techniqueName}`,
+        hpChanges: {},
+        techniqueReward: { techniqueId },
       }
     }
     default:

@@ -1,6 +1,9 @@
 import { create } from 'zustand'
 import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem } from '../types'
+import { SUPPLY_COSTS } from '../types/adventure'
+import type { SupplyLevel } from '../types/adventure'
 import { useSectStore } from './sectStore'
+import { emitEvent } from './eventLogStore'
 import { DUNGEONS } from '../data/events'
 import { generateDungeonRun } from '../systems/roguelike/MapGenerator'
 import { resolveEvent } from '../systems/roguelike/EventSystem'
@@ -24,7 +27,7 @@ export interface AdventureStore {
   completedDungeons: string[]
 
   // Actions
-  startRun(dungeonId: string, characterIds: string[]): DungeonRun | null
+  startRun(dungeonId: string, characterIds: string[], supplyLevel?: SupplyLevel): DungeonRun | null
   selectRoute(runId: string, routeIndex: number): boolean
   advanceFloor(runId: string): { success: boolean; message: string }
   retreat(runId: string): void
@@ -46,6 +49,13 @@ export interface AdventureStore {
   tickPatrol(deltaSec: number): void
   collectPatrolReward(): void
 }
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Seconds per floor in idle mode */
+const FLOOR_TICK_SECONDS = 10
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -123,6 +133,31 @@ function getSectLevel(): number {
   return level
 }
 
+/** Set character to resting with a recovery timer (reuses injuryTimer) */
+function setCharacterResting(charId: string, timerSec: number): void {
+  const sectStore = useSectStore.getState()
+  sectStore.setCharacterStatus(charId, 'resting', { injuryTimer: timerSec })
+}
+
+/** Count vault items matching a given recipeId */
+function countVaultItemsByRecipeId(recipeId: string): number {
+  const { sect } = useSectStore.getState()
+  return sect.vault.filter((item) => (item as any).recipeId === recipeId).length
+}
+
+/** Remove N items from vault matching a given recipeId. Returns number actually removed. */
+function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
+  let removed = 0
+  const sectStore = useSectStore.getState()
+  while (removed < count) {
+    const idx = sectStore.sect.vault.findIndex((item) => (item as any).recipeId === recipeId)
+    if (idx === -1) break
+    sectStore.removeVaultItem(idx)
+    removed++
+  }
+  return removed
+}
+
 /** Build CombatUnits from alive team members in a run */
 function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
   const { sect } = useSectStore.getState()
@@ -162,7 +197,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   patrolReward: 0,
   patrolCharacterId: null,
 
-  startRun: (dungeonId, characterIds) => {
+  startRun: (dungeonId, characterIds, supplyLevel = 'basic') => {
     const state = get()
     const dungeon = findDungeon(dungeonId)
     if (!dungeon) return null
@@ -177,7 +212,26 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const sectStore = useSectStore.getState()
     const { sect } = sectStore
 
-    // 3. Validate each character
+    // 3. Check and consume supply costs
+    const supplyCost = SUPPLY_COSTS[supplyLevel]
+
+    // 3a. Check spirit stone cost
+    if (sect.resources.spiritStone < supplyCost.spiritStone) return null
+
+    // 3b. Check vault item costs
+    for (const [recipeId, requiredCount] of Object.entries(supplyCost.vaultItems)) {
+      if (countVaultItemsByRecipeId(recipeId) < requiredCount) return null
+    }
+
+    // 3c. Consume spirit stones
+    sectStore.spendResource('spiritStone', supplyCost.spiritStone)
+
+    // 3d. Consume vault items
+    for (const [recipeId, requiredCount] of Object.entries(supplyCost.vaultItems)) {
+      removeVaultItemsByRecipeId(recipeId, requiredCount)
+    }
+
+    // 4. Validate each character
     const memberStates: DungeonRun['memberStates'] = {}
     for (const charId of characterIds) {
       const character = sect.characters.find((c) => c.id === charId)
@@ -225,6 +279,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       itemRewards: [],
       eventLog: [{ timestamp: Date.now(), message: `进入${dungeon.name}` }],
       status: 'active',
+      floorTimer: 0,
+      supplyLevel,
+      rewardMultiplier: supplyCost.rewardMultiplier,
     }
 
     set((s) => ({
@@ -288,6 +345,17 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       // Accumulate item rewards
       for (const item of result.itemRewards) {
         newItemRewards.push(item)
+      }
+
+      // Handle technique reward (cross-store)
+      if (result.techniqueReward) {
+        const sectStore = useSectStore.getState()
+        const firstAliveCharId = run.teamCharacterIds.find(
+          (cid) => newMemberStates[cid]?.status !== 'dead'
+        )
+        if (firstAliveCharId) {
+          sectStore.unlockCodexAndLearn(result.techniqueReward.techniqueId, firstAliveCharId)
+        }
       }
 
       // Log entry
@@ -417,8 +485,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       if (memberState.status === 'alive' || memberState.status === 'wounded') {
         sectStore.setCharacterStatus(charId, 'cultivating')
       } else {
-        // Dead characters go to resting
-        sectStore.setCharacterStatus(charId, 'resting')
+        // Dead characters go to resting with 60s recovery
+        setCharacterResting(charId, 60)
       }
     }
 
@@ -430,7 +498,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     })
   },
 
-  idleTick: (runId, _deltaSec) => {
+  idleTick: (runId, deltaSec) => {
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
@@ -460,6 +528,26 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       return
     }
 
+    // Accumulate floor timer
+    const newTimer = (run.floorTimer ?? 0) + deltaSec
+    if (newTimer < FLOOR_TICK_SECONDS) {
+      set((s) => ({
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: { ...s.activeRuns[runId]!, floorTimer: newTimer },
+        },
+      }))
+      return
+    }
+
+    // Reset timer and advance floor
+    set((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [runId]: { ...s.activeRuns[runId]!, floorTimer: 0 },
+      },
+    }))
+
     // Auto-pick safest route and advance
     const floor = run.floors[run.currentFloor - 1]
     if (!floor) return
@@ -481,6 +569,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
+    const dungeonName = DUNGEONS.find(d => d.id === run.dungeonId)?.name ?? run.dungeonId
+    emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`)
+
     // 1. Deposit 100% of totalRewards
     depositResourcesToSect(run.totalRewards)
 
@@ -496,7 +587,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       if (memberState.status === 'alive' || memberState.status === 'wounded') {
         sectStore.setCharacterStatus(charId, 'cultivating')
       } else {
-        sectStore.setCharacterStatus(charId, 'resting')
+        setCharacterResting(charId, 60)
       }
     }
 
@@ -518,6 +609,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
+    const dungeonName = DUNGEONS.find(d => d.id === run.dungeonId)?.name ?? run.dungeonId
+    emitEvent('adventure_fail', `秘境 ${dungeonName} 失败`)
+
     // 1. Deposit 50% of totalRewards
     depositFractionResourcesToSect(run.totalRewards, 0.5)
 
@@ -525,9 +619,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     depositItemsToVault(run.itemRewards)
 
     // 3. Set ALL characters to resting (barely escaped)
-    const sectStore = useSectStore.getState()
     for (const charId of run.teamCharacterIds) {
-      sectStore.setCharacterStatus(charId, 'resting')
+      setCharacterResting(charId, 60)
     }
 
     // 4. Remove run
@@ -574,6 +667,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!state.patrolActive || state.patrolProgress < 60) return
 
     depositResourcesToSect({ spiritStone: state.patrolReward, spiritEnergy: 0, herb: 0, ore: 0 })
+    emitEvent('patrol_complete', `巡逻完成，获得 ${state.patrolReward} 灵石`)
 
     // Release the character back
     if (state.patrolCharacterId) {
