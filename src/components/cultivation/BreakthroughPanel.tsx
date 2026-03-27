@@ -1,6 +1,7 @@
 import { useSectStore } from '../../stores/sectStore'
 import { canBreakthrough, calcBreakthroughFailureRate, isMajorRealmBreakthrough } from '../../systems/cultivation/CultivationEngine'
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS } from '../../data/realms'
+import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import type { RealmStage } from '../../types/character'
 import styles from './BreakthroughPanel.module.css'
 
@@ -21,6 +22,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const nextName = getRealmName(nextRealm, nextStage)
   const failureRate = calcBreakthroughFailureRate(character)
   const ready = canBreakthrough(character)
+  const hasTribulation = isMajor && shouldTriggerTribulation(character.realm, character.realmStage)
   const progress = Math.min(1, character.cultivation / needed)
 
   // Major realm requirements
@@ -35,6 +37,9 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       if (!hasStones) {
         hint = `灵石不足（需要 ${cost.spiritStone.toLocaleString()}）`
         hintClass = styles.hintBlocked
+      } else if (hasTribulation) {
+        hint = '修为已满，突破将触发天劫...'
+        hintClass = styles.ready
       } else {
         hint = '修为已满，自动突破中...'
         hintClass = styles.ready
@@ -65,6 +70,12 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         <span>突破失败率</span>
         <span className={styles.failureRate}>{Math.round(failureRate * 100)}%</span>
       </div>
+      {hasTribulation && (
+        <div className={styles.requirement}>
+          <span>天劫</span>
+          <span className={styles.failureRate}>将触发天劫</span>
+        </div>
+      )}
       {isMajor && cost && (
         <div className={styles.majorReq}>
           <div className={styles.reqTitle}>突破需求</div>
