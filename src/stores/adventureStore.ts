@@ -10,10 +10,18 @@ import { resolveEvent } from '../systems/roguelike/EventSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { createCharacterCombatUnit } from '../data/enemies'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
+import { DISPATCH_MISSIONS } from '../data/missions'
 
 // ---------------------------------------------------------------------------
 // Store interface
 // ---------------------------------------------------------------------------
+
+export interface DispatchState {
+  characterId: string
+  missionId: string
+  progress: number
+  duration: number
+}
 
 export interface AdventureStore {
   /** All currently active dungeon runs, keyed by run id (Record for JSON serialization) */
@@ -24,6 +32,9 @@ export interface AdventureStore {
 
   /** Previously completed dungeon IDs */
   completedDungeons: string[]
+
+  /** Active dispatch missions */
+  dispatches: DispatchState[]
 
   // Actions
   startRun(dungeonId: string, characterIds: string[], supplyLevel?: SupplyLevel): DungeonRun | null
@@ -38,17 +49,11 @@ export interface AdventureStore {
   getMaxSimultaneousRuns(): number
   reset(): void
 
-  // Patrol
-  patrolActive: boolean
-  patrolProgress: number
-  patrolCountToday: number
-  patrolReward: number
-  patrolCharacterId: string | null
-  patrolLastDate: string
-  startPatrol(characterId: string): boolean
-  tickPatrol(deltaSec: number): void
-  collectPatrolReward(): void
-  resetPatrolIfNeeded(): void
+  // Dispatch
+  startDispatch(characterId: string, missionId: string): void
+  tickDispatches(deltaSec: number): void
+  collectDispatchReward(characterId: string): void
+  getActiveDispatchCount(): number
 }
 
 // ---------------------------------------------------------------------------
@@ -203,12 +208,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   activeRuns: {},
   dungeons: DUNGEONS,
   completedDungeons: [],
-  patrolActive: false,
-  patrolProgress: 0,
-  patrolCountToday: 0,
-  patrolReward: 0,
-  patrolCharacterId: null,
-  patrolLastDate: todayDateStr(),
+  dispatches: [],
 
   startRun: (dungeonId, characterIds, supplyLevel = 'basic') => {
     const state = get()
@@ -567,7 +567,12 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   },
 
   tickAllIdle: (deltaSec) => {
-    get().tickPatrol(deltaSec)
+    get().tickDispatches(deltaSec)
+    // Auto-collect completed dispatches
+    const completed = get().dispatches.filter(d => d.progress >= d.duration)
+    for (const dispatch of completed) {
+      get().collectDispatchReward(dispatch.characterId)
+    }
     const state = get()
     for (const runId of Object.keys(state.activeRuns)) {
       state.idleTick(runId, deltaSec)
@@ -641,59 +646,77 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     })
   },
 
-  startPatrol: (characterId) => {
+  startDispatch: (characterId, missionId) => {
+    const mission = DISPATCH_MISSIONS.find(m => m.id === missionId)
+    if (!mission) return
+
     const state = get()
-    state.resetPatrolIfNeeded()
+    if (state.dispatches.length >= 5) return
+    if (state.dispatches.some(d => d.characterId === characterId)) return
 
     const { sect } = useSectStore.getState()
     const char = sect.characters.find(c => c.id === characterId)
-    if (!char) return false
-    if (get().patrolActive) return false
-    if (get().patrolCountToday >= 5) return false
-    if (char.status === 'adventuring' || char.status === 'patrolling') return false
+    if (!char) return
+    if (char.status !== 'idle' && char.status !== 'cultivating') return
 
-    const sectLevel = getSectLevel()
-    const reward = 50 + sectLevel * 10
-
-    set({
-      patrolActive: true,
-      patrolProgress: 0,
-      patrolReward: reward,
-      patrolCharacterId: characterId,
-    })
     useSectStore.getState().setCharacterStatus(characterId, 'patrolling')
-    return true
+
+    set(s => ({
+      dispatches: [...s.dispatches, {
+        characterId,
+        missionId,
+        progress: 0,
+        duration: mission.duration,
+      }],
+    }))
   },
 
-  tickPatrol: (deltaSec) => {
-    if (!get().patrolActive) return
-    const newProgress = get().patrolProgress + deltaSec
-    if (newProgress >= 60) {
-      set({ patrolProgress: 60 })
-    } else {
-      set({ patrolProgress: newProgress })
-    }
+  tickDispatches: (deltaSec: number) => {
+    set(s => ({
+      dispatches: s.dispatches.map(d =>
+        d.progress >= d.duration ? d : { ...d, progress: d.progress + deltaSec }
+      ),
+    }))
   },
 
-  collectPatrolReward: () => {
+  collectDispatchReward: (characterId: string) => {
     const state = get()
-    if (!state.patrolActive || state.patrolProgress < 60) return
+    const dispatchIndex = state.dispatches.findIndex(d => d.characterId === characterId)
+    if (dispatchIndex === -1) return
 
-    depositResourcesToSect({ spiritStone: state.patrolReward, spiritEnergy: 0, herb: 0, ore: 0 })
-    emitEvent('patrol_complete', `巡逻完成，获得 ${state.patrolReward} 灵石`)
+    const dispatch = state.dispatches[dispatchIndex]
+    const mission = DISPATCH_MISSIONS.find(m => m.id === dispatch.missionId)
+    if (!mission || dispatch.progress < dispatch.duration) return
 
-    // Release the character back
-    if (state.patrolCharacterId) {
-      useSectStore.getState().setCharacterStatus(state.patrolCharacterId, 'cultivating')
+    // Apply rewards
+    const resources: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
+    for (const reward of mission.rewards) {
+      switch (reward.type) {
+        case 'spiritStone':
+          resources.spiritStone += reward.amount
+          break
+        case 'herb':
+          resources.herb += reward.amount
+          break
+        case 'ore':
+          resources.ore += reward.amount
+          break
+      }
     }
+    depositResourcesToSect(resources)
+    emitEvent('dispatch_complete', `派遣任务「${mission.name}」完成`)
 
-    set({
-      patrolActive: false,
-      patrolProgress: 0,
-      patrolReward: 0,
-      patrolCountToday: state.patrolCountToday + 1,
-      patrolCharacterId: null,
-    })
+    // Return character to cultivating
+    useSectStore.getState().setCharacterStatus(characterId, 'cultivating')
+
+    // Remove dispatch
+    set(s => ({
+      dispatches: s.dispatches.filter((_, i) => i !== dispatchIndex),
+    }))
+  },
+
+  getActiveDispatchCount: () => {
+    return get().dispatches.length
   },
 
   getRun: (id) => {
@@ -705,34 +728,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     return getMaxSimultaneousRuns(level)
   },
 
-  resetPatrolIfNeeded: () => {
-    const today = todayDateStr()
-    const last = get().patrolLastDate
-    if (last !== today) {
-      set({ patrolCountToday: 0, patrolLastDate: today })
-    }
-  },
-
   reset: () =>
     set({
       activeRuns: {},
       completedDungeons: [],
-      patrolActive: false,
-      patrolProgress: 0,
-      patrolCountToday: 0,
-      patrolReward: 0,
-      patrolCharacterId: null,
-      patrolLastDate: todayDateStr(),
+      dispatches: [],
     }),
 }))
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-function todayDateStr(): string {
-  return new Date().toISOString().slice(0, 10)
-}
 
 // ---------------------------------------------------------------------------
 // Backward-compatible helper

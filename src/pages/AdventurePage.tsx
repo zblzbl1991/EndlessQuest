@@ -1,7 +1,8 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { DUNGEONS } from '../data/events'
+import { DISPATCH_MISSIONS } from '../data/missions'
 import { getRealmName } from '../data/realms'
 import { QUALITY_NAMES as CHAR_QUALITY_NAMES } from '../components/common/CharacterCard'
 import ProgressBar from '../components/common/ProgressBar'
@@ -36,17 +37,9 @@ export default function AdventurePage() {
   const activeRuns = useAdventureStore((s) => s.activeRuns)
   const sect = useSectStore((s) => s.sect)
 
-  // Patrol state
-  const patrolActive = useAdventureStore((s) => s.patrolActive)
-  const patrolProgress = useAdventureStore((s) => s.patrolProgress)
-  const patrolCountToday = useAdventureStore((s) => s.patrolCountToday)
-  const patrolReward = useAdventureStore((s) => s.patrolReward)
-  const startPatrol = useAdventureStore((s) => s.startPatrol)
-  const collectPatrolReward = useAdventureStore((s) => s.collectPatrolReward)
-  const resetPatrolIfNeeded = useAdventureStore((s) => s.resetPatrolIfNeeded)
-
-  // Reset patrol count on day change
-  useEffect(() => { resetPatrolIfNeeded() }, [resetPatrolIfNeeded])
+  // Dispatch state
+  const dispatches = useAdventureStore((s) => s.dispatches)
+  const getActiveDispatchCount = useAdventureStore((s) => s.getActiveDispatchCount)
 
   // Use the highest realm character for unlock checks
   const maxRealmChar = useMemo(() => {
@@ -84,41 +77,34 @@ export default function AdventurePage() {
         />
       )}
 
-      {/* Patrol Section */}
+      {/* Dispatch Section */}
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>外围巡逻</div>
-        {!patrolActive && patrolCountToday < 5 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ color: 'var(--color-text-secondary)' }}>今日剩余: {5 - patrolCountToday}/5</span>
-            <button
-              className={styles.startBtn}
-              style={{ width: 'auto' }}
-              onClick={() => {
-                const first = availableCharacters[0]
-                if (first) startPatrol(first.id)
-              }}
-              disabled={availableCharacters.length === 0}
-            >
-              {availableCharacters.length > 0 ? '开始巡逻' : '无可用弟子'}
-            </button>
+        <div className={styles.sectionTitle}>任务派遣 ({getActiveDispatchCount()}/5)</div>
+        {dispatches.length === 0 ? (
+          <div className={styles.empty}>暂无派遣任务，可在弟子详情中派遣弟子</div>
+        ) : (
+          <div className={styles.runList}>
+            {dispatches.map((dispatch) => {
+              const mission = DISPATCH_MISSIONS.find(m => m.id === dispatch.missionId)
+              const char = sect.characters.find(c => c.id === dispatch.characterId)
+              const remaining = Math.max(0, dispatch.duration - dispatch.progress)
+              const minutes = Math.floor(remaining / 60)
+              const seconds = Math.floor(remaining % 60)
+              return (
+                <div key={dispatch.characterId} className={styles.runCard}>
+                  <div className={styles.runHeader}>
+                    <span className={styles.runDungeonName}>{mission?.name ?? '未知任务'}</span>
+                    <span className={styles.runFloor}>
+                      {char?.name ?? ''} {remaining > 0 ? `· ${minutes}:${seconds.toString().padStart(2, '0')}` : '· 完成'}
+                    </span>
+                  </div>
+                  <div className={styles.runProgress}>
+                    <ProgressBar value={dispatch.progress} max={dispatch.duration} variant="ink" />
+                  </div>
+                </div>
+              )
+            })}
           </div>
-        )}
-        {patrolActive && patrolProgress < 60 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <ProgressBar value={patrolProgress} max={60} variant="ink" />
-            <span style={{ color: 'var(--color-text-secondary)', fontSize: '0.875rem' }}>{Math.ceil(60 - patrolProgress)}秒</span>
-          </div>
-        )}
-        {patrolActive && patrolProgress >= 60 && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ color: 'var(--color-accent)' }}>巡逻完成！奖励: +{patrolReward} 灵石</span>
-            <button className={styles.startBtn} style={{ width: 'auto' }} onClick={collectPatrolReward}>
-              领取奖励
-            </button>
-          </div>
-        )}
-        {patrolCountToday >= 5 && !patrolActive && (
-          <div style={{ color: 'var(--color-text-tertiary)' }}>今日巡逻次数已用完</div>
         )}
       </section>
 
