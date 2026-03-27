@@ -402,9 +402,13 @@ assignToBuilding: (characterId, buildingType) => {
     )
     if (assigned.length >= 3) return state
 
-    character.status = 'training'
-    character.assignedBuilding = buildingType
-    return state
+    // Use spread to avoid direct mutation (no immer middleware)
+    const updatedCharacters = state.sect.characters.map(c =>
+      c.id === characterId
+        ? { ...c, status: 'training' as const, assignedBuilding: buildingType }
+        : c
+    )
+    return { sect: { ...state.sect, characters: updatedCharacters } }
   })
 },
 
@@ -414,9 +418,12 @@ unassignFromBuilding: (characterId) => {
     if (!character) return state
     if (character.status !== 'training' || !character.assignedBuilding) return state
 
-    character.assignedBuilding = null
-    character.status = 'idle'
-    return state
+    const updatedCharacters = state.sect.characters.map(c =>
+      c.id === characterId
+        ? { ...c, status: 'idle' as const, assignedBuilding: null }
+        : c
+    )
+    return { sect: { ...state.sect, characters: updatedCharacters } }
   })
 },
 ```
@@ -580,8 +587,13 @@ startSeclusion: (characterId) => {
     const secludedCount = state.sect.characters.filter(c => c.status === 'secluded').length
     if (secludedCount >= 3) return state
 
-    character.status = 'secluded'
-    return state
+    // Use spread to avoid direct mutation (no immer middleware)
+    const updatedCharacters = state.sect.characters.map(c =>
+      c.id === characterId
+        ? { ...c, status: 'secluded' as const }
+        : c
+    )
+    return { sect: { ...state.sect, characters: updatedCharacters } }
   })
 },
 
@@ -590,8 +602,12 @@ stopSeclusion: (characterId) => {
     const character = state.sect.characters.find(c => c.id === characterId)
     if (!character || character.status !== 'secluded') return state
 
-    character.status = 'cultivating'
-    return state
+    const updatedCharacters = state.sect.characters.map(c =>
+      c.id === characterId
+        ? { ...c, status: 'cultivating' as const }
+        : c
+    )
+    return { sect: { ...state.sect, characters: updatedCharacters } }
   })
 },
 ```
@@ -657,6 +673,18 @@ const STATUS_LABELS: Record<string, string> = {
   resting: '休息中',
   training: '研习中',     // Changed from '修炼中'
   secluded: '闭关中',     // New
+}
+
+// Update the status style mapping:
+const STATUS_STYLES: Record<CharacterStatus, string> = {
+  cultivating: styles.cultivating,
+  adventuring: styles.adventuring,
+  patrolling: styles.adventuring,
+  resting: styles.resting,
+  injured: styles.injured,
+  training: styles.cultivating,   // Keep same style as cultivating
+  idle: styles.resting,
+  secluded: styles.cultivating,   // New: same visual as cultivating
 }
 ```
 

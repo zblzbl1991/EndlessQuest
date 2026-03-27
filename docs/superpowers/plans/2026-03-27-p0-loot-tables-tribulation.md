@@ -291,7 +291,6 @@ Create `src/systems/roguelike/LootSystem.ts`:
 ```typescript
 import type { LootEntry } from '../../data/enemies'
 import type { CharacterQuality } from '../../types/character'
-import { generateEquipment } from '../../systems/equipment/EquipmentGenerator'
 
 export interface LootResult {
   type: string
@@ -495,8 +494,8 @@ case 'boss': {
 ```typescript
 import type { Resources } from '../../types/sect'
 import type { AnyItem } from '../../types/item'
-import { generateEquipment } from '../../systems/equipment/EquipmentGenerator'
-import { CONSUMABLE_DEFS } from '../../data/items'
+import { generateEquipment } from '../item/ItemGenerator'
+import { EQUIP_SLOTS } from '../../data/items'
 
 function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyItem[] } {
   const reward: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
@@ -515,16 +514,13 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
         break
       case 'equipment':
         if (drop.quality) {
-          itemRewards.push(generateEquipment(drop.quality))
+          const slot = EQUIP_SLOTS[Math.floor(Math.random() * EQUIP_SLOTS.length)]
+          itemRewards.push(generateEquipment(slot, drop.quality))
         }
         break
       case 'consumable':
-        if (drop.recipeId) {
-          const def = CONSUMABLE_DEFS.find(c => c.recipeId === drop.recipeId)
-          if (def) {
-            itemRewards.push(def.createItem())
-          }
-        }
+        // Consumable drops are handled by caller using recipeId
+        // Item creation requires the alchemy crafting system
         break
       case 'petCapture':
         // petCapture is handled by caller (adventureStore)
@@ -661,16 +657,16 @@ describe('shouldTriggerTribulation', () => {
     expect(shouldTriggerTribulation(0, 3)).toBe(false)
   })
 
-  it('returns false for major breakthrough to realm 2 (jindan - no tribulationPower)', () => {
-    expect(shouldTriggerTribulation(1, 3)).toBe(false)
+  it('returns true for major breakthrough to realm 2 (jindan - has tribulationPower 0.8)', () => {
+    expect(shouldTriggerTribulation(1, 3)).toBe(true)
   })
 
   it('returns true for major breakthrough to realm 3 (yuanying - has tribulationPower)', () => {
     expect(shouldTriggerTribulation(2, 3)).toBe(true)
   })
 
-  it('returns true for major breakthrough to realm 4 (huashen - has tribulationPower)', () => {
-    expect(shouldTriggerTribulation(3, 3)).toBe(true)
+  it('returns false for major breakthrough to realm 5 (feisheng - no tribulationPower)', () => {
+    expect(shouldTriggerTribulation(4, 3)).toBe(false)
   })
 })
 
@@ -773,8 +769,11 @@ export function resolveTribulation(character: Character): TribulationResult {
 
   // Huashen special: stage multiplier increases tribulation difficulty
   let stageMultiplier = 1.0
-  if (character.realm === 4 && realmData.tribulationStages) {
-    stageMultiplier = realmData.tribulationStages[character.realmStage] ?? 1.0
+  if (character.realm === 4) {
+    const currentRealmData = REALMS[character.realm]
+    if (currentRealmData.tribulationStages) {
+      stageMultiplier = currentRealmData.tribulationStages[character.realmStage] ?? 1.0
+    }
   }
   const finalFailRate = Math.min(0.95, failRate * stageMultiplier)
 

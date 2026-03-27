@@ -76,7 +76,7 @@ describe('getActiveSynergies', () => {
       makeBuilding('market', 3),
     ]
     const active = getActiveSynergies(buildings)
-    expect(active.length).toBeGreaterThanOrEqual(4)
+    expect(active.length).toBeGreaterThanOrEqual(5)
   })
 })
 
@@ -106,9 +106,38 @@ describe('getSynergyBonus', () => {
       makeBuilding('alchemyFurnace', 5),
       makeBuilding('forge', 5),
     ]
-    // 丹器双修 gives +25% to both alchemyFurnace and forge
+    // 灵药之道 gives +20% to alchemyFurnace, 丹器双修 gives +25%
     const bonus = getSynergyBonus('alchemyFurnace', buildings)
-    expect(bonus).toBeCloseTo(1.45) // +20% 灵药之道 + +25% 丹器双修
+    expect(bonus).toBeCloseTo(1.45) // +20% + +25%
+  })
+
+  it('丹器双修 also gives bonus to forge', () => {
+    const buildings = [
+      makeBuilding('mainHall', 5),
+      makeBuilding('alchemyFurnace', 5),
+      makeBuilding('forge', 5),
+    ]
+    const bonus = getSynergyBonus('forge', buildings)
+    expect(bonus).toBeCloseTo(1.25) // +25% from 丹器双修
+  })
+
+  it('market synergy returns 1.0 multiplier (quality cap handled separately)', () => {
+    const buildings = [
+      makeBuilding('mainHall', 5),
+      makeBuilding('spiritMine', 5),
+      makeBuilding('market', 3),
+    ]
+    const bonus = getSynergyBonus('market', buildings)
+    expect(bonus).toBeCloseTo(1.0) // 开源节流 is not a multiplier
+  })
+
+  it('getMarketQualityCapBonus returns 1 when conditions met', () => {
+    const buildings = [
+      makeBuilding('mainHall', 5),
+      makeBuilding('spiritMine', 5),
+      makeBuilding('market', 3),
+    ]
+    expect(getMarketQualityCapBonus(buildings)).toBe(1)
   })
 })
 ```
@@ -184,7 +213,16 @@ export const SYNERGIES: Synergy[] = [
     ],
     effect: { target: 'alchemyFurnace', value: 0.25 },
   },
-  // Note: 丹器双修 also affects forge — handled in SynergySystem
+  {
+    id: 'alchemy_forging_forge',
+    name: '丹器双修',
+    description: '丹炉和炼器坊效率各 +25%',
+    requirements: [
+      { building: 'alchemyFurnace', level: 5 },
+      { building: 'forge', level: 5 },
+    ],
+    effect: { target: 'forge', value: 0.25 },
+  },
 ]
 ```
 
@@ -212,6 +250,8 @@ export function getActiveSynergies(buildings: Building[]): Synergy[] {
 /**
  * Get the total synergy multiplier bonus for a specific building.
  * Returns 1.0 + sum of all applicable synergy bonuses.
+ * Special case: "开源节流" (market quality cap +1) is handled separately
+ * by the caller, this function returns a standard multiplier.
  */
 export function getSynergyBonus(targetBuilding: BuildingType, buildings: Building[]): number {
   const active = getActiveSynergies(buildings)
@@ -219,23 +259,22 @@ export function getSynergyBonus(targetBuilding: BuildingType, buildings: Buildin
 
   for (const synergy of active) {
     if (synergy.effect.target === targetBuilding) {
+      // Skip "开源节流" — it's a quality cap bonus, not a multiplier
+      if (synergy.id === 'market_mining') continue
       bonus += synergy.effect.value
     }
   }
 
-  // Special case: 丹器双修 affects both alchemyFurnace and forge
-  const dualCraft = SYNERGIES.find(s => s.id === 'alchemy_forging')
-  if (dualCraft) {
-    const meetsRequirements = dualCraft.requirements.every(req => {
-      const b = buildings.find(b => b.type === req.building)
-      return b && b.unlocked && b.level >= req.level
-    })
-    if (meetsRequirements && (targetBuilding === 'alchemyFurnace' || targetBuilding === 'forge')) {
-      // Already counted above in the loop, skip duplicate
-    }
-  }
-
   return 1 + bonus
+}
+
+/**
+ * Get the quality cap bonus for market from synergies.
+ * Returns extra quality levels (0 or 1).
+ */
+export function getMarketQualityCapBonus(buildings: Building[]): number {
+  const active = getActiveSynergies(buildings)
+  return active.some(s => s.id === 'market_mining') ? 1 : 0
 }
 ```
 
@@ -304,8 +343,8 @@ git commit -m "feat(synergy): integrate synergy bonuses into resource production
 At the bottom of the buildings page (after the building grid), add a synergy section:
 
 ```tsx
-import { getActiveSynergies, SYNERGIES } from '../../systems/economy/SynergySystem'
-import { getActiveSynergies as checkActive } from '../../systems/economy/SynergySystem'
+import { getActiveSynergies } from '../../systems/economy/SynergySystem'
+import { SYNERGIES } from '../../data/buildings'
 
 // Inside the component:
 const buildings = useSectStore((s) => s.sect.buildings)
@@ -782,7 +821,7 @@ buyFromShop: (runId: string, offerIndex: number) => void
 Implementation:
 ```typescript
 buyFromShop: (runId, offerIndex) => {
-  const run = get().activeRuns.find(r => r.id === runId)
+  const run = get().activeRuns[runId]  // activeRuns is Record<string, DungeonRun>
   if (!run) return
 
   const lastFloor = run.floors[run.currentFloor - 1]
@@ -888,7 +927,7 @@ attemptPetCapture: (runId, characterId) => {
 
   const fortune = character.cultivationStats.fortune
   // Determine target quality based on dungeon floor
-  const run = get().activeRuns.find(r => r.id === runId)
+  const run = get().activeRuns[runId]  // activeRuns is Record<string, DungeonRun>
   const floor = run?.currentFloor ?? 1
   const quality = floor < 5 ? 'common' : floor < 10 ? 'spirit' : floor < 15 ? 'immortal' : 'divine'
 
