@@ -96,6 +96,81 @@ export function getBuildingEffectText(building: Building): string {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Building Synergies
+// ---------------------------------------------------------------------------
+
+export interface Synergy {
+  id: string
+  name: string
+  description: string
+  requirements: { building: BuildingType; level: number }[]
+  effect: { target: BuildingType; value: number }
+}
+
+export const SYNERGIES: Synergy[] = [
+  {
+    id: 'alchemy_herbalism',
+    name: '灵药之道',
+    description: '丹炉产出效率 +20%',
+    requirements: [
+      { building: 'spiritField', level: 3 },
+      { building: 'alchemyFurnace', level: 3 },
+    ],
+    effect: { target: 'alchemyFurnace', value: 0.20 },
+  },
+  {
+    id: 'forging_mining',
+    name: '百炼成钢',
+    description: '锻造成功率 +15%',
+    requirements: [
+      { building: 'spiritMine', level: 3 },
+      { building: 'forge', level: 3 },
+    ],
+    effect: { target: 'forge', value: 0.15 },
+  },
+  {
+    id: 'comprehension_recruit',
+    name: '以武入道',
+    description: '功法领悟概率 +15%',
+    requirements: [
+      { building: 'scriptureHall', level: 3 },
+      { building: 'recruitmentPavilion', level: 2 },
+    ],
+    effect: { target: 'scriptureHall', value: 0.15 },
+  },
+  {
+    id: 'market_mining',
+    name: '开源节流',
+    description: '坊市品质上限 +1',
+    requirements: [
+      { building: 'spiritMine', level: 5 },
+      { building: 'market', level: 3 },
+    ],
+    effect: { target: 'market', value: 1 },
+  },
+  {
+    id: 'alchemy_forging',
+    name: '丹器双修',
+    description: '丹炉和炼器坊效率各 +25%',
+    requirements: [
+      { building: 'alchemyFurnace', level: 5 },
+      { building: 'forge', level: 5 },
+    ],
+    effect: { target: 'alchemyFurnace', value: 0.25 },
+  },
+  {
+    id: 'alchemy_forging_forge',
+    name: '丹器双修',
+    description: '丹炉和炼器坊效率各 +25%',
+    requirements: [
+      { building: 'alchemyFurnace', level: 5 },
+      { building: 'forge', level: 5 },
+    ],
+    effect: { target: 'forge', value: 0.25 },
+  },
+]
+
 export function getBuildingUnlockText(building: Building): string {
   if (building.unlocked) return ''
   switch (building.type) {
