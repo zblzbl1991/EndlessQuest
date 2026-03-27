@@ -3,7 +3,7 @@ import type {
   Character, CharacterTitle, CharacterQuality, CharacterStatus,
 } from '../types/character'
 import type {
-  BuildingType, Resources, ResourceType, Sect, AnyItem, Equipment,
+  BuildingType, Resources, ResourceType, Sect, AnyItem, Equipment, Consumable, ItemStack,
 } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 import { generateCharacter, calcSectLevel, getMaxCharacters, getRecruitCost, isQualityUnlocked } from '../systems/character/CharacterEngine'
@@ -30,18 +30,19 @@ import type { AutoRecipe } from '../data/recipes'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 import { emitEvent } from './eventLogStore'
 import { getRealmName } from '../data/realms'
+import { addItemToStacks, removeStackAtIndex, addItemQuantityToStacks } from '../systems/item/ItemStackUtils'
 
 // ---------------------------------------------------------------------------
 // Helper: get equipment item by ID from vault + all character backpacks
 // ---------------------------------------------------------------------------
 
 function findEquipmentById(sect: Sect, itemId: string): Equipment | undefined {
-  for (const item of sect.vault) {
-    if (item.id === itemId && item.type === 'equipment') return item
+  for (const stack of sect.vault) {
+    if (stack.item.id === itemId && stack.item.type === 'equipment') return stack.item
   }
   for (const char of sect.characters) {
-    for (const item of char.backpack) {
-      if (item.id === itemId && item.type === 'equipment') return item
+    for (const stack of char.backpack) {
+      if (stack.item.id === itemId && stack.item.type === 'equipment') return stack.item
     }
   }
   return undefined
@@ -111,7 +112,7 @@ export interface SectStore {
   transferItemToVault(characterId: string, backpackIndex: number): boolean
   addToVault(item: AnyItem): boolean
   sellItem(vaultIndex: number): boolean
-  removeVaultItem(vaultIndex: number): AnyItem | null
+  removeVaultItem(vaultIndex: number): ItemStack | null
 
   // Character inventory
   equipItem(characterId: string, backpackIndex: number, slotIndex: number): boolean
@@ -151,19 +152,20 @@ export interface SectStore {
 // Helper: produce item from an AutoRecipe
 // ---------------------------------------------------------------------------
 
-function produceItemFromRecipe(recipe: AutoRecipe, buildingLevel: number): AnyItem | null {
+function produceItemAsStack(recipe: AutoRecipe, buildingLevel: number): ItemStack | null {
   if (recipe.productType === 'consumable') {
     const alchemyRecipe = ALCHEMY_RECIPES.find(r => r.id === recipe.id)
     if (!alchemyRecipe) return null
     const item = craftPotionAlchemy(alchemyRecipe, buildingLevel)
     if (item) item.recipeId = recipe.id
-    return item
+    return item ? { item, quantity: 1 } : null
   }
   if (recipe.productType === 'equipment') {
     const forgeRecipe = FORGE_RECIPES.find(r => r.id === recipe.id)
     if (!forgeRecipe) return null
     const slot = FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
-    return generateEquipment(slot, forgeRecipe.quality)
+    const item = generateEquipment(slot, forgeRecipe.quality)
+    return item ? { item, quantity: 1 } : null
   }
   return null
 }
@@ -429,20 +431,29 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const { sect } = get()
     const char = sect.characters.find((c) => c.id === characterId)
     if (!char) return false
+    const stack = sect.vault[vaultIndex]
+    if (!stack) return false
 
-    if (char.backpack.length >= char.maxBackpackSlots) return false
+    const isStackable = stack.item.type === 'consumable' && (stack.item as Consumable).recipeId
+    if (isStackable) {
+      const existingBp = char.backpack.findIndex(
+        s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (stack.item as Consumable).recipeId
+      )
+      if (existingBp === -1 && char.backpack.length >= char.maxBackpackSlots) return false
+    } else {
+      if (char.backpack.length >= char.maxBackpackSlots) return false
+    }
 
-    const item = sect.vault[vaultIndex]
-    if (!item) return false
+    const { stacks: newVault, removed } = removeStackAtIndex(sect.vault, vaultIndex)
+    if (!removed) return false
+    const newBackpack = addItemToStacks(char.backpack, removed.item)
 
     set((s) => ({
       sect: {
         ...s.sect,
-        vault: s.sect.vault.filter((_, i) => i !== vaultIndex),
+        vault: newVault,
         characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, backpack: [...c.backpack, item] }
-            : c
+          c.id === characterId ? { ...c, backpack: newBackpack } : c
         ),
       },
     }))
@@ -453,20 +464,29 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const { sect } = get()
     const char = sect.characters.find((c) => c.id === characterId)
     if (!char) return false
+    const stack = char.backpack[backpackIndex]
+    if (!stack) return false
 
-    if (sect.vault.length >= sect.maxVaultSlots) return false
+    const isStackable = stack.item.type === 'consumable' && (stack.item as Consumable).recipeId
+    if (isStackable) {
+      const existing = sect.vault.findIndex(
+        s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (stack.item as Consumable).recipeId
+      )
+      if (existing === -1 && sect.vault.length >= sect.maxVaultSlots) return false
+    } else {
+      if (sect.vault.length >= sect.maxVaultSlots) return false
+    }
 
-    const item = char.backpack[backpackIndex]
-    if (!item) return false
+    const { stacks: newBackpack, removed } = removeStackAtIndex(char.backpack, backpackIndex)
+    if (!removed) return false
+    const newVault = addItemToStacks(sect.vault, removed.item)
 
     set((s) => ({
       sect: {
         ...s.sect,
-        vault: [...s.sect.vault, item],
+        vault: newVault,
         characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, backpack: c.backpack.filter((_, i) => i !== backpackIndex) }
-            : c
+          c.id === characterId ? { ...c, backpack: newBackpack } : c
         ),
       },
     }))
@@ -475,25 +495,32 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   addToVault: (item) => {
     const { sect } = get()
-    if (sect.vault.length >= sect.maxVaultSlots) return false
-    set((s) => ({
-      sect: { ...s.sect, vault: [...s.sect.vault, item] },
-    }))
+    const isConsumableWithRecipe = item.type === 'consumable' && (item as Consumable).recipeId
+    if (!isConsumableWithRecipe && sect.vault.length >= sect.maxVaultSlots) return false
+    if (isConsumableWithRecipe) {
+      const existing = sect.vault.findIndex(
+        s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (item as Consumable).recipeId
+      )
+      if (existing === -1 && sect.vault.length >= sect.maxVaultSlots) return false
+    }
+    const newVault = addItemToStacks(sect.vault, item)
+    set((s) => ({ sect: { ...s.sect, vault: newVault } }))
     return true
   },
 
   sellItem: (vaultIndex) => {
     const { sect } = get()
-    const item = sect.vault[vaultIndex]
-    if (!item) return false
-
+    const stack = sect.vault[vaultIndex]
+    if (!stack) return false
+    const { stacks: newVault, removed } = removeStackAtIndex(sect.vault, vaultIndex)
+    if (!removed) return false
     set((s) => ({
       sect: {
         ...s.sect,
-        vault: s.sect.vault.filter((_, i) => i !== vaultIndex),
+        vault: newVault,
         resources: {
           ...s.sect.resources,
-          spiritStone: s.sect.resources.spiritStone + item.sellPrice,
+          spiritStone: s.sect.resources.spiritStone + removed.item.sellPrice,
         },
       },
     }))
@@ -502,13 +529,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   removeVaultItem: (vaultIndex) => {
     const { sect } = get()
-    const item = sect.vault[vaultIndex]
-    if (!item) return null
-
-    set((s) => ({
-      sect: { ...s.sect, vault: s.sect.vault.filter((_, i) => i !== vaultIndex) },
-    }))
-    return item
+    const { stacks: newVault, removed } = removeStackAtIndex(sect.vault, vaultIndex)
+    if (removed) {
+      set((s) => ({ sect: { ...s.sect, vault: newVault } }))
+    }
+    return removed
   },
 
   // ---- Character inventory ----
@@ -518,8 +543,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const char = sect.characters.find((c) => c.id === characterId)
     if (!char) return false
 
-    const item = char.backpack[backpackIndex]
-    if (!item || item.type !== 'equipment') return false
+    const stack = char.backpack[backpackIndex]
+    if (!stack || stack.item.type !== 'equipment') return false
+    const item = stack.item as Equipment
 
     // Ensure equippedGear array has enough slots
     const gear = [...char.equippedGear]
@@ -527,11 +553,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // If there's already something in that slot, swap it to backpack
     const prevGearId = gear[slotIndex]
-    const newBackpack = [...char.backpack]
+    let newBackpack = [...char.backpack]
     newBackpack.splice(backpackIndex, 1)
     if (prevGearId) {
       const prevItem = findEquipmentById(sect, prevGearId)
-      if (prevItem) newBackpack.push(prevItem)
+      if (prevItem) newBackpack = addItemToStacks(newBackpack, prevItem)
     }
 
     gear[slotIndex] = item.id
@@ -574,7 +600,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
         ...s.sect,
         characters: s.sect.characters.map((c) =>
           c.id === characterId
-            ? { ...c, equippedGear: gear, backpack: [...c.backpack, equipment] }
+            ? { ...c, equippedGear: gear, backpack: addItemToStacks(c.backpack, equipment) }
             : c
         ),
       },
@@ -589,10 +615,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
       return { success: false, newLevel: 0, cost: { spiritStone: 0, ore: 0 } }
     }
 
-    const item = char.backpack[backpackIndex]
-    if (!item || item.type !== 'equipment') {
+    const stack = char.backpack[backpackIndex]
+    if (!stack || stack.item.type !== 'equipment') {
       return { success: false, newLevel: 0, cost: { spiritStone: 0, ore: 0 } }
     }
+    const item = stack.item as Equipment
 
     const forgeLevel = getBuildingLevel(sect.buildings, 'forge')
     const forgeBuff = getForgeBuff(forgeLevel)
@@ -621,7 +648,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // Update item if enhancement succeeded
     if (result.success) {
       const newBackpack = [...get().sect.characters.find((c) => c.id === characterId)!.backpack]
-      newBackpack[backpackIndex] = { ...item, enhanceLevel: result.newLevel }
+      newBackpack[backpackIndex] = { ...stack, item: { ...item, enhanceLevel: result.newLevel } }
       set((s) => ({
         sect: {
           ...s.sect,
@@ -639,21 +666,19 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const { sect } = get()
     const char = sect.characters.find((c) => c.id === characterId)
     if (!char) return false
-
-    const item = char.backpack[backpackIndex]
-    if (!item) return false
-
+    const stack = char.backpack[backpackIndex]
+    if (!stack) return false
+    const { stacks: newBackpack, removed } = removeStackAtIndex(char.backpack, backpackIndex)
+    if (!removed) return false
     set((s) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, backpack: c.backpack.filter((_, i) => i !== backpackIndex) }
-            : c
+          c.id === characterId ? { ...c, backpack: newBackpack } : c
         ),
         resources: {
           ...s.sect.resources,
-          spiritStone: s.sect.resources.spiritStone + item.sellPrice,
+          spiritStone: s.sect.resources.spiritStone + removed.item.sellPrice,
         },
       },
     }))
@@ -796,7 +821,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // 5. Process production queues (before cultivation loop)
     const newBuildings = sect.buildings.map((b) => ({ ...b, productionQueue: { ...b.productionQueue } }))
-    const newVault = [...sect.vault]
+    let newVault = [...sect.vault]
     const processingTypes: BuildingType[] = ['alchemyFurnace', 'forge']
     const totalConsumed = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
     const USE_OFFLINE_THRESHOLD = 60
@@ -814,8 +839,10 @@ export const useSectStore = create<SectStore>((set, get) => ({
         for (let i = 0; i < offlineResult.itemsProduced; i++) {
           const recipe = getAutoRecipeById(building.productionQueue.recipeId!)
           if (recipe) {
-            const item = produceItemFromRecipe(recipe, building.level)
-            if (item && newVault.length < sect.maxVaultSlots) newVault.push(item)
+            const stack = produceItemAsStack(recipe, building.level)
+            if (stack) {
+              newVault = addItemQuantityToStacks(newVault, stack.item, stack.quantity)
+            }
           }
         }
       } else {
@@ -828,9 +855,12 @@ export const useSectStore = create<SectStore>((set, get) => ({
         building.productionQueue.progress = result.progress
         if (result.completed) {
           const recipe = getAutoRecipeById(building.productionQueue.recipeId!)
-          if (recipe && newVault.length < sect.maxVaultSlots) {
-            const item = produceItemFromRecipe(recipe, building.level)
-            if (item) newVault.push(item)
+          if (recipe) {
+            const stack = produceItemAsStack(recipe, building.level)
+            if (stack) {
+              newVault = addItemQuantityToStacks(newVault, stack.item, stack.quantity)
+            }
+          }
           }
         }
       }
@@ -887,18 +917,10 @@ export const useSectStore = create<SectStore>((set, get) => ({
         const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
 
         if (cost) {
-          // Major realm transition requires pill + spiritStone
-          const hasPill = newVault.some(
-            item => item.type === 'consumable' && item.recipeId === cost.pillId
-          )
-          if (!hasPill || sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone) {
-            // Cannot breakthrough: missing pill or insufficient stones - skip
+          // Major realm transition requires spiritStone only
+          if (sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone) {
+            // Cannot breakthrough: insufficient stones - skip
           } else {
-            // Consume pill and spiritStone
-            const pillIndex = newVault.findIndex(
-              item => item.type === 'consumable' && item.recipeId === cost.pillId
-            )
-            newVault.splice(pillIndex, 1)
             breakthroughStoneCost += cost.spiritStone
             const failureRate = calcBreakthroughFailureRate(updatedChar)
             const btResult = performBreakthrough(updatedChar, failureRate)
