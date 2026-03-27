@@ -30,6 +30,7 @@ import type { AutoRecipe } from '../data/recipes'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 import { emitEvent } from './eventLogStore'
 import { getRealmName } from '../data/realms'
+import { shouldTriggerTribulation, resolveTribulation } from '../systems/cultivation/TribulationSystem'
 import { addItemToStacks, removeStackAtIndex, addItemQuantityToStacks } from '../systems/item/ItemStackUtils'
 
 // ---------------------------------------------------------------------------
@@ -861,7 +862,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
               newVault = addItemQuantityToStacks(newVault, stack.item, stack.quantity)
             }
           }
-          }
         }
       }
     }
@@ -922,33 +922,87 @@ export const useSectStore = create<SectStore>((set, get) => ({
             // Cannot breakthrough: insufficient stones - skip
           } else {
             breakthroughStoneCost += cost.spiritStone
-            const failureRate = calcBreakthroughFailureRate(updatedChar)
-            const btResult = performBreakthrough(updatedChar, failureRate)
-            if (btResult.success) {
-              const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-              emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
-              updatedChar = {
-                ...updatedChar,
-                realm: btResult.newRealm,
-                realmStage: btResult.newStage,
-                cultivation: 0,
-                baseStats: btResult.newStats,
-              }
-              // Breakthrough comprehension (major)
-              const comprehendedId = tryComprehendOnBreakthrough(
-                updatedChar, get().sect.techniqueCodex, isMajorBreakthrough
-              )
-              if (comprehendedId) {
+
+            if (shouldTriggerTribulation(updatedChar.realm, updatedChar.realmStage)) {
+              // Tribulation path for realms with tribulationPower
+              const tribResult = resolveTribulation(updatedChar)
+              if (tribResult.success) {
+                const failureRate = calcBreakthroughFailureRate(updatedChar)
+                const btResult = performBreakthrough(updatedChar, failureRate)
+                if (btResult.success) {
+                  const nextName = getRealmName(btResult.newRealm, btResult.newStage)
+                  emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
+                  updatedChar = {
+                    ...updatedChar,
+                    realm: btResult.newRealm,
+                    realmStage: btResult.newStage,
+                    cultivation: 0,
+                    baseStats: btResult.newStats,
+                  }
+                  const comprehendedId = tryComprehendOnBreakthrough(
+                    updatedChar, get().sect.techniqueCodex, true
+                  )
+                  if (comprehendedId) {
+                    updatedChar = {
+                      ...updatedChar,
+                      learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+                    }
+                    const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
+                    emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
+                  }
+                } else {
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫虽过，但突破失败，修为散尽`)
+                  updatedChar = { ...updatedChar, cultivation: 0 }
+                }
+              } else {
                 updatedChar = {
                   ...updatedChar,
-                  learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+                  cultivation: 0,
+                  status: 'injured' as const,
+                  injuryTimer: tribResult.injuryTimer ?? 60,
                 }
-                const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
-                emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
+                if (tribResult.severe && updatedChar.realmStage > 0) {
+                  updatedChar = {
+                    ...updatedChar,
+                    realmStage: (updatedChar.realmStage - 1) as Character['realmStage'],
+                  }
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，境界跌落至 ${getRealmName(updatedChar.realm, updatedChar.realmStage)}`)
+                } else if (tribResult.severe) {
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，修为尽失`)
+                } else {
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫失败，修为尽失`)
+                }
               }
             } else {
-              emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
-              updatedChar = { ...updatedChar, cultivation: 0 }
+              // Non-tribulation path for realms without tribulationPower
+              const failureRate = calcBreakthroughFailureRate(updatedChar)
+              const btResult = performBreakthrough(updatedChar, failureRate)
+              if (btResult.success) {
+                const nextName = getRealmName(btResult.newRealm, btResult.newStage)
+                emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
+                updatedChar = {
+                  ...updatedChar,
+                  realm: btResult.newRealm,
+                  realmStage: btResult.newStage,
+                  cultivation: 0,
+                  baseStats: btResult.newStats,
+                }
+                // Breakthrough comprehension (major)
+                const comprehendedId = tryComprehendOnBreakthrough(
+                  updatedChar, get().sect.techniqueCodex, isMajorBreakthrough
+                )
+                if (comprehendedId) {
+                  updatedChar = {
+                    ...updatedChar,
+                    learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+                  }
+                  const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
+                  emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
+                }
+              } else {
+                emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
+                updatedChar = { ...updatedChar, cultivation: 0 }
+              }
             }
           }
         } else {
