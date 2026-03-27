@@ -6,10 +6,73 @@ import { getTechniqueById } from './techniquesTable'
 import type { ActiveSkill } from '../types/skill'
 import { getActiveSkillById } from './activeSkills'
 
-export const ENEMY_TEMPLATES: Enemy[] = [
-  { id: 'wild_spirit_beast', name: '灵兽', element: 'neutral', stats: { hp: 50, atk: 8, def: 4, spd: 6 }, isBoss: false },
-  { id: 'cave_demon', name: '洞妖', element: 'fire', stats: { hp: 120, atk: 18, def: 10, spd: 8 }, isBoss: false },
-  { id: 'spirit_boss', name: '灵脉守卫', element: 'lightning', stats: { hp: 500, atk: 40, def: 25, spd: 12 }, isBoss: true },
+export type LootType = 'spiritStone' | 'herb' | 'ore' | 'equipment' | 'consumable' | 'petCapture'
+
+export interface LootEntry {
+  type: LootType
+  weight: number
+  minAmount?: number
+  maxAmount?: number
+  quality?: 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
+  recipeId?: string
+}
+
+export interface EnemyTemplate extends Enemy {
+  lootTable: LootEntry[]
+  dropsPerFight: number
+}
+
+export const ENEMY_TEMPLATES: EnemyTemplate[] = [
+  {
+    id: 'wild_spirit_beast',
+    name: '灵兽',
+    element: 'neutral',
+    stats: { hp: 50, atk: 8, def: 4, spd: 6 },
+    isBoss: false,
+    dropsPerFight: 1,
+    lootTable: [
+      { type: 'spiritStone', weight: 40, minAmount: 20, maxAmount: 50 },
+      { type: 'herb', weight: 25, minAmount: 2, maxAmount: 8 },
+      { type: 'ore', weight: 15, minAmount: 1, maxAmount: 5 },
+      { type: 'equipment', weight: 10, quality: 'common' },
+      { type: 'equipment', weight: 3, quality: 'spirit' },
+      { type: 'petCapture', weight: 2 },
+    ],
+  },
+  {
+    id: 'cave_demon',
+    name: '洞妖',
+    element: 'fire',
+    stats: { hp: 120, atk: 18, def: 10, spd: 8 },
+    isBoss: false,
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 35, minAmount: 40, maxAmount: 80 },
+      { type: 'herb', weight: 10, minAmount: 3, maxAmount: 10 },
+      { type: 'ore', weight: 20, minAmount: 3, maxAmount: 10 },
+      { type: 'equipment', weight: 5, quality: 'common' },
+      { type: 'equipment', weight: 12, quality: 'spirit' },
+      { type: 'equipment', weight: 3, quality: 'immortal' },
+      { type: 'petCapture', weight: 3 },
+    ],
+  },
+  {
+    id: 'spirit_boss',
+    name: '灵脉守卫',
+    element: 'lightning',
+    stats: { hp: 500, atk: 40, def: 25, spd: 12 },
+    isBoss: true,
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 30, minAmount: 100, maxAmount: 300 },
+      { type: 'herb', weight: 15, minAmount: 10, maxAmount: 30 },
+      { type: 'ore', weight: 15, minAmount: 5, maxAmount: 20 },
+      { type: 'equipment', weight: 20, quality: 'spirit' },
+      { type: 'equipment', weight: 12, quality: 'immortal' },
+      { type: 'equipment', weight: 3, quality: 'divine' },
+      { type: 'petCapture', weight: 5 },
+    ],
+  },
 ]
 
 export function scaleEnemy(baseStats: { hp: number; atk: number; def: number; spd: number }, layer: number) {
