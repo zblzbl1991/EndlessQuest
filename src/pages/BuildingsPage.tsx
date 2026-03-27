@@ -4,6 +4,8 @@ import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../
 import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
 import { calcTaxRate } from '../systems/economy/ResourceEngine'
 import { calcSectLevel } from '../systems/character/CharacterEngine'
+import { getActiveSynergies } from '../systems/economy/SynergySystem'
+import { SYNERGIES } from '../data/buildings'
 import { getAutoRecipesForBuilding, getAutoRecipeById } from '../data/recipes'
 import type { AutoRecipe } from '../data/recipes'
 import {
@@ -161,6 +163,7 @@ function BuildingsTab() {
   const sect = useSectStore((s) => s.sect)
   const tryUpgradeBuilding = useSectStore((s) => s.tryUpgradeBuilding)
   const setProductionRecipe = useSectStore((s) => s.setProductionRecipe)
+  const activeSynergies = getActiveSynergies(sect.buildings)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
   const [drawerBuilding, setDrawerBuilding] = useState<string | null>(null)
 
@@ -310,6 +313,30 @@ function BuildingsTab() {
           onClose={() => setDrawerBuilding(null)}
         />
       )}
+
+      {/* Building Synergies */}
+      <section className={styles.synergySection}>
+        <div className={styles.sectionTitle}>建筑协同</div>
+        <div className={styles.synergyList}>
+          {SYNERGIES.map((synergy) => {
+            const isActive = activeSynergies.some(a => a.id === synergy.id)
+            return (
+              <div key={synergy.id} className={`${styles.synergyCard} ${isActive ? styles.synergyActive : styles.synergyInactive}`}>
+                <div className={styles.synergyName}>{synergy.name}</div>
+                <div className={styles.synergyDesc}>{synergy.description}</div>
+                <div className={styles.synergyReq}>
+                  {synergy.requirements.map((req, i) => (
+                    <span key={i}>
+                      {BUILDING_DEFS.find(d => d.type === req.building)?.name ?? req.building} Lv{req.level}
+                      {i < synergy.requirements.length - 1 && ' + '}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
     </div>
   )
 }
