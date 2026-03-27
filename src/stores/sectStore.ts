@@ -7,7 +7,7 @@ import type {
 } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 import { generateCharacter, calcSectLevel, getMaxCharacters, getRecruitCost, isQualityUnlocked } from '../systems/character/CharacterEngine'
-import { calcResourceRates } from '../systems/economy/ResourceEngine'
+import { calcResourceRates, calcTaxRate } from '../systems/economy/ResourceEngine'
 import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from '../systems/cultivation/CultivationEngine'
 import { tryComprehendOnBreakthrough } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
@@ -1151,10 +1151,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
       : 1
     const newSectLevel = calcSectLevel(mainHallLevel)
 
-    // 12. Build new sect with updated resources (production + cultivation - consumed)
+    // 12. Build new sect with updated resources (production + cultivation - consumed + tax)
+    const taxProduced = calcTaxRate(newSectLevel, sect.characters.length) * deltaSec
     const newResources = {
       spiritEnergy: Math.max(0, updatedSpiritEnergy),
-      spiritStone: Math.max(0, sect.resources.spiritStone + rates.spiritStone * deltaSec - totalConsumed.spiritStone - breakthroughStoneCost),
+      spiritStone: Math.max(0, sect.resources.spiritStone + rates.spiritStone * deltaSec + taxProduced - totalConsumed.spiritStone - breakthroughStoneCost),
       herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb,
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
     }

@@ -680,7 +680,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    expect(getStore().sect.resources.spiritStone).toBe(1000)
+    // Tax adds 0.5 spiritStone per tick (sectLevel=1, 1 disciple)
+    expect(getStore().sect.resources.spiritStone).toBe(1000.5)
   })
 
   it('should skip breakthrough when spiritStone insufficient', () => {
@@ -701,7 +702,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    expect(getStore().sect.resources.spiritStone).toBe(100)
+    // Tax adds 0.5 spiritStone per tick (sectLevel=1, 1 disciple)
+    expect(getStore().sect.resources.spiritStone).toBe(100.5)
   })
 
   it('should not consume vault/stones for sub-level breakthrough', () => {
@@ -720,9 +722,9 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.99)
     getStore().tickAll(1)
 
-    // Sub-level breakthrough should not consume vault or stones
+    // Sub-level breakthrough should not consume vault or stones (tax adds 0.5)
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.resources.spiritStone).toBe(1000)
+    expect(getStore().sect.resources.spiritStone).toBe(1000.5)
   })
 })
 

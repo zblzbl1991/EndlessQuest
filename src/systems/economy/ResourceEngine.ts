@@ -39,6 +39,14 @@ export function calcResourceRates(
   return { spiritEnergy, spiritStone, herb, ore }
 }
 
+/**
+ * Calculate sect tax (spirit stone income from main hall).
+ * Formula: sectLevel * discipleCount * 0.5 per second
+ */
+export function calcTaxRate(sectLevel: number, discipleCount: number): number {
+  return sectLevel * discipleCount * 0.5
+}
+
 export function clampResources(resources: Resources, caps: ResourceCaps): Resources {
   return {
     spiritStone: resources.spiritStone,
