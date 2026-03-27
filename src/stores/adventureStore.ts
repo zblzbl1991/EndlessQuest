@@ -54,6 +54,10 @@ export interface AdventureStore {
   tickDispatches(deltaSec: number): void
   collectDispatchReward(characterId: string): void
   getActiveDispatchCount(): number
+
+  // Shop
+  buyFromShop(runId: string, offerIndex: number): void
+  closeShop(runId: string): void
 }
 
 // ---------------------------------------------------------------------------
@@ -292,6 +296,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       floorTimer: 0,
       supplyLevel,
       rewardMultiplier: supplyCost.rewardMultiplier,
+      pendingShopOffers: [],
     }
 
     set((s) => ({
@@ -323,6 +328,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const newRewards = { ...run.totalRewards }
     const newItemRewards = [...run.itemRewards]
     const newLog = [...run.eventLog]
+    let newShopOffers = run.pendingShopOffers ?? []
 
     // Resolve all events on the route
     for (const event of route.events) {
@@ -368,6 +374,11 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         }
       }
 
+      // Store shop offers for UI
+      if (result.shopOffers && result.shopOffers.length > 0) {
+        newShopOffers = result.shopOffers
+      }
+
       // Log entry
       newLog.push({
         timestamp: Date.now(),
@@ -390,6 +401,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
             totalRewards: newRewards,
             itemRewards: newItemRewards,
             eventLog: newLog,
+            pendingShopOffers: newShopOffers,
           },
         },
       }))
@@ -412,6 +424,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
             totalRewards: newRewards,
             itemRewards: newItemRewards,
             eventLog: newLog,
+            pendingShopOffers: newShopOffers,
           },
         },
       }))
@@ -430,6 +443,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           totalRewards: newRewards,
           itemRewards: newItemRewards,
           eventLog: newLog,
+          pendingShopOffers: newShopOffers,
         },
       },
     }))
@@ -717,6 +731,83 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
   getActiveDispatchCount: () => {
     return get().dispatches.length
+  },
+
+  buyFromShop: (runId: string, offerIndex: number) => {
+    const run = get().activeRuns[runId]
+    if (!run) return
+    const offers = run.pendingShopOffers
+    if (!offers || offerIndex >= offers.length) return
+
+    const offer = offers[offerIndex]
+    if (run.totalRewards.spiritStone < offer.cost) return
+
+    // Deduct cost
+    const newRewards = { ...run.totalRewards, spiritStone: run.totalRewards.spiritStone - offer.cost }
+    const newMemberStates = { ...run.memberStates }
+    const newLog = [...run.eventLog]
+
+    if (offer.effect === 'heal') {
+      for (const charId of run.teamCharacterIds) {
+        const ms = newMemberStates[charId]
+        if (!ms || ms.status === 'dead') continue
+        const healAmount = Math.floor(ms.maxHp * offer.value)
+        ms.currentHp = Math.min(ms.maxHp, ms.currentHp + healAmount)
+      }
+      newLog.push({ timestamp: Date.now(), message: `使用了${offer.name}，恢复生命` })
+    } else if (offer.effect === 'skip') {
+      // Skip current floor by advancing
+      newLog.push({ timestamp: Date.now(), message: `使用了${offer.name}，跳过当前层` })
+    }
+
+    // Remove used offer
+    const newOffers = [...offers]
+    newOffers.splice(offerIndex, 1)
+
+    set(s => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [runId]: {
+          ...s.activeRuns[runId]!,
+          totalRewards: newRewards,
+          memberStates: newMemberStates,
+          eventLog: newLog,
+          pendingShopOffers: newOffers,
+        },
+      },
+    }))
+
+    // If skip effect, advance the floor
+    if (offer.effect === 'skip') {
+      const nextFloor = run.currentFloor + 1
+      if (nextFloor > run.floors.length) {
+        get().completeRun(runId)
+      } else {
+        set(s => ({
+          activeRuns: {
+            ...s.activeRuns,
+            [runId]: {
+              ...s.activeRuns[runId]!,
+              currentFloor: nextFloor,
+            },
+          },
+        }))
+      }
+    }
+  },
+
+  closeShop: (runId: string) => {
+    const run = get().activeRuns[runId]
+    if (!run) return
+    set(s => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [runId]: {
+          ...s.activeRuns[runId]!,
+          pendingShopOffers: [],
+        },
+      },
+    }))
   },
 
   getRun: (id) => {

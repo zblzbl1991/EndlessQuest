@@ -1,5 +1,6 @@
 import type { AnyItem } from './item'
 import type { Resources } from './sect'
+import type { ShopOffer } from '../systems/roguelike/EventSystem'
 
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancient_cave'
 
@@ -85,4 +86,6 @@ export interface DungeonRun {
   supplyLevel: SupplyLevel
   /** Reward multiplier from supply level (default 1.0 for backward compat) */
   rewardMultiplier: number
+  /** Pending shop offers from the last shop event */
+  pendingShopOffers: ShopOffer[]
 }

@@ -12,6 +12,19 @@ import type { LootResult } from './LootSystem'
 import { EQUIP_SLOTS } from '../../data/items'
 import type { Resources } from '../../types/sect'
 
+export interface ShopOffer {
+  name: string
+  description: string
+  cost: number
+  effect: 'heal' | 'skip'
+  value: number
+}
+
+const SHOP_ITEMS: ShopOffer[] = [
+  { name: '回春丹', description: '恢复 30% 生命', cost: 100, effect: 'heal', value: 0.3 },
+  { name: '传送符', description: '跳过当前层', cost: 200, effect: 'skip', value: 0 },
+]
+
 export interface EventResult {
   type: DungeonEvent['type']
   success: boolean
@@ -21,6 +34,7 @@ export interface EventResult {
   message: string
   hpChanges: Record<string, number> // unit id -> hp change (positive = healed, negative = damage)
   techniqueReward?: { techniqueId: string }
+  shopOffers?: ShopOffer[]
 }
 
 function getNonBossTemplates() {
@@ -189,6 +203,8 @@ export function resolveEvent(
       }
     }
     case 'shop': {
+      const shuffled = [...SHOP_ITEMS].sort(() => Math.random() - 0.5)
+      const offers = shuffled.slice(0, 2)
       return {
         type: 'shop',
         success: true,
@@ -196,6 +212,7 @@ export function resolveEvent(
         itemRewards: [],
         message: '遇到了游商',
         hpChanges: {},
+        shopOffers: offers,
       }
     }
     case 'rest': {

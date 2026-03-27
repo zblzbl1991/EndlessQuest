@@ -158,7 +158,7 @@ export async function loadGame(): Promise<boolean> {
       const activeRuns: Record<string, DungeonRun> = {}
       for (const rec of advRecords) {
         const r = rec as { id: string; run: DungeonRun }
-        activeRuns[r.id] = r.run
+        activeRuns[r.id] = { ...r.run, pendingShopOffers: (r.run as any).pendingShopOffers ?? [] }
       }
       useAdventureStore.setState({ activeRuns })
     }
