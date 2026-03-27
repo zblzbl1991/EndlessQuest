@@ -1,13 +1,17 @@
 // src/systems/roguelike/EventSystem.ts
 import type { DungeonEvent } from '../../types/adventure'
 import type { AnyItem, ItemQuality, EquipSlot } from '../../types/item'
-import { ENEMY_TEMPLATES, createCombatUnitFromEnemy } from '../../data/enemies'
+import { ENEMY_TEMPLATES, createCombatUnitFromEnemy, type EnemyTemplate } from '../../data/enemies'
 import type { CombatUnit, CombatResult } from '../combat/CombatEngine'
 import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { simulateCombat } from '../combat/CombatEngine'
 import { generateEquipment } from '../item/ItemGenerator'
 import { FORGE_SLOTS } from '../economy/ForgeSystem'
+import { generateLoot } from './LootSystem'
+import type { LootResult } from './LootSystem'
+import { EQUIP_SLOTS } from '../../data/items'
+import type { Resources } from '../../types/sect'
 
 export interface EventResult {
   type: DungeonEvent['type']
@@ -57,6 +61,41 @@ function totalTeamMaxHp(team: CombatUnit[]): number {
 }
 
 /**
+ * Resolve loot results into resource rewards and item rewards.
+ * Resources go to sect.resources, items go to vault via ItemStack.
+ */
+function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyItem[] } {
+  const reward: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
+  const itemRewards: AnyItem[] = []
+
+  for (const drop of loot) {
+    switch (drop.type) {
+      case 'spiritStone':
+        reward.spiritStone += drop.amount
+        break
+      case 'herb':
+        reward.herb += drop.amount
+        break
+      case 'ore':
+        reward.ore += drop.amount
+        break
+      case 'equipment':
+        if (drop.quality) {
+          const slot = EQUIP_SLOTS[Math.floor(Math.random() * EQUIP_SLOTS.length)]
+          itemRewards.push(generateEquipment(slot, drop.quality))
+        }
+        break
+      case 'consumable':
+      case 'petCapture':
+        // Handled by caller
+        break
+    }
+  }
+
+  return { reward, itemRewards }
+}
+
+/**
  * Resolve an event with a team of combat units (multi-unit support).
  *
  * Dead allies are filtered out before combat and non-combat events.
@@ -83,7 +122,7 @@ export function resolveEvent(
         }
       }
       const templates = getNonBossTemplates()
-      const enemyTemplate = templates[Math.floor(Math.random() * templates.length)]
+      const enemyTemplate = templates[Math.floor(Math.random() * templates.length)] as EnemyTemplate
       const enemyUnit = createCombatUnitFromEnemy(enemyTemplate, floorNumber)
       const result = simulateCombat(aliveTeam, [enemyUnit])
       const victory = result.victory
@@ -96,21 +135,28 @@ export function resolveEvent(
         hpChanges[aliveTeam[i].id] = -(original - remaining)
       }
 
-      // Combat victory: 15% chance to drop equipment (70% common, 30% spirit)
-      const combatItemRewards: AnyItem[] = victory && Math.random() < 0.15
-        ? rollEquipmentDrop([{ quality: 'common', weight: 70 }, { quality: 'spirit', weight: 30 }])
-        : []
-
-      return {
-        type: 'combat',
-        success: victory,
-        reward: victory
-          ? { spiritStone: 50 * floorNumber, herb: 3 * floorNumber, ore: 2 * floorNumber }
-          : emptyReward,
-        itemRewards: combatItemRewards,
-        combatResult: result,
-        message: victory ? '战斗胜利！' : '战斗失败...',
-        hpChanges,
+      if (victory) {
+        const loot = generateLoot(enemyTemplate.lootTable, enemyTemplate.dropsPerFight, floorNumber)
+        const { reward, itemRewards } = resolveLoot(loot)
+        return {
+          type: 'combat',
+          success: true,
+          reward,
+          itemRewards,
+          combatResult: result,
+          message: `击败了 ${enemyTemplate.name}`,
+          hpChanges,
+        }
+      } else {
+        return {
+          type: 'combat',
+          success: false,
+          reward: emptyReward,
+          itemRewards: [],
+          combatResult: result,
+          message: `被 ${enemyTemplate.name} 击败`,
+          hpChanges,
+        }
       }
     }
     case 'random': {
@@ -200,7 +246,7 @@ export function resolveEvent(
           hpChanges: {},
         }
       }
-      const bossTemplate = ENEMY_TEMPLATES.find((e) => e.isBoss)!
+      const bossTemplate = ENEMY_TEMPLATES.find((e) => e.isBoss) as EnemyTemplate
       const bossUnit = createCombatUnitFromEnemy(bossTemplate, floorNumber)
       // Boost boss for boss fight
       bossUnit.hp = Math.floor(bossUnit.hp * 2)
@@ -217,25 +263,28 @@ export function resolveEvent(
         hpChanges[aliveTeam[i].id] = -(original - remaining)
       }
 
-      // Boss victory: 40% chance to drop equipment (60% spirit, 40% immortal)
-      const bossItemRewards: AnyItem[] = victory && Math.random() < 0.4
-        ? rollEquipmentDrop([{ quality: 'spirit', weight: 60 }, { quality: 'immortal', weight: 40 }])
-        : []
-
-      return {
-        type: 'boss',
-        success: victory,
-        reward: victory
-          ? {
-              spiritStone: 200 * floorNumber,
-              herb: 10 * floorNumber,
-              ore: 5 * floorNumber,
-            }
-          : { spiritStone: 50 * floorNumber, herb: 2 * floorNumber, ore: 0 },
-        itemRewards: bossItemRewards,
-        combatResult: result,
-        message: victory ? '击败了 Boss！' : 'Boss 太强了...',
-        hpChanges,
+      if (victory) {
+        const loot = generateLoot(bossTemplate.lootTable, bossTemplate.dropsPerFight, floorNumber)
+        const { reward, itemRewards } = resolveLoot(loot)
+        return {
+          type: 'boss',
+          success: true,
+          reward,
+          itemRewards,
+          combatResult: result,
+          message: `击败了 BOSS: ${bossTemplate.name}！`,
+          hpChanges,
+        }
+      } else {
+        return {
+          type: 'boss',
+          success: false,
+          reward: { spiritStone: 50 * floorNumber, herb: 2 * floorNumber, ore: 0 },
+          itemRewards: [],
+          combatResult: result,
+          message: `被 BOSS: ${bossTemplate.name} 击败...`,
+          hpChanges,
+        }
       }
     }
     case 'ancient_cave': {
