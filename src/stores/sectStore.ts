@@ -32,6 +32,7 @@ import { emitEvent } from './eventLogStore'
 import { getRealmName } from '../data/realms'
 import { shouldTriggerTribulation, resolveTribulation } from '../systems/cultivation/TribulationSystem'
 import { getBuildingBonus } from '../systems/character/SpecialtySystem'
+import { getSynergyBonus } from '../systems/economy/SynergySystem'
 import { addItemToStacks, removeStackAtIndex, addItemQuantityToStacks } from '../systems/item/ItemStackUtils'
 
 // ---------------------------------------------------------------------------
@@ -834,6 +835,12 @@ export const useSectStore = create<SectStore>((set, get) => ({
     rates.ore *= getBuildingBonus('spiritMine', assignedSpecialties('spiritMine'))
     rates.spiritEnergy *= getBuildingBonus('spiritField', assignedSpecialties('spiritField'))
     rates.herb *= getBuildingBonus('spiritField', assignedSpecialties('spiritField'))
+
+    // 4c. Apply building synergy bonuses
+    rates.spiritStone *= getSynergyBonus('spiritMine', sect.buildings)
+    rates.ore *= getSynergyBonus('spiritMine', sect.buildings)
+    rates.spiritEnergy *= getSynergyBonus('spiritField', sect.buildings)
+    rates.herb *= getSynergyBonus('spiritField', sect.buildings)
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
