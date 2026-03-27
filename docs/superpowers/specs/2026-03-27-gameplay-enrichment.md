@@ -68,16 +68,19 @@ interface EnemyTemplate {
 }
 ```
 
+### 与现有 Dungeon.lootTable 的关系
+
+现有 `Dungeon` 类型已有一个 `lootTable: Array<{ itemId: string; weight: number }>` 字段（当前全部为空数组）。该字段从未被使用。实现时应**移除** `Dungeon.lootTable` 字段，改用敌人级别的掉落表设计，避免命名冲突。
+
 ### 掉落逻辑
 
 1. 战斗胜利后，根据敌人 `dropsPerFight` 确定掉落数量
 2. 每个掉落槽独立 roll：按权重随机选择一个 `LootEntry`
 3. 根据 entry.type 生成对应物品：
-   - 资源类：在 `[minAmount, maxAmount]` 范围内随机 × floor 系数
-   - 装备：按品质上限生成随机装备
-   - 丹药：按 recipeId 生成
-   - 灵宠捕获：标记为可捕获，进入宠物捕获判定流程
-4. 掉落物品加入 sect.vault（通过 `addItemToStacks`）
+   - **资源类（spiritStone/herb/ore）：** 数量在 `[minAmount, maxAmount]` 范围内随机 × floor 系数，直接加到 `sect.resources`（`resources.spiritStone += amount` 等），**不经过** vault
+   - **装备（equipment）：** 按品质上限生成随机装备，通过 `addItemToStacks` 加入 `sect.vault`
+   - **丹药（consumable）：** 按 recipeId 生成，通过 `addItemQuantityToStacks` 加入 `sect.vault`
+   - **灵宠捕获（petCapture）：** 标记为可捕获事件，进入宠物捕获判定流程
 
 ### 敌人掉落表设计
 
@@ -134,17 +137,21 @@ interface EnemyTemplate {
 
 ### 触发条件
 
-- **触发：** 弟子修为满 + 大境界突破（realmStage 3 → realm+1, stage 0）
+- **触发：** 弟子修为满 + 大境界突破（realmStage 3 → realm+1, stage 0），且目标境界有 `tribulationPower` 定义（即 realm 2+：金丹/元婴/化神）
 - **不触发：** 小境界突破（realmStage 0→1, 1→2, 2→3）
+- **不触发：** 进入 realm 1（筑基）和 realm 2（金丹）前的突破（这两个目标境界无 tribulationPower），使用现有小境界失败率公式（5% + 0）
 
 ### 判定逻辑
 
 ```typescript
 function resolveTribulation(character: Character): TribulationResult {
-  const power = REALM_TRIBULATION[character.realm + 1]  // 目标境界天劫强度
+  const targetRealm = character.realm + 1
+  const realmData = REALMS[targetRealm]
+  const power = realmData.tribulationPower ?? 0
   const baseFailRate = 0.10 + power * 0.25
 
-  // 弟子属性降低失败率
+  // 弟子属性降低失败率（typical ranges: spiritualRoot 10-40, comprehension 5-30）
+  // spiritualRoot bonus: 0.05-0.20, comprehension bonus: 0.015-0.09
   const spiritRootBonus = character.cultivationStats.spiritualRoot * 0.005
   const comprehensionBonus = character.cultivationStats.comprehension * 0.003
 
@@ -153,7 +160,7 @@ function resolveTribulation(character: Character): TribulationResult {
   // 化神期特殊：stage 越高天劫越强
   let stageMultiplier = 1.0
   if (character.realm === 4) {
-    stageMultiplier = [1.0, 1.2, 1.5][character.realmStage] ?? 1.0
+    stageMultiplier = realmData.tribulationStages?.[character.realmStage] ?? 1.0
   }
   const finalFailRate = Math.min(0.95, failRate * stageMultiplier)
 
@@ -169,6 +176,20 @@ function resolveTribulation(character: Character): TribulationResult {
     injuryTimer: severe ? 120 : 60,
   }
 }
+```
+
+### 与现有 CultivationEngine 的集成
+
+`resolveTribulation()` **替换**大境界突破中的 `calcBreakthroughFailureRate()`。集成流程：
+
+```
+tickAll 检测 canBreakthrough()
+  └─ 是大境界突破？
+     ├─ 是 → 检查灵石 → resolveTribulation()
+     │   ├─ success → breakthrough(character, 0) → 正常境界提升
+     │   ├─ failure → cultivation = 0, status = 'injured', injuryTimer = 60
+     │   └─ severe failure → cultivation = 0, status = 'injured', injuryTimer = 120, realmStage - 1（最低 0）
+     └─ 否 → 使用现有 calcBreakthroughFailureRate() + breakthrough()
 ```
 
 ### 天劫结果
@@ -260,9 +281,24 @@ interface Character {
 | comprehension | 藏经阁 | 领悟速度 +15% | +30% | +50% |
 | combat | 无（探险被动） | 攻击/防御 +5% | +10% | +20% |
 | fortune | 无（探险被动） | 掉落率 +10% | +20% | +35% |
-| leadership | 无（探险被动） | 队伍上限 +1 | +1 | +1 |
+| leadership | 无（探险被动） | 队伍上限 +1 | +1 | +1 + 队伍属性 +5% |
 
 多个弟子指派同一建筑时，同类型特长取最高值，不同类型特长叠加。
+
+### 说明：comprehension 特长 vs 现有功法领悟
+
+现有功法领悟系统（technique comprehension 0-100%）是在突破时触发的概率事件。`comprehension` 特长**不直接影响**该概率，而是提升功法领悟的**速度**——即每次触发领悟时获得的进度增量更大。具体机制：突破时调用 `comprehension` 后有概率触发领悟事件，如果触发了，领悟进度增量 = `baseProgress * (1 + specialtyBonus)`。这是与现有领悟概率独立的加速机制。
+
+### 存档迁移
+
+新字段 `specialties` 和 `assignedBuilding` 在旧存档中不存在。加载时：
+- `character.specialties` 为 undefined → 默认 `[]`
+- `character.assignedBuilding` 为 undefined → 默认 `null`
+- 在 SaveSystem 的迁移逻辑中处理
+
+### UI 状态标签更新
+
+`training` 状态标签应从当前的"修炼中"改为"研习中"，并在弟子列表筛选中**不再与 `cultivating` 分组**，因为指派到建筑的弟子不修炼。
 
 ### 涉及文件
 
@@ -341,6 +377,7 @@ type CharacterStatus =
 - **灵气消耗：** 闭关期间**不消耗**灵气（spirit energy），完全靠灵石驱动
 - **自动退出：** 灵石不足时自动退出闭关，恢复 `cultivating`
 - **手动退出：** 玩家可随时手动退出闭关
+- **闭关上限：** 最多 3 个弟子同时闭关，避免完全绕过灵气系统
 
 | 境界 | 灵石消耗/s | 普通修炼灵气消耗/s |
 |------|-----------|-------------------|
@@ -366,6 +403,8 @@ if (character.status === 'secluded') {
   // 现有逻辑
 }
 ```
+
+**注意：** 闭关灵石消耗从共享池中按顺序扣除。同一 tick 内多个闭关弟子可能因顺序导致部分退出（先扣的先消耗）。这是可接受的行为，因为顺序在同一 tick 内是确定性的。
 
 ### UI
 
@@ -406,9 +445,13 @@ interface Synergy {
 |--------|------|------|
 | 灵药之道 | 灵田 Lv3 + 丹炉 Lv3 | 丹炉产出效率 +20% |
 | 百炼成钢 | 灵矿 Lv3 + 炼器坊 Lv3 | 锻造成功率 +15% |
-| 以武入道 | 藏经阁 Lv3 + 聚仙台 Lv2 | 全弟子悟性 +3 |
-| 开源节流 | 灵矿 Lv5 + 坊市 Lv3 | 坊市刷新品质 +1 |
+| 以武入道 | 藏经阁 Lv3 + 聚仙台 Lv2 | 全弟子功法领悟概率 +15% |
+| 开源节流 | 灵矿 Lv5 + 坊市 Lv3 | 坊市品质上限 = marketLevel + 1 |
 | 丹器双修 | 丹炉 Lv5 + 炼器坊 Lv5 | 两者效率各 +25% |
+
+### 计算方式
+
+协同效果在每次 `tickAll` 中**动态计算**，检查条件是否满足。满足则应用加成，不满足则加成消失。**不永久修改**角色属性或建筑状态——所有协同效果都是临时计算值。
 
 ### 计算
 
@@ -465,6 +508,7 @@ const DISPATCH_MISSIONS: DispatchMission[] = [
 - 任务完成后自动返回 `idle`
 - 奖励直接加入 sect 资源/仓库
 - 替换现有简单巡逻系统
+- **存档迁移：** 加载旧存档时，如果有 `patrolActive === true` 的巡逻状态，直接完成巡逻并发放奖励，弟子恢复 `idle`
 
 ### UI
 
@@ -506,7 +550,7 @@ const SHOP_ITEMS: ShopItem[] = [
 ```
 
 - 每次商店随机提供 2-3 个商品
-- 使用探险中获得的灵石购买
+- 使用探险中获得的灵石购买（从 `DungeonRun.totalRewards` 中的灵石部分扣除）
 - 购买后立即生效
 
 ### 设计 B: 灵兽捕获
@@ -516,6 +560,7 @@ const SHOP_ITEMS: ShopItem[] = [
 - 捕获率 = `tryCapturePet(fortune, quality)`（复用现有函数）
 - 捕获后加入 sect.pets
 - 灵兽在探险战斗中自动参与：为队伍提供被动属性加成（hp/atk/def 各 +10% × qualityMultiplier）
+- 每个弟子最多 1 只灵宠参与战斗，取 `petIds` 中品质最高的那只
 
 ### 探险 UI 集成
 
@@ -547,4 +592,4 @@ P2-2 任务派遣 ←── (扩展巡逻系统)
 P2-3 探险商店与灵宠 ←── (依赖 P0-1 掉落表)
 ```
 
-赋税和闭关改动最小，可以和掉落表/天劫并行开发。特长系统涉及 Character 类型变更，建议在类型稳定后再做。后续系统依次依赖前面的改动。
+赋税和闭关改动最小，可以和掉落表/天劫并行开发。但注意赋税和闭关**都修改 tickAll**，并行开发时需注意合并冲突。特长系统涉及 Character 类型变更，建议在类型稳定后再做。后续系统依次依赖前面的改动。
