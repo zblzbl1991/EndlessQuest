@@ -131,6 +131,8 @@ export async function loadGame(): Promise<boolean> {
     const characters = rawCharacters.map(c => ({
       ...c,
       backpack: migrateToItemStacks(c.backpack),
+      specialties: (c as any).specialties ?? [],
+      assignedBuilding: (c as any).assignedBuilding ?? null,
     }))
 
     const sect: Sect = {

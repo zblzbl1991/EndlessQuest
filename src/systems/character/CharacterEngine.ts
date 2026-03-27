@@ -227,6 +227,8 @@ export function generateCharacter(quality: CharacterQuality): Character {
     injuryTimer: 0,
     createdAt: Date.now(),
     totalCultivation: 0,
+    specialties: [],
+    assignedBuilding: null,
   }
 }
 

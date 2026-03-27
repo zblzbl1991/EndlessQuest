@@ -5,7 +5,7 @@ export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
 
 export type CharacterQuality = 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
 
-export type CharacterStatus = 'idle' | 'cultivating' | 'adventuring' | 'patrolling' | 'injured' | 'resting' | 'training'
+export type CharacterStatus = 'idle' | 'cultivating' | 'adventuring' | 'patrolling' | 'injured' | 'resting' | 'training' | 'secluded'
 
 export type RealmStage = 0 | 1 | 2 | 3
 
@@ -24,6 +24,21 @@ export interface CultivationStats {
   comprehension: number
   spiritualRoot: number
   fortune: number
+}
+
+export type SpecialtyType =
+  | 'alchemy'
+  | 'forging'
+  | 'mining'
+  | 'herbalism'
+  | 'comprehension'
+  | 'combat'
+  | 'fortune'
+  | 'leadership'
+
+export interface Specialty {
+  type: SpecialtyType
+  level: 1 | 2 | 3
 }
 
 export interface Character {
@@ -47,4 +62,6 @@ export interface Character {
   injuryTimer: number
   createdAt: number
   totalCultivation: number
+  specialties: Specialty[]
+  assignedBuilding: string | null
 }
