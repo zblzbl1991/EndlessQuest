@@ -1,5 +1,5 @@
 import type { Character } from './character'
-import type { AnyItem } from './item'
+import type { AnyItem, ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 
 export type BuildingType =
@@ -41,7 +41,7 @@ export interface Sect {
   resources: Resources
   buildings: Building[]
   characters: Character[]
-  vault: AnyItem[]
+  vault: ItemStack[]
   maxVaultSlots: number
   pets: Pet[]
   totalAdventureRuns: number

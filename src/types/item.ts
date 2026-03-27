@@ -46,6 +46,12 @@ export interface TechniqueScroll extends Item {
 
 export type AnyItem = Equipment | Consumable | Material | TechniqueScroll
 
+/** A stackable wrapper for items. Consumables with the same recipeId stack; others always have quantity 1. */
+export interface ItemStack {
+  item: AnyItem
+  quantity: number
+}
+
 export interface InventoryState {
   items: AnyItem[]
   maxSlots: number
