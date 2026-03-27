@@ -146,6 +146,14 @@ export interface SectStore {
   assignPet(characterId: string, petId: string): boolean
   unassignPet(characterId: string, petId: string): void
 
+  // Building assignment
+  assignToBuilding(characterId: string, buildingType: string): void
+  unassignFromBuilding(characterId: string): void
+
+  // Seclusion
+  startSeclusion(characterId: string): void
+  stopSeclusion(characterId: string): void
+
   reset(): void
 }
 
@@ -866,7 +874,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       }
     }
 
-    // 6. Count cultivating characters
+    // 6. Count cultivating characters (secluded uses spirit stones, not spirit energy)
     const cultivatingCount = sect.characters.filter((c) => c.status === 'cultivating').length
     const spiritConsumed = cultivatingCount * 2 * deltaSec
 
@@ -882,7 +890,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // 9. Process each cultivating character
     let breakthroughStoneCost = 0
     const updatedCharacters = sect.characters.map((char) => {
-      if (char.status !== 'cultivating') {
+      if (char.status !== 'cultivating' && char.status !== 'secluded') {
+        // Training characters are assigned to buildings, skip them
+        if (char.status === 'training' || char.status === 'idle') {
+          return char
+        }
         // Handle resting/injured characters
         if (char.status === 'injured' || char.status === 'resting') {
           // Reduce injuryTimer (reused as recovery timer for resting)
@@ -893,6 +905,90 @@ export const useSectStore = create<SectStore>((set, get) => ({
           return { ...char, injuryTimer: newTimer }
         }
         return char
+      }
+
+      // Handle secluded characters: spend spirit stones for 2.5x cultivation
+      if (char.status === 'secluded') {
+        const stoneCost = 10 * (char.realm + 1) * deltaSec
+        if (updatedSpiritEnergy >= 0 && sect.resources.spiritStone + spiritProduced >= stoneCost + breakthroughStoneCost) {
+          breakthroughStoneCost += stoneCost
+          const seclusionSpirit = 2 * deltaSec * 2.5
+          const seclResult = cultivationTick(char, seclusionSpirit, deltaSec, char.learnedTechniques)
+          const seclGained = seclResult.cultivationGained
+          let updatedChar: Character = {
+            ...char,
+            cultivation: char.cultivation + seclGained,
+            totalCultivation: char.totalCultivation + seclGained,
+          }
+          // Auto-breakthrough check for secluded
+          if (canBreakthrough(updatedChar)) {
+            const currentRealm = REALMS[updatedChar.realm]
+            const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
+            const newRealmIndex = isMajorBreakthrough ? updatedChar.realm + 1 : updatedChar.realm
+            const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
+            if (cost && shouldTriggerTribulation(updatedChar.realm, updatedChar.realmStage)) {
+              const tribResult = resolveTribulation(updatedChar)
+              if (tribResult.success) {
+                const btResult = performBreakthrough(updatedChar, calcBreakthroughFailureRate(updatedChar))
+                if (btResult.success) {
+                  const nextName = getRealmName(btResult.newRealm, btResult.newStage)
+                  emitEvent('breakthrough_success', `${updatedChar.name} 闭关中渡过天劫，突破至 ${nextName}！`)
+                  updatedChar = { ...updatedChar, realm: btResult.newRealm, realmStage: btResult.newStage, cultivation: 0, baseStats: btResult.newStats }
+                  const compId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, true)
+                  if (compId) {
+                    updatedChar = { ...updatedChar, learnedTechniques: [...updatedChar.learnedTechniques, compId] }
+                    emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${getTechniqueById(compId)?.name ?? compId}`)
+                  }
+                } else {
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中天劫虽过，突破失败`)
+                  updatedChar = { ...updatedChar, cultivation: 0, status: 'cultivating' as const }
+                }
+              } else {
+                updatedChar = { ...updatedChar, cultivation: 0, status: 'injured' as const, injuryTimer: tribResult.injuryTimer ?? 60 }
+                if (tribResult.severe && updatedChar.realmStage > 0) {
+                  updatedChar = { ...updatedChar, realmStage: (updatedChar.realmStage - 1) as Character['realmStage'] }
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中天劫重伤，境界跌落`)
+                } else {
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中天劫失败，修为尽失`)
+                }
+              }
+            } else if (cost) {
+              if (sect.resources.spiritStone + spiritProduced - breakthroughStoneCost >= cost.spiritStone) {
+                breakthroughStoneCost += cost.spiritStone
+                const btResult = performBreakthrough(updatedChar, calcBreakthroughFailureRate(updatedChar))
+                if (btResult.success) {
+                  emitEvent('breakthrough_success', `${updatedChar.name} 闭关中突破至 ${getRealmName(btResult.newRealm, btResult.newStage)}`)
+                  updatedChar = { ...updatedChar, realm: btResult.newRealm, realmStage: btResult.newStage, cultivation: 0, baseStats: btResult.newStats }
+                  const compId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, isMajorBreakthrough)
+                  if (compId) {
+                    updatedChar = { ...updatedChar, learnedTechniques: [...updatedChar.learnedTechniques, compId] }
+                    emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${getTechniqueById(compId)?.name ?? compId}`)
+                  }
+                } else {
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中突破失败`)
+                  updatedChar = { ...updatedChar, cultivation: 0, status: 'cultivating' as const }
+                }
+              }
+            } else {
+              const btResult = performBreakthrough(updatedChar, calcBreakthroughFailureRate(updatedChar))
+              if (btResult.success) {
+                emitEvent('breakthrough_success', `${updatedChar.name} 闭关中突破至 ${getRealmName(btResult.newRealm, btResult.newStage)}`)
+                updatedChar = { ...updatedChar, realm: btResult.newRealm, realmStage: btResult.newStage, cultivation: 0, baseStats: btResult.newStats }
+                const compId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, false)
+                if (compId) {
+                  updatedChar = { ...updatedChar, learnedTechniques: [...updatedChar.learnedTechniques, compId] }
+                  emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${getTechniqueById(compId)?.name ?? compId}`)
+                }
+              } else {
+                emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中突破失败`)
+                updatedChar = { ...updatedChar, cultivation: 0, status: 'cultivating' as const }
+              }
+            }
+          }
+          return updatedChar
+        } else {
+          return { ...char, status: 'cultivating' as const }
+        }
       }
 
       const effectiveSpirit = 2 * spiritRatio * deltaSec
@@ -1272,6 +1368,91 @@ export const useSectStore = create<SectStore>((set, get) => ({
         ),
       },
     }))
+  },
+
+  // ---- Building Assignment ----
+
+  assignToBuilding: (characterId, buildingType) => {
+    set((s) => {
+      const character = s.sect.characters.find(c => c.id === characterId)
+      if (!character) return s
+      if (character.status !== 'idle' && character.status !== 'cultivating') return s
+
+      const assigned = s.sect.characters.filter(c => c.assignedBuilding === buildingType)
+      if (assigned.length >= 3) return s
+
+      return {
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map(c =>
+            c.id === characterId
+              ? { ...c, status: 'training' as const, assignedBuilding: buildingType }
+              : c
+          ),
+        },
+      }
+    })
+  },
+
+  unassignFromBuilding: (characterId) => {
+    set((s) => {
+      const character = s.sect.characters.find(c => c.id === characterId)
+      if (!character) return s
+      if (character.status !== 'training' || !character.assignedBuilding) return s
+
+      return {
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map(c =>
+            c.id === characterId
+              ? { ...c, status: 'idle' as const, assignedBuilding: null }
+              : c
+          ),
+        },
+      }
+    })
+  },
+
+  // ---- Seclusion ----
+
+  startSeclusion: (characterId) => {
+    set((s) => {
+      const character = s.sect.characters.find(c => c.id === characterId)
+      if (!character) return s
+      if (character.status !== 'cultivating') return s
+
+      const secludedCount = s.sect.characters.filter(c => c.status === 'secluded').length
+      if (secludedCount >= 3) return s
+
+      return {
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map(c =>
+            c.id === characterId
+              ? { ...c, status: 'secluded' as const }
+              : c
+          ),
+        },
+      }
+    })
+  },
+
+  stopSeclusion: (characterId) => {
+    set((s) => {
+      const character = s.sect.characters.find(c => c.id === characterId)
+      if (!character || character.status !== 'secluded') return s
+
+      return {
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map(c =>
+            c.id === characterId
+              ? { ...c, status: 'cultivating' as const }
+              : c
+          ),
+        },
+      }
+    })
   },
 
   // ---- Reset ----
