@@ -7,8 +7,9 @@ const STATUS_LABELS: Record<CharacterStatus, string> = {
   patrolling: '巡逻中',
   resting: '休息',
   injured: '受伤',
-  training: '修炼中',
+  training: '研习中',
   idle: '休息',
+  secluded: '闭关中',
 }
 
 const STATUS_STYLES: Record<CharacterStatus, string> = {
@@ -19,6 +20,7 @@ const STATUS_STYLES: Record<CharacterStatus, string> = {
   injured: styles.injured,
   training: styles.cultivating,
   idle: styles.resting,
+  secluded: styles.cultivating,
 }
 
 interface StatusBadgeProps {

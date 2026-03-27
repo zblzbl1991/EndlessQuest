@@ -56,7 +56,7 @@ type FilterTab = 'all' | 'cultivating' | 'adventuring' | 'resting'
 
 const FILTER_TABS: { key: FilterTab; label: string; match: (s: CharacterStatus) => boolean }[] = [
   { key: 'all', label: '全部', match: () => true },
-  { key: 'cultivating', label: '修炼中', match: (s) => s === 'cultivating' || s === 'training' },
+  { key: 'cultivating', label: '修炼中', match: (s) => s === 'cultivating' || s === 'secluded' },
   { key: 'adventuring', label: '冒险中', match: (s) => s === 'adventuring' || s === 'patrolling' },
   { key: 'resting', label: '休息', match: (s) => s === 'resting' || s === 'idle' || s === 'injured' },
 ]
@@ -152,6 +152,9 @@ function CharacterDetail({
   const equipItem = useSectStore((s) => s.equipItem)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
   const sellCharacterItem = useSectStore((s) => s.sellCharacterItem)
+  const startSeclusion = useSectStore((s) => s.startSeclusion)
+  const stopSeclusion = useSectStore((s) => s.stopSeclusion)
+  const unassignFromBuilding = useSectStore((s) => s.unassignFromBuilding)
 
   const [selectedBackpackIdx, setSelectedBackpackIdx] = useState<number | null>(null)
 
@@ -262,6 +265,23 @@ function CharacterDetail({
           <span>修炼速度: {cultivationSpeed.toFixed(1)}/s</span>
         </div>
         <BreakthroughPanel characterId={characterId} />
+        <div className={styles.cultivationActions}>
+          {character.status === 'cultivating' && (
+            <button className={styles.actionBtn} onClick={() => startSeclusion(character.id)}>
+              闭关
+            </button>
+          )}
+          {character.status === 'secluded' && (
+            <button className={styles.actionBtn} onClick={() => stopSeclusion(character.id)}>
+              停止闭关
+            </button>
+          )}
+          {character.status === 'training' && character.assignedBuilding && (
+            <button className={styles.actionBtn} onClick={() => unassignFromBuilding(character.id)}>
+              撤回指派
+            </button>
+          )}
+        </div>
       </section>
 
       {/* Adventure info */}

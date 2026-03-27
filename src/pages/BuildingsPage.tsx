@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
 import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
+import { calcTaxRate } from '../systems/economy/ResourceEngine'
+import { calcSectLevel } from '../systems/character/CharacterEngine'
 import { getAutoRecipesForBuilding, getAutoRecipeById } from '../data/recipes'
 import type { AutoRecipe } from '../data/recipes'
 import {
@@ -209,6 +211,12 @@ function BuildingsTab() {
             {(() => {
               const effectText = getBuildingEffectText(building)
               return effectText && <div className={styles.buildingEffect}>{effectText}</div>
+            })()}
+            {def.type === 'mainHall' && isUnlocked && (() => {
+              const sectLevel = calcSectLevel(building.level)
+              const discipleCount = useSectStore.getState().sect.characters.length
+              const tax = calcTaxRate(sectLevel, discipleCount)
+              return <div className={styles.buildingEffect}>赋税收入: +{tax.toFixed(1)}/秒</div>
             })()}
             {!isUnlocked && (() => {
               const unlockText = getBuildingUnlockText(building)

@@ -235,6 +235,12 @@
   margin-bottom: var(--space-sm);
 }
 
+.cultivationActions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
 .adventureInfo {
   font-size: 13px;
   color: var(--color-text-secondary);
