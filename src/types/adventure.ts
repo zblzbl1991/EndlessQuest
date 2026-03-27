@@ -38,7 +38,6 @@ export interface Dungeon {
   eventsPerLayer: number
   unlockRealm: number
   unlockStage: number
-  lootTable: Array<{ itemId: string; weight: number }>
 }
 
 export interface MemberState {

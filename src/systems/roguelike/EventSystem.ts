@@ -1,13 +1,12 @@
 // src/systems/roguelike/EventSystem.ts
 import type { DungeonEvent } from '../../types/adventure'
-import type { AnyItem, ItemQuality, EquipSlot } from '../../types/item'
+import type { AnyItem } from '../../types/item'
 import { ENEMY_TEMPLATES, createCombatUnitFromEnemy, type EnemyTemplate } from '../../data/enemies'
 import type { CombatUnit, CombatResult } from '../combat/CombatEngine'
 import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { simulateCombat } from '../combat/CombatEngine'
 import { generateEquipment } from '../item/ItemGenerator'
-import { FORGE_SLOTS } from '../economy/ForgeSystem'
 import { generateLoot } from './LootSystem'
 import type { LootResult } from './LootSystem'
 import { EQUIP_SLOTS } from '../../data/items'
@@ -26,23 +25,6 @@ export interface EventResult {
 
 function getNonBossTemplates() {
   return ENEMY_TEMPLATES.filter((e) => !e.isBoss)
-}
-
-function randomSlot(): EquipSlot {
-  return FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
-}
-
-function rollEquipmentDrop(qualityOptions: { quality: ItemQuality; weight: number }[]): AnyItem[] {
-  const totalWeight = qualityOptions.reduce((s, o) => s + o.weight, 0)
-  let roll = Math.random() * totalWeight
-  for (const option of qualityOptions) {
-    roll -= option.weight
-    if (roll <= 0) {
-      return [generateEquipment(randomSlot(), option.quality)]
-    }
-  }
-  // Fallback (should not reach here)
-  return [generateEquipment(randomSlot(), qualityOptions[0].quality)]
 }
 
 /**
