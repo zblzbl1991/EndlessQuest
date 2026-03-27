@@ -1,5 +1,5 @@
 import type { Character } from './character'
-import type { AnyItem, ItemStack } from './item'
+import type { ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 
 export type BuildingType =

@@ -65,7 +65,8 @@ function VaultTab() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [showCharSelector, setShowCharSelector] = useState(false)
 
-  const selectedItem = selectedIndex !== null ? vault[selectedIndex] ?? null : null
+  const selectedStack = selectedIndex !== null ? vault[selectedIndex] ?? null : null
+  const selectedItem = selectedStack?.item ?? null
 
   // Characters with available backpack space
   const eligibleCharacters = useMemo(() => {
@@ -97,13 +98,14 @@ function VaultTab() {
         <div className={styles.empty}>仓库为空</div>
       ) : (
         <div className={styles.itemGrid}>
-          {vault.map((item, idx) => (
-            <div key={item.id + '-' + idx} className={styles.itemWrapper}>
+          {vault.map((stack, idx) => (
+            <div key={stack.item.id + '-' + idx} className={styles.itemWrapper}>
               <ItemCard
-                item={item}
+                item={stack.item}
                 selected={selectedIndex === idx}
                 onClick={() => setSelectedIndex(selectedIndex === idx ? null : idx)}
               />
+              {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
             </div>
           ))}
         </div>
@@ -194,8 +196,9 @@ function BackpackTab() {
   const handleEquip = (charId: string, bpIdx: number) => {
     const character = characters.find((c) => c.id === charId)
     if (!character) return
-    const item = character.backpack[bpIdx]
-    if (!item || item.type !== 'equipment') return
+    const stack = character.backpack[bpIdx]
+    if (!stack || stack.item.type !== 'equipment') return
+    const item = stack.item as Equipment
     const slotIndex = ['head', 'armor', 'bracer', 'belt', 'boots', 'weapon', 'accessory1', 'accessory2', 'talisman']
       .indexOf(item.slot)
     if (slotIndex >= 0) {
@@ -230,7 +233,8 @@ function BackpackTab() {
         const selCharId = selectedKey?.split('-')[0]
         const selIdx = selectedKey ? parseInt(selectedKey.split('-').slice(1).join('-'), 10) : null
         const isThisChar = selCharId === char.id
-        const selectedItem = isThisChar && selIdx !== null ? bp[selIdx] ?? null : null
+        const selectedStack = isThisChar && selIdx !== null ? bp[selIdx] ?? null : null
+        const selectedItem = selectedStack?.item ?? null
 
         return (
           <div key={char.id} className={styles.charSection}>
@@ -243,13 +247,14 @@ function BackpackTab() {
               <div className={styles.empty}>背包为空</div>
             ) : (
               <div className={styles.itemGrid}>
-                {bp.map((item, idx) => (
-                  <div key={item.id + '-' + idx} className={styles.itemWrapper}>
+                {bp.map((stack, idx) => (
+                  <div key={stack.item.id + '-' + idx} className={styles.itemWrapper}>
                     <ItemCard
-                      item={item}
+                      item={stack.item}
                       selected={isThisChar && selIdx === idx}
                       onClick={() => setSelectedKey(selectedKey === key(idx) ? null : key(idx))}
                     />
+                    {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
                   </div>
                 ))}
               </div>

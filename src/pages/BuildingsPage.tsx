@@ -12,7 +12,7 @@ import {
   getQualityUnlockMainHallLevel,
 } from '../systems/character/CharacterEngine'
 import type { BuildingType, CharacterQuality } from '../types'
-import type { AnyItem } from '../types/item'
+import type { ItemStack } from '../types/item'
 import type { Character } from '../types/character'
 import type { Talent } from '../types/talent'
 import { TALENT_RARITY_NAMES } from '../types/talent'
@@ -627,17 +627,18 @@ function VaultTab() {
       </div>
 
       <div className={styles.vaultGrid}>
-        {sect.vault.map((item: AnyItem, idx: number) => (
-          <div key={idx} className={styles.vaultItemWrapper}>
+        {sect.vault.map((stack: ItemStack, idx: number) => (
+          <div key={stack.item.id + '-' + idx} className={styles.vaultItemWrapper}>
             <ItemCard
-              item={item}
+              item={stack.item}
               selected={selectedIdx === idx}
               onClick={() => setSelectedIdx(selectedIdx === idx ? null : idx)}
             />
+            {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
             {selectedIdx === idx && (
               <div className={styles.vaultItemActions}>
                 <button className={styles.vaultActionBtn} onClick={() => handleSell(idx)}>
-                  出售 ({item.sellPrice}灵石)
+                  出售 ({stack.item.sellPrice}灵石)
                 </button>
                 <button className={styles.vaultActionBtn} onClick={handleTransferStart}>
                   转给弟子

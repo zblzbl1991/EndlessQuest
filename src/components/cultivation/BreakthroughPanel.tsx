@@ -1,7 +1,6 @@
 import { useSectStore } from '../../stores/sectStore'
 import { canBreakthrough, calcBreakthroughFailureRate, isMajorRealmBreakthrough } from '../../systems/cultivation/CultivationEngine'
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS } from '../../data/realms'
-import { getAutoRecipeById } from '../../data/recipes'
 import type { RealmStage } from '../../types/character'
 import styles from './BreakthroughPanel.module.css'
 
@@ -12,7 +11,6 @@ interface BreakthroughPanelProps {
 export default function BreakthroughPanel({ characterId }: BreakthroughPanelProps) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const spiritStone = useSectStore((s) => s.sect.resources.spiritStone)
-  const vault = useSectStore((s) => s.sect.vault)
 
   if (!character) return null
 
@@ -27,10 +25,6 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
 
   // Major realm requirements
   const cost = isMajor ? BREAKTHROUGH_COSTS[nextRealm] : null
-  const pillRecipe = cost ? getAutoRecipeById(cost.pillId) : null
-  const hasPill = cost
-    ? vault.some(item => item.type === 'consumable' && item.recipeId === cost.pillId)
-    : true
   const hasStones = cost ? spiritStone >= cost.spiritStone : true
 
   // Hint text
@@ -38,13 +32,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   let hintClass = ''
   if (ready) {
     if (isMajor && cost) {
-      if (!hasPill && !hasStones) {
-        hint = `缺少 ${pillRecipe?.name ?? cost.pillId}，灵石不足`
-        hintClass = styles.hintBlocked
-      } else if (!hasPill) {
-        hint = `缺少 ${pillRecipe?.name ?? cost.pillId}（炼丹炉生产）`
-        hintClass = styles.hintBlocked
-      } else if (!hasStones) {
+      if (!hasStones) {
         hint = `灵石不足（需要 ${cost.spiritStone.toLocaleString()}）`
         hintClass = styles.hintBlocked
       } else {
@@ -80,10 +68,6 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       {isMajor && cost && (
         <div className={styles.majorReq}>
           <div className={styles.reqTitle}>突破需求</div>
-          <div className={`${styles.reqItem} ${hasPill ? styles.reqMet : styles.reqUnmet}`}>
-            <span>{pillRecipe?.name ?? cost.pillId}</span>
-            <span>{hasPill ? '✓' : '✗'}</span>
-          </div>
           <div className={`${styles.reqItem} ${hasStones ? styles.reqMet : styles.reqUnmet}`}>
             <span>灵石 ×{cost.spiritStone.toLocaleString()}</span>
             <span>{hasStones ? '✓' : '✗'}</span>

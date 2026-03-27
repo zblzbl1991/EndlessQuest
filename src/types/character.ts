@@ -1,4 +1,4 @@
-import type { AnyItem, ItemStack } from './item'
+import type { ItemStack } from './item'
 import type { Talent } from './talent'
 
 export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'

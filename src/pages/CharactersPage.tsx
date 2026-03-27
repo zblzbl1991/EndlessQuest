@@ -317,7 +317,7 @@ function CharacterDetail({
           onSlotClick={(_slotIdx) => {
             // If backpack has equipment, offer to equip
             const eqItems = character.backpack
-              .map((item, idx) => ({ item, idx }))
+              .map((stack, idx) => ({ item: stack.item, idx }))
               .filter(({ item }) => item.type === 'equipment')
             if (eqItems.length > 0) {
               setSelectedBackpackIdx(eqItems[0].idx)
@@ -325,7 +325,7 @@ function CharacterDetail({
           }}
         />
         {/* Equip from backpack when a slot is clicked */}
-        {selectedBackpackIdx !== null && character.backpack[selectedBackpackIdx]?.type === 'equipment' && (
+        {selectedBackpackIdx !== null && character.backpack[selectedBackpackIdx]?.item.type === 'equipment' && (
           <div className={styles.equipFromBackpack}>
             <div className={styles.equipFromLabel}>选择装备槽位:</div>
             <div className={styles.equipSlotButtons}>
@@ -352,16 +352,17 @@ function CharacterDetail({
           背包 ({character.backpack.length}/{character.maxBackpackSlots})
         </div>
         <div className={styles.backpackGrid}>
-          {character.backpack.map((item, idx) => (
-            <div key={idx} className={styles.backpackItemWrapper}>
+          {character.backpack.map((stack, idx) => (
+            <div key={stack.item.id + '-' + idx} className={styles.backpackItemWrapper}>
               <ItemCard
-                item={item}
+                item={stack.item}
                 selected={selectedBackpackIdx === idx}
                 onClick={() => setSelectedBackpackIdx(selectedBackpackIdx === idx ? null : idx)}
               />
+              {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
               {selectedBackpackIdx === idx && (
                 <div className={styles.itemActions}>
-                  {item.type === 'equipment' && (
+                  {stack.item.type === 'equipment' && (
                     <span className={styles.itemHint}>点击装备栏空槽位穿戴</span>
                   )}
                   <button
@@ -380,7 +381,7 @@ function CharacterDetail({
                       setSelectedBackpackIdx(null)
                     }}
                   >
-                    出售 ({item.sellPrice}灵石)
+                    出售 ({stack.item.sellPrice}灵石)
                   </button>
                 </div>
               )}

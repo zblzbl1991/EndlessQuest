@@ -17,12 +17,12 @@ export default function EquipPanel({ characterId, onItemClick, onSlotClick }: Eq
   if (!character) return null
 
   const findEquipmentById = (id: string): Equipment | undefined => {
-    for (const item of sect.vault) {
-      if (item.id === id && item.type === 'equipment') return item
+    for (const stack of sect.vault) {
+      if (stack.item.id === id && stack.item.type === 'equipment') return stack.item as Equipment
     }
     for (const char of sect.characters) {
-      for (const item of char.backpack) {
-        if (item.id === id && item.type === 'equipment') return item
+      for (const stack of char.backpack) {
+        if (stack.item.id === id && stack.item.type === 'equipment') return stack.item as Equipment
       }
     }
     return undefined
