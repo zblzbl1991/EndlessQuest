@@ -35,6 +35,7 @@ export interface EventResult {
   hpChanges: Record<string, number> // unit id -> hp change (positive = healed, negative = damage)
   techniqueReward?: { techniqueId: string }
   shopOffers?: ShopOffer[]
+  petCaptureAvailable?: boolean
 }
 
 function getNonBossTemplates() {
@@ -60,9 +61,10 @@ function totalTeamMaxHp(team: CombatUnit[]): number {
  * Resolve loot results into resource rewards and item rewards.
  * Resources go to sect.resources, items go to vault via ItemStack.
  */
-function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyItem[] } {
+function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyItem[]; hasPetCapture: boolean } {
   const reward: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
   const itemRewards: AnyItem[] = []
+  let hasPetCapture = false
 
   for (const drop of loot) {
     switch (drop.type) {
@@ -82,13 +84,15 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
         }
         break
       case 'consumable':
-      case 'petCapture':
         // Handled by caller
+        break
+      case 'petCapture':
+        hasPetCapture = true
         break
     }
   }
 
-  return { reward, itemRewards }
+  return { reward, itemRewards, hasPetCapture }
 }
 
 /**
@@ -133,15 +137,16 @@ export function resolveEvent(
 
       if (victory) {
         const loot = generateLoot(enemyTemplate.lootTable, enemyTemplate.dropsPerFight, floorNumber)
-        const { reward, itemRewards } = resolveLoot(loot)
+        const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
         return {
           type: 'combat',
           success: true,
           reward,
           itemRewards,
           combatResult: result,
-          message: `击败了 ${enemyTemplate.name}`,
+          message: hasPetCapture ? `击败了 ${enemyTemplate.name}，发现可捕获灵兽！` : `击败了 ${enemyTemplate.name}`,
           hpChanges,
+          petCaptureAvailable: hasPetCapture || undefined,
         }
       } else {
         return {
@@ -264,15 +269,16 @@ export function resolveEvent(
 
       if (victory) {
         const loot = generateLoot(bossTemplate.lootTable, bossTemplate.dropsPerFight, floorNumber)
-        const { reward, itemRewards } = resolveLoot(loot)
+        const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
         return {
           type: 'boss',
           success: true,
           reward,
           itemRewards,
           combatResult: result,
-          message: `击败了 BOSS: ${bossTemplate.name}！`,
+          message: hasPetCapture ? `击败了 BOSS: ${bossTemplate.name}！发现可捕获灵兽！` : `击败了 BOSS: ${bossTemplate.name}！`,
           hpChanges,
+          petCaptureAvailable: hasPetCapture || undefined,
         }
       } else {
         return {

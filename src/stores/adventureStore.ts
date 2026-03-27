@@ -11,6 +11,8 @@ import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { createCharacterCombatUnit } from '../data/enemies'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 import { DISPATCH_MISSIONS } from '../data/missions'
+import { generatePet, tryCapturePet } from '../systems/pet/PetSystem'
+import type { PetQuality } from '../systems/pet/PetSystem'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -58,6 +60,9 @@ export interface AdventureStore {
   // Shop
   buyFromShop(runId: string, offerIndex: number): void
   closeShop(runId: string): void
+
+  // Pet
+  attemptPetCapture(runId: string): boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -808,6 +813,60 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         },
       },
     }))
+  },
+
+  attemptPetCapture: (runId: string) => {
+    const run = get().activeRuns[runId]
+    if (!run) return false
+
+    // Get the first alive team member's fortune stat
+    const { sect } = useSectStore.getState()
+    const firstAliveCharId = run.teamCharacterIds.find(
+      (cid) => run.memberStates[cid]?.status !== 'dead'
+    )
+    if (!firstAliveCharId) return false
+
+    const character = sect.characters.find(c => c.id === firstAliveCharId)
+    if (!character) return false
+
+    const fortune = character.cultivationStats.fortune
+    const floor = run.currentFloor
+
+    // Determine pet quality based on floor depth
+    const qualityTable: PetQuality[] = ['common', 'spirit', 'immortal', 'divine']
+    const qualityIndex = floor < 3 ? 0 : floor < 6 ? 1 : floor < 9 ? 2 : 3
+    const quality = qualityTable[qualityIndex]
+
+    const success = tryCapturePet(fortune, quality)
+    if (success) {
+      const pet = generatePet(quality)
+      useSectStore.getState().addPet(pet)
+
+      // Log the capture
+      const newLog = [...run.eventLog, { timestamp: Date.now(), message: `成功捕获了 ${pet.name}！` }]
+      set(s => ({
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...s.activeRuns[runId]!,
+            eventLog: newLog,
+          },
+        },
+      }))
+    } else {
+      const newLog = [...run.eventLog, { timestamp: Date.now(), message: '灵兽捕获失败，灵兽逃走了...' }]
+      set(s => ({
+        activeRuns: {
+          ...s.activeRuns,
+          [runId]: {
+            ...s.activeRuns[runId]!,
+            eventLog: newLog,
+          },
+        },
+      }))
+    }
+
+    return success
   },
 
   getRun: (id) => {
