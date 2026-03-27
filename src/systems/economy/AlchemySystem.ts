@@ -32,10 +32,6 @@ export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
     cost: { herb: 15, spiritStone: 80 },
     product: { name: '大灵气丹', description: '服用后恢复150灵气', quality: 'spirit',
       effect: { type: 'spirit', value: 150 }, sellPrice: 40 } },
-  { id: 'breakthrough_pill', name: '突破丹', description: '突破成功率+20%', minFurnaceLevel: 5,
-    cost: { herb: 25, spiritStone: 200 },
-    product: { name: '突破丹', description: '突破时使用，成功率+20%', quality: 'immortal',
-      effect: { type: 'breakthrough_bonus', value: 20 }, sellPrice: 100 } },
 ]
 
 let _idCounter = 0
