@@ -31,6 +31,7 @@ import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 import { emitEvent } from './eventLogStore'
 import { getRealmName } from '../data/realms'
 import { shouldTriggerTribulation, resolveTribulation } from '../systems/cultivation/TribulationSystem'
+import { getBuildingBonus } from '../systems/character/SpecialtySystem'
 import { addItemToStacks, removeStackAtIndex, addItemQuantityToStacks } from '../systems/item/ItemStackUtils'
 
 // ---------------------------------------------------------------------------
@@ -825,6 +826,14 @@ export const useSectStore = create<SectStore>((set, get) => ({
       { spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel },
       bonuses,
     )
+
+    // 4b. Apply specialty bonuses from assigned disciples
+    const assignedSpecialties = (buildingType: string) =>
+      sect.characters.filter(c => c.assignedBuilding === buildingType).flatMap(c => c.specialties)
+    rates.spiritStone *= getBuildingBonus('spiritMine', assignedSpecialties('spiritMine'))
+    rates.ore *= getBuildingBonus('spiritMine', assignedSpecialties('spiritMine'))
+    rates.spiritEnergy *= getBuildingBonus('spiritField', assignedSpecialties('spiritField'))
+    rates.herb *= getBuildingBonus('spiritField', assignedSpecialties('spiritField'))
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
