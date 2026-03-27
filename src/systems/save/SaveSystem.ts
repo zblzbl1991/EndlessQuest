@@ -5,6 +5,7 @@ import { useAdventureStore } from '../../stores/adventureStore'
 import { useGameStore } from '../../stores/gameStore'
 import { useEventLogStore } from '../../stores/eventLogStore'
 import { getDB } from './db'
+import { migrateToItemStacks } from '../item/ItemStackUtils'
 
 const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
@@ -66,12 +67,13 @@ export async function saveGame(): Promise<void> {
     const bldgStore = tx.objectStore('buildings')
     for (const b of sect.buildings) await bldgStore.put(b)
 
-    // Write vault items
+    // Write vault items (ensure 'id' field at top level for keyPath)
     const vaultStore = tx.objectStore('vault')
-    for (const i of sect.vault) await vaultStore.put(i)
+    for (const s of sect.vault) await vaultStore.put({ id: s.item.id, ...s })
     const vaultKeys = await vaultStore.getAllKeys()
+    const vaultItemIds = new Set(sect.vault.map(s => s.item.id))
     for (const k of vaultKeys) {
-      if (!sect.vault.some(i => i.id === k)) await vaultStore.delete(k)
+      if (!vaultItemIds.has(k as string)) await vaultStore.delete(k)
     }
 
     // Write pets
@@ -114,23 +116,30 @@ export async function loadGame(): Promise<boolean> {
     if (!meta) return false
 
     // Read per-entity stores
-    const characters = await db.getAll('characters') as Sect['characters']
+    const rawCharacters = await db.getAll('characters') as Sect['characters']
     const buildings = await db.getAll('buildings') as Sect['buildings']
-    const vault = await db.getAll('vault') as Sect['vault']
+    const rawVault = await db.getAll('vault')
     const pets = await db.getAll('pets') as Sect['pets']
 
     // Integrity check: if meta exists but all entity stores are empty, corrupted
-    if (characters.length === 0 && buildings.length === 0) {
+    if (rawCharacters.length === 0 && buildings.length === 0) {
       return false
     }
+
+    // Migrate vault and backpacks to ItemStack format
+    const vault = migrateToItemStacks(rawVault)
+    const characters = rawCharacters.map(c => ({
+      ...c,
+      backpack: migrateToItemStacks(c.backpack),
+    }))
 
     const sect: Sect = {
       name: meta.sectName,
       level: meta.sectLevel,
       resources: meta.resources,
       buildings: buildings ?? [],
-      characters: characters ?? [],
-      vault: vault ?? [],
+      characters,
+      vault,
       maxVaultSlots: meta.maxVaultSlots,
       pets: pets ?? [],
       totalAdventureRuns: meta.totalAdventureRuns,
