@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
+import { useAdventureStore } from '../stores/adventureStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
+import { getAvailableMissions, DISPATCH_MISSIONS } from '../data/missions'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
@@ -155,8 +157,12 @@ function CharacterDetail({
   const startSeclusion = useSectStore((s) => s.startSeclusion)
   const stopSeclusion = useSectStore((s) => s.stopSeclusion)
   const unassignFromBuilding = useSectStore((s) => s.unassignFromBuilding)
+  const dispatches = useAdventureStore((s) => s.dispatches)
+  const startDispatch = useAdventureStore((s) => s.startDispatch)
+  const getActiveDispatchCount = useAdventureStore((s) => s.getActiveDispatchCount)
 
   const [selectedBackpackIdx, setSelectedBackpackIdx] = useState<number | null>(null)
+  const [showingMissions, setShowingMissions] = useState(false)
 
   if (!character) return null
 
@@ -267,8 +273,20 @@ function CharacterDetail({
         <BreakthroughPanel characterId={characterId} />
         <div className={styles.cultivationActions}>
           {character.status === 'cultivating' && (
-            <button className={styles.actionBtn} onClick={() => startSeclusion(character.id)}>
-              闭关
+            <>
+              <button className={styles.actionBtn} onClick={() => startSeclusion(character.id)}>
+                闭关
+              </button>
+              {getActiveDispatchCount() < 5 && (
+                <button className={styles.actionBtn} onClick={() => setShowingMissions(true)}>
+                  派遣
+                </button>
+              )}
+            </>
+          )}
+          {character.status === 'idle' && getActiveDispatchCount() < 5 && (
+            <button className={styles.actionBtn} onClick={() => setShowingMissions(true)}>
+              派遣
             </button>
           )}
           {character.status === 'secluded' && (
@@ -292,6 +310,58 @@ function CharacterDetail({
             正在秘境中探索...
           </div>
         </section>
+      )}
+
+      {/* Dispatch info */}
+      {character.status === 'patrolling' && (() => {
+        const dispatch = dispatches.find(d => d.characterId === character.id)
+        if (!dispatch) return null
+        const mission = DISPATCH_MISSIONS.find(m => m.id === dispatch.missionId)
+        const remaining = Math.max(0, dispatch.duration - dispatch.progress)
+        const minutes = Math.floor(remaining / 60)
+        const seconds = Math.floor(remaining % 60)
+        return (
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>派遣任务</div>
+            <div className={styles.dispatchInfo}>
+              <span>{mission?.name ?? '未知任务'}</span>
+              <span>剩余: {minutes}:{seconds.toString().padStart(2, '0')}</span>
+            </div>
+            <ProgressBar value={dispatch.progress} max={dispatch.duration} variant="ink" />
+          </section>
+        )
+      })()}
+
+      {/* Mission selection modal */}
+      {showingMissions && (
+        <div className={styles.overlay}>
+          <div className={styles.missionPanel}>
+            <div className={styles.missionPanelTitle}>选择派遣任务</div>
+            <div className={styles.missionList}>
+              {getAvailableMissions(character.realm).map(mission => (
+                <div
+                  key={mission.id}
+                  className={styles.missionCard}
+                  onClick={() => {
+                    startDispatch(character.id, mission.id)
+                    setShowingMissions(false)
+                  }}
+                >
+                  <div className={styles.missionName}>{mission.name}</div>
+                  <div className={styles.missionDesc}>{mission.description}</div>
+                  <div className={styles.missionMeta}>
+                    <span>{Math.floor(mission.duration / 60)}分钟</span>
+                    <span>{mission.rewards.map(r => {
+                      const typeLabel: Record<string, string> = { spiritStone: '灵石', herb: '灵药', ore: '矿石', consumable: '物品' }
+                      return `${typeLabel[r.type] ?? r.type} ×${r.amount}`
+                    }).join(', ')}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button className={styles.cancelBtn} onClick={() => setShowingMissions(false)}>关闭</button>
+          </div>
+        </div>
       )}
 
       {/* Technique */}

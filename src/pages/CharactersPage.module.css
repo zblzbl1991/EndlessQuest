@@ -522,3 +522,87 @@
     gap: var(--space-xs);
   }
 }
+
+/* Dispatch */
+
+.dispatchInfo {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+/* Mission Selection Panel */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 30;
+  padding: var(--space-md);
+}
+
+.missionPanel {
+  width: 100%;
+  max-width: 360px;
+  background: var(--color-panel);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.missionPanelTitle {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.missionList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.missionCard {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.missionCard:hover {
+  background: var(--color-bg-paper);
+  border-color: var(--color-accent);
+}
+
+.missionName {
+  font-weight: 600;
+  font-size: 14px;
+  font-family: var(--font-serif);
+  color: var(--color-text);
+}
+
+.missionDesc {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-top: 2px;
+}
+
+.missionMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 4px;
+}
