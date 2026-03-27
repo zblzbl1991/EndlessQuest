@@ -143,20 +143,35 @@ function setCharacterResting(charId: string, timerSec: number): void {
 /** Count vault items matching a given recipeId */
 function countVaultItemsByRecipeId(recipeId: string): number {
   const { sect } = useSectStore.getState()
-  return sect.vault.filter((item) => item.type === 'consumable' && item.recipeId === recipeId).length
+  return sect.vault.reduce((sum, s) => {
+    if (s.item.type === 'consumable' && (s.item as any).recipeId === recipeId) {
+      return sum + s.quantity
+    }
+    return sum
+  }, 0)
 }
 
 /** Remove N items from vault matching a given recipeId. Returns number actually removed. */
 function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
-  let removed = 0
-  const sectStore = useSectStore.getState()
-  while (removed < count) {
-    const idx = sectStore.sect.vault.findIndex((item) => item.type === 'consumable' && item.recipeId === recipeId)
-    if (idx === -1) break
-    sectStore.removeVaultItem(idx)
-    removed++
+  const { sect } = useSectStore.getState()
+  let remaining = count
+  const newVault = [...sect.vault]
+  for (let i = newVault.length - 1; i >= 0 && remaining > 0; i--) {
+    const s = newVault[i]
+    if (s.item.type === 'consumable' && (s.item as any).recipeId === recipeId) {
+      if (s.quantity <= remaining) {
+        remaining -= s.quantity
+        newVault.splice(i, 1)
+      } else {
+        newVault[i] = { ...s, quantity: s.quantity - remaining }
+        remaining = 0
+      }
+    }
   }
-  return removed
+  if (newVault.length !== sect.vault.length) {
+    useSectStore.setState(s => ({ sect: { ...s.sect, vault: newVault } }))
+  }
+  return count - remaining
 }
 
 /** Build CombatUnits from alive team members in a run */
