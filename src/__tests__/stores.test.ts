@@ -1,6 +1,6 @@
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
-import type { Character, Equipment, Consumable, AnyItem } from '../types'
+import type { Character, Equipment, Consumable, AnyItem, ItemStack } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 
 // ---------------------------------------------------------------------------
@@ -287,21 +287,21 @@ describe('SectStore - Item Transfer', () => {
     const sword = makeEquipment('sword_1')
 
     useSectStore.setState((s) => ({
-      sect: { ...s.sect, vault: [sword] },
+      sect: { ...s.sect, vault: [{ item: sword, quantity: 1 }] },
     }))
 
     const result = getStore().transferItemToCharacter(char.id, 0)
     expect(result).toBe(true)
     expect(getStore().sect.vault).toHaveLength(0)
     expect(getStore().sect.characters[0].backpack).toHaveLength(1)
-    expect(getStore().sect.characters[0].backpack[0].id).toBe('sword_1')
+    expect(getStore().sect.characters[0].backpack[0].item.id).toBe('sword_1')
   })
 
   it('transferItemToCharacter should fail if backpack full', () => {
     const char = getFirstCharacter()
-    const items: AnyItem[] = []
+    const items: ItemStack[] = []
     for (let i = 0; i < char.maxBackpackSlots; i++) {
-      items.push(makeConsumable(`pot_${i}`))
+      items.push({ item: makeConsumable(`pot_${i}`), quantity: 1 })
     }
 
     useSectStore.setState((s) => ({
@@ -310,7 +310,7 @@ describe('SectStore - Item Transfer', () => {
         characters: s.sect.characters.map((c) =>
           c.id === char.id ? { ...c, backpack: items } : c
         ),
-        vault: [makeEquipment('sword_1')],
+        vault: [{ item: makeEquipment('sword_1'), quantity: 1 }],
       },
     }))
 
@@ -320,7 +320,7 @@ describe('SectStore - Item Transfer', () => {
 
   it('transferItemToCharacter should fail if character not found', () => {
     useSectStore.setState((s) => ({
-      sect: { ...s.sect, vault: [makeEquipment('sword_1')] },
+      sect: { ...s.sect, vault: [{ item: makeEquipment('sword_1'), quantity: 1 }] },
     }))
 
     const result = getStore().transferItemToCharacter('nonexistent', 0)
@@ -334,7 +334,7 @@ describe('SectStore - Item Transfer', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [sword] } : c
+          c.id === char.id ? { ...c, backpack: [{ item: sword, quantity: 1 }] } : c
         ),
       },
     }))
@@ -343,22 +343,22 @@ describe('SectStore - Item Transfer', () => {
     expect(result).toBe(true)
     expect(getStore().sect.characters[0].backpack).toHaveLength(0)
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.vault[0].id).toBe('sword_1')
+    expect(getStore().sect.vault[0].item.id).toBe('sword_1')
   })
 
   it('transferItemToVault should fail if vault full', () => {
     const char = getFirstCharacter()
     const sword = makeEquipment('sword_1')
-    const vaultItems: AnyItem[] = []
+    const vaultItems: ItemStack[] = []
     for (let i = 0; i < 50; i++) {
-      vaultItems.push(makeConsumable(`vpot_${i}`))
+      vaultItems.push({ item: makeConsumable(`vpot_${i}`), quantity: 1 })
     }
 
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [sword] } : c
+          c.id === char.id ? { ...c, backpack: [{ item: sword, quantity: 1 }] } : c
         ),
         vault: vaultItems,
       },
@@ -376,9 +376,9 @@ describe('SectStore - Item Transfer', () => {
   })
 
   it('addToVault should fail if vault full', () => {
-    const vaultItems: AnyItem[] = []
+    const vaultItems: ItemStack[] = []
     for (let i = 0; i < 50; i++) {
-      vaultItems.push(makeConsumable(`vpot_${i}`))
+      vaultItems.push({ item: makeConsumable(`vpot_${i}`), quantity: 1 })
     }
     useSectStore.setState((s) => ({
       sect: { ...s.sect, vault: vaultItems },
@@ -391,7 +391,7 @@ describe('SectStore - Item Transfer', () => {
   it('sellItem should remove from vault and add spirit stones', () => {
     const sword = makeEquipment('sword_sell', { sellPrice: 50 })
     useSectStore.setState((s) => ({
-      sect: { ...s.sect, vault: [sword] },
+      sect: { ...s.sect, vault: [{ item: sword, quantity: 1 }] },
     }))
 
     const result = getStore().sellItem(0)
@@ -408,12 +408,12 @@ describe('SectStore - Item Transfer', () => {
   it('removeVaultItem should return and remove item', () => {
     const sword = makeEquipment('sword_remove')
     useSectStore.setState((s) => ({
-      sect: { ...s.sect, vault: [sword] },
+      sect: { ...s.sect, vault: [{ item: sword, quantity: 1 }] },
     }))
 
-    const item = getStore().removeVaultItem(0)
-    expect(item).not.toBeNull()
-    expect(item!.id).toBe('sword_remove')
+    const stack = getStore().removeVaultItem(0)
+    expect(stack).not.toBeNull()
+    expect(stack!.item.id).toBe('sword_remove')
     expect(getStore().sect.vault).toHaveLength(0)
   })
 
@@ -438,7 +438,7 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [sword], equippedGear: new Array(9).fill(null) } : c
+          c.id === char.id ? { ...c, backpack: [{ item: sword, quantity: 1 }], equippedGear: new Array(9).fill(null) } : c
         ),
       },
     }))
@@ -458,7 +458,7 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [potion], equippedGear: new Array(9).fill(null) } : c
+          c.id === char.id ? { ...c, backpack: [{ item: potion, quantity: 1 }], equippedGear: new Array(9).fill(null) } : c
         ),
       },
     }))
@@ -485,7 +485,7 @@ describe('SectStore - Character Inventory', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        vault: [sword], // Put the equipment in vault so unequip can find it
+        vault: [{ item: sword, quantity: 1 }], // Put the equipment in vault so unequip can find it
         characters: s.sect.characters.map((c) =>
           c.id === char.id ? { ...c, equippedGear: updatedGear } : c
         ),
@@ -506,7 +506,7 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [sword] } : c
+          c.id === char.id ? { ...c, backpack: [{ item: sword, quantity: 1 }] } : c
         ),
       },
     }))
@@ -529,7 +529,7 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [potion] } : c
+          c.id === char.id ? { ...c, backpack: [{ item: potion, quantity: 1 }] } : c
         ),
       },
     }))
@@ -545,7 +545,7 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [potion] } : c
+          c.id === char.id ? { ...c, backpack: [{ item: potion, quantity: 1 }] } : c
         ),
       },
     }))
@@ -638,7 +638,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(updated.realmStage).toBe(0)
   })
 
-  it('should consume pill + spiritStone on major realm breakthrough', () => {
+  it('should consume spiritStone on major realm breakthrough', () => {
     const char = getFirstCharacter()
     useSectStore.setState((s) => ({
       sect: {
@@ -646,13 +646,10 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
         characters: s.sect.characters.map((c) =>
           c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
         ),
-        resources: { ...s.sect.resources, spiritStone: 1000 },
-        vault: [
-          makeConsumable('pill_1', { name: '筑基丹', effect: { type: 'breakthrough', value: 0 } }),
-        ],
+        resources: { ...s.sect.resources, spiritStone: 5000 },
+        vault: [],
       },
     }))
-    ;(getStore().sect.vault[0] as any).recipeId = 'foundation_pill'
 
     vi.spyOn(Math, 'random').mockReturnValue(0.99)
     getStore().tickAll(1)
@@ -660,14 +657,12 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(1)
     expect(updated.realmStage).toBe(0)
-    // Pill consumed
-    expect(getStore().sect.vault).toHaveLength(0)
-    // spiritStone deducted (500 for foundation_pill)
-    expect(getStore().sect.resources.spiritStone).toBeLessThan(1000)
-    expect(getStore().sect.resources.spiritStone).toBeGreaterThanOrEqual(1000 - 500)
+    // spiritStone deducted (3000 for realm 1 breakthrough)
+    expect(getStore().sect.resources.spiritStone).toBeLessThan(5000)
+    expect(getStore().sect.resources.spiritStone).toBeGreaterThanOrEqual(5000 - 3000)
   })
 
-  it('should skip breakthrough when pill is missing', () => {
+  it('should skip breakthrough when spiritStone is insufficient', () => {
     const char = getFirstCharacter()
     useSectStore.setState((s) => ({
       sect: {
@@ -697,19 +692,15 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
           c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
         ),
         resources: { ...s.sect.resources, spiritStone: 100 },
-        vault: [
-          makeConsumable('pill_2', { name: '筑基丹', effect: { type: 'breakthrough', value: 0 } }),
-        ],
+        vault: [],
       },
     }))
-    ;(getStore().sect.vault[0] as any).recipeId = 'foundation_pill'
 
     getStore().tickAll(1)
 
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    expect(getStore().sect.vault).toHaveLength(1)
     expect(getStore().sect.resources.spiritStone).toBe(100)
   })
 
@@ -721,7 +712,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
         ...s.sect,
         resources: { ...s.sect.resources, spiritStone: 1000 },
         vault: [
-          makeConsumable('pill_1', { name: '回血丹' }),
+          { item: makeConsumable('pill_1', { name: '回血丹' }), quantity: 1 },
         ],
       },
     }))
@@ -1394,19 +1385,20 @@ describe('setProductionRecipe', () => {
   })
 
   it('should reject if building level too low for recipe', () => {
-    // Unlock alchemyFurnace at level 1, but foundation_pill requires level 3
+    // Unlock alchemyFurnace at level 1, but spirit_potion requires... wait, spirit_potion is level 1.
+    // Use forge_common which requires level 3 on the forge
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
         buildings: s.sect.buildings.map((b) =>
-          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1 } : b
+          b.type === 'forge' ? { ...b, unlocked: true, level: 1 } : b
         ),
       },
     }))
 
-    getStore().setProductionRecipe('alchemyFurnace', 'foundation_pill')
-    const furnace = getStore().sect.buildings.find((b) => b.type === 'alchemyFurnace')
-    expect(furnace?.productionQueue.recipeId).toBeNull()
+    getStore().setProductionRecipe('forge', 'forge_common')
+    const forge = getStore().sect.buildings.find((b) => b.type === 'forge')
+    expect(forge?.productionQueue.recipeId).toBeNull()
   })
 
   it('should reset progress when setting recipe', () => {
@@ -1453,7 +1445,7 @@ describe('tickAll with production queue', () => {
 
     const sect = getStore().sect
     expect(sect.vault.length).toBe(1)
-    expect(sect.vault[0].type).toBe('consumable')
+    expect(sect.vault[0].item.type).toBe('consumable')
     expect(sect.resources.herb).toBeLessThan(100) // herbs consumed
   })
 
@@ -1602,10 +1594,8 @@ describe('expedition supply', () => {
     const beforeStones = getStore().sect.resources.spiritStone
 
     // Add 2 hp_potion items to vault with recipeId
-    const hpPotion1 = makeConsumable('pot_1')
-    const hpPotion2 = makeConsumable('pot_2')
-    ;(hpPotion1 as any).recipeId = 'hp_potion'
-    ;(hpPotion2 as any).recipeId = 'hp_potion'
+    const hpPotion1 = { item: { ...makeConsumable('pot_1'), recipeId: 'hp_potion' }, quantity: 1 } as ItemStack
+    const hpPotion2 = { item: { ...makeConsumable('pot_2'), recipeId: 'hp_potion' }, quantity: 1 } as ItemStack
     useSectStore.setState((s) => ({
       sect: { ...s.sect, vault: [hpPotion1, hpPotion2] },
     }))
@@ -1623,8 +1613,7 @@ describe('expedition supply', () => {
     const beforeStones = getStore().sect.resources.spiritStone
 
     // Only 1 hp_potion in vault, but enhanced needs 2
-    const hpPotion1 = makeConsumable('pot_1')
-    ;(hpPotion1 as any).recipeId = 'hp_potion'
+    const hpPotion1 = { item: { ...makeConsumable('pot_1'), recipeId: 'hp_potion' }, quantity: 1 } as ItemStack
     useSectStore.setState((s) => ({
       sect: { ...s.sect, vault: [hpPotion1] },
     }))
@@ -1641,10 +1630,8 @@ describe('expedition supply', () => {
     const char = getStore().sect.characters[0]
 
     // Give potions but drain spirit stones
-    const hpPotion1 = makeConsumable('pot_1')
-    const hpPotion2 = makeConsumable('pot_2')
-    ;(hpPotion1 as any).recipeId = 'hp_potion'
-    ;(hpPotion2 as any).recipeId = 'hp_potion'
+    const hpPotion1 = { item: { ...makeConsumable('pot_1'), recipeId: 'hp_potion' }, quantity: 1 } as ItemStack
+    const hpPotion2 = { item: { ...makeConsumable('pot_2'), recipeId: 'hp_potion' }, quantity: 1 } as ItemStack
     useSectStore.setState((s) => ({
       sect: { ...s.sect, vault: [hpPotion1, hpPotion2], resources: { ...s.sect.resources, spiritStone: 100 } },
     }))
@@ -1661,15 +1648,10 @@ describe('expedition supply', () => {
     const beforeStones = getStore().sect.resources.spiritStone
 
     // Add required vault items: 5 hp_potion + 1 breakthrough_pill
-    const vaultItems: AnyItem[] = []
-    for (let i = 0; i < 5; i++) {
-      const p = makeConsumable(`hp_${i}`)
-      ;(p as any).recipeId = 'hp_potion'
-      vaultItems.push(p)
-    }
-    const bp = makeConsumable('bp_1')
-    ;(bp as any).recipeId = 'breakthrough_pill'
-    vaultItems.push(bp)
+    const vaultItems: ItemStack[] = [
+      { item: { ...makeConsumable('hp_0'), recipeId: 'hp_potion' }, quantity: 5 },
+      { item: { ...makeConsumable('bp_1'), recipeId: 'breakthrough_pill' }, quantity: 1 },
+    ]
 
     useSectStore.setState((s) => ({
       sect: {
@@ -1691,12 +1673,9 @@ describe('expedition supply', () => {
     const char = getStore().sect.characters[0]
 
     // Add 5 hp_potion but no breakthrough_pill
-    const vaultItems: AnyItem[] = []
-    for (let i = 0; i < 5; i++) {
-      const p = makeConsumable(`hp_${i}`)
-      ;(p as any).recipeId = 'hp_potion'
-      vaultItems.push(p)
-    }
+    const vaultItems: ItemStack[] = [
+      { item: { ...makeConsumable('hp_0'), recipeId: 'hp_potion' }, quantity: 5 },
+    ]
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
@@ -1707,15 +1686,15 @@ describe('expedition supply', () => {
 
     const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'luxury')
     expect(run).toBeNull()
-    expect(getStore().sect.vault).toHaveLength(5) // nothing consumed
+    expect(getStore().sect.vault).toHaveLength(1) // nothing consumed (1 stack of 5 hp_potion)
   })
 
   it('should not consume vault items without matching recipeId', () => {
     const char = getStore().sect.characters[0]
 
     // Add 2 consumables WITHOUT recipeId (should not count as hp_potion)
-    const p1 = makeConsumable('pot_1')
-    const p2 = makeConsumable('pot_2')
+    const p1 = { item: makeConsumable('pot_1'), quantity: 1 } as ItemStack
+    const p2 = { item: makeConsumable('pot_2'), quantity: 1 } as ItemStack
     // No recipeId set - these are just regular consumables
 
     useSectStore.setState((s) => ({
@@ -1731,10 +1710,8 @@ describe('expedition supply', () => {
     const char = getStore().sect.characters[0]
 
     // Add 2 spirit_potion (not hp_potion) to vault
-    const s1 = makeConsumable('sp_1')
-    const s2 = makeConsumable('sp_2')
-    ;(s1 as any).recipeId = 'spirit_potion'
-    ;(s2 as any).recipeId = 'spirit_potion'
+    const s1 = { item: { ...makeConsumable('sp_1'), recipeId: 'spirit_potion' }, quantity: 1 } as ItemStack
+    const s2 = { item: { ...makeConsumable('sp_2'), recipeId: 'spirit_potion' }, quantity: 1 } as ItemStack
 
     useSectStore.setState((s) => ({
       sect: { ...s.sect, vault: [s1, s2] },

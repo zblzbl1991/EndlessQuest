@@ -9,7 +9,7 @@ import type { ProductionQueue, Resources } from '../types/sect'
 const emptyResources: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
 
 // hp_potion recipe: herb 0.25/sec, productionTime 20s, minLevel 1
-// foundation_pill recipe: herb 0.5/sec, spiritStone 2/sec, productionTime 60s, minLevel 3
+// forge_common recipe: ore 0.2/sec, spiritStone 0.5/sec, productionTime 30s, minLevel 3
 
 describe('tickProductionQueue', () => {
   it('null recipeId returns no-op', () => {
@@ -106,13 +106,15 @@ describe('calcOfflineProduction', () => {
 describe('canStartRecipe', () => {
   it('returns true when level sufficient', () => {
     expect(canStartRecipe('hp_potion', 1)).toBe(true)
-    expect(canStartRecipe('foundation_pill', 3)).toBe(true)
-    expect(canStartRecipe('foundation_pill', 10)).toBe(true)
+    expect(canStartRecipe('spirit_potion', 1)).toBe(true)
+    expect(canStartRecipe('forge_common', 3)).toBe(true)
+    expect(canStartRecipe('forge_common', 10)).toBe(true)
   })
 
   it('returns false when level too low', () => {
-    expect(canStartRecipe('foundation_pill', 2)).toBe(false)
-    expect(canStartRecipe('golden_core_pill', 4)).toBe(false)
+    expect(canStartRecipe('forge_common', 2)).toBe(false)
+    expect(canStartRecipe('forge_spirit', 2)).toBe(false)
+    expect(canStartRecipe('forge_immortal', 4)).toBe(false)
   })
 
   it('returns false for unknown recipe', () => {

@@ -1,8 +1,8 @@
 import { AUTO_RECIPES, getAutoRecipeById, getAutoRecipesForBuilding } from '../data/recipes'
 
 describe('AUTO_RECIPES', () => {
-  it('should have at least 10 recipes', () => {
-    expect(AUTO_RECIPES.length).toBeGreaterThanOrEqual(10)
+  it('should have at least 6 recipes', () => {
+    expect(AUTO_RECIPES.length).toBeGreaterThanOrEqual(6)
   })
 
   it('should have all required fields on every recipe', () => {
@@ -41,8 +41,8 @@ describe('AUTO_RECIPES', () => {
   it('should split recipes between alchemyFurnace and forge', () => {
     const alchemy = AUTO_RECIPES.filter(r => r.buildingType === 'alchemyFurnace')
     const forge = AUTO_RECIPES.filter(r => r.buildingType === 'forge')
-    expect(alchemy.length).toBeGreaterThanOrEqual(4)
-    expect(forge.length).toBeGreaterThanOrEqual(3)
+    expect(alchemy.length).toBeGreaterThanOrEqual(2)
+    expect(forge.length).toBeGreaterThanOrEqual(4)
   })
 
   it('should have unique IDs', () => {
