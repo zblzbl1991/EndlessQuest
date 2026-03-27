@@ -15,6 +15,7 @@ export type EventType =
   | 'adventure_fail'
   | 'patrol_complete'
   | 'dispatch_complete'
+  | 'pet_capture'
   | 'item_crafted'
   | 'technique_unlocked'
   | 'breakthrough_comprehension'

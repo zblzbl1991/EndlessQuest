@@ -3,6 +3,7 @@ import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { DUNGEONS } from '../data/events'
 import { DISPATCH_MISSIONS } from '../data/missions'
+import { emitEvent } from '../stores/eventLogStore'
 import { getRealmName } from '../data/realms'
 import { QUALITY_NAMES as CHAR_QUALITY_NAMES } from '../components/common/CharacterCard'
 import ProgressBar from '../components/common/ProgressBar'
@@ -306,8 +307,13 @@ function TeamBuilder({
 function ActiveRunCard({ run }: { run: DungeonRun }) {
   const advanceFloor = useAdventureStore((s) => s.advanceFloor)
   const retreat = useAdventureStore((s) => s.retreat)
+  const buyFromShop = useAdventureStore((s) => s.buyFromShop)
+  const closeShop = useAdventureStore((s) => s.closeShop)
+  const attemptPetCapture = useAdventureStore((s) => s.attemptPetCapture)
   const dungeons = useAdventureStore((s) => s.dungeons)
   const sect = useSectStore((s) => s.sect)
+
+  const [showPetCapture, setShowPetCapture] = useState(false)
 
   const dungeon = dungeons.find((d) => d.id === run.dungeonId)
   const totalFloors = run.floors.length
@@ -400,6 +406,71 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Shop panel */}
+      {run.pendingShopOffers && run.pendingShopOffers.length > 0 && (
+        <div className={styles.shopPanel}>
+          <div className={styles.shopTitle}>游商</div>
+          {run.pendingShopOffers.map((offer, i) => (
+            <div key={i} className={styles.shopItem}>
+              <div className={styles.shopItemInfo}>
+                <span className={styles.shopItemName}>{offer.name}</span>
+                <span className={styles.shopItemDesc}>{offer.description}</span>
+              </div>
+              <button
+                className={`${styles.shopBuyBtn} ${run.totalRewards.spiritStone < offer.cost ? styles.btnDisabled : ''}`}
+                disabled={run.totalRewards.spiritStone < offer.cost}
+                onClick={() => buyFromShop(run.id, i)}
+              >
+                {offer.cost} 灵石
+              </button>
+            </div>
+          ))}
+          <button className={styles.cancelBtn} onClick={() => closeShop(run.id)}>
+            离开
+          </button>
+        </div>
+      )}
+
+      {/* Pet capture prompt */}
+      {showPetCapture && (() => {
+        const firstAliveCharId = run.teamCharacterIds.find(
+          (cid) => run.memberStates[cid]?.status !== 'dead'
+        )
+        const char = firstAliveCharId ? sect.characters.find(c => c.id === firstAliveCharId) : null
+        const fortune = char?.cultivationStats.fortune ?? 0
+        const captureRate = Math.round((0.30 + fortune * 0.02) * 100)
+        return (
+          <div className={styles.petCapturePanel}>
+            <div className={styles.petCaptureTitle}>发现可捕获灵兽！</div>
+            <div className={styles.petCaptureRate}>捕获率: {captureRate}%</div>
+            <div className={styles.petCaptureActions}>
+              <button
+                className={styles.actionBtn}
+                onClick={() => {
+                  const success = attemptPetCapture(run.id)
+                  setShowPetCapture(false)
+                  if (success) {
+                    emitEvent('pet_capture', '成功捕获了一只灵兽')
+                  }
+                }}
+              >
+                尝试捕获
+              </button>
+              <button className={styles.cancelBtn} onClick={() => setShowPetCapture(false)}>
+                放弃
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Check last log for pet capture trigger */}
+      {!showPetCapture && recentLogs.length > 0 && recentLogs[recentLogs.length - 1].message.includes('可捕获灵兽') && (
+        <button className={styles.actionBtn} onClick={() => setShowPetCapture(true)} style={{ width: '100%', marginTop: 'var(--space-xs)' }}>
+          捕获灵兽
+        </button>
       )}
 
       {/* Action buttons */}

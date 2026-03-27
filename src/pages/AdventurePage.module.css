@@ -502,3 +502,110 @@
     max-height: 85vh;
   }
 }
+
+/* Shop Panel */
+.shopPanel {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.shopTitle {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.shopItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-xs) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.shopItem:last-of-type {
+  border-bottom: none;
+}
+
+.shopItemInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shopItemName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.shopItemDesc {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.shopBuyBtn {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.shopBuyBtn:hover:not(.btnDisabled) {
+  opacity: 0.85;
+}
+
+/* Pet Capture Panel */
+.petCapturePanel {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-xs);
+}
+
+.petCaptureTitle {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.petCaptureRate {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.petCaptureActions {
+  display: flex;
+  gap: var(--space-xs);
+}
+
+.petCaptureActions .actionBtn {
+  flex: 1;
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.petCaptureActions .cancelBtn {
+  flex: 1;
+}
