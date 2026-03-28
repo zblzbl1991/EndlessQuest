@@ -1,6 +1,6 @@
 # P1: 弟子特长与建筑指派 + 宗门赋税 + 闭关系统 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a specialty system where disciples can be assigned to buildings for production bonuses, implement passive spirit stone tax from the main hall, and add a seclusion mechanic that trades spirit stones for faster cultivation.
 
@@ -17,7 +17,7 @@
 **Files:**
 - Modify: `src/types/character.ts`
 
-- [ ] **Step 1: Add specialty types and new Character fields**
+- [x] **Step 1: Add specialty types and new Character fields**
 
 In `src/types/character.ts`, add after existing type definitions:
 
@@ -56,12 +56,12 @@ export interface Character {
 
 Use `string | null` instead of `BuildingType | null` to avoid circular import (BuildingType is defined in `types/sect.ts` which imports Character).
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: Errors in files that create `Character` objects — they now need the new fields. This is expected and will be fixed in subsequent tasks.
 
-- [ ] **Step 3: Do NOT commit yet** — wait until Character creation sites are updated.
+- [x] **Step 3: Do NOT commit yet** — wait until Character creation sites are updated.
 
 ---
 
@@ -71,7 +71,7 @@ Expected: Errors in files that create `Character` objects — they now need the 
 - Modify: `src/systems/save/SaveSystem.ts`
 - Modify: `src/systems/character/CharacterEngine.ts`
 
-- [ ] **Step 1: Add defaults to character generation**
+- [x] **Step 1: Add defaults to character generation**
 
 In `src/systems/character/CharacterEngine.ts`, find `generateCharacter()` and add the new fields to the returned character object:
 
@@ -98,7 +98,7 @@ return {
 }
 ```
 
-- [ ] **Step 2: Add save migration for new fields**
+- [x] **Step 2: Add save migration for new fields**
 
 In `src/systems/save/SaveSystem.ts`, find where characters are loaded from IndexedDB. After loading each character, add migration:
 
@@ -110,17 +110,17 @@ if (character.assignedBuilding === undefined) character.assignedBuilding = null
 
 Search for where characters are deserialized — look for patterns like `character = raw` or character object construction from saved data.
 
-- [ ] **Step 3: Run TypeScript check**
+- [x] **Step 3: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors (all Character creation sites now have the new fields)
 
-- [ ] **Step 4: Run existing tests**
+- [x] **Step 4: Run existing tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS (tests that create Character objects should still work since we added defaults)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/types/character.ts src/systems/character/CharacterEngine.ts src/systems/save/SaveSystem.ts
@@ -136,7 +136,7 @@ git commit -m "feat(character): add specialties, assignedBuilding, secluded stat
 - Create: `src/data/specialties.ts`
 - Test: `src/__tests__/SpecialtySystem.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/__tests__/SpecialtySystem.test.ts`:
 
@@ -236,12 +236,12 @@ describe('getBuildingBonus', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/SpecialtySystem.test.ts --pool=forks --testTimeout=30000`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Create specialty data**
+- [x] **Step 3: Create specialty data**
 
 Create `src/data/specialties.ts`:
 
@@ -279,7 +279,7 @@ export const ALL_SPECIALTY_TYPES: SpecialtyType[] = [
 ]
 ```
 
-- [ ] **Step 4: Implement SpecialtySystem**
+- [x] **Step 4: Implement SpecialtySystem**
 
 Create `src/systems/character/SpecialtySystem.ts`:
 
@@ -360,12 +360,12 @@ export function getBuildingBonus(buildingType: string, specialties: Specialty[])
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/SpecialtySystem.test.ts --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/data/specialties.ts src/systems/character/SpecialtySystem.ts src/__tests__/SpecialtySystem.test.ts
@@ -380,7 +380,7 @@ git commit -m "feat(specialty): implement specialty generation and building bonu
 - Modify: `src/stores/sectStore.ts`
 - Test: `src/__tests__/stores.test.ts` (update existing tests)
 
-- [ ] **Step 1: Add assignToBuilding and unassignFromBuilding actions**
+- [x] **Step 1: Add assignToBuilding and unassignFromBuilding actions**
 
 In `src/stores/sectStore.ts`, add to the store interface and implementation:
 
@@ -428,7 +428,7 @@ unassignFromBuilding: (characterId) => {
 },
 ```
 
-- [ ] **Step 2: Update tickAll to skip training characters in cultivation loop**
+- [x] **Step 2: Update tickAll to skip training characters in cultivation loop**
 
 In `tickAll`, the character processing loop should skip `training` status characters (they don't cultivate, don't advance injury timer):
 
@@ -445,12 +445,12 @@ if (character.status === 'training' || character.status === 'idle') {
 
 **Note:** Read the existing code carefully. The current logic may handle `idle` by setting it to `cultivating`. Ensure `training` is excluded from this auto-assignment.
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -464,7 +464,7 @@ git commit -m "feat(specialty): add building assignment actions to sectStore"
 **Files:**
 - Modify: `src/stores/sectStore.ts` (tickAll resource calculation)
 
-- [ ] **Step 1: Apply specialty bonuses to resource rates in tickAll**
+- [x] **Step 1: Apply specialty bonuses to resource rates in tickAll**
 
 In `tickAll`, after calculating `rates` from `calcResourceRates`, apply specialty multipliers from assigned disciples:
 
@@ -492,17 +492,17 @@ rates.herb *= fieldBonus
 
 **Important:** The `state` reference may need to be the `get()` result. Read the existing tickAll code to understand how `state` / `set()` are used. The specialty lookup should read from the current state snapshot at the beginning of tickAll.
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -517,7 +517,7 @@ git commit -m "feat(specialty): apply specialty bonuses to resource production"
 - Modify: `src/systems/economy/ResourceEngine.ts`
 - Modify: `src/stores/sectStore.ts` (tickAll)
 
-- [ ] **Step 1: Add tax calculation to ResourceEngine**
+- [x] **Step 1: Add tax calculation to ResourceEngine**
 
 In `src/systems/economy/ResourceEngine.ts`, add a new function:
 
@@ -531,7 +531,7 @@ export function calcTaxRate(sectLevel: number, discipleCount: number): number {
 }
 ```
 
-- [ ] **Step 2: Apply tax in tickAll**
+- [x] **Step 2: Apply tax in tickAll**
 
 In `src/stores/sectStore.ts` tickAll, after the resource rates calculation:
 
@@ -548,12 +548,12 @@ spiritStone += taxProduced
 
 **Note:** `calcSectLevel` is already used in tickAll near the end. You may need to move the call earlier or use the value from the existing calculation. Read the code to find where `sectLevel` is already computed.
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/systems/economy/ResourceEngine.ts src/stores/sectStore.ts
@@ -567,7 +567,7 @@ git commit -m "feat(economy): add sect tax from main hall"
 **Files:**
 - Modify: `src/stores/sectStore.ts`
 
-- [ ] **Step 1: Add seclusion actions**
+- [x] **Step 1: Add seclusion actions**
 
 In `src/stores/sectStore.ts`, add to store interface and implementation:
 
@@ -612,7 +612,7 @@ stopSeclusion: (characterId) => {
 },
 ```
 
-- [ ] **Step 2: Handle secluded characters in tickAll cultivation loop**
+- [x] **Step 2: Handle secluded characters in tickAll cultivation loop**
 
 In the character processing loop of `tickAll`, add handling for `secluded` status alongside `cultivating`:
 
@@ -637,12 +637,12 @@ if (character.status === 'secluded') {
 
 Re-read the tickAll code to understand exactly where spirit consumption is calculated and make sure secluded characters are excluded from spirit energy consumption but still get cultivation ticks.
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -658,7 +658,7 @@ git commit -m "feat(cultivation): add seclusion system (spirit stone → cultiva
 - Modify: `src/pages/CharactersPage.tsx`
 - Modify: `src/pages/BuildingsPage.tsx`
 
-- [ ] **Step 1: Update StatusBadge for new statuses**
+- [x] **Step 1: Update StatusBadge for new statuses**
 
 In `src/components/common/StatusBadge.tsx`, add mappings for `secluded` and update `training`:
 
@@ -688,7 +688,7 @@ const STATUS_STYLES: Record<CharacterStatus, string> = {
 }
 ```
 
-- [ ] **Step 2: Update CharactersPage filter tabs**
+- [x] **Step 2: Update CharactersPage filter tabs**
 
 In `src/pages/CharactersPage.tsx`, update `FILTER_TABS`:
 
@@ -703,7 +703,7 @@ const FILTER_TABS: { key: FilterTab; label: string; match: (s: CharacterStatus) 
 
 Note: `training` (研习中) is now separate from cultivating. It falls under "全部" but not any specific filter tab. This is intentional — assigned disciples are visible in "全部" view.
 
-- [ ] **Step 3: Add seclusion and assignment buttons to CharacterDetail**
+- [x] **Step 3: Add seclusion and assignment buttons to CharacterDetail**
 
 In `src/pages/CharactersPage.tsx`, in the `CharacterDetail` component:
 
@@ -734,7 +734,7 @@ const assignToBuilding = useSectStore((s) => s.assignToBuilding)
 const unassignFromBuilding = useSectStore((s) => s.unassignFromBuilding)
 ```
 
-- [ ] **Step 4: Add tax display to BuildingsPage**
+- [x] **Step 4: Add tax display to BuildingsPage**
 
 In `src/pages/BuildingsPage.tsx`, in the mainHall building card, display tax income:
 
@@ -748,22 +748,22 @@ In `src/pages/BuildingsPage.tsx`, in the mainHall building card, display tax inc
 
 Import `calcTaxRate` from `../../systems/economy/ResourceEngine`.
 
-- [ ] **Step 5: Run TypeScript check**
+- [x] **Step 5: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 6: Run all tests**
+- [x] **Step 6: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 7: Run production build**
+- [x] **Step 7: Run production build**
 
 Run: `npm run build`
 Expected: Build succeeds
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/components/common/StatusBadge.tsx src/pages/CharactersPage.tsx src/pages/BuildingsPage.tsx
@@ -774,17 +774,17 @@ git commit -m "feat(ui): add seclusion, assignment UI and update status labels"
 
 ### Task 9: 最终验证
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
 
 Run: `npm run build`
 Expected: Build succeeds

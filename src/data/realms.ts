@@ -80,11 +80,37 @@ export function getCultivationNeeded(realmIndex: number, stage: number): number 
 
 /**
  * Breakthrough costs for major realm transitions.
- * Key = target realm index (1-4). Requires spiritStone only.
+ * Key = target realm index (1-5). Requires spiritStone only.
  */
 export const BREAKTHROUGH_COSTS: Record<number, { spiritStone: number }> = {
   1: { spiritStone: 3000 },
   2: { spiritStone: 15000 },
   3: { spiritStone: 80000 },
   4: { spiritStone: 350000 },
+  5: { spiritStone: 1500000 },
+}
+
+/**
+ * Spirit stone costs for minor stage breakthroughs (within same realm).
+ * Indexed by [realmIndex][targetStage].
+ * e.g., MINOR_BREAKTHROUGH_COSTS[0][1] = 50 (炼气 初期→中期)
+ */
+export const MINOR_BREAKTHROUGH_COSTS: Record<number, Record<number, number>> = {
+  0: { 1: 50, 2: 150, 3: 400 },
+  1: { 1: 200, 2: 600, 3: 1800 },
+  2: { 1: 1000, 2: 3000, 3: 9000 },
+  3: { 1: 5000, 2: 15000, 3: 45000 },
+  4: { 1: 25000, 2: 75000, 3: 225000 },
+}
+
+/**
+ * Get the spirit stone cost for any breakthrough (minor or major).
+ */
+export function getBreakthroughCost(realmIndex: number, currentStage: number): number {
+  if (currentStage >= 3) {
+    // Major realm breakthrough
+    return BREAKTHROUGH_COSTS[realmIndex + 1]?.spiritStone ?? 0
+  }
+  // Minor stage breakthrough
+  return MINOR_BREAKTHROUGH_COSTS[realmIndex]?.[currentStage + 1] ?? 0
 }

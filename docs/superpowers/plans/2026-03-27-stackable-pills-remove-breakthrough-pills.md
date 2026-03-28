@@ -1,6 +1,6 @@
 # 丹药叠加 + 移除突破丹 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 将丹药改为按 recipeId 可叠加存储，移除突破丹配方和消耗逻辑，大幅提高大境界突破灵石消耗。
 
@@ -17,7 +17,7 @@
 - Create: `src/systems/item/ItemStackUtils.ts` — 叠加/拆分/移除工具函数
 - Test: `src/__tests__/ItemStackUtils.test.ts`
 
-- [ ] **Step 1: 在 `src/types/item.ts` 中新增 ItemStack 类型**
+- [x] **Step 1: 在 `src/types/item.ts` 中新增 ItemStack 类型**
 
 在 `AnyItem` 定义之后（行 47 之后），新增：
 
@@ -44,15 +44,15 @@ export function getRecipeId(stack: ItemStack): string | null {
 }
 ```
 
-- [ ] **Step 2: 更新 `src/types/sect.ts` 中 vault 类型**
+- [x] **Step 2: 更新 `src/types/sect.ts` 中 vault 类型**
 
 将 `src/types/sect.ts` 中 `vault: AnyItem[]` 改为 `vault: ItemStack[]`。
 
-- [ ] **Step 3: 更新 `src/types/character.ts` 中 backpack 类型**
+- [x] **Step 3: 更新 `src/types/character.ts` 中 backpack 类型**
 
 将 `src/types/character.ts` 中 `backpack: AnyItem[]` 改为 `backpack: ItemStack[]`。
 
-- [ ] **Step 4: 创建 `src/systems/item/ItemStackUtils.ts`**
+- [x] **Step 4: 创建 `src/systems/item/ItemStackUtils.ts`**
 
 ```typescript
 import type { AnyItem, Consumable, ItemStack } from '../types'
@@ -160,7 +160,7 @@ export function migrateToItemStacks(data: unknown[]): ItemStack[] {
 }
 ```
 
-- [ ] **Step 5: 编写测试 `src/__tests__/ItemStackUtils.test.ts`**
+- [x] **Step 5: 编写测试 `src/__tests__/ItemStackUtils.test.ts`**
 
 ```typescript
 import { addItemToStacks, addItemQuantityToStacks, removeStackAtIndex, removeConsumablesByRecipeId, countConsumablesByRecipeId, migrateToItemStacks } from '../systems/item/ItemStackUtils'
@@ -277,12 +277,12 @@ describe('ItemStackUtils', () => {
 })
 ```
 
-- [ ] **Step 6: 运行测试确认通过**
+- [x] **Step 6: 运行测试确认通过**
 
 Run: `npx vitest run src/__tests__/ItemStackUtils.test.ts`
 Expected: all tests PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/types/item.ts src/types/sect.ts src/types/character.ts src/systems/item/ItemStackUtils.ts src/__tests__/ItemStackUtils.test.ts
@@ -296,7 +296,7 @@ git commit -m "feat(items): add ItemStack type and stack utility functions"
 **Files:**
 - Modify: `src/stores/sectStore.ts:88-137` (interface), `:150-169` (produceItemFromRecipe), `:428-512` (item transfer actions)
 
-- [ ] **Step 1: 更新 SectStore 接口中的物品操作签名**
+- [x] **Step 1: 更新 SectStore 接口中的物品操作签名**
 
 修改 `src/stores/sectStore.ts` 行 109-114 的 Item transfer 部分接口：
 
@@ -311,7 +311,7 @@ git commit -m "feat(items): add ItemStack type and stack utility functions"
 
 注意：`removeVaultItem` 返回类型从 `AnyItem | null` 改为 `ItemStack | null`。
 
-- [ ] **Step 2: 添加 import**
+- [x] **Step 2: 添加 import**
 
 在 `src/stores/sectStore.ts` 顶部添加：
 
@@ -320,7 +320,7 @@ import { addItemToStacks, removeStackAtIndex, addItemQuantityToStacks, removeCon
 import type { ItemStack } from '../types'
 ```
 
-- [ ] **Step 3: 重写 `addToVault` (行 476-483)**
+- [x] **Step 3: 重写 `addToVault` (行 476-483)**
 
 ```typescript
     addToVault: (item) => {
@@ -340,7 +340,7 @@ import type { ItemStack } from '../types'
     },
 ```
 
-- [ ] **Step 4: 重写 `transferItemToCharacter` (行 428-450)**
+- [x] **Step 4: 重写 `transferItemToCharacter` (行 428-450)**
 
 ```typescript
     transferItemToCharacter: (characterId, vaultIndex) => {
@@ -375,7 +375,7 @@ import type { ItemStack } from '../types'
     },
 ```
 
-- [ ] **Step 5: 重写 `transferItemToVault` (行 452-474)**
+- [x] **Step 5: 重写 `transferItemToVault` (行 452-474)**
 
 ```typescript
     transferItemToVault: (characterId, backpackIndex) => {
@@ -409,7 +409,7 @@ import type { ItemStack } from '../types'
     },
 ```
 
-- [ ] **Step 6: 重写 `sellItem` (行 485-501)**
+- [x] **Step 6: 重写 `sellItem` (行 485-501)**
 
 ```typescript
     sellItem: (vaultIndex) => {
@@ -429,7 +429,7 @@ import type { ItemStack } from '../types'
     },
 ```
 
-- [ ] **Step 7: 重写 `removeVaultItem` (行 503-512)**
+- [x] **Step 7: 重写 `removeVaultItem` (行 503-512)**
 
 ```typescript
     removeVaultItem: (vaultIndex) => {
@@ -442,7 +442,7 @@ import type { ItemStack } from '../types'
     },
 ```
 
-- [ ] **Step 8: 重写 `sellCharacterItem` (行 638-661)**
+- [x] **Step 8: 重写 `sellCharacterItem` (行 638-661)**
 
 ```typescript
     sellCharacterItem: (characterId, backpackIndex) => {
@@ -466,7 +466,7 @@ import type { ItemStack } from '../types'
     },
 ```
 
-- [ ] **Step 9: 重写 `produceItemFromRecipe` (行 154-169)**
+- [x] **Step 9: 重写 `produceItemFromRecipe` (行 154-169)**
 
 改为返回 `ItemStack` 并使用 `addItemQuantityToStacks`：
 
@@ -490,13 +490,13 @@ function produceItemAsStack(recipe: AutoRecipe, buildingLevel: number): ItemStac
 }
 ```
 
-- [ ] **Step 10: 更新 `craftPotion` store action (行 1006-1020)**
+- [x] **Step 10: 更新 `craftPotion` store action (行 1006-1020)**
 
 `craftPotion` 中调用 `addToVault(potion)` 不需要改，因为 addToVault 现在内部处理叠加。但需要确保 `produceItemFromRecipe` 不再被直接使用（改为使用 `produceItemAsStack`）。
 
 搜索所有 `produceItemFromRecipe` 调用并替换为 `produceItemAsStack`。
 
-- [ ] **Step 11: 更新 `equipItem` action (行 433-452 附近)**
+- [x] **Step 11: 更新 `equipItem` action (行 433-452 附近)**
 
 `equipItem` 从 `char.backpack[backpackIndex]` 取值后，现在得到的是 `ItemStack`，需要从中取 `.item` 来检查是否是 Equipment。调整逻辑：
 
@@ -513,12 +513,12 @@ function produceItemAsStack(recipe: AutoRecipe, buildingLevel: number): ItemStac
     },
 ```
 
-- [ ] **Step 12: 运行现有测试确认编译通过**
+- [x] **Step 12: 运行现有测试确认编译通过**
 
 Run: `npx tsc --noEmit`
 Expected: type errors pointing to remaining AnyItem[] usage sites (these are fixed in later tasks)
 
-- [ ] **Step 13: Commit**
+- [x] **Step 13: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -532,7 +532,7 @@ git commit -m "refactor(store): migrate item operations to ItemStack"
 **Files:**
 - Modify: `src/stores/sectStore.ts:797-962` (tickAll production + breakthrough)
 
-- [ ] **Step 1: 更新 `tickAll` 生产队列逻辑 (行 797-837)**
+- [x] **Step 1: 更新 `tickAll` 生产队列逻辑 (行 797-837)**
 
 将 `newVault` 的操作从直接 push 改为使用 ItemStack：
 
@@ -566,7 +566,7 @@ git commit -m "refactor(store): migrate item operations to ItemStack"
           }
 ```
 
-- [ ] **Step 2: 更新 `tickAll` 大境界突破逻辑 (行 889-931)**
+- [x] **Step 2: 更新 `tickAll` 大境界突破逻辑 (行 889-931)**
 
 移除丹药检查和消耗，只检查灵石：
 
@@ -586,12 +586,12 @@ git commit -m "refactor(store): migrate item operations to ItemStack"
 
 删除行 891-901 的丹药相关代码（`hasPill`, `pillIndex`, `newVault.splice`）。
 
-- [ ] **Step 3: 运行测试**
+- [x] **Step 3: 运行测试**
 
 Run: `npx vitest run src/__tests__/stores.test.ts --reporter=verbose`
 Expected: breakthrough tests fail (they expect pill consumption) — this is expected, fixed in Task 6
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -608,7 +608,7 @@ git commit -m "refactor(tickAll): use ItemStack in production, remove pill from 
 - Modify: `src/systems/economy/AlchemySystem.ts:35-38` (ALCHEMY_RECIPES)
 - Modify: `src/data/realms.ts` REALMS 数组中的 `breakthroughExtra` 文字
 
-- [ ] **Step 1: 更新 `BREAKTHROUGH_COSTS`**
+- [x] **Step 1: 更新 `BREAKTHROUGH_COSTS`**
 
 修改 `src/data/realms.ts` 行 82-90:
 
@@ -621,7 +621,7 @@ export const BREAKTHROUGH_COSTS: Record<number, { spiritStone: number }> = {
 }
 ```
 
-- [ ] **Step 2: 从 `AUTO_RECIPES` 中移除突破丹配方**
+- [x] **Step 2: 从 `AUTO_RECIPES` 中移除突破丹配方**
 
 从 `src/data/recipes.ts` 中删除以下 4 项：
 - `foundation_pill` (行 15)
@@ -629,11 +629,11 @@ export const BREAKTHROUGH_COSTS: Record<number, { spiritStone: number }> = {
 - `nascent_soul_pill` (行 17)
 - `spirit_transformation_pill` (行 18)
 
-- [ ] **Step 3: 从 `ALCHEMY_RECIPES` 中移除突破丹**
+- [x] **Step 3: 从 `ALCHEMY_RECIPES` 中移除突破丹**
 
 从 `src/systems/economy/AlchemySystem.ts` 中删除 `breakthrough_pill` 配方（行 35-38）。
 
-- [ ] **Step 4: 更新 REALMS 中的 `breakthroughExtra` 文字**
+- [x] **Step 4: 更新 REALMS 中的 `breakthroughExtra` 文字**
 
 修改 `src/data/realms.ts` 中各境界的 `breakthroughExtra`：
 - 筑基期: `'筑基丹 x1'` → `'需消耗大量灵石'`
@@ -641,12 +641,12 @@ export const BREAKTHROUGH_COSTS: Record<number, { spiritStone: number }> = {
 - 元婴期: `'元婴劫'` → `'元婴劫 + 灵石'`
 - 化神期: `'天劫（3阶段战斗）'` → `'天劫 + 灵石'`
 
-- [ ] **Step 5: 运行构建确认无编译错误**
+- [x] **Step 5: 运行构建确认无编译错误**
 
 Run: `npx tsc --noEmit`
 Expected: 可能有引用 `cost.pillId` 的类型错误 — 这些在 Task 3 已经修复
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/data/realms.ts src/data/recipes.ts src/systems/economy/AlchemySystem.ts
@@ -661,7 +661,7 @@ git commit -m "feat(balance): remove breakthrough pills, increase spirit stone c
 - Modify: `src/systems/save/SaveSystem.ts:69-75` (saveGame vault write)
 - Modify: `src/systems/save/SaveSystem.ts:119` (loadGame vault read)
 
-- [ ] **Step 1: 更新 `saveGame` vault 写入 (行 69-75)**
+- [x] **Step 1: 更新 `saveGame` vault 写入 (行 69-75)**
 
 vault 现在是 `ItemStack[]`，写入 IDB 时需要展开为可序列化格式。keyPath 改为用 `${index}` 或保持 `item.id` 但加入 quantity：
 
@@ -678,7 +678,7 @@ for (const k of vaultKeys) {
 }
 ```
 
-- [ ] **Step 2: 更新 `loadGame` vault 读取 (行 119)**
+- [x] **Step 2: 更新 `loadGame` vault 读取 (行 119)**
 
 加入迁移逻辑：
 
@@ -687,7 +687,7 @@ const rawVault = await db.getAll('vault')
 const vault = migrateToItemStacks(rawVault)
 ```
 
-- [ ] **Step 3: 更新 `loadGame` 中 characters 的 backpack 迁移 (行 117)**
+- [x] **Step 3: 更新 `loadGame` 中 characters 的 backpack 迁移 (行 117)**
 
 ```typescript
 const rawCharacters = await db.getAll('characters') as Sect['characters']
@@ -697,12 +697,12 @@ const characters = rawCharacters.map(c => ({
 }))
 ```
 
-- [ ] **Step 4: 运行存档测试**
+- [x] **Step 4: 运行存档测试**
 
 Run: `npx vitest run src/__tests__/SaveSystem.test.ts`
 Expected: 存档测试可能需要适配新的 ItemStack 格式
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/save/SaveSystem.ts
@@ -716,7 +716,7 @@ git commit -m "feat(save): migrate save system to ItemStack format with backward
 **Files:**
 - Modify: `src/stores/adventureStore.ts:143-160` (countVaultItemsByRecipeId, removeVaultItemsByRecipeId)
 
-- [ ] **Step 1: 重写 `countVaultItemsByRecipeId`**
+- [x] **Step 1: 重写 `countVaultItemsByRecipeId`**
 
 ```typescript
 function countVaultItemsByRecipeId(recipeId: string): number {
@@ -730,7 +730,7 @@ function countVaultItemsByRecipeId(recipeId: string): number {
 }
 ```
 
-- [ ] **Step 2: 重写 `removeVaultItemsByRecipeId`**
+- [x] **Step 2: 重写 `removeVaultItemsByRecipeId`**
 
 不再使用 `removeVaultItem(idx)` 逐个删除，改为直接操作 vault：
 
@@ -758,11 +758,11 @@ function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
 }
 ```
 
-- [ ] **Step 3: 更新 adventureStore 中其他 vault 物品引用**
+- [x] **Step 3: 更新 adventureStore 中其他 vault 物品引用**
 
 搜索 `sect.vault` 在 adventureStore 中的所有使用，确保都通过 `.item` 访问物品属性。
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/adventureStore.ts
@@ -778,7 +778,7 @@ git commit -m "refactor(adventure): update vault operations for ItemStack"
 - Modify: `src/pages/BuildingsPage.tsx` (内嵌 vault)
 - Modify: `src/pages/CharactersPage.tsx` (背包渲染)
 
-- [ ] **Step 1: 更新 `VaultPage.tsx` vault 渲染**
+- [x] **Step 1: 更新 `VaultPage.tsx` vault 渲染**
 
 在 VaultTab 中，vault 现在是 `ItemStack[]`。修改渲染：
 
@@ -794,7 +794,7 @@ git commit -m "refactor(adventure): update vault operations for ItemStack"
 
 详情面板中使用 `vault[selectedIndex].item` 代替 `vault[selectedIndex]` 获取物品属性。
 
-- [ ] **Step 2: 更新 `VaultPage.tsx` BackpackTab**
+- [x] **Step 2: 更新 `VaultPage.tsx` BackpackTab**
 
 同样适配弟子背包从 `AnyItem[]` 到 `ItemStack[]`：
 
@@ -807,20 +807,20 @@ git commit -m "refactor(adventure): update vault operations for ItemStack"
 ))}
 ```
 
-- [ ] **Step 3: 更新 `BuildingsPage.tsx` 内嵌 VaultTab**
+- [x] **Step 3: 更新 `BuildingsPage.tsx` 内嵌 VaultTab**
 
 同样适配（行 630-648 附近的 vault 渲染）。
 
-- [ ] **Step 4: 更新 `CharactersPage.tsx` 背包渲染**
+- [x] **Step 4: 更新 `CharactersPage.tsx` 背包渲染**
 
 CharacterDetail 中背包渲染（行 349-393），适配 `char.backpack` 为 `ItemStack[]`。
 
-- [ ] **Step 5: 运行构建确认无错误**
+- [x] **Step 5: 运行构建确认无错误**
 
 Run: `npx vite build`
 Expected: build succeeds
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pages/VaultPage.tsx src/pages/BuildingsPage.tsx src/pages/CharactersPage.tsx
@@ -836,7 +836,7 @@ git commit -m "feat(ui): display item quantity badges for stackable consumables"
 - Modify: `src/__tests__/ProductionSystem.test.ts`
 - Modify: `src/__tests__/types.test.ts`
 
-- [ ] **Step 1: 更新 `stores.test.ts` 中的 item transfer 测试**
+- [x] **Step 1: 更新 `stores.test.ts` 中的 item transfer 测试**
 
 主要修改点：
 - `makeConsumable` helper 不变
@@ -846,16 +846,16 @@ git commit -m "feat(ui): display item quantity badges for stackable consumables"
 - 生产测试（行 1356-1478）：vault item 改为 ItemStack 结构
 - 冒险补给测试（行 1590-1746）：使用 ItemStack 格式
 
-- [ ] **Step 2: 更新 `types.test.ts`**
+- [x] **Step 2: 更新 `types.test.ts`**
 
 Sect 类型中 `vault` 字段改为 `ItemStack[]` 类型断言。
 
-- [ ] **Step 3: 运行全部测试**
+- [x] **Step 3: 运行全部测试**
 
 Run: `npx vitest run`
 Expected: all tests PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/__tests__/stores.test.ts src/__tests__/types.test.ts
@@ -866,17 +866,17 @@ git commit -m "test: update tests for ItemStack migration and pill removal"
 
 ### Task 9: 最终验证
 
-- [ ] **Step 1: 运行完整测试套件**
+- [x] **Step 1: 运行完整测试套件**
 
 Run: `npx vitest run`
 Expected: all tests PASS
 
-- [ ] **Step 2: 运行构建**
+- [x] **Step 2: 运行构建**
 
 Run: `npx vite build`
 Expected: build succeeds, no TypeScript errors
 
-- [ ] **Step 3: Commit (if any remaining fixes)**
+- [x] **Step 3: Commit (if any remaining fixes)**
 
 ```bash
 git add -A

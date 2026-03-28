@@ -100,9 +100,9 @@ describe('CharacterEngine', () => {
       expect(c.petIds).toEqual([])
     })
 
-    it('should have status cultivating', () => {
+    it('should have status idle', () => {
       const c = generateCharacter('common')
-      expect(c.status).toBe('cultivating')
+      expect(c.status).toBe('idle')
     })
   })
 

@@ -65,7 +65,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           })}
         </div>
       )}
-      {character.status === 'cultivating' && (
+      {character.status === 'idle' && (
         <div className={styles.progress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <div className={styles.progressStats}>

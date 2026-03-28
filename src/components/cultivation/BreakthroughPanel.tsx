@@ -30,7 +30,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const hasStones = cost ? spiritStone >= cost.spiritStone : true
 
   // Hint text
-  let hint = character.status === 'cultivating' ? '修炼中' : character.status === 'resting' ? '休息中' : '冒险中'
+  let hint = character.status === 'idle' ? '修炼中' : character.status === 'resting' ? '休息中' : '冒险中'
   let hintClass = ''
   if (ready) {
     if (isMajor && cost) {

@@ -259,8 +259,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       const character = sect.characters.find((c) => c.id === charId)
       if (!character) return null
 
-      // Check status: must be cultivating or resting (not adventuring)
-      if (character.status !== 'cultivating' && character.status !== 'resting') return null
+      // Check status: must be idle or resting (not adventuring)
+      if (character.status !== 'idle' && character.status !== 'resting') return null
 
       // Check not already in another run
       for (const run of Object.values(state.activeRuns)) {
@@ -505,14 +505,14 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(run.itemRewards)
 
-    // 3. Set member character statuses: alive -> cultivating, wounded/dead -> resting
+    // 3. Set member character statuses: alive -> idle, wounded/dead -> resting
     const sectStore = useSectStore.getState()
     for (const charId of run.teamCharacterIds) {
       const memberState = run.memberStates[charId]
       if (!memberState) continue
 
       if (memberState.status === 'alive' || memberState.status === 'wounded') {
-        sectStore.setCharacterStatus(charId, 'cultivating')
+        sectStore.setCharacterStatus(charId, 'idle')
       } else {
         // Dead characters go to resting with 60s recovery
         setCharacterResting(charId, 60)
@@ -619,7 +619,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       if (!memberState) continue
 
       if (memberState.status === 'alive' || memberState.status === 'wounded') {
-        sectStore.setCharacterStatus(charId, 'cultivating')
+        sectStore.setCharacterStatus(charId, 'idle')
       } else {
         setCharacterResting(charId, 60)
       }
@@ -676,7 +676,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const { sect } = useSectStore.getState()
     const char = sect.characters.find(c => c.id === characterId)
     if (!char) return
-    if (char.status !== 'idle' && char.status !== 'cultivating') return
+    if (char.status !== 'idle') return
 
     useSectStore.getState().setCharacterStatus(characterId, 'patrolling')
 
@@ -726,7 +726,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     emitEvent('dispatch_complete', `派遣任务「${mission.name}」完成`)
 
     // Return character to cultivating
-    useSectStore.getState().setCharacterStatus(characterId, 'cultivating')
+    useSectStore.getState().setCharacterStatus(characterId, 'idle')
 
     // Remove dispatch
     set(s => ({

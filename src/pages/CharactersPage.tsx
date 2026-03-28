@@ -58,7 +58,7 @@ type FilterTab = 'all' | 'cultivating' | 'adventuring' | 'resting'
 
 const FILTER_TABS: { key: FilterTab; label: string; match: (s: CharacterStatus) => boolean }[] = [
   { key: 'all', label: '全部', match: () => true },
-  { key: 'cultivating', label: '修炼中', match: (s) => s === 'cultivating' || s === 'secluded' },
+  { key: 'cultivating', label: '修炼中', match: (s) => s === 'idle' },
   { key: 'adventuring', label: '冒险中', match: (s) => s === 'adventuring' || s === 'patrolling' },
   { key: 'resting', label: '休息', match: (s) => s === 'resting' || s === 'idle' || s === 'injured' },
 ]
@@ -154,8 +154,6 @@ function CharacterDetail({
   const equipItem = useSectStore((s) => s.equipItem)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
   const sellCharacterItem = useSectStore((s) => s.sellCharacterItem)
-  const startSeclusion = useSectStore((s) => s.startSeclusion)
-  const stopSeclusion = useSectStore((s) => s.stopSeclusion)
   const unassignFromBuilding = useSectStore((s) => s.unassignFromBuilding)
   const dispatches = useAdventureStore((s) => s.dispatches)
   const startDispatch = useAdventureStore((s) => s.startDispatch)
@@ -272,27 +270,14 @@ function CharacterDetail({
         </div>
         <BreakthroughPanel characterId={characterId} />
         <div className={styles.cultivationActions}>
-          {character.status === 'cultivating' && (
+          {character.status === 'idle' && (
             <>
-              <button className={styles.actionBtn} onClick={() => startSeclusion(character.id)}>
-                闭关
-              </button>
               {getActiveDispatchCount() < 5 && (
                 <button className={styles.actionBtn} onClick={() => setShowingMissions(true)}>
                   派遣
                 </button>
               )}
             </>
-          )}
-          {character.status === 'idle' && getActiveDispatchCount() < 5 && (
-            <button className={styles.actionBtn} onClick={() => setShowingMissions(true)}>
-              派遣
-            </button>
-          )}
-          {character.status === 'secluded' && (
-            <button className={styles.actionBtn} onClick={() => stopSeclusion(character.id)}>
-              停止闭关
-            </button>
           )}
           {character.status === 'training' && character.assignedBuilding && (
             <button className={styles.actionBtn} onClick={() => unassignFromBuilding(character.id)}>

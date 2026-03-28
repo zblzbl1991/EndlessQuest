@@ -1,6 +1,6 @@
 # Technique System Enhancement Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add a global technique codex system where techniques are collected through exploration, study, and breakthrough comprehension, replacing the scroll-item-based learning flow.
 
@@ -19,7 +19,7 @@
 - Modify: `src/types/adventure.ts:4`
 - Modify: `src/systems/roguelike/EventSystem.ts:10-18`
 
-- [ ] **Step 1: Add `techniqueCodex` to Sect interface**
+- [x] **Step 1: Add `techniqueCodex` to Sect interface**
 
 In `src/types/sect.ts`, add `techniqueCodex: string[]` to the `Sect` interface (after `lastTransmissionTime`):
 
@@ -40,7 +40,7 @@ export interface Sect {
 }
 ```
 
-- [ ] **Step 2: Add `'ancient_cave'` to EventType union**
+- [x] **Step 2: Add `'ancient_cave'` to EventType union**
 
 In `src/types/adventure.ts`, update line 4:
 
@@ -48,7 +48,7 @@ In `src/types/adventure.ts`, update line 4:
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancient_cave'
 ```
 
-- [ ] **Step 3: Add `techniqueReward` to EventResult**
+- [x] **Step 3: Add `techniqueReward` to EventResult**
 
 In `src/systems/roguelike/EventSystem.ts`, add optional field to `EventResult` interface (around line 17):
 
@@ -65,12 +65,12 @@ export interface EventResult {
 }
 ```
 
-- [ ] **Step 4: Verify TypeScript compiles**
+- [x] **Step 4: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: Type errors in sectStore (createInitialState missing techniqueCodex) — these will be fixed in Task 4.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/types/sect.ts src/types/adventure.ts src/systems/roguelike/EventSystem.ts
@@ -85,7 +85,7 @@ git commit -m "feat(types): add techniqueCodex, ancient_cave event type, techniq
 - Modify: `src/systems/technique/TechniqueSystem.ts`
 - Create: `src/__tests__/TechniqueSystem.test.ts`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Create `src/__tests__/TechniqueSystem.test.ts`:
 
@@ -173,12 +173,12 @@ describe('pickTechniqueForFloor', () => {
 })
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npx vitest run src/__tests__/TechniqueSystem.test.ts`
 Expected: FAIL — functions not exported
 
-- [ ] **Step 3: Implement functions in TechniqueSystem.ts**
+- [x] **Step 3: Implement functions in TechniqueSystem.ts**
 
 Add to `src/systems/technique/TechniqueSystem.ts`. Import `TECHNIQUE_TIER_ORDER` from `../../types/technique` and `TECHNIQUES, getTechniqueById` from `../../data/techniquesTable`:
 
@@ -247,12 +247,12 @@ export function pickTechniqueForFloor(
 }
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npx vitest run src/__tests__/TechniqueSystem.test.ts`
 Expected: PASS (8 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/technique/TechniqueSystem.ts src/__tests__/TechniqueSystem.test.ts
@@ -267,7 +267,7 @@ git commit -m "feat(technique): add breakthrough comprehension and floor techniq
 - Modify: `src/systems/character/CharacterEngine.ts:235-237`
 - Modify: `src/systems/save/SaveSystem.ts:74-82`
 
-- [ ] **Step 1: Update generateCharacter to default to qingxin**
+- [x] **Step 1: Update generateCharacter to default to qingxin**
 
 In `src/systems/character/CharacterEngine.ts`, change lines 235-237:
 
@@ -277,7 +277,7 @@ In `src/systems/character/CharacterEngine.ts`, change lines 235-237:
     learnedTechniques: ['qingxin'],
 ```
 
-- [ ] **Step 2: Update SaveSystem loadGame migration**
+- [x] **Step 2: Update SaveSystem loadGame migration**
 
 In `src/systems/save/SaveSystem.ts`, in the character migration block (around line 78), expand to handle technique fields and techniqueCodex:
 
@@ -308,12 +308,12 @@ And after the setState for sect, ensure `techniqueCodex` has a default:
       useSectStore.setState({ sect: migratedSect })
 ```
 
-- [ ] **Step 3: Verify TypeScript compiles**
+- [x] **Step 3: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: Type errors in sectStore createInitialState — fixed in next task.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/systems/character/CharacterEngine.ts src/systems/save/SaveSystem.ts
@@ -327,7 +327,7 @@ git commit -m "feat: default character technique to qingxin + save migration"
 **Files:**
 - Modify: `src/stores/sectStore.ts` (createInitialState, new actions, studyTechnique refactor)
 
-- [ ] **Step 1: Add techniqueCodex to createInitialState**
+- [x] **Step 1: Add techniqueCodex to createInitialState**
 
 In `src/stores/sectStore.ts`, in `createInitialState()` (around line 68), add before `totalAdventureRuns`:
 
@@ -335,7 +335,7 @@ In `src/stores/sectStore.ts`, in `createInitialState()` (around line 68), add be
       techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
 ```
 
-- [ ] **Step 2: Add learnTechniqueFromCodex action**
+- [x] **Step 2: Add learnTechniqueFromCodex action**
 
 Add after the existing `learnTechnique` action:
 
@@ -373,7 +373,7 @@ Add after the existing `learnTechnique` action:
   },
 ```
 
-- [ ] **Step 3: Add unlockCodexEntry action**
+- [x] **Step 3: Add unlockCodexEntry action**
 
 ```typescript
   unlockCodexEntry: (techniqueId: string): boolean => {
@@ -389,7 +389,7 @@ Add after the existing `learnTechnique` action:
   },
 ```
 
-- [ ] **Step 4: Add unlockCodexAndLearn action (for adventure events)**
+- [x] **Step 4: Add unlockCodexAndLearn action (for adventure events)**
 
 ```typescript
   unlockCodexAndLearn: (techniqueId: string, characterId: string): boolean => {
@@ -420,7 +420,7 @@ Add after the existing `learnTechnique` action:
   },
 ```
 
-- [ ] **Step 5: Refactor studyTechnique to unlock codex directly**
+- [x] **Step 5: Refactor studyTechnique to unlock codex directly**
 
 Replace the existing `studyTechnique` action (lines 1062-1079):
 
@@ -479,16 +479,16 @@ Replace the existing `studyTechnique` action (lines 1062-1079):
 
 Add import at top of file if not already present: `import { TECHNIQUE_TIER_ORDER } from '../types/technique'`
 
-- [ ] **Step 6: Remove unused generateRandomTechniqueScroll import**
+- [x] **Step 6: Remove unused generateRandomTechniqueScroll import**
 
 In `src/stores/sectStore.ts`, remove the import of `generateRandomTechniqueScroll` from ItemGenerator (line ~20). Keep `generateTechniqueScroll` import if it exists (used by old scroll compat).
 
-- [ ] **Step 7: Verify TypeScript compiles**
+- [x] **Step 7: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: PASS
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -502,7 +502,7 @@ git commit -m "feat(store): add codex actions, refactor studyTechnique to unlock
 **Files:**
 - Modify: `src/stores/sectStore.ts` (tickAll auto-breakthrough success branches)
 
-- [ ] **Step 1: Add comprehension check after breakthrough success**
+- [x] **Step 1: Add comprehension check after breakthrough success**
 
 In `src/stores/sectStore.ts`, import `tryComprehendOnBreakthrough` from TechniqueSystem.
 
@@ -528,12 +528,12 @@ In the tickAll function, there are two breakthrough success branches (one for ma
 
 Note: For the major realm branch, `isMajorBreakthrough` is already computed as a local variable. For the sub-level branch (the `else` at ~line 967), use `isMajorBreakthrough = false` since it's a sub-level.
 
-- [ ] **Step 2: Run existing tests to ensure no regression**
+- [x] **Step 2: Run existing tests to ensure no regression**
 
 Run: `npx vitest run src/__tests__/stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -549,7 +549,7 @@ git commit -m "feat(tickAll): add breakthrough comprehension to auto-breakthroug
 - Modify: `src/systems/roguelike/MapGenerator.ts` (event generation)
 - Modify: `src/stores/adventureStore.ts` (selectRoute techniqueReward handling)
 
-- [ ] **Step 1: Add ancient_cave case to EventSystem.resolveEvent**
+- [x] **Step 1: Add ancient_cave case to EventSystem.resolveEvent**
 
 In `src/systems/roguelike/EventSystem.ts`, import `pickTechniqueForFloor` from `../technique/TechniqueSystem`.
 
@@ -571,7 +571,7 @@ Add a new case before the `default` case (before line 238):
     }
 ```
 
-- [ ] **Step 2: Add ancient_cave to MapGenerator event pool**
+- [x] **Step 2: Add ancient_cave to MapGenerator event pool**
 
 In `src/systems/roguelike/MapGenerator.ts`, modify the event generation (around line 57). Change the distribution to add ancient_cave at 5% weight, reducing rest from 10% to 5%:
 
@@ -591,7 +591,7 @@ In `src/systems/roguelike/MapGenerator.ts`, modify the event generation (around 
       if (type === 'boss' && !isBossFloor) type = 'combat'
 ```
 
-- [ ] **Step 3: Handle techniqueReward in adventureStore.selectRoute**
+- [x] **Step 3: Handle techniqueReward in adventureStore.selectRoute**
 
 In `src/stores/adventureStore.ts`, import `useSectStore` at the top (if not already imported).
 
@@ -610,17 +610,17 @@ In the `selectRoute` function, after the item rewards accumulation loop (around 
       }
 ```
 
-- [ ] **Step 4: Verify TypeScript compiles**
+- [x] **Step 4: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: PASS
 
-- [ ] **Step 5: Run existing tests**
+- [x] **Step 5: Run existing tests**
 
 Run: `npx vitest run`
 Expected: All tests pass
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/systems/roguelike/EventSystem.ts src/systems/roguelike/MapGenerator.ts src/stores/adventureStore.ts
@@ -638,7 +638,7 @@ git commit -m "feat(adventure): add ancient_cave event with technique reward"
 - Create: `src/components/building/CodexPanel.module.css`
 - Modify: `src/pages/CharactersPage.tsx` (technique section)
 
-- [ ] **Step 1: Update StudyPanel to show codex unlock result**
+- [x] **Step 1: Update StudyPanel to show codex unlock result**
 
 In `src/components/building/StudyPanel.tsx`, update the `handleStudy` to show the technique name from the result:
 
@@ -656,7 +656,7 @@ In `src/components/building/StudyPanel.tsx`, update the `handleStudy` to show th
 
 Add import: `import { getTechniqueById } from '../../data/techniquesTable'` and `import { TECHNIQUE_TIER_NAMES } from '../../types/technique'`
 
-- [ ] **Step 2: Add CodexPanel component**
+- [x] **Step 2: Add CodexPanel component**
 
 Create `src/components/building/CodexPanel.tsx`:
 
@@ -703,7 +703,7 @@ export default function CodexPanel() {
 }
 ```
 
-- [ ] **Step 3: Create CodexPanel.module.css**
+- [x] **Step 3: Create CodexPanel.module.css**
 
 ```css
 .codex {
@@ -767,7 +767,7 @@ export default function CodexPanel() {
 }
 ```
 
-- [ ] **Step 4: Add codex tab to BuildingsPage**
+- [x] **Step 4: Add codex tab to BuildingsPage**
 
 In `src/pages/BuildingsPage.tsx`:
 
@@ -788,7 +788,7 @@ type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' 
       {tab === 'codex' && <CodexPanel />}
 ```
 
-- [ ] **Step 5: Update CharactersPage technique section to learn from codex**
+- [x] **Step 5: Update CharactersPage technique section to learn from codex**
 
 In `src/pages/CharactersPage.tsx`, in the CharacterDetail component:
 
@@ -852,12 +852,12 @@ In `src/pages/CharactersPage.tsx`, in the CharacterDetail component:
 
 4. Add `import { canLearnTechnique } from '../systems/technique/TechniqueSystem'` to imports.
 
-- [ ] **Step 6: Verify build**
+- [x] **Step 6: Verify build**
 
 Run: `npm run build`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/components/building/StudyPanel.tsx src/components/building/CodexPanel.tsx src/components/building/CodexPanel.module.css src/pages/BuildingsPage.tsx src/pages/CharactersPage.tsx
@@ -868,22 +868,22 @@ git commit -m "feat(ui): add codex panel, update study panel and character techn
 
 ### Task 8: Full Test + Build Verification
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `npx vitest run`
 Expected: All tests pass (including new TechniqueSystem tests)
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: PASS (0 errors)
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
 
 Run: `npm run build`
 Expected: PASS
 
-- [ ] **Step 4: Manual smoke test**
+- [x] **Step 4: Manual smoke test**
 
 Open the app in browser:
 - New game: character should have 清心诀 equipped

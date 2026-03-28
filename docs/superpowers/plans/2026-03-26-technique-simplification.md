@@ -1,6 +1,6 @@
 # Technique System Simplification — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Simplify the technique system from single-technique-with-comprehension to multi-technique-stacking with instant mastery.
 
@@ -19,7 +19,7 @@
 - Modify: `src/types/character.ts`
 - Test: `src/__tests__/types.test.ts`
 
-- [ ] **Step 1: Rewrite Technique interface in `src/types/technique.ts`**
+- [x] **Step 1: Rewrite Technique interface in `src/types/technique.ts`**
 
 Replace `growthModifiers`, `fixedBonuses`, `comprehensionDifficulty` with unified `bonuses`:
 
@@ -49,16 +49,16 @@ export interface Technique {
 
 Keep `TECHNIQUE_TIER_NAMES` and `TECHNIQUE_TIER_ORDER` unchanged.
 
-- [ ] **Step 2: Remove `currentTechnique` and `techniqueComprehension` from `src/types/character.ts`**
+- [x] **Step 2: Remove `currentTechnique` and `techniqueComprehension` from `src/types/character.ts`**
 
 Remove these two fields from the `Character` interface (lines 39-40). Keep `learnedTechniques: string[]`.
 
-- [ ] **Step 3: Run type check**
+- [x] **Step 3: Run type check**
 
 Run: `npx tsc --noEmit 2>&1 | head -50`
 Expected: Many type errors — these will be fixed in subsequent tasks.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/types/technique.ts src/types/character.ts
@@ -73,7 +73,7 @@ git commit -m "refactor(types): simplify Technique to flat bonuses, remove curre
 - Modify: `src/data/techniquesTable.ts`
 - Test: `src/__tests__/TechniqueSystem.test.ts` (existing tests will need update)
 
-- [ ] **Step 1: Rewrite TECHNIQUES array with new `bonuses` format**
+- [x] **Step 1: Rewrite TECHNIQUES array with new `bonuses` format**
 
 Replace `growthModifiers`, `fixedBonuses`, `comprehensionDifficulty` with `bonuses`. Balance values by tier — higher tier = bigger bonuses. Values are additive flat bonuses applied to base stats.
 
@@ -250,11 +250,11 @@ export const TECHNIQUES: Technique[] = [
 ]
 ```
 
-- [ ] **Step 2: Remove `getBonusThresholds` and `getActiveBonuses` functions**
+- [x] **Step 2: Remove `getBonusThresholds` and `getActiveBonuses` functions**
 
 These functions depend on `fixedBonuses` and comprehension thresholds — both deleted. Remove both functions entirely.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/data/techniquesTable.ts
@@ -269,7 +269,7 @@ git commit -m "refactor(data): rewrite technique bonuses as flat additive values
 - Modify: `src/systems/technique/TechniqueSystem.ts`
 - Test: `src/__tests__/TechniqueSystem.test.ts`
 
-- [ ] **Step 1: Delete dead functions**
+- [x] **Step 1: Delete dead functions**
 
 Remove these functions entirely:
 - `getComprehensionEffect` (line 25-29)
@@ -280,7 +280,7 @@ Remove these functions entirely:
 - `applyTechniqueGrowth` (line 167-183)
 - `TIER_MULTIPLIER` constant (line 10-16)
 
-- [ ] **Step 2: Add comprehension threshold check to `tryComprehendOnBreakthrough`**
+- [x] **Step 2: Add comprehension threshold check to `tryComprehendOnBreakthrough`**
 
 Update the filter in `tryComprehendOnBreakthrough` (line 208-213) to also check `canLearnTechnique`:
 
@@ -314,20 +314,20 @@ export function tryComprehendOnBreakthrough(
 
 Note the parameter type change: `character` now needs `cultivationStats.comprehension` instead of relying on a separate comprehension check.
 
-- [ ] **Step 3: Update imports**
+- [x] **Step 3: Update imports**
 
 Remove unused imports: `BaseStats`, `getBonusThresholds`. Keep `TECHNIQUES`, `TECHNIQUE_TIER_ORDER`.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run src/__tests__/TechniqueSystem.test.ts --reporter=verbose`
 Expected: Comprehension tests fail — update them in Step 5.
 
-- [ ] **Step 5: Update TechniqueSystem tests**
+- [x] **Step 5: Update TechniqueSystem tests**
 
 Update or remove tests that test deleted functions. Keep tests for `canLearnTechnique`, `tryComprehendOnBreakthrough`, `pickTechniqueForFloor`. Add a test for the new comprehension threshold check in `tryComprehendOnBreakthrough`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/systems/technique/TechniqueSystem.ts src/__tests__/TechniqueSystem.test.ts
@@ -342,7 +342,7 @@ git commit -m "refactor(technique): remove comprehension system, add threshold t
 - Modify: `src/systems/cultivation/CultivationEngine.ts`
 - Test: `src/__tests__/CultivationEngine.test.ts`
 
-- [ ] **Step 1: Rewrite `calcCultivationRate` to accept `learnedTechniques: string[]`**
+- [x] **Step 1: Rewrite `calcCultivationRate` to accept `learnedTechniques: string[]`**
 
 ```typescript
 import { getTechniqueById } from '../data/techniquesTable'
@@ -376,11 +376,11 @@ export function calcCultivationRate(
 }
 ```
 
-- [ ] **Step 2: Update `tick` function signature**
+- [x] **Step 2: Update `tick` function signature**
 
 Change `technique: Technique | null = null` to `learnedTechniques: string[] = []` and pass through to `calcCultivationRate`.
 
-- [ ] **Step 3: Rewrite `breakthrough` to accept `learnedTechniques: string[]`**
+- [x] **Step 3: Rewrite `breakthrough` to accept `learnedTechniques: string[]`**
 
 Remove the `applyTechniqueGrowthToStats` logic. The breakthrough function no longer needs technique data — stat growth comes from base stats only:
 
@@ -409,20 +409,20 @@ export function breakthrough(
 }
 ```
 
-- [ ] **Step 4: Remove `applyTechniqueGrowthToStats` and `getComprehensionEffect` import**
+- [x] **Step 4: Remove `applyTechniqueGrowthToStats` and `getComprehensionEffect` import**
 
 Delete the private `applyTechniqueGrowthToStats` function (lines 192-208). Remove `getComprehensionEffect` import from TechniqueSystem.
 
-- [ ] **Step 5: Run tests**
+- [x] **Step 5: Run tests**
 
 Run: `npx vitest run src/__tests__/CultivationEngine.test.ts --reporter=verbose`
 Expected: Some tests need updating due to signature changes.
 
-- [ ] **Step 6: Update CultivationEngine tests**
+- [x] **Step 6: Update CultivationEngine tests**
 
 Update test calls to use `learnedTechniques: string[]` instead of `technique: Technique | null`. Remove tests for technique growth in breakthrough.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/systems/cultivation/CultivationEngine.ts src/__tests__/CultivationEngine.test.ts
@@ -437,11 +437,11 @@ git commit -m "refactor(cultivation): multi-technique cultivation rate, remove t
 - Modify: `src/systems/character/CharacterEngine.ts`
 - Test: `src/__tests__/CharacterEngine.test.ts`
 
-- [ ] **Step 1: Update `generateCharacter`**
+- [x] **Step 1: Update `generateCharacter`**
 
 Remove `currentTechnique: 'qingxin'` and `techniqueComprehension: 0` from the return object (lines 235-236). Keep `learnedTechniques: ['qingxin']`.
 
-- [ ] **Step 2: Rewrite `calcCharacterTotalStats` to accept `learnedTechniques: string[]`**
+- [x] **Step 2: Rewrite `calcCharacterTotalStats` to accept `learnedTechniques: string[]`**
 
 ```typescript
 import { getTechniqueById } from '../data/techniquesTable'
@@ -476,19 +476,19 @@ export function calcCharacterTotalStats(
 }
 ```
 
-- [ ] **Step 3: Remove `getComprehensionEffect` private function**
+- [x] **Step 3: Remove `getComprehensionEffect` private function**
 
 Delete the duplicate `getComprehensionEffect` function (lines 161-165). It's no longer needed anywhere in this file.
 
-- [ ] **Step 4: Run tests**
+- [x] **Step 4: Run tests**
 
 Run: `npx vitest run src/__tests__/CharacterEngine.test.ts --reporter=verbose`
 
-- [ ] **Step 5: Update tests**
+- [x] **Step 5: Update tests**
 
 Update `calcCharacterTotalStats` tests to use `learnedTechniques: string[]` instead of `technique`. Remove `currentTechnique`/`techniqueComprehension` assertions from `generateCharacter` tests.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/systems/character/CharacterEngine.ts src/__tests__/CharacterEngine.test.ts
@@ -502,7 +502,7 @@ git commit -m "refactor(character): multi-technique stat calc, remove comprehens
 **Files:**
 - Modify: `src/data/enemies.ts`
 
-- [ ] **Step 1: Rewrite `createCharacterCombatUnit` to accept `learnedTechniques: string[]`**
+- [x] **Step 1: Rewrite `createCharacterCombatUnit` to accept `learnedTechniques: string[]`**
 
 ```typescript
 import { getTechniqueById } from './techniquesTable'
@@ -580,12 +580,12 @@ export function createCharacterCombatUnit(
 
 Remove the `getActiveBonuses` import.
 
-- [ ] **Step 2: Run type check**
+- [x] **Step 2: Run type check**
 
 Run: `npx tsc --noEmit 2>&1 | head -30`
 Expected: Fewer errors than before — mainly callers of the old API.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/data/enemies.ts
@@ -600,7 +600,7 @@ git commit -m "refactor(combat): multi-technique stacking for combat units"
 - Modify: `src/systems/skill/SkillSystem.ts`
 - Test: `src/__tests__/SkillSystem.test.ts`
 
-- [ ] **Step 1: Rewrite `calcTechniqueBonuses` for multi-technique**
+- [x] **Step 1: Rewrite `calcTechniqueBonuses` for multi-technique**
 
 ```typescript
 import { getTechniqueById } from '../../data/techniquesTable'
@@ -624,15 +624,15 @@ export function calcTechniqueBonuses(
 
 Remove the `Technique` import (no longer needed). Keep `TechniqueBonus` import (still used in `applyTechniqueBonuses`).
 
-- [ ] **Step 2: Run tests**
+- [x] **Step 2: Run tests**
 
 Run: `npx vitest run src/__tests__/SkillSystem.test.ts --reporter=verbose`
 
-- [ ] **Step 3: Update SkillSystem tests**
+- [x] **Step 3: Update SkillSystem tests**
 
 Update test calls from `calcTechniqueBonuses(technique, comprehension)` to `calcTechniqueBonuses(learnedTechniques)`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/systems/skill/SkillSystem.ts src/__tests__/SkillSystem.test.ts
@@ -648,7 +648,7 @@ git commit -m "refactor(skill): multi-technique bonus calculation"
 - Modify: `src/data/buildings.ts`
 - Modify: `src/types/sect.ts`
 
-- [ ] **Step 1: Remove `TrainingBuff`, `getTrainingBuff`, `getGroupTransmissionUnlockLevel`, `getTrainingSpeedMult` from `BuildingEffects.ts`**
+- [x] **Step 1: Remove `TrainingBuff`, `getTrainingBuff`, `getGroupTransmissionUnlockLevel`, `getTrainingSpeedMult` from `BuildingEffects.ts`**
 
 Delete these exports (lines 112-137):
 - `TrainingBuff` interface
@@ -656,7 +656,7 @@ Delete these exports (lines 112-137):
 - `getGroupTransmissionUnlockLevel()` function
 - `getTrainingSpeedMult()` function
 
-- [ ] **Step 2: Remove `ScriptureBuff`, `getScriptureBuff`, `getComprehensionSpeedMult` from `BuildingEffects.ts`**
+- [x] **Step 2: Remove `ScriptureBuff`, `getScriptureBuff`, `getComprehensionSpeedMult` from `BuildingEffects.ts`**
 
 Delete these (lines 76-91, 157-163):
 - `ScriptureBuff` interface
@@ -665,19 +665,19 @@ Delete these (lines 76-91, 157-163):
 
 Keep `getStudyUnlockLevel()` — still needed for studyTechnique.
 
-- [ ] **Step 3: Remove `trainingHall` from `BuildingType` in `src/types/sect.ts`**
+- [x] **Step 3: Remove `trainingHall` from `BuildingType` in `src/types/sect.ts`**
 
 Remove `'trainingHall'` from the union type.
 
-- [ ] **Step 4: Remove `trainingHall` from `BUILDING_DEFS` in `src/data/buildings.ts`**
+- [x] **Step 4: Remove `trainingHall` from `BUILDING_DEFS` in `src/data/buildings.ts`**
 
 Delete the trainingHall entry from the array. Also remove or update the `getBuildingEffectText` function's trainingHall case and the unlock hint for trainingHall.
 
-- [ ] **Step 5: Run type check**
+- [x] **Step 5: Run type check**
 
 Run: `npx tsc --noEmit 2>&1 | head -30`
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/systems/economy/BuildingEffects.ts src/data/buildings.ts src/types/sect.ts
@@ -694,19 +694,19 @@ git commit -m "refactor(buildings): remove trainingHall and dead building effect
 
 This is the largest single-file change. Read the full file first to understand the current state.
 
-- [ ] **Step 1: Remove `switchTechnique` action (lines ~347-369)**
+- [x] **Step 1: Remove `switchTechnique` action (lines ~347-369)**
 
 Delete the entire action from the store interface and implementation.
 
-- [ ] **Step 2: Remove `learnTechniqueFromCodex` action (lines ~371-386)**
+- [x] **Step 2: Remove `learnTechniqueFromCodex` action (lines ~371-386)**
 
 Delete the entire action.
 
-- [ ] **Step 3: Remove `learnTechnique` action (lines ~388-401)**
+- [x] **Step 3: Remove `learnTechnique` action (lines ~388-401)**
 
 Delete the entire action (backpack-based technique scroll learning).
 
-- [ ] **Step 4: Simplify `unlockCodexAndLearn` (lines ~415-434)**
+- [x] **Step 4: Simplify `unlockCodexAndLearn` (lines ~415-434)**
 
 Remove the `setCurrentTechnique` and `setTechniqueComprehension(0)` logic. This function should only add to `techniqueCodex` and `learnedTechniques`:
 
@@ -726,11 +726,11 @@ unlockCodexAndLearn: (techniqueId, characterId) => {
 },
 ```
 
-- [ ] **Step 5: Update `groupTransmission` — delete it**
+- [x] **Step 5: Update `groupTransmission` — delete it**
 
 Remove the `groupTransmission` action entirely (around line 1211-1228).
 
-- [ ] **Step 6: Update `tickAll` — remove comprehension tick and comprehensionSpeedMult**
+- [x] **Step 6: Update `tickAll` — remove comprehension tick and comprehensionSpeedMult**
 
 In the main `tickAll` loop:
 1. Remove `const compMult = getComprehensionSpeedMult(sect.buildings)` and `const trainingMult = getTrainingSpeedMult(sect.buildings)`
@@ -741,23 +741,23 @@ In the main `tickAll` loop:
 6. In the breakthrough section, update `performBreakthrough` call to not pass technique (or pass `learnedTechniques` if the signature requires it)
 7. Remove `trainingMult` from the cultivation rate calculation
 
-- [ ] **Step 7: Update `studyTechnique` — keep codex unlock, remove learning logic**
+- [x] **Step 7: Update `studyTechnique` — keep codex unlock, remove learning logic**
 
 The study function should only add to `techniqueCodex`, not to individual characters' `learnedTechniques`.
 
-- [ ] **Step 8: Remove unused imports**
+- [x] **Step 8: Remove unused imports**
 
 Remove imports for `getComprehensionSpeedMult`, `getTrainingSpeedMult`, `tickAllComprehension`, `tryComprehendOnBreakthrough` (keep this one if still used), etc.
 
-- [ ] **Step 9: Run tests**
+- [x] **Step 9: Run tests**
 
 Run: `npx vitest run src/__tests__/stores.test.ts --reporter=verbose`
 
-- [ ] **Step 10: Update stores tests**
+- [x] **Step 10: Update stores tests**
 
 Remove tests for `switchTechnique`, `learnTechniqueFromCodex`, `learnTechnique`, `groupTransmission`. Update comprehension tick tests (delete them). Update breakthrough tests to not use technique/comprehension.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add src/stores/sectStore.ts src/__tests__/stores.test.ts
@@ -771,7 +771,7 @@ git commit -m "refactor(store): remove old technique actions, comprehension tick
 **Files:**
 - Modify: `src/stores/adventureStore.ts`
 
-- [ ] **Step 1: Update `createCharacterCombatUnit` calls in adventureStore**
+- [x] **Step 1: Update `createCharacterCombatUnit` calls in adventureStore**
 
 In `startRun` (around line 249-252):
 ```typescript
@@ -795,15 +795,15 @@ const unit = createCharacterCombatUnit(character, character.learnedTechniques)
 unit.hp = memberState.currentHp
 ```
 
-- [ ] **Step 2: Remove unused `getTechniqueById` import if no longer needed**
+- [x] **Step 2: Remove unused `getTechniqueById` import if no longer needed**
 
 Check if `getTechniqueById` is still used elsewhere in this file. If only used for the above removed code, remove the import.
 
-- [ ] **Step 3: Run tests**
+- [x] **Step 3: Run tests**
 
 Run: `npx vitest run src/__tests__/stores.test.ts --reporter=verbose`
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/adventureStore.ts
@@ -818,7 +818,7 @@ git commit -m "refactor(adventure): use multi-technique for combat units"
 - Modify: `src/components/common/CharacterCard.tsx`
 - Modify: `src/components/common/CharacterCard.module.css`
 
-- [ ] **Step 1: Update CharacterCard to show technique tag list**
+- [x] **Step 1: Update CharacterCard to show technique tag list**
 
 Replace the single technique name display with a list of technique tags colored by tier:
 
@@ -850,7 +850,7 @@ const TECHNIQUE_TIER_CLASS: Record<TechniqueTier, string> = {
 )}
 ```
 
-- [ ] **Step 2: Update `calcCultivationRate` call**
+- [x] **Step 2: Update `calcCultivationRate` call**
 
 ```typescript
 // Before:
@@ -859,7 +859,7 @@ calcCultivationRate(character, technique ?? null)
 calcCultivationRate(character, character.learnedTechniques)
 ```
 
-- [ ] **Step 3: Add CSS for technique tags**
+- [x] **Step 3: Add CSS for technique tags**
 
 Add to `CharacterCard.module.css`:
 
@@ -904,7 +904,7 @@ Add to `CharacterCard.module.css`:
 }
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/common/CharacterCard.tsx src/components/common/CharacterCard.module.css
@@ -918,11 +918,11 @@ git commit -m "feat(ui): show learned technique tag list on character cards"
 **Files:**
 - Modify: `src/pages/CharactersPage.tsx`
 
-- [ ] **Step 1: Remove imports for deleted functions**
+- [x] **Step 1: Remove imports for deleted functions**
 
 Remove: `canLearnTechnique`, `getComprehensionEffect` from TechniqueSystem. Remove `QUALITY_NAMES` from items (no longer showing technique scrolls).
 
-- [ ] **Step 2: Remove `switchTechnique`, `learnTechnique`, `learnTechniqueFromCodex` from store selectors**
+- [x] **Step 2: Remove `switchTechnique`, `learnTechnique`, `learnTechniqueFromCodex` from store selectors**
 
 Remove these lines from `CharacterDetail`:
 ```typescript
@@ -931,7 +931,7 @@ const learnTechniqueFromCodex = useSectStore((s) => s.learnTechniqueFromCodex)
 const switchTechnique = useSectStore((s) => s.switchTechnique)
 ```
 
-- [ ] **Step 3: Simplify the Technique section**
+- [x] **Step 3: Simplify the Technique section**
 
 Replace the entire technique section with a simple learned techniques list:
 
@@ -967,7 +967,7 @@ Replace the entire technique section with a simple learned techniques list:
 
 Remove: comprehension progress bar, comprehension effect display, growth modifier display, fixed bonus thresholds, technique switch dropdown, learn from codex dropdown, learn from backpack dropdown.
 
-- [ ] **Step 4: Update `calcCultivationRate` call**
+- [x] **Step 4: Update `calcCultivationRate` call**
 
 ```typescript
 // Before:
@@ -976,11 +976,11 @@ const cultivationSpeed = calcCultivationRate(character, technique ?? null)
 const cultivationSpeed = calcCultivationRate(character, character.learnedTechniques)
 ```
 
-- [ ] **Step 5: Remove unused state variables**
+- [x] **Step 5: Remove unused state variables**
 
 Remove `showTechniqueSwitch`, `showLearnTechnique` state variables.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/pages/CharactersPage.tsx
@@ -996,22 +996,22 @@ git commit -m "feat(ui): simplify technique display to learned list with bonuses
 - Delete: `src/components/building/TransmissionPanel.tsx`
 - Modify: `src/components/building/CodexPanel.tsx`
 
-- [ ] **Step 1: Remove trainingHall tab from BuildingsPage**
+- [x] **Step 1: Remove trainingHall tab from BuildingsPage**
 
 In `BuildingsPage.tsx`, remove:
 - The import of `TransmissionPanel`
 - The `trainingHall` tab condition and rendering block
 - The `'transmission'` entry from the `TabKey` type
 
-- [ ] **Step 2: Delete `TransmissionPanel.tsx`**
+- [x] **Step 2: Delete `TransmissionPanel.tsx`**
 
 Delete the entire file: `src/components/building/TransmissionPanel.tsx`
 
-- [ ] **Step 3: Update CodexPanel to show `bonuses`**
+- [x] **Step 3: Update CodexPanel to show `bonuses`**
 
 In `CodexPanel.tsx`, update any reference to `growthModifiers` or `fixedBonuses` to use `bonuses` instead. The display should list all bonuses as flat values.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/pages/BuildingsPage.tsx src/components/building/CodexPanel.tsx
@@ -1027,15 +1027,15 @@ git commit -m "feat(ui): remove trainingHall tab, update codex to show flat bonu
 - Modify: `src/systems/save/SaveSystem.ts`
 - Test: `src/__tests__/db.test.ts` (if it tests save/load)
 
-- [ ] **Step 1: Update `SaveMeta.version` to 4**
+- [x] **Step 1: Update `SaveMeta.version` to 4**
 
 Change `version: 3` to `version: 4` in both the interface and all `SaveMeta` construction sites.
 
-- [ ] **Step 2: Update `loadGame` version check**
+- [x] **Step 2: Update `loadGame` version check**
 
 Change `meta.version < 3` to `meta.version < 4` on the early-return branch.
 
-- [ ] **Step 3: Add v3→v4 migration to the character migration block**
+- [x] **Step 3: Add v3→v4 migration to the character migration block**
 
 In the `loadGame` character migration, add:
 
@@ -1064,7 +1064,7 @@ const migratedCharacters = (saveRecord.sect.characters ?? []).map(
 )
 ```
 
-- [ ] **Step 4: Add building migration — remove trainingHall**
+- [x] **Step 4: Add building migration — remove trainingHall**
 
 ```typescript
 const migratedBuildings = (migratedSect.buildings ?? []).filter(
@@ -1073,17 +1073,17 @@ const migratedBuildings = (migratedSect.buildings ?? []).filter(
 const migratedSect = { ...migratedSect, buildings: migratedBuildings }
 ```
 
-- [ ] **Step 5: Run full test suite**
+- [x] **Step 5: Run full test suite**
 
 Run: `npx vitest run --reporter=verbose 2>&1 | tail -30`
 Expected: All tests pass.
 
-- [ ] **Step 6: Run type check**
+- [x] **Step 6: Run type check**
 
 Run: `npx tsc --noEmit 2>&1`
 Expected: 0 errors.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/systems/save/SaveSystem.ts
@@ -1096,28 +1096,28 @@ git commit -m "feat(save): v4 migration — remove trainingHall, migrate techniq
 
 **Files:** Various — cleanup pass
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `npx vitest run --reporter=verbose`
 Expected: All tests pass, no failures.
 
-- [ ] **Step 2: Run type check**
+- [x] **Step 2: Run type check**
 
 Run: `npx tsc --noEmit`
 Expected: 0 errors.
 
-- [ ] **Step 3: Search for stale references**
+- [x] **Step 3: Search for stale references**
 
 Run: `grep -r "currentTechnique\|techniqueComprehension\|growthModifiers\|fixedBonuses\|comprehensionDifficulty\|getComprehensionEffect\|applyTechniqueGrowth\|tickComprehension\|tickAllComprehension\|groupTransmission\|trainingHall\|getTrainingSpeedMult\|getTrainingBuff\|getComprehensionSpeedMult\|getScriptureBuff\|comprehensionMult" src/ --include="*.ts" --include="*.tsx" | grep -v node_modules | grep -v ".test."`
 
 Expected: No remaining references in non-test source files (tests referencing old APIs should already be updated).
 
-- [ ] **Step 4: Run build**
+- [x] **Step 4: Run build**
 
 Run: `npx vite build 2>&1 | tail -10`
 Expected: Build succeeds with no errors.
 
-- [ ] **Step 5: Final commit if any cleanup needed**
+- [x] **Step 5: Final commit if any cleanup needed**
 
 ```bash
 git add -A

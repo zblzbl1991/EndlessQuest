@@ -1,6 +1,6 @@
 # P2: 建筑协同 + 任务派遣 + 探险商店与灵宠 实现计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Add passive building synergy bonuses, replace the simple patrol system with multi-mission dispatch, and implement adventure shop + pet capture during dungeon runs.
 
@@ -21,7 +21,7 @@
 - Create: `src/systems/economy/SynergySystem.ts`
 - Test: `src/__tests__/SynergySystem.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/__tests__/SynergySystem.test.ts`:
 
@@ -142,12 +142,12 @@ describe('getSynergyBonus', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/SynergySystem.test.ts --pool=forks --testTimeout=30000`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Add synergy data to buildings.ts**
+- [x] **Step 3: Add synergy data to buildings.ts**
 
 In `src/data/buildings.ts`, add at the end:
 
@@ -226,7 +226,7 @@ export const SYNERGIES: Synergy[] = [
 ]
 ```
 
-- [ ] **Step 4: Implement SynergySystem**
+- [x] **Step 4: Implement SynergySystem**
 
 Create `src/systems/economy/SynergySystem.ts`:
 
@@ -278,12 +278,12 @@ export function getMarketQualityCapBonus(buildings: Building[]): number {
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/SynergySystem.test.ts --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/data/buildings.ts src/systems/economy/SynergySystem.ts src/__tests__/SynergySystem.test.ts
@@ -297,7 +297,7 @@ git commit -m "feat(synergy): add building synergy system with data and calculat
 **Files:**
 - Modify: `src/stores/sectStore.ts` (tickAll)
 
-- [ ] **Step 1: Apply synergy bonuses alongside specialty bonuses in tickAll**
+- [x] **Step 1: Apply synergy bonuses alongside specialty bonuses in tickAll**
 
 In `tickAll`, after the specialty bonus application (from P1 Task 5), add synergy multipliers:
 
@@ -319,12 +319,12 @@ rates.herb *= synergyFieldBonus
 
 These multiply on top of the specialty bonuses, so total = base × specialty × synergy.
 
-- [ ] **Step 2: Run all tests**
+- [x] **Step 2: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -338,7 +338,7 @@ git commit -m "feat(synergy): integrate synergy bonuses into resource production
 **Files:**
 - Modify: `src/pages/BuildingsPage.tsx`
 
-- [ ] **Step 1: Add synergy list to BuildingsPage**
+- [x] **Step 1: Add synergy list to BuildingsPage**
 
 At the bottom of the buildings page (after the building grid), add a synergy section:
 
@@ -377,12 +377,12 @@ const activeSynergies = getActiveSynergies(buildings)
 
 Add corresponding CSS classes to `BuildingsPage.module.css` (or inline styles). Follow existing style patterns.
 
-- [ ] **Step 2: Run TypeScript check and build**
+- [x] **Step 2: Run TypeScript check and build**
 
 Run: `npx tsc --noEmit && npm run build`
 Expected: No errors, build succeeds
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/pages/BuildingsPage.tsx src/pages/BuildingsPage.module.css
@@ -398,7 +398,7 @@ git commit -m "feat(ui): display building synergies on BuildingsPage"
 - Modify: `src/stores/adventureStore.ts`
 - Test: `src/__tests__/missions.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/__tests__/missions.test.ts`:
 
@@ -434,12 +434,12 @@ describe('DISPATCH_MISSIONS', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/missions.test.ts --pool=forks --testTimeout=30000`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Create mission data**
+- [x] **Step 3: Create mission data**
 
 Create `src/data/missions.ts`:
 
@@ -507,12 +507,12 @@ export function getAvailableMissions(characterRealm: number): DispatchMission[] 
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/missions.test.ts --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/data/missions.ts src/__tests__/missions.test.ts
@@ -526,7 +526,7 @@ git commit -m "feat(dispatch): add dispatch mission data definitions"
 **Files:**
 - Modify: `src/stores/adventureStore.ts`
 
-- [ ] **Step 1: Replace patrol state with dispatch state**
+- [x] **Step 1: Replace patrol state with dispatch state**
 
 In `src/stores/adventureStore.ts`, replace the patrol-related state fields:
 
@@ -545,7 +545,7 @@ interface DispatchState {
 }
 ```
 
-- [ ] **Step 2: Replace patrol methods with dispatch methods**
+- [x] **Step 2: Replace patrol methods with dispatch methods**
 
 ```typescript
 startDispatch: (characterId: string, missionId: string) => void
@@ -634,7 +634,7 @@ getActiveDispatchCount: () => {
 },
 ```
 
-- [ ] **Step 3: Handle save migration**
+- [x] **Step 3: Handle save migration**
 
 On load, if old `patrolActive` state exists, complete the patrol immediately and migrate:
 
@@ -653,7 +653,7 @@ if (state.patrolActive) {
 }
 ```
 
-- [ ] **Step 4: Update tickIdle to call tickDispatches**
+- [x] **Step 4: Update tickIdle to call tickDispatches**
 
 In the `tickIdle` method, replace `tickPatrol(deltaSec)` with `tickDispatches(deltaSec)`.
 
@@ -669,12 +669,12 @@ for (const dispatch of completed) {
 }
 ```
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS (after updating any tests that reference old patrol methods)
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/stores/adventureStore.ts
@@ -688,7 +688,7 @@ git commit -m "feat(dispatch): replace patrol system with multi-mission dispatch
 **Files:**
 - Modify: `src/pages/CharactersPage.tsx`
 
-- [ ] **Step 1: Add dispatch panel to CharacterDetail**
+- [x] **Step 1: Add dispatch panel to CharacterDetail**
 
 In `src/pages/CharactersPage.tsx`, add a dispatch button and mission selection UI in the `CharacterDetail` component:
 
@@ -751,12 +751,12 @@ Add a mission selection modal/panel when `showingMissions` is true:
 )}
 ```
 
-- [ ] **Step 2: Run TypeScript check and build**
+- [x] **Step 2: Run TypeScript check and build**
 
 Run: `npx tsc --noEmit && npm run build`
 Expected: No errors, build succeeds
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/pages/CharactersPage.tsx src/pages/CharactersPage.module.css
@@ -771,7 +771,7 @@ git commit -m "feat(ui): add dispatch mission panel to CharactersPage"
 - Modify: `src/systems/roguelike/EventSystem.ts`
 - Modify: `src/stores/adventureStore.ts`
 
-- [ ] **Step 1: Define shop items and implement shop event**
+- [x] **Step 1: Define shop items and implement shop event**
 
 In `src/systems/roguelike/EventSystem.ts`, add shop item data and update the shop event handler:
 
@@ -810,7 +810,7 @@ case 'shop': {
 
 Add `shopOffers` to the `EventResult` interface.
 
-- [ ] **Step 2: Handle shop purchases in adventureStore**
+- [x] **Step 2: Handle shop purchases in adventureStore**
 
 In `src/stores/adventureStore.ts`, add a method to buy from shop:
 
@@ -851,12 +851,12 @@ if (eventResult.type === 'shop' && eventResult.shopOffers) {
 }
 ```
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/systems/roguelike/EventSystem.ts src/types/adventure.ts src/stores/adventureStore.ts
@@ -873,7 +873,7 @@ git commit -m "feat(adventure): implement shop event with purchasable items"
 - Modify: `src/stores/adventureStore.ts`
 - Test: `src/__tests__/LootSystem.test.ts` (update)
 
-- [ ] **Step 1: Add pet capture event to EventSystem**
+- [x] **Step 1: Add pet capture event to EventSystem**
 
 In `src/systems/roguelike/EventSystem.ts`, add a new event type `'petCapture'`:
 
@@ -891,7 +891,7 @@ case 'petCapture': {
 }
 ```
 
-- [ ] **Step 2: Trigger pet capture from loot table**
+- [x] **Step 2: Trigger pet capture from loot table**
 
 In the `resolveEvent` combat/boss handlers, after generating loot, check for `petCapture` type:
 
@@ -913,7 +913,7 @@ if (petCaptureDrop) {
 }
 ```
 
-- [ ] **Step 3: Add capture attempt to adventureStore**
+- [x] **Step 3: Add capture attempt to adventureStore**
 
 ```typescript
 attemptPetCapture: (runId: string, characterId: string) => boolean
@@ -940,12 +940,12 @@ attemptPetCapture: (runId, characterId) => {
 },
 ```
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/roguelike/EventSystem.ts src/systems/roguelike/LootSystem.ts src/stores/adventureStore.ts
@@ -959,7 +959,7 @@ git commit -m "feat(adventure): add pet capture during dungeon runs"
 **Files:**
 - Modify: `src/pages/AdventurePage.tsx`
 
-- [ ] **Step 1: Add shop purchase UI**
+- [x] **Step 1: Add shop purchase UI**
 
 When `pendingShopOffers` is non-empty on the active run, show a shop panel:
 
@@ -984,7 +984,7 @@ When `pendingShopOffers` is non-empty on the active run, show a shop panel:
 )}
 ```
 
-- [ ] **Step 2: Add pet capture prompt**
+- [x] **Step 2: Add pet capture prompt**
 
 When `petCaptureEvent` is true on the last resolved event, show capture prompt:
 
@@ -1005,12 +1005,12 @@ When `petCaptureEvent` is true on the last resolved event, show capture prompt:
 )}
 ```
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
 
 Run: `npm run build`
 Expected: Build succeeds
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/pages/AdventurePage.tsx src/pages/AdventurePage.module.css
@@ -1021,17 +1021,17 @@ git commit -m "feat(ui): add adventure shop and pet capture UI"
 
 ### Task 10: 最终验证
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
 
 Run: `npm run build`
 Expected: Build succeeds

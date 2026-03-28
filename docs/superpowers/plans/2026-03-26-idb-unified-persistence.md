@@ -1,6 +1,6 @@
 # IndexedDB 统一数据持久化 Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 将所有游戏数据从单一 JSON blob 拆分为按实体独立存储的 IndexedDB object stores，通过 write-through + debounce 自动持久化，完全消除 localStorage 依赖。
 
@@ -16,7 +16,7 @@
 - Modify: `src/systems/save/db.ts`
 - Test: `src/__tests__/SaveSystem.test.ts` (existing, run to verify migration)
 
-- [ ] **Step 1: Rewrite db.ts with DB_VERSION = 2 and new object stores**
+- [x] **Step 1: Rewrite db.ts with DB_VERSION = 2 and new object stores**
 
 ```typescript
 import { openDB, type IDBPDatabase } from 'idb'
@@ -116,12 +116,12 @@ export function _resetDB(): void {
 }
 ```
 
-- [ ] **Step 2: Run existing tests to verify migration path**
+- [x] **Step 2: Run existing tests to verify migration path**
 
 Run: `npx vitest run src/__tests__/SaveSystem.test.ts --reporter=verbose`
 Expected: Tests will fail because SaveSystem still uses old API — that's OK, this verifies db.ts opens correctly.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/systems/save/db.ts
@@ -136,7 +136,7 @@ git commit -m "refactor(db): upgrade to v2 schema with per-entity object stores"
 - Modify: `src/systems/save/SaveSystem.ts`
 - Test: `src/__tests__/SaveSystem.test.ts` (run existing, expect failures, then fix in Task 4)
 
-- [ ] **Step 1: Rewrite SaveSystem.ts completely**
+- [x] **Step 1: Rewrite SaveSystem.ts completely**
 
 Replace the entire file with:
 
@@ -354,12 +354,12 @@ Key changes from old SaveSystem:
 - `loadGame()` reads from per-entity stores
 - `clearSaveData()` clears all stores including new ones
 
-- [ ] **Step 2: Run tests to see what breaks**
+- [x] **Step 2: Run tests to see what breaks**
 
 Run: `npx vitest run src/__tests__/SaveSystem.test.ts --reporter=verbose`
 Expected: Most tests fail due to `hasSaveData()` now being async and data being in different stores.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/systems/save/SaveSystem.ts
@@ -375,7 +375,7 @@ git commit -m "refactor(save): rewrite save/load/clear for per-entity IndexedDB 
 - Modify: `src/App.tsx`
 - Delete: `src/systems/save/useAutoSave.ts`
 
-- [ ] **Step 1: Create startAutoSave.ts**
+- [x] **Step 1: Create startAutoSave.ts**
 
 ```typescript
 import { useSectStore } from '../../stores/sectStore'
@@ -431,7 +431,7 @@ export function startAutoSave(): () => void {
 }
 ```
 
-- [ ] **Step 2: Update App.tsx — replace useAutoSave with startAutoSave**
+- [x] **Step 2: Update App.tsx — replace useAutoSave with startAutoSave**
 
 Change imports and the hook usage. Replace `useAutoSave()` hook with manual loading + `startAutoSave()`:
 
@@ -497,16 +497,16 @@ export default function App() {
   // ... rest of component unchanged (loading screen, routes)
 ```
 
-- [ ] **Step 3: Delete useAutoSave.ts**
+- [x] **Step 3: Delete useAutoSave.ts**
 
 Delete `src/systems/save/useAutoSave.ts` — it's replaced by `startAutoSave.ts`.
 
-- [ ] **Step 4: Verify TypeScript compiles**
+- [x] **Step 4: Verify TypeScript compiles**
 
 Run: `npx tsc --noEmit`
 Expected: 0 errors
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/save/startAutoSave.ts src/App.tsx
@@ -521,7 +521,7 @@ git commit -m "feat(save): replace useAutoSave with write-through startAutoSave"
 **Files:**
 - Modify: `src/__tests__/SaveSystem.test.ts`
 
-- [ ] **Step 1: Rewrite SaveSystem.test.ts**
+- [x] **Step 1: Rewrite SaveSystem.test.ts**
 
 The key changes:
 1. All `hasSaveData()` calls become `await hasSaveData()`
@@ -671,12 +671,12 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
 })
 ```
 
-- [ ] **Step 2: Run SaveSystem tests**
+- [x] **Step 2: Run SaveSystem tests**
 
 Run: `npx vitest run src/__tests__/SaveSystem.test.ts --reporter=verbose`
 Expected: All tests pass.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/__tests__/SaveSystem.test.ts
@@ -690,13 +690,13 @@ git commit -m "test(save): update SaveSystem tests for per-entity stores"
 **Files:**
 - Check: `src/__tests__/stores.test.ts`
 
-- [ ] **Step 1: Search for hasSaveData usage in stores.test.ts**
+- [x] **Step 1: Search for hasSaveData usage in stores.test.ts**
 
 Run: `grep -n "hasSaveData" src/__tests__/stores.test.ts`
 If no matches: skip this task.
 If matches found: add `await` to all calls.
 
-- [ ] **Step 2: Commit (if changes made)**
+- [x] **Step 2: Commit (if changes made)**
 
 ---
 
@@ -705,24 +705,24 @@ If matches found: add `await` to all calls.
 **Files:**
 - None (verification only)
 
-- [ ] **Step 1: TypeScript type check**
+- [x] **Step 1: TypeScript type check**
 
 Run: `npx tsc --noEmit`
 Expected: 0 errors
 
-- [ ] **Step 2: Run full test suite**
+- [x] **Step 2: Run full test suite**
 
 Run: `npx vitest run --reporter=verbose`
 Expected: All tests pass (472+)
 
-- [ ] **Step 3: Production build**
+- [x] **Step 3: Production build**
 
 Run: `npx vite build`
 Expected: Build succeeds
 
-- [ ] **Step 4: Search for stale references**
+- [x] **Step 4: Search for stale references**
 
 Run: `grep -rn "useAutoSave\|META_KEY\|OLD_SAVE_KEY" src/ --include="*.ts" --include="*.tsx"`
 Expected: No matches in production code (only possible in deleted test data)
 
-- [ ] **Step 5: Commit any remaining fixes**
+- [x] **Step 5: Commit any remaining fixes**

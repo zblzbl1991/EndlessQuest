@@ -11,7 +11,7 @@ export default function ResourceRate() {
     const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
     const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
     const rates = calcResourceRates({ spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel })
-    const cultivatingCount = sect.characters.filter((c) => c.status === 'cultivating').length
+    const cultivatingCount = sect.characters.filter((c) => c.status === 'idle').length
     const spiritConsumption = cultivatingCount * 2
     return { rates, spiritConsumption }
   }, [sect.buildings, sect.characters])
