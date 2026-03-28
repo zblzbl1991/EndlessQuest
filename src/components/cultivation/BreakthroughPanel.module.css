@@ -90,3 +90,40 @@
   padding: 6px var(--space-sm);
   margin-top: var(--space-sm);
 }
+
+.fateTags {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.fateTitle {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 4px;
+}
+
+.fateTag {
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  display: inline-block;
+  margin-right: 4px;
+  margin-bottom: 2px;
+}
+
+.fatePositive {
+  color: var(--color-success);
+  background: rgba(46, 160, 67, 0.08);
+}
+
+.fateNegative {
+  color: var(--color-danger);
+  background: rgba(207, 34, 46, 0.08);
+}
+
+.fateModifier {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-top: 4px;
+}

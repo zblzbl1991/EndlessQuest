@@ -2,6 +2,7 @@ import { useSectStore } from '../../stores/sectStore'
 import { canBreakthrough, calcBreakthroughFailureRate, isMajorRealmBreakthrough } from '../../systems/cultivation/CultivationEngine'
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
+import { FATE_TAGS, calcFateTagFailureRateModifier } from '../../data/fateTags'
 import type { RealmStage } from '../../types/character'
 import styles from './BreakthroughPanel.module.css'
 
@@ -74,6 +75,29 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         <div className={styles.requirement}>
           <span>天劫</span>
           <span className={styles.failureRate}>将触发天劫</span>
+        </div>
+      )}
+      {character.fateTags.length > 0 && (
+        <div className={styles.fateTags}>
+          <div className={styles.fateTitle}>命格</div>
+          {character.fateTags.map((tagId) => {
+            const tag = FATE_TAGS[tagId]
+            if (!tag) return null
+            return (
+              <div key={tagId} className={styles.fateTag}>
+                <span className={tag.category === 'positive' ? styles.fatePositive : styles.fateNegative}>
+                  {tag.name}
+                </span>
+                <span className={styles.fateDesc}>{tag.description}</span>
+              </div>
+            )
+          })}
+          {calcFateTagFailureRateModifier(character.fateTags) !== 0 && (
+            <div className={styles.fateModifier}>
+              命格修正: {calcFateTagFailureRateModifier(character.fateTags) > 0 ? '+' : ''}
+              {Math.round(calcFateTagFailureRateModifier(character.fateTags) * 100)}% 失败率
+            </div>
+          )}
         </div>
       )}
       {isMajor && cost && (

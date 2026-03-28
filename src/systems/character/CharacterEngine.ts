@@ -229,6 +229,7 @@ export function generateCharacter(quality: CharacterQuality): Character {
     totalCultivation: 0,
     specialties: [],
     assignedBuilding: null,
+    fateTags: [],
   }
 }
 

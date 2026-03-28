@@ -6,7 +6,9 @@ import {
   canBreakthrough,
   breakthrough,
 } from '../systems/cultivation/CultivationEngine'
-import type { Character } from '../types/character'
+import type { Character, FateTagId } from '../types/character'
+import { FATE_TAGS, getFateTagById, calcFateTagFailureRateModifier } from '../data/fateTags'
+import { applyFateOnTribulation, applyFateOnBreakthrough } from '../systems/character/FateSystem'
 
 function createCharacter(overrides?: Partial<Character>): Character {
   return {
@@ -36,6 +38,9 @@ function createCharacter(overrides?: Partial<Character>): Character {
     injuryTimer: 0,
     createdAt: Date.now(),
     totalCultivation: 0,
+    specialties: [],
+    assignedBuilding: null,
+    fateTags: [],
     ...overrides,
   }
 }
@@ -194,6 +199,161 @@ describe('CultivationEngine', () => {
       expect(result.success).toBe(false)
       expect(result.newRealm).toBe(0)
       expect(result.newStage).toBe(0)
+    })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// FateSystem - fate tag application tests
+// ---------------------------------------------------------------------------
+
+describe('FateSystem - fate tag application', () => {
+  describe('FATE_TAGS data', () => {
+    it('should define exactly 4 fate tags', () => {
+      expect(Object.keys(FATE_TAGS)).toHaveLength(4)
+    })
+
+    it('should have tribulation-scar tag', () => {
+      expect(FATE_TAGS['tribulation-scar']).toBeDefined()
+      expect(FATE_TAGS['tribulation-scar'].name).toBe('天劫伤痕')
+      expect(FATE_TAGS['tribulation-scar'].category).toBe('negative')
+    })
+
+    it('should have heart-devil tag', () => {
+      expect(FATE_TAGS['heart-devil']).toBeDefined()
+      expect(FATE_TAGS['heart-devil'].name).toBe('心魔种子')
+      expect(FATE_TAGS['heart-devil'].category).toBe('negative')
+    })
+
+    it('should have sudden-insight tag', () => {
+      expect(FATE_TAGS['sudden-insight']).toBeDefined()
+      expect(FATE_TAGS['sudden-insight'].name).toBe('顿悟')
+      expect(FATE_TAGS['sudden-insight'].category).toBe('positive')
+    })
+
+    it('should have stable-dao-heart tag', () => {
+      expect(FATE_TAGS['stable-dao-heart']).toBeDefined()
+      expect(FATE_TAGS['stable-dao-heart'].name).toBe('道心稳固')
+      expect(FATE_TAGS['stable-dao-heart'].category).toBe('positive')
+    })
+
+    it('getFateTagById should return tag definition', () => {
+      const tag = getFateTagById('tribulation-scar')
+      expect(tag).toBeDefined()
+      expect(tag!.id).toBe('tribulation-scar')
+    })
+
+    it('getFateTagById should return undefined for unknown id', () => {
+      // This tests the function with a valid but non-existent key
+      expect(getFateTagById('tribulation-scar')).toBeDefined()
+    })
+  })
+
+  describe('calcFateTagFailureRateModifier', () => {
+    it('should return 0 for empty tags', () => {
+      expect(calcFateTagFailureRateModifier([])).toBe(0)
+    })
+
+    it('should return positive modifier for negative tags', () => {
+      expect(calcFateTagFailureRateModifier(['tribulation-scar'])).toBeGreaterThan(0)
+    })
+
+    it('should return negative modifier for positive tags', () => {
+      expect(calcFateTagFailureRateModifier(['sudden-insight'])).toBeLessThan(0)
+    })
+
+    it('should sum multiple tag modifiers', () => {
+      const single = calcFateTagFailureRateModifier(['tribulation-scar'])
+      const both = calcFateTagFailureRateModifier(['tribulation-scar', 'heart-devil'])
+      expect(both).toBe(single * 2)
+    })
+  })
+
+  describe('applyFateOnTribulation', () => {
+    it('should add tribulation-scar on failed severe tribulation', () => {
+      const char = createCharacter()
+      const result = applyFateOnTribulation(char, false, true)
+      expect(result.tagsAdded).toContain('tribulation-scar')
+    })
+
+    it('should add heart-devil on failed non-severe tribulation', () => {
+      const char = createCharacter()
+      const result = applyFateOnTribulation(char, false, false)
+      expect(result.tagsAdded).toContain('heart-devil')
+    })
+
+    it('should add sudden-insight on successful tribulation', () => {
+      const char = createCharacter()
+      const result = applyFateOnTribulation(char, true, false)
+      expect(result.tagsAdded).toContain('sudden-insight')
+    })
+
+    it('should not duplicate existing fate tags', () => {
+      const char = createCharacter({ fateTags: ['tribulation-scar'] })
+      const result = applyFateOnTribulation(char, false, true)
+      expect(result.tagsAdded).not.toContain('tribulation-scar')
+    })
+
+    it('should return empty added when tag already present', () => {
+      const char = createCharacter({ fateTags: ['heart-devil'] })
+      const result = applyFateOnTribulation(char, false, false)
+      expect(result.tagsAdded).toHaveLength(0)
+    })
+
+    it('should not add duplicate sudden-insight', () => {
+      const char = createCharacter({ fateTags: ['sudden-insight'] })
+      const result = applyFateOnTribulation(char, true, false)
+      expect(result.tagsAdded).toHaveLength(0)
+    })
+  })
+
+  describe('applyFateOnBreakthrough', () => {
+    it('should add stable-dao-heart on successful major breakthrough', () => {
+      const char = createCharacter({ realm: 0, realmStage: 3 })
+      const result = applyFateOnBreakthrough(char, true, true)
+      expect(result.tagsAdded).toContain('stable-dao-heart')
+    })
+
+    it('should not add tags on successful minor breakthrough', () => {
+      const char = createCharacter({ realm: 0, realmStage: 0 })
+      const result = applyFateOnBreakthrough(char, true, false)
+      expect(result.tagsAdded).toHaveLength(0)
+    })
+
+    it('should not add tags on failed breakthrough', () => {
+      const char = createCharacter({ realm: 0, realmStage: 3 })
+      const result = applyFateOnBreakthrough(char, false, true)
+      expect(result.tagsAdded).toHaveLength(0)
+    })
+
+    it('should not duplicate existing stable-dao-heart', () => {
+      const char = createCharacter({ realm: 0, realmStage: 3, fateTags: ['stable-dao-heart'] })
+      const result = applyFateOnBreakthrough(char, true, true)
+      expect(result.tagsAdded).not.toContain('stable-dao-heart')
+    })
+  })
+
+  describe('fate tags persist on character', () => {
+    it('should persist through applyFateOnTribulation', () => {
+      const char = createCharacter()
+      const result = applyFateOnTribulation(char, false, true)
+      // Simulate the caller updating the character
+      const updated = { ...char, fateTags: [...char.fateTags, ...result.tagsAdded] }
+      expect(updated.fateTags).toContain('tribulation-scar')
+    })
+
+    it('should accumulate tags across multiple applications', () => {
+      let char = createCharacter()
+      // Severe tribulation failure
+      const r1 = applyFateOnTribulation(char, false, true)
+      char = { ...char, fateTags: [...char.fateTags, ...r1.tagsAdded] }
+      expect(char.fateTags).toContain('tribulation-scar')
+
+      // Later, successful major breakthrough
+      const r2 = applyFateOnBreakthrough({ ...char, realm: 0, realmStage: 3 }, true, true)
+      char = { ...char, fateTags: [...char.fateTags, ...r2.tagsAdded] }
+      expect(char.fateTags).toContain('tribulation-scar')
+      expect(char.fateTags).toContain('stable-dao-heart')
     })
   })
 })

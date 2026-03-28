@@ -24,6 +24,9 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     injuryTimer: 0,
     createdAt: Date.now(),
     totalCultivation: 0,
+    specialties: [],
+    assignedBuilding: null,
+    fateTags: [],
     ...overrides,
   }
 }

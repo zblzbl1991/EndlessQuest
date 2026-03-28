@@ -133,6 +133,7 @@ export async function loadGame(): Promise<boolean> {
       backpack: migrateToItemStacks(c.backpack),
       specialties: (c as any).specialties ?? [],
       assignedBuilding: (c as any).assignedBuilding ?? null,
+      fateTags: (c as any).fateTags ?? [],
       // Migrate deprecated statuses: cultivating/secluded -> idle
       status: ['cultivating', 'secluded'].includes(c.status as string) ? 'idle' as const : c.status,
     }))

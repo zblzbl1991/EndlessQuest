@@ -83,6 +83,9 @@ describe('Character types', () => {
       injuryTimer: 0,
       createdAt: Date.now(),
       totalCultivation: 0,
+      specialties: [],
+      assignedBuilding: null,
+      fateTags: [],
     }
     expect(char.baseStats.hp).toBe(100)
     expect(char.title).toBe('disciple')

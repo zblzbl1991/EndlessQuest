@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
+import { FATE_TAGS } from '../data/fateTags'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getAvailableMissions, DISPATCH_MISSIONS } from '../data/missions'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
@@ -261,6 +262,25 @@ function CharacterDetail({
           </div>
         </div>
       </section>
+
+      {/* Fate Tags */}
+      {character.fateTags.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>命格</div>
+          <div className={styles.fateTagsList}>
+            {character.fateTags.map((tagId) => {
+              const tag = FATE_TAGS[tagId]
+              if (!tag) return null
+              return (
+                <div key={tagId} className={styles.fateTag}>
+                  <span className={styles.fateTagName}>{tag.name}</span>
+                  <span className={styles.fateTagDesc}>{tag.description}</span>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
 
       {/* Cultivation / Breakthrough */}
       <section className={styles.section}>

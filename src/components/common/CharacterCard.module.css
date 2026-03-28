@@ -112,3 +112,19 @@
 .qualityChaos {
   border-left-color: var(--color-quality-chaos);
 }
+
+.fateTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--space-xs);
+}
+
+.fateTagChip {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  font-weight: 500;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--color-text-tertiary);
+}

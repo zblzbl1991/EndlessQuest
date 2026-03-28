@@ -3,6 +3,7 @@ import type { TechniqueTier } from '../../types/technique'
 import { getRealmName, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
+import { FATE_TAGS } from '../../data/fateTags'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
 import styles from './CharacterCard.module.css'
@@ -52,6 +53,16 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
         <StatusBadge status={character.status} />
       </div>
       <div className={styles.realm}>{realmName}</div>
+      {character.fateTags.length > 0 && (
+        <div className={styles.fateTags}>
+          {character.fateTags.map((tagId) => {
+            const tag = FATE_TAGS[tagId]
+            return tag ? (
+              <span key={tagId} className={styles.fateTagChip}>{tag.name}</span>
+            ) : null
+          })}
+        </div>
+      )}
       {character.learnedTechniques.length > 0 && (
         <div className={styles.techniques}>
           {character.learnedTechniques.map((techId) => {

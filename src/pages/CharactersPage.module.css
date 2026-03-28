@@ -606,3 +606,32 @@
   color: var(--color-text-secondary);
   margin-top: 4px;
 }
+
+/* Fate Tags */
+
+.fateTagsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fateTag {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: 12px;
+  padding: 4px var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: var(--color-panel);
+}
+
+.fateTagName {
+  font-weight: 600;
+  color: var(--color-accent);
+  white-space: nowrap;
+}
+
+.fateTagDesc {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}

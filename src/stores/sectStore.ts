@@ -31,6 +31,8 @@ import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 import { emitEvent } from './eventLogStore'
 import { DUNGEONS } from '../data/events'
 import { shouldTriggerTribulation, resolveTribulation } from '../systems/cultivation/TribulationSystem'
+import { applyFateOnTribulation, applyFateOnBreakthrough } from '../systems/character/FateSystem'
+import { calcFateTagFailureRateModifier } from '../data/fateTags'
 import { getBuildingBonus } from '../systems/character/SpecialtySystem'
 import { getSynergyBonus } from '../systems/economy/SynergySystem'
 import { addItemToStacks, removeStackAtIndex, addItemQuantityToStacks } from '../systems/item/ItemStackUtils'
@@ -948,17 +950,24 @@ export const useSectStore = create<SectStore>((set, get) => ({
           breakthroughStoneCost += stoneCost
           const tribResult = resolveTribulation(updatedChar)
           if (tribResult.success) {
-            const failureRate = calcBreakthroughFailureRate(updatedChar)
+            const baseFailureRate = calcBreakthroughFailureRate(updatedChar)
+            const fateModifier = calcFateTagFailureRateModifier(updatedChar.fateTags)
+            const failureRate = Math.max(0, baseFailureRate + fateModifier)
             const btResult = performBreakthrough(updatedChar, failureRate)
             if (btResult.success) {
               const nextName = getRealmName(btResult.newRealm, btResult.newStage)
               emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
+              // Apply fate: successful tribulation -> sudden-insight
+              const fateResult = applyFateOnTribulation(updatedChar, true, false)
+              // Apply fate: successful major breakthrough -> stable-dao-heart
+              const btFateResult = applyFateOnBreakthrough(updatedChar, true, true)
               updatedChar = {
                 ...updatedChar,
                 realm: btResult.newRealm,
                 realmStage: btResult.newStage,
                 cultivation: 0,
                 baseStats: btResult.newStats,
+                fateTags: [...updatedChar.fateTags, ...fateResult.tagsAdded, ...btFateResult.tagsAdded],
               }
               const comprehendedId = tryComprehendOnBreakthrough(
                 updatedChar, get().sect.techniqueCodex, true
@@ -976,11 +985,14 @@ export const useSectStore = create<SectStore>((set, get) => ({
               updatedChar = { ...updatedChar, cultivation: 0 }
             }
           } else {
+            // Apply fate: failed tribulation
+            const fateResult = applyFateOnTribulation(updatedChar, false, !!tribResult.severe)
             updatedChar = {
               ...updatedChar,
               cultivation: 0,
               status: 'injured' as const,
               injuryTimer: tribResult.injuryTimer ?? 60,
+              fateTags: [...updatedChar.fateTags, ...fateResult.tagsAdded],
             }
             if (tribResult.severe && updatedChar.realmStage > 0) {
               updatedChar = {
@@ -997,17 +1009,22 @@ export const useSectStore = create<SectStore>((set, get) => ({
         } else {
           // Standard breakthrough (minor or non-tribulation major)
           breakthroughStoneCost += stoneCost
-          const failureRate = calcBreakthroughFailureRate(updatedChar)
+          const baseFailureRate = calcBreakthroughFailureRate(updatedChar)
+          const fateModifier = calcFateTagFailureRateModifier(updatedChar.fateTags)
+          const failureRate = Math.max(0, baseFailureRate + fateModifier)
           const btResult = performBreakthrough(updatedChar, failureRate)
           if (btResult.success) {
             const nextName = getRealmName(btResult.newRealm, btResult.newStage)
             emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
+            // Apply fate: successful major breakthrough -> stable-dao-heart
+            const btFateResult = applyFateOnBreakthrough(updatedChar, true, isMajorBreakthrough)
             updatedChar = {
               ...updatedChar,
               realm: btResult.newRealm,
               realmStage: btResult.newStage,
               cultivation: 0,
               baseStats: btResult.newStats,
+              fateTags: [...updatedChar.fateTags, ...btFateResult.tagsAdded],
             }
             const comprehendedId = tryComprehendOnBreakthrough(
               updatedChar, get().sect.techniqueCodex, isMajorBreakthrough

@@ -173,6 +173,9 @@ describe('Enemies data', () => {
       injuryTimer: 0,
       createdAt: Date.now(),
       totalCultivation: 0,
+      specialties: [],
+      assignedBuilding: null,
+      fateTags: [],
       ...overrides,
     }
   }
