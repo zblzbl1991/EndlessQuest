@@ -3,6 +3,7 @@ import type { TechniqueTier } from '../../types/technique'
 import { getRealmName, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
+import { getPrimaryRole, getRoleLabel } from '../../systems/character/SpecialtySystem'
 import { FATE_TAGS } from '../../data/fateTags'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
@@ -53,6 +54,9 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
         <StatusBadge status={character.status} />
       </div>
       <div className={styles.realm}>{realmName}</div>
+      {getPrimaryRole(character) && (
+        <span className={styles.roleChip}>{getRoleLabel(getPrimaryRole(character)!)}</span>
+      )}
       {character.fateTags.length > 0 && (
         <div className={styles.fateTags}>
           {character.fateTags.map((tagId) => {

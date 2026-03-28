@@ -1,4 +1,4 @@
-import type { CharacterQuality, Specialty, SpecialtyType } from '../../types/character'
+import type { Character, CharacterQuality, Specialty, SpecialtyType } from '../../types/character'
 import { SPECIALTY_BONUS_TABLE, SPECIALTY_BUILDING_MAP, ALL_SPECIALTY_TYPES } from '../../data/specialties'
 
 interface SpecialtyConfig {
@@ -71,4 +71,38 @@ export function getBuildingBonus(buildingType: string, specialties: Specialty[])
   }
 
   return 1 + bonus
+}
+
+/** Role types that map to adventure rather than a building */
+const ADVENTURE_ROLES: SpecialtyType[] = ['combat', 'fortune', 'leadership']
+
+/** Chinese labels for each specialty/role */
+const ROLE_LABELS: Record<string, string> = {
+  alchemy: '炼丹',
+  forging: '锻造',
+  mining: '采矿',
+  herbalism: '采药',
+  comprehension: '参悟',
+  combat: '战斗',
+  fortune: '探险',
+  leadership: '统领',
+}
+
+/** Return the primary role string (first specialty type) for a character, or null if none. */
+export function getPrimaryRole(character: Character): SpecialtyType | null {
+  if (character.specialties.length === 0) return null
+  return character.specialties[0].type
+}
+
+/** Return the recommended building assignment, or 'adventure' for combat/fortune roles, or null if no specialties. */
+export function getRecommendedAssignment(character: Character): string | null {
+  const role = getPrimaryRole(character)
+  if (!role) return null
+  if (ADVENTURE_ROLES.includes(role)) return 'adventure'
+  return SPECIALTY_BUILDING_MAP[role] ?? null
+}
+
+/** Return a Chinese readable label for a role string. */
+export function getRoleLabel(role: string): string {
+  return ROLE_LABELS[role] ?? ''
 }
