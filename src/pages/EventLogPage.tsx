@@ -1,5 +1,7 @@
 import { useEventLogStore } from '../stores/eventLogStore'
 import type { EventType } from '../stores/eventLogStore'
+import { useSectStore } from '../stores/sectStore'
+import { ARCHIVE_MILESTONE_MAP } from '../data/archiveMilestones'
 import styles from './EventLogPage.module.css'
 
 const EVENT_LABELS: Partial<Record<EventType, string>> = {
@@ -12,12 +14,13 @@ const EVENT_LABELS: Partial<Record<EventType, string>> = {
   adventure_fail: '探险',
   patrol_complete: '巡逻',
   item_crafted: '制造',
+  milestone: '成就',
 }
 
 function getEventClass(type: EventType): string {
   if (type === 'breakthrough_success' || type === 'adventure_complete') return styles.success
   if (type === 'breakthrough_failure' || type === 'adventure_fail') return styles.danger
-  if (type === 'building_upgrade' || type === 'building_build') return styles.accent
+  if (type === 'building_upgrade' || type === 'building_build' || type === 'milestone') return styles.accent
   return ''
 }
 
@@ -32,6 +35,7 @@ function formatRelativeTime(timestamp: number): string {
 
 export default function EventLogPage() {
   const events = useEventLogStore((s) => s.events)
+  const milestones = useSectStore((s) => s.sect.milestones)
 
   if (events.length === 0) {
     return (
@@ -45,6 +49,18 @@ export default function EventLogPage() {
   return (
     <div className={styles.page}>
       <h1 className={styles.pageTitle}>事件记录</h1>
+      {Object.keys(milestones).length > 0 && (
+        <div className={styles.milestones}>
+          {Object.entries(milestones)
+            .map(([id, record]) => ({ ...ARCHIVE_MILESTONE_MAP[id], unlockedAt: record.unlockedAt }))
+            .filter((m) => m.name)
+            .map((m) => (
+              <span key={m.id} className={styles.milestoneChip} title={m.description}>
+                {m.name}
+              </span>
+            ))}
+        </div>
+      )}
       <div className={styles.list}>
         {events.map((evt) => (
           <div key={evt.id} className={styles.entry}>

@@ -161,3 +161,31 @@
     gap: var(--space-sm);
   }
 }
+
+/* Route Identity */
+.routeCard {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+}
+
+.routeName {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.routeDesc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.routeHint {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}

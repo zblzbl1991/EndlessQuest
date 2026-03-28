@@ -1,5 +1,6 @@
 import type { Sect } from '../../types'
 import type { DungeonRun } from '../../types'
+import type { MilestoneRecord } from '../../types/sect'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
 import { useGameStore } from '../../stores/gameStore'
@@ -26,6 +27,7 @@ interface SaveMeta {
   totalAdventureRuns: number
   totalBreakthroughs: number
   lastTransmissionTime: number
+  milestones: Record<string, MilestoneRecord>
 }
 
 // ---------------------------------------------------------------------------
@@ -53,6 +55,7 @@ export async function saveGame(): Promise<void> {
       totalAdventureRuns: sect.totalAdventureRuns,
       totalBreakthroughs: sect.totalBreakthroughs,
       lastTransmissionTime: sect.lastTransmissionTime,
+      milestones: sect.milestones,
     })
 
     // Write characters
@@ -152,6 +155,7 @@ export async function loadGame(): Promise<boolean> {
       lastTransmissionTime: meta.lastTransmissionTime,
       techniqueCodex: meta.techniqueCodex,
       activeRoute: (meta as any).activeRoute ?? null,
+      milestones: meta.milestones ?? {},
     }
 
     useSectStore.setState({ sect })

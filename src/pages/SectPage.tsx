@@ -4,6 +4,7 @@ import { useAdventureStore } from '../stores/adventureStore'
 import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
 import ActionAgenda from '../components/sect/ActionAgenda'
+import { SECT_ROUTES } from '../data/sectRoutes'
 import styles from './SectPage.module.css'
 
 export default function SectPage() {
@@ -33,6 +34,22 @@ export default function SectPage() {
         <h1 className={styles.sectName}>{sect.name}</h1>
         <span className={styles.sectLevel}>宗门等级 {sect.level}</span>
       </div>
+
+      {/* Active Route */}
+      {sect.activeRoute ? (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>修行路线</div>
+          <div className={styles.routeCard}>
+            <span className={styles.routeName}>{SECT_ROUTES[sect.activeRoute].name}</span>
+            <span className={styles.routeDesc}>{SECT_ROUTES[sect.activeRoute].description}</span>
+          </div>
+        </section>
+      ) : (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>修行路线</div>
+          <div className={styles.routeHint}>尚未选择修行路线</div>
+        </section>
+      )}
 
       {/* 1. Action Agenda — top priority recommendations */}
       <section className={styles.section}>

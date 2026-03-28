@@ -36,6 +36,10 @@ import { calcFateTagFailureRateModifier } from '../data/fateTags'
 import { getBuildingBonus } from '../systems/character/SpecialtySystem'
 import { getSynergyBonus } from '../systems/economy/SynergySystem'
 import { addItemToStacks, removeStackAtIndex, addItemQuantityToStacks } from '../systems/item/ItemStackUtils'
+import { getActiveRoute as getActiveRouteDef } from '../systems/sect/SectRouteSystem'
+import type { SectRouteId, SectRouteDef } from '../data/sectRoutes'
+import { ARCHIVE_MILESTONE_MAP } from '../data/archiveMilestones'
+import type { ArchiveMilestone } from '../data/archiveMilestones'
 
 // ---------------------------------------------------------------------------
 // Helper: get equipment item by ID from vault + all character backpacks
@@ -80,6 +84,7 @@ function createInitialState(): { sect: Sect } {
       lastTransmissionTime: 0,
       techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
       activeRoute: null,
+      milestones: {},
     }
   }
 }
@@ -159,6 +164,14 @@ export interface SectStore {
   getBreakthroughCandidate(): { characterId: string; characterName: string; realmName: string; progress: number } | null
   getNextBuildingUpgrade(): { buildingType: string; buildingName: string; cost: number; canAfford: boolean; isUnlock: boolean } | null
   getRecommendedDungeon(): { dungeonId: string; dungeonName: string; unlocked: boolean } | null
+
+  // Route management
+  setActiveRoute(routeId: SectRouteId | null): void
+  getActiveRouteEffects(): SectRouteDef | null
+
+  // Milestones
+  recordMilestone(milestoneId: string): void
+  getUnlockedMilestones(): Array<ArchiveMilestone & { unlockedAt: number }>
 
   reset(): void
 }
@@ -264,6 +277,13 @@ export const useSectStore = create<SectStore>((set, get) => ({
         },
       },
     }))
+
+    // Record milestones
+    get().recordMilestone('first_disciple')
+    if (['spirit', 'immortal', 'divine', 'chaos'].includes(quality)) {
+      get().recordMilestone('first_rare_recruit')
+    }
+
     return character
   },
 
@@ -958,6 +978,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
             if (btResult.success) {
               const nextName = getRealmName(btResult.newRealm, btResult.newStage)
               emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
+              get().recordMilestone('first_breakthrough')
               // Apply fate: successful tribulation -> sudden-insight
               const fateResult = applyFateOnTribulation(updatedChar, true, false)
               // Apply fate: successful major breakthrough -> stable-dao-heart
@@ -1017,6 +1038,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
           if (btResult.success) {
             const nextName = getRealmName(btResult.newRealm, btResult.newStage)
             emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
+            get().recordMilestone('first_breakthrough')
             // Apply fate: successful major breakthrough -> stable-dao-heart
             const btFateResult = applyFateOnBreakthrough(updatedChar, true, isMajorBreakthrough)
             updatedChar = {
@@ -1053,6 +1075,10 @@ export const useSectStore = create<SectStore>((set, get) => ({
       ? get().sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
       : 1
     const newSectLevel = calcSectLevel(mainHallLevel)
+
+    // 11b. Check sect level milestones
+    if (newSectLevel >= 3) get().recordMilestone('sect_level_3')
+    if (newSectLevel >= 5) get().recordMilestone('sect_level_5')
 
     // 12. Build new sect with updated resources (production + cultivation - consumed + tax)
     const taxProduced = calcTaxRate(newSectLevel, sect.characters.length) * deltaSec
@@ -1426,6 +1452,49 @@ export const useSectStore = create<SectStore>((set, get) => ({
     }
 
     return best
+  },
+
+  // ---- Route management ----
+
+  setActiveRoute: (routeId) => {
+    set((s) => ({
+      sect: { ...s.sect, activeRoute: routeId },
+    }))
+  },
+
+  getActiveRouteEffects: () => {
+    const { sect } = get()
+    return getActiveRouteDef(sect.activeRoute)
+  },
+
+  // ---- Milestones ----
+
+  recordMilestone: (milestoneId) => {
+    const { sect } = get()
+    if (sect.milestones[milestoneId]) return // already recorded
+    const def = ARCHIVE_MILESTONE_MAP[milestoneId]
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        milestones: {
+          ...s.sect.milestones,
+          [milestoneId]: { unlockedAt: Date.now() },
+        },
+      },
+    }))
+    emitEvent('milestone', `达成成就: ${def?.name ?? milestoneId}`)
+  },
+
+  getUnlockedMilestones: () => {
+    const { sect } = get()
+    const result: Array<ArchiveMilestone & { unlockedAt: number }> = []
+    for (const [id, record] of Object.entries(sect.milestones)) {
+      const def = ARCHIVE_MILESTONE_MAP[id]
+      if (def) {
+        result.push({ ...def, unlockedAt: record.unlockedAt })
+      }
+    }
+    return result
   },
 
   // ---- Reset ----

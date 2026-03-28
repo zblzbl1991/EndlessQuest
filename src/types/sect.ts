@@ -35,6 +35,10 @@ export interface Building {
   productionQueue: ProductionQueue
 }
 
+export interface MilestoneRecord {
+  unlockedAt: number
+}
+
 export interface Sect {
   name: string
   level: number
@@ -49,4 +53,5 @@ export interface Sect {
   lastTransmissionTime: number
   techniqueCodex: string[]
   activeRoute: import('../data/sectRoutes').SectRouteId | null
+  milestones: Record<string, MilestoneRecord>
 }

@@ -1768,6 +1768,65 @@ describe('expedition supply', () => {
 })
 
 // ---------------------------------------------------------------------------
+// Milestone Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Milestones', () => {
+  beforeEach(() => resetStore())
+
+  it('milestones should start empty', () => {
+    const milestones = getStore().sect.milestones
+    expect(milestones).toBeDefined()
+    expect(Object.keys(milestones)).toHaveLength(0)
+  })
+
+  it('recordMilestone should add milestone with timestamp', () => {
+    const before = Date.now()
+    getStore().recordMilestone('first_disciple')
+    const after = Date.now()
+
+    const milestones = getStore().sect.milestones
+    expect(milestones['first_disciple']).toBeDefined()
+    expect(milestones['first_disciple'].unlockedAt).toBeGreaterThanOrEqual(before)
+    expect(milestones['first_disciple'].unlockedAt).toBeLessThanOrEqual(after)
+  })
+
+  it('recording the same milestone twice should not duplicate', () => {
+    getStore().recordMilestone('first_disciple')
+    const firstTimestamp = getStore().sect.milestones['first_disciple'].unlockedAt
+
+    // Record again
+    getStore().recordMilestone('first_disciple')
+
+    const milestones = getStore().sect.milestones
+    expect(Object.keys(milestones)).toHaveLength(1)
+    expect(milestones['first_disciple'].unlockedAt).toBe(firstTimestamp)
+  })
+
+  it('getUnlockedMilestones should return array of unlocked milestones', () => {
+    getStore().recordMilestone('first_disciple')
+    getStore().recordMilestone('first_breakthrough')
+
+    const unlocked = getStore().getUnlockedMilestones()
+    expect(unlocked).toHaveLength(2)
+    expect(unlocked.map(m => m.id)).toContain('first_disciple')
+    expect(unlocked.map(m => m.id)).toContain('first_breakthrough')
+    // Each should have name, description, and unlockedAt
+    for (const m of unlocked) {
+      expect(m.id).toBeTruthy()
+      expect(m.name).toBeTruthy()
+      expect(m.description).toBeTruthy()
+      expect(m.unlockedAt).toBeGreaterThan(0)
+    }
+  })
+
+  it('getUnlockedMilestones should return empty array when none recorded', () => {
+    const unlocked = getStore().getUnlockedMilestones()
+    expect(unlocked).toEqual([])
+  })
+})
+
+// ---------------------------------------------------------------------------
 // Dashboard Selector Tests
 // ---------------------------------------------------------------------------
 

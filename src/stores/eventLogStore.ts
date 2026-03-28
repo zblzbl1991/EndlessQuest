@@ -19,6 +19,7 @@ export type EventType =
   | 'item_crafted'
   | 'technique_unlocked'
   | 'breakthrough_comprehension'
+  | 'milestone'
 
 export interface GameEvent {
   id: string
