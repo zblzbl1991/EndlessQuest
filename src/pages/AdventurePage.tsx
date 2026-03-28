@@ -9,6 +9,8 @@ import { QUALITY_NAMES as CHAR_QUALITY_NAMES } from '../components/common/Charac
 import ProgressBar from '../components/common/ProgressBar'
 import type { CharacterQuality } from '../types/character'
 import type { DungeonRun } from '../types'
+import type { TacticPreset } from '../types/runBuild'
+import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
 import styles from './AdventurePage.module.css'
 
 // ---------------------------------------------------------------------------
@@ -178,6 +180,7 @@ function TeamBuilder({
   onClose: () => void
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [tacticPreset, setTacticPreset] = useState<TacticPreset>('balanced')
   const startRun = useAdventureStore((s) => s.startRun)
 
   const dungeon = DUNGEONS.find((d) => d.id === dungeonId)
@@ -194,7 +197,7 @@ function TeamBuilder({
 
   const handleConfirm = () => {
     if (selectedIds.length === 0) return
-    const run = startRun(dungeonId, selectedIds)
+    const run = startRun(dungeonId, selectedIds, undefined, tacticPreset)
     if (run) {
       onClose()
     }
@@ -280,6 +283,11 @@ function TeamBuilder({
               <span className={styles.teamStatValue}>{teamStats.spd.toLocaleString()}</span>
             </div>
           </div>
+        )}
+
+        {/* Tactic preset */}
+        {selectedIds.length > 0 && (
+          <TacticPresetPicker value={tacticPreset} onChange={setTacticPreset} />
         )}
 
         {/* Actions */}

@@ -3,6 +3,7 @@ import type { DungeonEvent } from '../../types/adventure'
 import type { AnyItem } from '../../types/item'
 import { ENEMY_TEMPLATES, createCombatUnitFromEnemy, type EnemyTemplate } from '../../data/enemies'
 import type { CombatUnit, CombatResult } from '../combat/CombatEngine'
+import type { TacticPreset } from '../../types/runBuild'
 import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { simulateCombat } from '../combat/CombatEngine'
@@ -105,6 +106,7 @@ export function resolveEvent(
   event: DungeonEvent,
   team: CombatUnit[],
   floorNumber: number,
+  tacticPreset: TacticPreset = 'balanced',
 ): EventResult {
   const emptyReward = { spiritStone: 0, herb: 0, ore: 0 }
 
@@ -124,7 +126,7 @@ export function resolveEvent(
       const templates = getNonBossTemplates()
       const enemyTemplate = templates[Math.floor(Math.random() * templates.length)] as EnemyTemplate
       const enemyUnit = createCombatUnitFromEnemy(enemyTemplate, floorNumber)
-      const result = simulateCombat(aliveTeam, [enemyUnit])
+      const result = simulateCombat(aliveTeam, [enemyUnit], tacticPreset)
       const victory = result.victory
 
       // Calculate HP changes for each alive team member
@@ -256,7 +258,7 @@ export function resolveEvent(
       bossUnit.hp = Math.floor(bossUnit.hp * 2)
       bossUnit.maxHp = bossUnit.hp
       bossUnit.atk = Math.floor(bossUnit.atk * 1.5)
-      const result = simulateCombat(aliveTeam, [bossUnit])
+      const result = simulateCombat(aliveTeam, [bossUnit], tacticPreset)
       const victory = result.victory
 
       // Calculate HP changes for each alive team member

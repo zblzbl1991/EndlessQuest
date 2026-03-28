@@ -151,6 +151,7 @@ export async function loadGame(): Promise<boolean> {
       totalBreakthroughs: meta.totalBreakthroughs,
       lastTransmissionTime: meta.lastTransmissionTime,
       techniqueCodex: meta.techniqueCodex,
+      activeRoute: (meta as any).activeRoute ?? null,
     }
 
     useSectStore.setState({ sect })

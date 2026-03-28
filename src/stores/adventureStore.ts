@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem } from '../types'
 import { SUPPLY_COSTS } from '../types/adventure'
 import type { SupplyLevel } from '../types/adventure'
+import type { TacticPreset } from '../types/runBuild'
 import { useSectStore } from './sectStore'
 import { emitEvent } from './eventLogStore'
 import { DUNGEONS } from '../data/events'
@@ -39,7 +40,7 @@ export interface AdventureStore {
   dispatches: DispatchState[]
 
   // Actions
-  startRun(dungeonId: string, characterIds: string[], supplyLevel?: SupplyLevel): DungeonRun | null
+  startRun(dungeonId: string, characterIds: string[], supplyLevel?: SupplyLevel, tacticPreset?: TacticPreset): DungeonRun | null
   selectRoute(runId: string, routeIndex: number): boolean
   advanceFloor(runId: string): { success: boolean; message: string }
   retreat(runId: string): void
@@ -219,7 +220,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   completedDungeons: [],
   dispatches: [],
 
-  startRun: (dungeonId, characterIds, supplyLevel = 'basic') => {
+  startRun: (dungeonId, characterIds, supplyLevel = 'basic', tacticPreset?: TacticPreset) => {
     const state = get()
     const dungeon = findDungeon(dungeonId)
     if (!dungeon) return null
@@ -302,6 +303,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       supplyLevel,
       rewardMultiplier: supplyCost.rewardMultiplier,
       pendingShopOffers: [],
+      tacticPreset: tacticPreset ?? 'balanced',
     }
 
     set((s) => ({
@@ -341,7 +343,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       const currentUnits = buildAliveTeamUnits({ ...run, memberStates: newMemberStates })
       if (currentUnits.length === 0) break
 
-      const result = resolveEvent(event, currentUnits, run.currentFloor)
+      const result = resolveEvent(event, currentUnits, run.currentFloor, run.tacticPreset)
 
       // Apply HP changes to member states
       for (const charId of run.teamCharacterIds) {
