@@ -161,26 +161,26 @@ git commit -m "feat: unify character status model"
 - Modify: `src/stores/sectStore.ts`
 - Test: `src/__tests__/stores.test.ts`
 
-- [ ] **Step 1: Write failing tests for dashboard priority summaries**
+- [x] **Step 1: Write failing tests for dashboard priority summaries**
 
 Cover store selectors/helpers that compute:
 - next breakthrough candidate
 - highest-value building upgrade candidate
 - next recommended dungeon candidate
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
 
 Run: `npm test -- stores.test.ts`
 Expected: FAIL because summary selectors do not exist
 
-- [ ] **Step 3: Add sect-level derived selectors/helpers**
+- [x] **Step 3: Add sect-level derived selectors/helpers**
 
 Implement small helpers in `src/stores/sectStore.ts` or a nearby system module for:
 - breakthrough readiness
 - upgrade value heuristic
 - recommended action copy
 
-- [ ] **Step 4: Build `ActionAgenda` component**
+- [x] **Step 4: Build `ActionAgenda` component**
 
 Render 2-3 priority cards with:
 - title
@@ -188,7 +188,7 @@ Render 2-3 priority cards with:
 - primary CTA label
 - readiness/blocked reason
 
-- [ ] **Step 5: Reorder SectPage information hierarchy**
+- [x] **Step 5: Reorder SectPage information hierarchy**
 
 Place:
 1. agenda
@@ -196,12 +196,12 @@ Place:
 3. resources
 4. key disciples or key teams
 
-- [ ] **Step 6: Re-run the focused tests**
+- [x] **Step 6: Re-run the focused tests**
 
 Run: `npm test -- stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Smoke test the page manually**
+- [x] **Step 7: Smoke test the page manually**
 
 Run: `npm run build`
 Expected: successful build

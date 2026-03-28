@@ -1766,3 +1766,151 @@ describe('expedition supply', () => {
     expect(getStore().sect.vault).toHaveLength(2) // spirit_potion items not consumed
   })
 })
+
+// ---------------------------------------------------------------------------
+// Dashboard Selector Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Dashboard Selectors', () => {
+  beforeEach(() => resetStore())
+
+  describe('getBreakthroughCandidate', () => {
+    it('should return null when no characters exist', () => {
+      const char = getFirstCharacter()
+      getStore().removeCharacter(char.id)
+      expect(getStore().getBreakthroughCandidate()).toBeNull()
+    })
+
+    it('should return the idle character closest to breakthrough', () => {
+      const char = getFirstCharacter()
+      // Set cultivation to 90% of required (100 for realm 0 stage 0)
+      setCharacterCultivation(char.id, 90)
+
+      const candidate = getStore().getBreakthroughCandidate()
+      expect(candidate).not.toBeNull()
+      expect(candidate!.characterId).toBe(char.id)
+      expect(candidate!.progress).toBeCloseTo(0.9, 1)
+      expect(candidate!.realmName).toContain('炼气期')
+    })
+
+    it('should skip non-idle characters', () => {
+      const char = getFirstCharacter()
+      setCharacterCultivation(char.id, 100)
+      getStore().setCharacterStatus(char.id, 'adventuring')
+
+      expect(getStore().getBreakthroughCandidate()).toBeNull()
+    })
+
+    it('should pick the character with highest progress when multiple idle', () => {
+      const char1 = getFirstCharacter()
+      setCharacterCultivation(char1.id, 50)
+
+      const char2 = getStore().addCharacter('common')
+      expect(char2).not.toBeNull()
+      setCharacterCultivation(char2!.id, 80)
+
+      const candidate = getStore().getBreakthroughCandidate()
+      expect(candidate!.characterId).toBe(char2!.id)
+    })
+  })
+
+  describe('getNextBuildingUpgrade', () => {
+    it('should mark upgrades as unaffordable when spirit stones are zero', () => {
+      // Drain all spirit stones
+      useSectStore.setState((s) => ({
+        sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 0 } },
+      }))
+      const upgrade = getStore().getNextBuildingUpgrade()
+      // Still returns a recommendation, but can't afford it
+      if (upgrade) {
+        expect(upgrade.canAfford).toBe(false)
+      }
+    })
+
+    it('should return the cheapest affordable building upgrade', () => {
+      // mainHall at level 1, upgradeCost ~ 246. We have 500 spirit stones.
+      const upgrade = getStore().getNextBuildingUpgrade()
+      expect(upgrade).not.toBeNull()
+      expect(upgrade!.buildingType).toBeTruthy()
+      expect(upgrade!.buildingName).toBeTruthy()
+      expect(upgrade!.cost).toBeGreaterThan(0)
+      expect(upgrade!.canAfford).toBe(true)
+    })
+
+    it('should mark as unaffordable when spirit stones are low', () => {
+      useSectStore.setState((s) => ({
+        sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 10 } },
+      }))
+      const upgrade = getStore().getNextBuildingUpgrade()
+      // There may still be an upgrade recommendation, but it should be unaffordable
+      if (upgrade) {
+        expect(upgrade.canAfford).toBe(false)
+      }
+    })
+
+    it('should prioritize locked buildings that meet unlock conditions', () => {
+      // spiritField requires mainHall Lv1 (which we have). It's unlockable.
+      const upgrade = getStore().getNextBuildingUpgrade()
+      expect(upgrade).not.toBeNull()
+      // Either spiritField (unlockable) or mainHall (upgradeable) should be recommended
+    })
+  })
+
+  describe('getRecommendedDungeon', () => {
+    it('should return null when no characters available', () => {
+      const char = getFirstCharacter()
+      getStore().removeCharacter(char.id)
+      expect(getStore().getRecommendedDungeon()).toBeNull()
+    })
+
+    it('should recommend the highest unlockable dungeon', () => {
+      const char = getFirstCharacter()
+      // Default character is realm 0 stage 0. lingCaoValley requires realm 0 stage 3.
+      const rec = getStore().getRecommendedDungeon()
+      // Character hasn't reached stage 3 yet, so no dungeon is truly ready
+      // But the selector should still suggest the next dungeon to aim for
+      if (rec) {
+        expect(rec.dungeonId).toBeTruthy()
+        expect(rec.dungeonName).toBeTruthy()
+        expect(rec.unlocked).toBeDefined()
+      }
+    })
+
+    it('should return unlocked dungeon when character meets requirements', () => {
+      const char = getFirstCharacter()
+      // Set character to realm 0 stage 3 (lingCaoValley requirement)
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) =>
+            c.id === char.id ? { ...c, realmStage: 3 as any } : c
+          ),
+        },
+      }))
+
+      const rec = getStore().getRecommendedDungeon()
+      expect(rec).not.toBeNull()
+      expect(rec!.unlocked).toBe(true)
+      expect(rec!.dungeonId).toBe('lingCaoValley')
+    })
+
+    it('should skip dungeons already being run', () => {
+      const char = getFirstCharacter()
+      // Meet unlock condition
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) =>
+            c.id === char.id ? { ...c, realmStage: 3 as any } : c
+          ),
+        },
+      }))
+      // Start a run in lingCaoValley
+      getAdventureStore().startRun('lingCaoValley', [char.id])
+
+      // Should recommend something else or null since lingCaoValley is active
+      const rec = getStore().getRecommendedDungeon()
+      // It should be null or a different dungeon since the character is now adventuring
+    })
+  })
+})

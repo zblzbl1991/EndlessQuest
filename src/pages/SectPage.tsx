@@ -3,6 +3,7 @@ import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
+import ActionAgenda from '../components/sect/ActionAgenda'
 import styles from './SectPage.module.css'
 
 export default function SectPage() {
@@ -16,9 +17,10 @@ export default function SectPage() {
     const cultivating = sect.characters.filter((c) => c.status === 'idle').length
     const adventuring = sect.characters.filter((c) => c.status === 'adventuring' || c.status === 'patrolling').length
     const resting = sect.characters.filter(
-      (c) => c.status === 'resting' || c.status === 'injured' || c.status === 'idle',
+      (c) => c.status === 'resting' || c.status === 'injured',
     ).length
-    return { cultivating, adventuring, resting }
+    const training = sect.characters.filter((c) => c.status === 'training').length
+    return { cultivating, adventuring, resting, training }
   }, [sect.characters])
 
   const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
@@ -32,7 +34,54 @@ export default function SectPage() {
         <span className={styles.sectLevel}>宗门等级 {sect.level}</span>
       </div>
 
-      {/* Resource Overview */}
+      {/* 1. Action Agenda — top priority recommendations */}
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>优先事项</div>
+        <ActionAgenda />
+      </section>
+
+      {/* 2. Active Adventures */}
+      {runCount > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>进行中的秘境 ({runCount})</div>
+          {Object.values(activeRuns).map((run) => {
+            const dungeon = dungeons.find((d) => d.id === run.dungeonId)
+            return (
+              <div key={run.id} className={styles.adventureItem}>
+                <span className={styles.adventureName}>{dungeon?.name ?? '未知秘境'}</span>
+                <span className={styles.adventureFloor}>
+                  第 {run.currentFloor} / {run.floors.length} 层
+                </span>
+              </div>
+            )
+          })}
+        </section>
+      )}
+
+      {/* 3. Character Stats */}
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>弟子概况</div>
+        <div className={styles.statsRow}>
+          <span className={styles.statItem}>
+            <span className={styles.statCount}>{characterStats.cultivating}</span>
+            <span className={styles.statLabel}>修炼中</span>
+          </span>
+          <span className={styles.statItem}>
+            <span className={styles.statCount}>{characterStats.adventuring}</span>
+            <span className={styles.statLabel}>冒险中</span>
+          </span>
+          <span className={styles.statItem}>
+            <span className={styles.statCount}>{characterStats.training}</span>
+            <span className={styles.statLabel}>研习中</span>
+          </span>
+          <span className={styles.statItem}>
+            <span className={styles.statCount}>{characterStats.resting}</span>
+            <span className={styles.statLabel}>休息</span>
+          </span>
+        </div>
+      </section>
+
+      {/* 4. Resource Overview */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>资源总览</div>
         <div className={styles.resourceGrid}>
@@ -71,44 +120,7 @@ export default function SectPage() {
         </div>
       </section>
 
-      {/* Character Stats */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>弟子概况</div>
-        <div className={styles.statsRow}>
-          <span className={styles.statItem}>
-            <span className={styles.statCount}>{characterStats.cultivating}</span>
-            <span className={styles.statLabel}>修炼中</span>
-          </span>
-          <span className={styles.statItem}>
-            <span className={styles.statCount}>{characterStats.adventuring}</span>
-            <span className={styles.statLabel}>冒险中</span>
-          </span>
-          <span className={styles.statItem}>
-            <span className={styles.statCount}>{characterStats.resting}</span>
-            <span className={styles.statLabel}>休息</span>
-          </span>
-        </div>
-      </section>
-
-      {/* Active Adventures */}
-      {runCount > 0 && (
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>进行中的秘境 ({runCount})</div>
-          {Object.values(activeRuns).map((run) => {
-            const dungeon = dungeons.find((d) => d.id === run.dungeonId)
-            return (
-              <div key={run.id} className={styles.adventureItem}>
-                <span className={styles.adventureName}>{dungeon?.name ?? '未知秘境'}</span>
-                <span className={styles.adventureFloor}>
-                  第 {run.currentFloor} / {run.floors.length} 层
-                </span>
-              </div>
-            )
-          })}
-        </section>
-      )}
-
-      {/* Character List (compact) */}
+      {/* 5. Character List (compact) */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>弟子列表</div>
         <div className={styles.characterList}>

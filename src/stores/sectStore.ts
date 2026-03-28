@@ -21,7 +21,7 @@ import { generateEquipment } from '../systems/item/ItemGenerator'
 import { getTechniqueById, TECHNIQUES } from '../data/techniquesTable'
 import { TECHNIQUE_TIER_ORDER } from '../types/technique'
 import { BUILDING_DEFS, calcResourceCaps } from '../data/buildings'
-import { REALMS, getBreakthroughCost } from '../data/realms'
+import { REALMS, getBreakthroughCost, getCultivationNeeded, getRealmName } from '../data/realms'
 import { tickProductionQueue, calcOfflineProduction, canStartRecipe } from '../systems/building/ProductionSystem'
 import { clampResources } from '../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../systems/economy/ResourceEngine'
@@ -29,7 +29,7 @@ import { getAutoRecipeById } from '../data/recipes'
 import type { AutoRecipe } from '../data/recipes'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
 import { emitEvent } from './eventLogStore'
-import { getRealmName } from '../data/realms'
+import { DUNGEONS } from '../data/events'
 import { shouldTriggerTribulation, resolveTribulation } from '../systems/cultivation/TribulationSystem'
 import { getBuildingBonus } from '../systems/character/SpecialtySystem'
 import { getSynergyBonus } from '../systems/economy/SynergySystem'
@@ -151,6 +151,11 @@ export interface SectStore {
   // Building assignment
   assignToBuilding(characterId: string, buildingType: string): void
   unassignFromBuilding(characterId: string): void
+
+  // Dashboard selectors
+  getBreakthroughCandidate(): { characterId: string; characterName: string; realmName: string; progress: number } | null
+  getNextBuildingUpgrade(): { buildingType: string; buildingName: string; cost: number; canAfford: boolean; isUnlock: boolean } | null
+  getRecommendedDungeon(): { dungeonId: string; dungeonName: string; unlocked: boolean } | null
 
   reset(): void
 }
@@ -1304,6 +1309,106 @@ export const useSectStore = create<SectStore>((set, get) => ({
   },
 
   // ---- Seclusion ----
+
+  // ---- Dashboard selectors ----
+
+  getBreakthroughCandidate: () => {
+    const { sect } = get()
+    let best: { characterId: string; characterName: string; realmName: string; progress: number } | null = null
+
+    for (const char of sect.characters) {
+      if (char.status !== 'idle') continue
+      const needed = getCultivationNeeded(char.realm, char.realmStage)
+      if (needed === Infinity || needed === 0) continue
+      const progress = Math.min(char.cultivation / needed, 1)
+      if (!best || progress > best.progress) {
+        best = {
+          characterId: char.id,
+          characterName: char.name,
+          realmName: getRealmName(char.realm, char.realmStage),
+          progress,
+        }
+      }
+    }
+    return best
+  },
+
+  getNextBuildingUpgrade: () => {
+    const { sect } = get()
+    const spiritStone = sect.resources.spiritStone
+
+    // First: check for locked buildings that meet unlock conditions
+    for (const def of BUILDING_DEFS) {
+      const building = sect.buildings.find(b => b.type === def.type)
+      if (!building || building.unlocked) continue
+      const check = checkBuildingUnlock(def.type, sect.buildings)
+      if (check.unlocked) {
+        const cost = def.upgradeCost(0).spiritStone
+        return {
+          buildingType: def.type,
+          buildingName: def.name,
+          cost,
+          canAfford: spiritStone >= cost,
+          isUnlock: true,
+        }
+      }
+    }
+
+    // Second: find the cheapest upgrade among unlocked, non-maxed buildings
+    let cheapest: { buildingType: string; buildingName: string; cost: number; canAfford: boolean; isUnlock: boolean } | null = null
+
+    for (const def of BUILDING_DEFS) {
+      const building = sect.buildings.find(b => b.type === def.type)
+      if (!building || !building.unlocked) continue
+      if (building.level >= def.maxLevel) continue
+
+      const cost = def.upgradeCost(building.level).spiritStone
+      if (!cheapest || cost < cheapest.cost) {
+        cheapest = {
+          buildingType: def.type,
+          buildingName: def.name,
+          cost,
+          canAfford: spiritStone >= cost,
+          isUnlock: false,
+        }
+      }
+    }
+
+    return cheapest
+  },
+
+  getRecommendedDungeon: () => {
+    const { sect } = get()
+    const idleChars = sect.characters.filter(c => c.status === 'idle')
+    if (idleChars.length === 0) return null
+
+    // Use the strongest idle character's realm
+    const strongest = idleChars.reduce((a, b) =>
+      (b.realm * 4 + b.realmStage) > (a.realm * 4 + a.realmStage) ? b : a
+    )
+    const playerRealm = strongest.realm
+    const playerStage = strongest.realmStage
+
+    // Find the highest unlocked dungeon, or the next one to aim for
+    let best: { dungeonId: string; dungeonName: string; unlocked: boolean } | null = null
+
+    for (const dungeon of DUNGEONS) {
+      const unlocked = playerRealm > dungeon.unlockRealm
+        || (playerRealm === dungeon.unlockRealm && playerStage >= dungeon.unlockStage)
+
+      if (!best
+        || (unlocked && !best.unlocked)
+        || (unlocked === best.unlocked
+          && (dungeon.unlockRealm * 4 + dungeon.unlockStage)
+            > (DUNGEONS.find(d => d.id === best!.dungeonId)!.unlockRealm * 4
+              + DUNGEONS.find(d => d.id === best!.dungeonId)!.unlockStage))
+      ) {
+        best = { dungeonId: dungeon.id, dungeonName: dungeon.name, unlocked }
+      }
+    }
+
+    return best
+  },
 
   // ---- Reset ----
 

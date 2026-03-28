@@ -1,0 +1,101 @@
+.agenda {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.card {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  border-left: 3px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.card.urgent {
+  border-left-color: var(--color-accent);
+}
+
+.card.action {
+  border-left-color: #4caf50;
+}
+
+.card.blocked {
+  border-left-color: var(--color-text-tertiary);
+  opacity: 0.7;
+}
+
+.card.progress {
+  border-left-color: var(--color-accent);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.blockedBadge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-text-tertiary);
+  color: white;
+}
+
+.urgentBadge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-accent);
+  color: white;
+}
+
+.cardDescription {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.progressBar {
+  height: 4px;
+  background: var(--color-border-light);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+.cta {
+  font-size: 11px;
+  font-weight: 500;
+  text-align: right;
+}
+
+.urgentCta {
+  color: var(--color-accent);
+}
+
+.actionCta {
+  color: #4caf50;
+}
+
+.blockedCta {
+  color: var(--color-text-tertiary);
+}
+
+.progressCta {
+  color: var(--color-accent);
+}
