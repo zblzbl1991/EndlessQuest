@@ -3,6 +3,7 @@ import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem } from '../t
 import { SUPPLY_COSTS } from '../types/adventure'
 import type { SupplyLevel } from '../types/adventure'
 import type { TacticPreset } from '../types/runBuild'
+import { emptyRunBuild } from '../systems/roguelike/RunBuildSystem'
 import { useSectStore } from './sectStore'
 import { emitEvent } from './eventLogStore'
 import { DUNGEONS } from '../data/events'
@@ -304,6 +305,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       rewardMultiplier: supplyCost.rewardMultiplier,
       pendingShopOffers: [],
       tacticPreset: tacticPreset ?? 'balanced',
+      runBuild: emptyRunBuild(),
     }
 
     set((s) => ({

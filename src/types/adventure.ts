@@ -2,6 +2,7 @@ import type { AnyItem } from './item'
 import type { Resources } from './sect'
 import type { ShopOffer } from '../systems/roguelike/EventSystem'
 import type { TacticPreset } from './runBuild'
+import type { RunBuild } from '../systems/roguelike/RunBuildSystem'
 
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancient_cave'
 
@@ -91,4 +92,6 @@ export interface DungeonRun {
   pendingShopOffers: ShopOffer[]
   /** Tactical preset for combat AI during this run */
   tacticPreset?: TacticPreset
+  /** Current run-build (blessings and relics) */
+  runBuild?: RunBuild
 }

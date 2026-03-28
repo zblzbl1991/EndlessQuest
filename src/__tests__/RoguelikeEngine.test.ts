@@ -1,6 +1,9 @@
 import { generateFloor, generateDungeonRun } from '../systems/roguelike/MapGenerator'
 import { resolveEvent } from '../systems/roguelike/EventSystem'
 import { DUNGEONS } from '../data/events'
+import { BLESSINGS, type Blessing } from '../data/blessings'
+import { RELICS, type Relic } from '../data/relics'
+import { applyRunBuild, type RunBuild } from '../systems/roguelike/RunBuildSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 
 const dummyPlayer: CombatUnit = {
@@ -179,5 +182,62 @@ describe('EventSystem', () => {
     expect(result.success).toBe(false)
     expect(result.combatResult).toBeUndefined()
     expect(result.message).toContain('全军覆没')
+  })
+})
+
+describe('RunBuild - Blessings', () => {
+  it('should export at least 8 blessings', () => {
+    expect(BLESSINGS.length).toBeGreaterThanOrEqual(8)
+  })
+
+  it('every blessing should have a valid id, name, description, and effect type', () => {
+    for (const b of BLESSINGS) {
+      expect(b.id).toBeTruthy()
+      expect(b.name).toBeTruthy()
+      expect(b.description).toBeTruthy()
+      expect(['atkBoost', 'critBoost', 'spiritRegen', 'hpBoost', 'defBoost', 'healOnKill', 'lootBonus']).toContain(b.effectType)
+    }
+  })
+
+  it('should apply an atkBoost blessing to combat units', () => {
+    const build: RunBuild = {
+      blessings: [{ id: 'flame_heart', stacks: 1 }],
+      relics: [],
+    }
+    const units = applyRunBuild([dummyPlayer], build)
+    expect(units[0].atk).toBeGreaterThan(dummyPlayer.atk)
+  })
+})
+
+describe('RunBuild - Relics', () => {
+  it('should export at least 4 relics', () => {
+    expect(RELICS.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('every relic should have a valid id, name, description, and rule', () => {
+    for (const r of RELICS) {
+      expect(r.id).toBeTruthy()
+      expect(r.name).toBeTruthy()
+      expect(r.description).toBeTruthy()
+      expect(r.rule).toBeTruthy()
+    }
+  })
+
+  it('relics persist inside the run build', () => {
+    const build: RunBuild = {
+      blessings: [],
+      relics: [{ id: 'mirror_shard' }],
+    }
+    expect(build.relics).toHaveLength(1)
+    expect(build.relics[0].id).toBe('mirror_shard')
+  })
+
+  it('should apply a defense relic effect to combat units', () => {
+    const build: RunBuild = {
+      blessings: [],
+      relics: [{ id: 'jade_armor' }],
+    }
+    const units = applyRunBuild([dummyPlayer], build)
+    expect(units[0].def).toBeGreaterThan(dummyPlayer.def)
   })
 })

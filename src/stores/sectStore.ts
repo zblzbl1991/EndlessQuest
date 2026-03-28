@@ -79,7 +79,8 @@ function createInitialState(): { sect: Sect } {
       totalBreakthroughs: 0,
       lastTransmissionTime: 0,
       techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
-    },
+      activeRoute: null,
+    }
   }
 }
 
