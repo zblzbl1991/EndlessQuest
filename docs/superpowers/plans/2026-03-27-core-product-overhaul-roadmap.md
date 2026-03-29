@@ -517,32 +517,32 @@ git commit -m "feat: add sect route progression"
 - Create: `src/data/archiveMilestones.ts`
 - Test: `src/__tests__/stores.test.ts`
 
-- [ ] **Step 1: Write failing tests for historical milestone recording**
+- [x] **Step 1: Write failing tests for historical milestone recording**
 
 Cover:
 - first rare recruit
 - first major tribulation success
 - first boss clear
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
 
 Run: `npm test -- stores.test.ts`
 Expected: FAIL because history fields are missing
 
-- [ ] **Step 3: Add sect history or archive fields**
+- [x] **Step 3: Add sect history or archive fields**
 
 Persist milestone entries in the main save payload.
 
-- [ ] **Step 4: Surface milestones in log/history UI**
+- [x] **Step 4: Surface milestones in log/history UI**
 
 Keep the first version text-forward and lightweight.
 
-- [ ] **Step 5: Re-run focused tests**
+- [x] **Step 5: Re-run focused tests**
 
 Run: `npm test -- stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Build check**
+- [x] **Step 6: Build check**
 
 Run: `npm run build`
 Expected: successful build

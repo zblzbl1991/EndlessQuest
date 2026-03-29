@@ -383,6 +383,11 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         }
       }
 
+      // Record boss clear milestone
+      if (result.type === 'boss') {
+        useSectStore.getState().recordMilestone('first_boss_clear')
+      }
+
       // Store shop offers for UI
       if (result.shopOffers && result.shopOffers.length > 0) {
         newShopOffers = result.shopOffers
@@ -609,6 +614,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     const dungeonName = DUNGEONS.find(d => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`)
+    useSectStore.getState().recordMilestone('first_dungeon_clear')
 
     // 1. Deposit 100% of totalRewards
     depositResourcesToSect(run.totalRewards)

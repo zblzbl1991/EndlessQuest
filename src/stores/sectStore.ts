@@ -979,6 +979,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
               const nextName = getRealmName(btResult.newRealm, btResult.newStage)
               emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
               get().recordMilestone('first_breakthrough')
+              get().recordMilestone('first_tribulation')
               // Apply fate: successful tribulation -> sudden-insight
               const fateResult = applyFateOnTribulation(updatedChar, true, false)
               // Apply fate: successful major breakthrough -> stable-dao-heart

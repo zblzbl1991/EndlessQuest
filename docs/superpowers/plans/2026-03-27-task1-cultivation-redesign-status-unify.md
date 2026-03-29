@@ -10,7 +10,8 @@
 - [ ] **Step 1: 写失败测试** — store 测试覆盖：idle 自动修炼、idle 自动突破、小境界灵石消耗、移除 secluded/cultivating 相关逻辑
 - [ ] **Step 2: 运行测试确认失败** — `npm test -- stores.test.ts CultivationEngine.test.ts`
 - [ ] **Step 3: 更新 CharacterStatus 类型** — 移除 `cultivating` 和 `secluded`，保留 idle/adventuring/patrolling/training/resting/injured
-- [ ] **Step 4: 新增小境界突破灵石消耗表** — `src/data/realms.ts` 加入 MINOR_BREAKTHROUGH_COSTS
+- [ ] **Step 4: 新增
+- 小境界突破灵石消耗表** — `src/data/realms.ts` 加入 MINOR_BREAKTHROUGH_COSTS
 - [ ] **Step 5: 更新 CultivationEngine** — canBreakthrough 增加灵石检查，新增 autoBreakthrough 逻辑
 - [ ] **Step 6: 更新 sectStore tickAll** — idle 角色自动修炼、自动突破、移除 seclusion 逻辑、移除 cultivating 分支
 - [ ] **Step 7: 更新 adventureStore** — 冒险/派遣结束时 cultivating → idle

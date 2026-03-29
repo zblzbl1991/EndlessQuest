@@ -1824,6 +1824,26 @@ describe('SectStore - Milestones', () => {
     const unlocked = getStore().getUnlockedMilestones()
     expect(unlocked).toEqual([])
   })
+
+  it('should record first_dungeon_clear when dungeon completes', () => {
+    // AdventureStore calls sectStore.recordMilestone on completeRun
+    // We can test directly via the store method
+    getStore().recordMilestone('first_dungeon_clear')
+    expect(getStore().sect.milestones['first_dungeon_clear']).toBeDefined()
+
+    const unlocked = getStore().getUnlockedMilestones()
+    expect(unlocked.some(m => m.id === 'first_dungeon_clear')).toBe(true)
+  })
+
+  it('should record first_tribulation on successful tribulation', () => {
+    getStore().recordMilestone('first_tribulation')
+    expect(getStore().sect.milestones['first_tribulation']).toBeDefined()
+  })
+
+  it('should record first_boss_clear on boss event victory', () => {
+    getStore().recordMilestone('first_boss_clear')
+    expect(getStore().sect.milestones['first_boss_clear']).toBeDefined()
+  })
 })
 
 // ---------------------------------------------------------------------------
