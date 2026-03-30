@@ -1,6 +1,8 @@
 import type { ItemStack } from './item'
 import type { Talent } from './talent'
 
+export type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
+
 export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
 
 export type CharacterQuality = 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
@@ -64,4 +66,5 @@ export interface Character {
   totalCultivation: number
   specialties: Specialty[]
   assignedBuilding: string | null
+  cultivationPath: CultivationPath
 }

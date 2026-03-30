@@ -3,6 +3,7 @@ import type { Equipment } from '../../types/item'
 import type { Talent, TalentRarity } from '../../types/talent'
 import { ALL_TALENTS } from '../../data/talents'
 import { getTechniqueById } from '../../data/techniquesTable'
+import { rollCultivationPath } from '../../data/cultivationPaths'
 
 // ---------------------------------------------------------------------------
 // Quality stat table
@@ -334,6 +335,7 @@ export function generateCharacter(quality: CharacterQuality): Character {
     totalCultivation: 0,
     specialties: [],
     assignedBuilding: null,
+    cultivationPath: rollCultivationPath(quality),
   }
 }
 

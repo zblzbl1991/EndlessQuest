@@ -141,6 +141,7 @@ export async function loadGame(): Promise<boolean> {
       backpack: migrateToItemStacks(c.backpack),
       specialties: (c as any).specialties ?? [],
       assignedBuilding: (c as any).assignedBuilding ?? null,
+      cultivationPath: (c as any).cultivationPath ?? 'none',
     }))
 
     const sect: Sect = {

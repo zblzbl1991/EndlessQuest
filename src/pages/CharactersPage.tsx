@@ -5,6 +5,7 @@ import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getAvailableMissions, DISPATCH_MISSIONS } from '../data/missions'
 import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
+import { getPathDef } from '../data/cultivationPaths'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
 import CharacterCard from '../components/common/CharacterCard'
@@ -185,6 +186,17 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           <StatusBadge status={character.status} />
         </div>
         <div className={styles.detailRealm}>{realmName}</div>
+        {character.cultivationPath !== 'none' &&
+          (() => {
+            const pathDef = getPathDef(character.cultivationPath)
+            return pathDef ? (
+              <div className={styles.pathRow}>
+                <span className={styles.pathLabel}>修行:</span>
+                <span className={styles.pathName}>{pathDef.name}</span>
+                <span className={styles.pathDesc}>{pathDef.description}</span>
+              </div>
+            ) : null
+          })()}
         <div className={styles.detailProgress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <span className={styles.progressText}>

@@ -169,6 +169,29 @@
   margin-bottom: var(--space-sm);
 }
 
+.pathRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.pathLabel {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.pathName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.pathDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
 .detailProgress {
   display: flex;
   align-items: center;
