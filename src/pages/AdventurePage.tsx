@@ -59,7 +59,7 @@ export default function AdventurePage() {
   // Characters available for team building (cultivating or resting, not adventuring)
   const availableCharacters = useMemo(() => {
     return sect.characters.filter(
-      (c) => c.status === 'cultivating' || c.status === 'resting'
+      (c) => c.status === 'idle' || c.status === 'resting'
     )
   }, [sect.characters])
 

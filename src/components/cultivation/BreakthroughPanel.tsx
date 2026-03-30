@@ -1,6 +1,6 @@
 import { useSectStore } from '../../stores/sectStore'
 import { canBreakthrough, calcBreakthroughFailureRate, isMajorRealmBreakthrough } from '../../systems/cultivation/CultivationEngine'
-import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS } from '../../data/realms'
+import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import type { RealmStage } from '../../types/character'
 import styles from './BreakthroughPanel.module.css'
@@ -30,7 +30,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const hasStones = cost ? spiritStone >= cost.spiritStone : true
 
   // Hint text
-  let hint = character.status === 'cultivating' ? '修炼中' : character.status === 'resting' ? '休息中' : '冒险中'
+  let hint = character.status === 'idle' ? '修炼中' : character.status === 'resting' ? '休息中' : '冒险中'
   let hintClass = ''
   if (ready) {
     if (isMajor && cost) {
@@ -85,6 +85,19 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
           </div>
         </div>
       )}
+      {!isMajor && (() => {
+        const minorCost = getMinorBreakthroughCost(character.realm, character.realmStage)
+        const hasMinorStones = spiritStone >= minorCost
+        return (
+          <div className={styles.majorReq}>
+            <div className={styles.reqTitle}>突破需求</div>
+            <div className={`${styles.reqItem} ${hasMinorStones ? styles.reqMet : styles.reqUnmet}`}>
+              <span>灵石 ×{minorCost.toLocaleString()}</span>
+              <span>{hasMinorStones ? '✓' : '✗'}</span>
+            </div>
+          </div>
+        )
+      })()}
       <div className={`${styles.hint} ${hintClass}`}>{hint}</div>
     </div>
   )
