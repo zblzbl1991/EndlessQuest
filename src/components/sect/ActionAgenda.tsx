@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useSectStore } from '../../stores/sectStore'
 import styles from './ActionAgenda.module.css'
 
@@ -27,9 +28,14 @@ interface AgendaItem {
 }
 
 export default function ActionAgenda() {
-  const breakthrough = useSectStore((s) => s.getBreakthroughCandidate())
-  const building = useSectStore((s) => s.getNextBuildingUpgrade())
-  const dungeon = useSectStore((s) => s.getRecommendedDungeon())
+  const sect = useSectStore((s) => s.sect)
+  const getBreakthroughCandidate = useSectStore((s) => s.getBreakthroughCandidate)
+  const getNextBuildingUpgrade = useSectStore((s) => s.getNextBuildingUpgrade)
+  const getRecommendedDungeon = useSectStore((s) => s.getRecommendedDungeon)
+
+  const breakthrough = useMemo(() => getBreakthroughCandidate(), [sect])
+  const building = useMemo(() => getNextBuildingUpgrade(), [sect])
+  const dungeon = useMemo(() => getRecommendedDungeon(), [sect])
 
   const items: AgendaItem[] = [
     ...(breakthrough
