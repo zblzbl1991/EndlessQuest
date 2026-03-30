@@ -1,6 +1,16 @@
 import { create } from 'zustand'
 import type { Character, CharacterTitle, CharacterQuality, CharacterStatus } from '../types/character'
-import type { BuildingType, Resources, ResourceType, Sect, AnyItem, Equipment, Consumable, ItemStack } from '../types'
+import type {
+  BuildingType,
+  Resources,
+  ResourceType,
+  Sect,
+  AnyItem,
+  Equipment,
+  Consumable,
+  ItemStack,
+  OfflineAccumulator,
+} from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 import {
   generateCharacter,
@@ -96,6 +106,12 @@ function createInitialState(): { sect: Sect } {
       totalBreakthroughs: 0,
       lastTransmissionTime: 0,
       techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
+      offlineAccumulator: {
+        resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+        breakthroughs: [],
+        itemsCrafted: [],
+        taxIncome: 0,
+      },
     },
   }
 }
@@ -177,6 +193,9 @@ export interface SectStore {
   // Building assignment
   assignToBuilding(characterId: string, buildingType: string): void
   unassignFromBuilding(characterId: string): void
+
+  // Offline report
+  clearOfflineAccumulator(): void
 
   reset(): void
 }
@@ -852,6 +871,10 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
+    // Offline accumulator: track items crafted
+    const accItemsCrafted: { name: string; quantity: number }[] = []
+    const accBreakthroughs: { characterName: string; targetRealm: string; success: boolean }[] = []
+
     // 5. Process production queues (before cultivation loop)
     const newBuildings = sect.buildings.map((b) => ({ ...b, productionQueue: { ...b.productionQueue } }))
     let newVault = [...sect.vault]
@@ -875,6 +898,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
             const stack = produceItemAsStack(recipe, building.level)
             if (stack) {
               newVault = addItemQuantityToStacks(newVault, stack.item, stack.quantity)
+              accItemsCrafted.push({ name: stack.item.name, quantity: stack.quantity })
             }
           }
         }
@@ -892,6 +916,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
             const stack = produceItemAsStack(recipe, building.level)
             if (stack) {
               newVault = addItemQuantityToStacks(newVault, stack.item, stack.quantity)
+              accItemsCrafted.push({ name: stack.item.name, quantity: stack.quantity })
             }
           }
         }
@@ -953,6 +978,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
                   if (btResult.success) {
                     const nextName = getRealmName(btResult.newRealm, btResult.newStage)
                     emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
+                    accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
                     updatedChar = {
                       ...updatedChar,
                       realm: btResult.newRealm,
@@ -971,6 +997,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
                     }
                   } else {
                     emitEvent('breakthrough_failure', `${updatedChar.name} 天劫虽过，但突破失败，修为散尽`)
+                    accBreakthroughs.push({
+                      characterName: updatedChar.name,
+                      targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
+                      success: false,
+                    })
                     updatedChar = { ...updatedChar, cultivation: 0 }
                   }
                 } else {
@@ -1002,6 +1033,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
                 if (btResult.success) {
                   const nextName = getRealmName(btResult.newRealm, btResult.newStage)
                   emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
+                  accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
                   updatedChar = {
                     ...updatedChar,
                     realm: btResult.newRealm,
@@ -1025,6 +1057,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
                   }
                 } else {
                   emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
+                  accBreakthroughs.push({
+                    characterName: updatedChar.name,
+                    targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
+                    success: false,
+                  })
                   updatedChar = { ...updatedChar, cultivation: 0 }
                 }
               }
@@ -1041,6 +1078,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
               if (btResult.success) {
                 const nextName = getRealmName(btResult.newRealm, btResult.newStage)
                 emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
+                accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
                 updatedChar = {
                   ...updatedChar,
                   realm: btResult.newRealm,
@@ -1060,6 +1098,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
                 }
               } else {
                 emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
+                accBreakthroughs.push({
+                  characterName: updatedChar.name,
+                  targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
+                  success: false,
+                })
                 updatedChar = { ...updatedChar, cultivation: 0 }
               }
             }
@@ -1107,6 +1150,20 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // 13. Clamp resources to caps
     const clampedResources = clampResources(newResources, caps)
 
+    // 14. Update offline accumulator
+    const prevAcc = sect.offlineAccumulator
+    const updatedAccumulator: OfflineAccumulator = {
+      resourcesGained: {
+        spiritStone: prevAcc.resourcesGained.spiritStone + rates.spiritStone * deltaSec + taxProduced,
+        spiritEnergy: prevAcc.resourcesGained.spiritEnergy + spiritProduced,
+        herb: prevAcc.resourcesGained.herb + rates.herb * deltaSec,
+        ore: prevAcc.resourcesGained.ore + rates.ore * deltaSec,
+      },
+      breakthroughs: [...prevAcc.breakthroughs, ...accBreakthroughs],
+      itemsCrafted: [...prevAcc.itemsCrafted, ...accItemsCrafted],
+      taxIncome: prevAcc.taxIncome + taxProduced,
+    }
+
     // Build the updated sect for the set call
     const newSect = {
       ...sect,
@@ -1115,6 +1172,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       buildings: newBuildings,
       vault: newVault,
       level: newSectLevel,
+      offlineAccumulator: updatedAccumulator,
     }
 
     set({
@@ -1374,6 +1432,22 @@ export const useSectStore = create<SectStore>((set, get) => ({
         },
       }
     })
+  },
+
+  // ---- Offline report ----
+
+  clearOfflineAccumulator: () => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        offlineAccumulator: {
+          resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+          breakthroughs: [],
+          itemsCrafted: [],
+          taxIncome: 0,
+        },
+      },
+    }))
   },
 
   // ---- Reset ----

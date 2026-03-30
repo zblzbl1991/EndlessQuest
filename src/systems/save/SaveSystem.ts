@@ -156,6 +156,12 @@ export async function loadGame(): Promise<boolean> {
       totalBreakthroughs: meta.totalBreakthroughs,
       lastTransmissionTime: meta.lastTransmissionTime,
       techniqueCodex: meta.techniqueCodex,
+      offlineAccumulator: {
+        resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+        breakthroughs: [],
+        itemsCrafted: [],
+        taxIncome: 0,
+      },
     }
 
     useSectStore.setState({ sect })

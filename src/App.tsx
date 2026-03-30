@@ -10,6 +10,8 @@ import Sidebar from './components/common/Sidebar'
 import BottomNav from './components/common/BottomNav'
 import TopBar from './components/common/TopBar'
 import ErrorBoundary from './components/common/ErrorBoundary'
+import OfflineReportModal from './components/common/OfflineReportModal'
+import type { OfflineReportData } from './components/common/OfflineReportModal'
 import SectPage from './pages/SectPage'
 import CharactersPage from './pages/CharactersPage'
 import BuildingsPage from './pages/BuildingsPage'
@@ -25,6 +27,7 @@ export default function App() {
   const lastOnlineTime = useGameStore((s) => s.lastOnlineTime)
 
   const [isLoaded, setIsLoaded] = useState(false)
+  const [offlineReport, setOfflineReport] = useState<OfflineReportData | null>(null)
   const loadingRef = useRef(false)
 
   useEffect(() => {
@@ -51,6 +54,20 @@ export default function App() {
     const offline = calcOfflineSeconds(lastOnlineTime)
     if (offline > 1) {
       tickAll(offline)
+
+      // Show offline report if away for more than 60 seconds
+      // Use microtask to avoid calling setState synchronously within the effect
+      if (offline > 60) {
+        const acc = useSectStore.getState().sect.offlineAccumulator
+        const reportData: OfflineReportData = {
+          offlineSeconds: offline,
+          resourcesGained: { ...acc.resourcesGained },
+          breakthroughs: [...acc.breakthroughs],
+          itemsCrafted: [...acc.itemsCrafted],
+          taxIncome: acc.taxIncome,
+        }
+        queueMicrotask(() => setOfflineReport(reportData))
+      }
     }
 
     // Start engine
@@ -67,6 +84,11 @@ export default function App() {
       cleanup()
     }
   }, [isLoaded])
+
+  const handleCloseReport = () => {
+    useSectStore.getState().clearOfflineAccumulator()
+    setOfflineReport(null)
+  }
 
   if (!isLoaded) {
     return (
@@ -104,6 +126,7 @@ export default function App() {
         </ErrorBoundary>
       </div>
       <BottomNav />
+      {offlineReport && <OfflineReportModal report={offlineReport} onClose={handleCloseReport} />}
     </BrowserRouter>
   )
 }

@@ -1746,3 +1746,124 @@ describe('expedition supply', () => {
     expect(getStore().sect.vault).toHaveLength(2) // spirit_potion items not consumed
   })
 })
+
+// ---------------------------------------------------------------------------
+// Offline Accumulator Tests
+// ---------------------------------------------------------------------------
+
+describe('SectStore - Offline Accumulator', () => {
+  beforeEach(() => resetStore())
+
+  it('should have empty accumulator initially', () => {
+    const acc = getStore().sect.offlineAccumulator
+    expect(acc.resourcesGained.spiritStone).toBe(0)
+    expect(acc.resourcesGained.spiritEnergy).toBe(0)
+    expect(acc.resourcesGained.herb).toBe(0)
+    expect(acc.resourcesGained.ore).toBe(0)
+    expect(acc.breakthroughs).toHaveLength(0)
+    expect(acc.itemsCrafted).toHaveLength(0)
+    expect(acc.taxIncome).toBe(0)
+  })
+
+  it('should accumulate resources after tickAll', () => {
+    // Give spirit energy for cultivation
+    getStore().addResource('spiritEnergy', 100)
+
+    getStore().tickAll(10)
+
+    const acc = getStore().sect.offlineAccumulator
+    // Tax income accumulates (sectLevel=1, 1 disciple -> 0.5/s * 10 = 5)
+    expect(acc.taxIncome).toBeGreaterThan(0)
+  })
+
+  it('should accumulate tax income', () => {
+    getStore().addResource('spiritEnergy', 100)
+    getStore().tickAll(10)
+
+    const acc = getStore().sect.offlineAccumulator
+    // At sect level 1 with 1 disciple: taxRate = 0.5/s, 10s = 5
+    expect(acc.taxIncome).toBeCloseTo(5, 0)
+  })
+
+  it('should accumulate resources across multiple tickAll calls', () => {
+    getStore().addResource('spiritEnergy', 1000)
+
+    getStore().tickAll(10)
+    getStore().tickAll(10)
+
+    const acc = getStore().sect.offlineAccumulator
+    // Tax should have accumulated across both ticks
+    expect(acc.taxIncome).toBeCloseTo(10, 0)
+  })
+
+  it('should clear accumulator when clearOfflineAccumulator is called', () => {
+    getStore().addResource('spiritEnergy', 100)
+    getStore().tickAll(10)
+
+    // Verify something was accumulated
+    const accBefore = getStore().sect.offlineAccumulator
+    expect(accBefore.taxIncome).toBeGreaterThan(0)
+
+    getStore().clearOfflineAccumulator()
+
+    const accAfter = getStore().sect.offlineAccumulator
+    expect(accAfter.resourcesGained.spiritStone).toBe(0)
+    expect(accAfter.resourcesGained.spiritEnergy).toBe(0)
+    expect(accAfter.resourcesGained.herb).toBe(0)
+    expect(accAfter.resourcesGained.ore).toBe(0)
+    expect(accAfter.breakthroughs).toHaveLength(0)
+    expect(accAfter.itemsCrafted).toHaveLength(0)
+    expect(accAfter.taxIncome).toBe(0)
+  })
+
+  it('should accumulate crafted items from production queue', () => {
+    // Setup alchemy furnace with recipe
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace'
+            ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 0 } }
+            : b
+        ),
+        resources: { ...s.sect.resources, herb: 100, spiritEnergy: 100 },
+      },
+    }))
+
+    // hp_potion: productionTime=20s, inputPerSec.herb=0.25
+    getStore().tickAll(20)
+
+    const acc = getStore().sect.offlineAccumulator
+    expect(acc.itemsCrafted.length).toBeGreaterThanOrEqual(1)
+    expect(acc.itemsCrafted[0].name).toBeTruthy()
+  })
+
+  it('should accumulate breakthroughs when they occur', () => {
+    const char = getFirstCharacter()
+    setCharacterCultivation(char.id, 100) // needs 100 for sub-level breakthrough
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
+
+    const acc = getStore().sect.offlineAccumulator
+    expect(acc.breakthroughs.length).toBeGreaterThanOrEqual(1)
+    expect(acc.breakthroughs[0].characterName).toBe(char.name)
+    expect(acc.breakthroughs[0].success).toBe(true)
+    expect(acc.breakthroughs[0].targetRealm).toBeTruthy()
+
+    vi.restoreAllMocks()
+  })
+
+  it('reset should reset accumulator to empty', () => {
+    getStore().addResource('spiritEnergy', 100)
+    getStore().tickAll(10)
+
+    resetStore()
+
+    const acc = getStore().sect.offlineAccumulator
+    expect(acc.resourcesGained.spiritStone).toBe(0)
+    expect(acc.taxIncome).toBe(0)
+    expect(acc.breakthroughs).toHaveLength(0)
+    expect(acc.itemsCrafted).toHaveLength(0)
+  })
+})

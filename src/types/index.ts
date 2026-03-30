@@ -24,7 +24,16 @@ export type {
   ItemStack,
   InventoryState,
 } from './item'
-export type { BuildingType, ResourceType, Resources, ProductionQueue, ResourceCaps, Building, Sect } from './sect'
+export type {
+  BuildingType,
+  ResourceType,
+  Resources,
+  ProductionQueue,
+  ResourceCaps,
+  Building,
+  Sect,
+  OfflineAccumulator,
+} from './sect'
 export type {
   EventType,
   Enemy,

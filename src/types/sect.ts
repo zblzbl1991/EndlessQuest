@@ -34,6 +34,14 @@ export interface ResourceCaps {
   ore: number
 }
 
+/** 离线收益累积器 */
+export interface OfflineAccumulator {
+  resourcesGained: Resources
+  breakthroughs: { characterName: string; targetRealm: string; success: boolean }[]
+  itemsCrafted: { name: string; quantity: number }[]
+  taxIncome: number
+}
+
 export interface Building {
   type: BuildingType
   level: number
@@ -54,4 +62,5 @@ export interface Sect {
   totalBreakthroughs: number
   lastTransmissionTime: number
   techniqueCodex: string[] // 已解锁功法 ID 列表
+  offlineAccumulator: OfflineAccumulator
 }
