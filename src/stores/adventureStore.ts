@@ -311,6 +311,18 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       activeRuns: { ...s.activeRuns, [runId]: run },
     }))
 
+    // Update adventure stats on sect store
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        stats: {
+          ...s.sect.stats,
+          totalAdventureRuns: s.sect.stats.totalAdventureRuns + 1,
+          totalSpiritStoneSpent: s.sect.stats.totalSpiritStoneSpent + supplyCost.spiritStone,
+        },
+      },
+    }))
+
     return run
   },
 
@@ -339,6 +351,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     let newShopOffers = run.pendingShopOffers ?? []
 
     // Resolve all events on the route
+    let statBattles = 0
+    let statVictories = 0
+    let statKills = 0
     for (const event of route.events) {
       // Rebuild alive team from updated states
       const currentUnits = buildAliveTeamUnits({ ...run, memberStates: newMemberStates })
@@ -346,6 +361,15 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
       const result = resolveEvent(event, currentUnits, run.currentFloor)
 
+      // Track combat stats
+      if (result.combatResult) {
+        statBattles++
+        if (result.success) {
+          statVictories++
+          // Count dead enemies (hp <= 0) from combat result
+          statKills += result.combatResult.enemyHp.filter((hp) => hp <= 0).length
+        }
+      }
       // Apply HP changes to member states
       for (const charId of run.teamCharacterIds) {
         const hpChange = result.hpChanges[charId]
@@ -390,6 +414,21 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         timestamp: Date.now(),
         message: result.message,
       })
+    }
+
+    // Update combat stats on sect store
+    if (statBattles > 0) {
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          stats: {
+            ...s.sect.stats,
+            totalBattles: s.sect.stats.totalBattles + statBattles,
+            totalVictories: s.sect.stats.totalVictories + statVictories,
+            totalKills: s.sect.stats.totalKills + statKills,
+          },
+        },
+      }))
     }
 
     // Check if all members are dead
@@ -601,6 +640,18 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`)
 
+    // Update stats: adventure completion + max floor
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        stats: {
+          ...s.sect.stats,
+          totalAdventureCompletions: s.sect.stats.totalAdventureCompletions + 1,
+          maxFloorCleared: Math.max(s.sect.stats.maxFloorCleared, run.currentFloor - 1),
+        },
+      },
+    }))
+
     // 1. Deposit 100% of totalRewards
     depositResourcesToSect(run.totalRewards)
 
@@ -640,6 +691,17 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_fail', `秘境 ${dungeonName} 失败`)
+
+    // Update stats: adventure failure
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        stats: {
+          ...s.sect.stats,
+          totalAdventureFailures: s.sect.stats.totalAdventureFailures + 1,
+        },
+      },
+    }))
 
     // 1. Deposit 50% of totalRewards
     depositFractionResourcesToSect(run.totalRewards, 0.5)
@@ -835,6 +897,17 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (success) {
       const pet = generatePet(quality)
       useSectStore.getState().addPet(pet)
+
+      // Update pet capture stats
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          stats: {
+            ...s.sect.stats,
+            totalPetCaptures: s.sect.stats.totalPetCaptures + 1,
+          },
+        },
+      }))
 
       // Log the capture
       const newLog = [...run.eventLog, { timestamp: Date.now(), message: `成功捕获了 ${pet.name}！` }]

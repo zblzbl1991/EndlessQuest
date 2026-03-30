@@ -102,6 +102,8 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
       unlockedTechniques: legacyBonus.unlockedTechniques,
       unlockedDungeons: legacyBonus.unlockedDungeons,
     },
+    // Preserve stats across ascensions
+    stats: sect.stats,
   }
 
   const report: AscensionReport = {

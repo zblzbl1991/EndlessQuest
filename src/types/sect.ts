@@ -58,6 +58,26 @@ export interface LegacyBonus {
   unlockedDungeons: string[]
 }
 
+/** 宗门累计统计 */
+export interface SectStats {
+  totalSpiritStoneEarned: number
+  totalSpiritStoneSpent: number
+  totalBattles: number
+  totalVictories: number
+  totalKills: number
+  maxFloorCleared: number
+  totalRecruits: number
+  totalBreakthroughAttempts: number
+  totalBreakthroughSuccesses: number
+  totalBuildingUpgrades: number
+  totalAdventureRuns: number
+  totalAdventureCompletions: number
+  totalAdventureFailures: number
+  totalPetCaptures: number
+  totalPlayTime: number
+  longestOfflineSeconds: number
+}
+
 export interface Sect {
   name: string
   level: number
@@ -76,4 +96,5 @@ export interface Sect {
   unlockedPathNodeIds: string[]
   pathUnlockedAt: number | null
   legacy: LegacyBonus
+  stats: SectStats
 }

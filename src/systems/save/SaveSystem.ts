@@ -1,4 +1,4 @@
-import type { Sect } from '../../types'
+import type { Sect, SectStats } from '../../types'
 import type { DungeonRun } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
@@ -30,6 +30,7 @@ interface SaveMeta {
   unlockedPathNodeIds: Sect['unlockedPathNodeIds']
   pathUnlockedAt: Sect['pathUnlockedAt']
   legacy: Sect['legacy']
+  stats: SectStats
 }
 
 // ---------------------------------------------------------------------------
@@ -61,6 +62,7 @@ export async function saveGame(): Promise<void> {
       unlockedPathNodeIds: sect.unlockedPathNodeIds,
       pathUnlockedAt: sect.pathUnlockedAt,
       legacy: sect.legacy,
+      stats: sect.stats,
     })
 
     // Write characters
@@ -175,6 +177,24 @@ export async function loadGame(): Promise<boolean> {
       unlockedPathNodeIds: (meta as any).unlockedPathNodeIds ?? [],
       pathUnlockedAt: (meta as any).pathUnlockedAt ?? null,
       legacy: (meta as any).legacy ?? { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      stats: (meta as any).stats ?? {
+        totalSpiritStoneEarned: 0,
+        totalSpiritStoneSpent: 0,
+        totalBattles: 0,
+        totalVictories: 0,
+        totalKills: 0,
+        maxFloorCleared: 0,
+        totalRecruits: 0,
+        totalBreakthroughAttempts: 0,
+        totalBreakthroughSuccesses: 0,
+        totalBuildingUpgrades: 0,
+        totalAdventureRuns: 0,
+        totalAdventureCompletions: 0,
+        totalAdventureFailures: 0,
+        totalPetCaptures: 0,
+        totalPlayTime: 0,
+        longestOfflineSeconds: 0,
+      },
     }
 
     useSectStore.setState({ sect })

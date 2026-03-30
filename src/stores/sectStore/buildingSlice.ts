@@ -26,6 +26,11 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], SectStore> = (
           ...s.sect.resources,
           spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
         },
+        stats: {
+          ...s.sect.stats,
+          totalBuildingUpgrades: s.sect.stats.totalBuildingUpgrades + 1,
+          totalSpiritStoneSpent: s.sect.stats.totalSpiritStoneSpent + cost.spiritStone,
+        },
       },
     }))
     return true

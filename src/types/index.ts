@@ -34,6 +34,7 @@ export type {
   ResourceCaps,
   Building,
   Sect,
+  SectStats,
   OfflineAccumulator,
   LegacyBonus,
 } from './sect'

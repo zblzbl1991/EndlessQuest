@@ -44,6 +44,11 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], SectStore> = 
           ...s.sect.resources,
           spiritStone: s.sect.resources.spiritStone - cost,
         },
+        stats: {
+          ...s.sect.stats,
+          totalRecruits: s.sect.stats.totalRecruits + 1,
+          totalSpiritStoneSpent: s.sect.stats.totalSpiritStoneSpent + cost,
+        },
       },
     }))
     return character
@@ -143,6 +148,11 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], SectStore> = 
           ...s.sect.resources,
           spiritStone: s.sect.resources.spiritStone - stoneCost,
           herb: s.sect.resources.herb - herbCost,
+        },
+        stats: {
+          ...s.sect.stats,
+          totalRecruits: s.sect.stats.totalRecruits + 1,
+          totalSpiritStoneSpent: s.sect.stats.totalSpiritStoneSpent + stoneCost,
         },
       },
     }))

@@ -10,6 +10,10 @@ export const createResourceSlice: StateCreator<SectStore, [], [], SectStore> = (
       sect: {
         ...s.sect,
         resources: { ...s.sect.resources, [type]: s.sect.resources[type] - amount },
+        stats: {
+          ...s.sect.stats,
+          ...(type === 'spiritStone' ? { totalSpiritStoneSpent: s.sect.stats.totalSpiritStoneSpent + amount } : {}),
+        },
       },
     }))
     return true
@@ -20,6 +24,10 @@ export const createResourceSlice: StateCreator<SectStore, [], [], SectStore> = (
       sect: {
         ...s.sect,
         resources: { ...s.sect.resources, [type]: s.sect.resources[type] + amount },
+        stats: {
+          ...s.sect.stats,
+          ...(type === 'spiritStone' ? { totalSpiritStoneEarned: s.sect.stats.totalSpiritStoneEarned + amount } : {}),
+        },
       },
     }))
   },

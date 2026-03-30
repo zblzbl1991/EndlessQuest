@@ -135,6 +135,8 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
 
     // 9. Process each character
     let breakthroughStoneCost = 0
+    let statBreakthroughAttempts = 0
+    let statBreakthroughSuccesses = 0
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
       if (char.status === 'idle') {
@@ -171,8 +173,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
                 const tribResult = resolveTribulation(updatedChar)
                 if (tribResult.success) {
                   const failureRate = calcBreakthroughFailureRate(updatedChar)
+                  statBreakthroughAttempts++
                   const btResult = performBreakthrough(updatedChar, failureRate)
                   if (btResult.success) {
+                    statBreakthroughSuccesses++
                     const nextName = getRealmName(btResult.newRealm, btResult.newStage)
                     emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
                     accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
@@ -226,8 +230,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
               } else {
                 // Non-tribulation path for realms without tribulationPower
                 const failureRate = calcBreakthroughFailureRate(updatedChar)
+                statBreakthroughAttempts++
                 const btResult = performBreakthrough(updatedChar, failureRate)
                 if (btResult.success) {
+                  statBreakthroughSuccesses++
                   const nextName = getRealmName(btResult.newRealm, btResult.newStage)
                   emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
                   accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
@@ -271,8 +277,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
             } else {
               breakthroughStoneCost += minorCost
               const failureRate = calcBreakthroughFailureRate(updatedChar)
+              statBreakthroughAttempts++
               const btResult = performBreakthrough(updatedChar, failureRate)
               if (btResult.success) {
+                statBreakthroughSuccesses++
                 const nextName = getRealmName(btResult.newRealm, btResult.newStage)
                 emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
                 accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
@@ -362,6 +370,9 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
       taxIncome: prevAcc.taxIncome + taxProduced,
     }
 
+    // Calculate spirit stone income for stats
+    const spiritStoneEarned = rates.spiritStone * deltaSec + taxProduced
+
     // Build the updated sect for the set call
     const newSect = {
       ...sect,
@@ -371,6 +382,14 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
       vault: newVault,
       level: newSectLevel,
       offlineAccumulator: updatedAccumulator,
+      stats: {
+        ...sect.stats,
+        totalSpiritStoneEarned: sect.stats.totalSpiritStoneEarned + spiritStoneEarned,
+        totalSpiritStoneSpent: sect.stats.totalSpiritStoneSpent + breakthroughStoneCost,
+        totalBreakthroughAttempts: sect.stats.totalBreakthroughAttempts + statBreakthroughAttempts,
+        totalBreakthroughSuccesses: sect.stats.totalBreakthroughSuccesses + statBreakthroughSuccesses,
+        totalPlayTime: sect.stats.totalPlayTime + deltaSec,
+      },
     }
 
     set({
