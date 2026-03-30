@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useSectStore } from './stores/sectStore'
 import { useAdventureStore } from './stores/adventureStore'
 import { useGameStore } from './stores/gameStore'
@@ -12,13 +12,12 @@ import TopBar from './components/common/TopBar'
 import ErrorBoundary from './components/common/ErrorBoundary'
 import OfflineReportModal from './components/common/OfflineReportModal'
 import type { OfflineReportData } from './components/common/OfflineReportModal'
-import SectPage from './pages/SectPage'
-import CharactersPage from './pages/CharactersPage'
-import BuildingsPage from './pages/BuildingsPage'
-
-import AdventurePage from './pages/AdventurePage'
-import VaultPage from './pages/VaultPage'
-import EventLogPage from './pages/EventLogPage'
+const SectPage = lazy(() => import('./pages/SectPage'))
+const CharactersPage = lazy(() => import('./pages/CharactersPage'))
+const BuildingsPage = lazy(() => import('./pages/BuildingsPage'))
+const AdventurePage = lazy(() => import('./pages/AdventurePage'))
+const VaultPage = lazy(() => import('./pages/VaultPage'))
+const EventLogPage = lazy(() => import('./pages/EventLogPage'))
 
 export default function App() {
   const startGame = useGameStore((s) => s.startGame)
@@ -115,14 +114,20 @@ export default function App() {
       <TopBar />
       <div className="page-content">
         <ErrorBoundary>
-          <Routes>
-            <Route path="/" element={<SectPage />} />
-            <Route path="/characters" element={<CharactersPage />} />
-            <Route path="/buildings" element={<BuildingsPage />} />
-            <Route path="/adventure" element={<AdventurePage />} />
-            <Route path="/vault" element={<VaultPage />} />
-            <Route path="/log" element={<EventLogPage />} />
-          </Routes>
+          <Suspense
+            fallback={
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--color-text-muted)' }}>加载中...</div>
+            }
+          >
+            <Routes>
+              <Route path="/" element={<SectPage />} />
+              <Route path="/characters" element={<CharactersPage />} />
+              <Route path="/buildings" element={<BuildingsPage />} />
+              <Route path="/adventure" element={<AdventurePage />} />
+              <Route path="/vault" element={<VaultPage />} />
+              <Route path="/log" element={<EventLogPage />} />
+            </Routes>
+          </Suspense>
         </ErrorBoundary>
       </div>
       <BottomNav />
