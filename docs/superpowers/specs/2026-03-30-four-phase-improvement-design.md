@@ -28,27 +28,27 @@
 ```
 变为：
 ```typescript
-'idle' | 'adventuring' | 'resting' | 'injured' | 'training'
+'idle' | 'adventuring' | 'patrolling' | 'resting' | 'injured' | 'training'
 ```
 
 - 移除 `'cultivating'`——合并进 `'idle'`
 - 移除 `'secluded'`——完全删除
-- 移除 `'patrolling'`——已被派遣任务取代
+- **保留** `'patrolling'`——派遣任务系统仍在使用（参见 gameplay-enrichment spec P2-2）
 
 `idle` 在 UI 中显示为"修炼中"（绿色），语义即自动修炼。
 
 #### 数据变更（`src/data/realms.ts`）
 
-每个 RealmStage 新增 `minorBreakthroughCost` 字段：
+每个 RealmStage 新增 `minorBreakthroughCost` 字段（以下数值取代 Spec 2 中的表格，为本规格的最终定义）：
 
 | 境界 | 初→中 | 中→后 | 后→圆满 |
 |------|-------|-------|---------|
-| 炼气 | 50 | 80 | 120 |
-| 筑基 | 300 | 500 | 800 |
-| 金丹 | 2,000 | 3,500 | 5,000 |
-| 元婴 | 15,000 | 25,000 | 40,000 |
-| 化神 | 100,000 | 160,000 | 225,000 |
-| 飞升 | 500,000 | 800,000 | 1,200,000 |
+| 炼气 | 50 | 150 | 400 |
+| 筑基 | 300 | 800 | 2,000 |
+| 金丹 | 2,000 | 5,000 | 12,000 |
+| 元婴 | 15,000 | 40,000 | 100,000 |
+| 化神 | 100,000 | 250,000 | 600,000 |
+| 飞升 | 500,000 | 1,200,000 | 3,000,000 |
 
 大境界突破灵石消耗使用现有 `breakthroughCost` 字段，不变。
 
@@ -56,10 +56,18 @@
 
 - 移除 `secluded` 分支的所有逻辑（2.5x 计算、灵石消耗、3 人上限检查）
 - 移除 `cultivating` 分支，统一为 `idle` 分支
+- **关键逻辑反转**：当前代码中 `idle` 是跳过条件（`if (char.status === 'training' || char.status === 'idle') return char`），P0 后 `idle` 变为修炼主分支。原来的 `cultivatingCount` 计算（用于灵气分配）改为 `idleCount`，只统计 `status === 'idle'` 的弟子
 - idle 弟子的修炼速率 = 基础速率 × 技术加成 × 建筑加成（与当前 cultivating 计算方式一致）
 - 小突破条件：修炼进度满 + 灵石充足 → 自动尝试
 - 小突破失败：修炼进度归零，灵石不退还
 - 大突破：沿用现有天劫系统
+
+#### 数据迁移（SaveSystem）
+
+加载旧存档时：
+- 任何 `status === 'cultivating'` 的角色 → 设置为 `'idle'`
+- 任何 `status === 'secluded'` 的角色 → 设置为 `'idle'`
+- 保存版本从当前版本升级（version bump +1）
 
 #### 移除的 Store Actions
 
@@ -85,7 +93,8 @@
 | `src/components/cultivation/BreakthroughPanel.tsx` | 灵石消耗提示 |
 | `src/pages/CharactersPage.tsx` | 移除闭关按钮 |
 | `src/pages/BuildingsPage.tsx` | 移除闭关相关面板 |
-| `src/pages/AdventurePage.tsx` | 移除 patrolling 状态引用 |
+| `src/pages/AdventurePage.tsx` | 保持不变（patrolling 用于派遣任务） |
+| `src/stores/adventureStore.ts` | 保持不变（派遣任务使用 patrolling 状态） |
 | `src/__tests__/stores.test.ts` | 更新状态断言 |
 | `src/__tests__/CultivationEngine.test.ts` | 新增灵石消耗测试 |
 
@@ -123,6 +132,12 @@ prettier husky lint-staged
 | `.prettierrc` | Prettier 配置 |
 | `.prettierignore` | Prettier 忽略列表 |
 | `.husky/pre-commit` | Git pre-commit hook |
+
+#### 受影响文件
+
+| 文件 | 变更 |
+|------|------|
+| `package.json` | 新增依赖、新增 `lint` 和 `format` scripts |
 
 ---
 
@@ -203,8 +218,10 @@ interface CombatUnit {
 | 文件 | 变更 |
 |------|------|
 | `src/systems/combat/CombatEngine.ts` | 集成 TargetingSystem、SkillAI、AffixSystem |
-| `src/data/enemies.ts` | 敌人模板新增 affixPool 和 skillIds |
-| `src/types/adventure.ts` | 新增 EnemyAffix、TacticalPreset 类型 |
+| `src/systems/roguelike/EventSystem.ts` | 构建 CombatUnit 时初始化 aggro=0, shield=0, affixes, preset |
+| `src/stores/adventureStore.ts` | selectRoute/advanceFloor 中传递战术预设 |
+| `src/data/enemies.ts` | 敌人模板新增 affixPool 和 skillIds，Enemy 类型新增对应字段 |
+| `src/types/adventure.ts` | 新增 EnemyAffix、TacticalPreset 类型，Enemy 新增 affixes/skillIds |
 | `src/pages/AdventurePage.tsx` | 战术预设选择 UI |
 | `src/__tests__/CombatEngine.test.ts` | 新增 AI 和词缀测试 |
 
@@ -272,9 +289,19 @@ interface OfflineReport {
 
 #### 数据收集
 
-- `sectStore` tick 中累积到 `sect.offlineAccumulator`
+- `sectStore` tick 中累积到 `sect.offlineAccumulator`（类型 `OfflineAccumulator`）
 - 登录时 `IdleEngine` 检测离线时长 > 60s 则生成报告并弹出
 - 弹窗关闭后清空 accumulator
+
+```typescript
+// 离线累积器（挂在 Sect 上，随 tick 累积）
+interface OfflineAccumulator {
+  resourcesGained: Resources
+  breakthroughs: { characterName: string; targetRealm: string; success: boolean }[]
+  itemsCrafted: { name: string; quantity: number }[]
+  taxIncome: number
+}
+```
 
 #### 新增文件
 
@@ -287,8 +314,8 @@ interface OfflineReport {
 
 | 文件 | 变更 |
 |------|------|
-| `src/types/sect.ts` | Sect 新增 offlineAccumulator 字段 |
-| `src/stores/sectStore.ts` | tick 中累积离线数据 |
+| `src/types/sect.ts` | Sect 新增 `offlineAccumulator: OfflineAccumulator` 字段 |
+| `src/stores/sectStore.ts` | tick 中累积离线数据到 accumulator |
 | `src/systems/idle/IdleEngine.ts` | 检测离线并触发弹窗 |
 | `src/App.tsx` | 集成 OfflineReportModal |
 
@@ -318,6 +345,22 @@ src/stores/sectStore/
 - slice 之间通过 `get()` 和 `set()` 访问完整 state
 - 使用 Zustand 的 `StateCreator` 类型
 
+#### Slice 间通信
+
+`tickSlice`（核心循环）需要访问多个 slice 的数据：
+- 从 `characterSlice` 读取角色列表和状态
+- 从 `buildingSlice` 读取建筑等级和生产队列
+- 从 `resourceSlice` 读取和更新资源
+
+Zustand slice pattern 中，`tickSlice` 通过 `get()` 获取完整 state，通过 `set()` 更新对应 slice 的字段。这是 slice pattern 的标准做法。
+
+#### 受影响测试
+
+| 测试文件 | 变更 |
+|---------|------|
+| `src/__tests__/stores.test.ts` | 拆分为多个 slice 测试文件，或保持导入不变（useSectStore API 不变） |
+| 所有导入 `useSectStore` 的测试 | 无需修改（API 不变，导入路径可能从 `../stores/sectStore` 变为 `../stores/sectStore/index`） |
+
 ### P2-3：代码分割与性能优化
 
 #### 路由懒加载
@@ -327,9 +370,30 @@ src/stores/sectStore/
 #### 自动保存优化
 
 - 当前：每次 tick 用 `JSON.stringify(state.sect)` 做脏检查
-- 改进：维护 `dirtyFlags: Set<string>` 标记哪些 slice 被修改
+- 改进：维护 `dirtyFlags: Set<DirtyFlagKey>` 标记哪些 slice 被修改
 - 每个 slice action 执行后设置对应的 dirty flag
 - 自动保存时只序列化脏的 slice
+
+```typescript
+// Dirty flag keys 对应 sectStore 的各 slice
+type DirtyFlagKey = 'characters' | 'buildings' | 'resources' | 'vault' | 'pets' | 'meta'
+
+// 示例：characterSlice 中的 addCharacter action
+addCharacter: (quality) => {
+  set((state) => {
+    // ...existing logic
+    return { ...newState, dirtyFlags: new Set([...state.dirtyFlags, 'characters']) }
+  })
+}
+
+// startAutoSave.ts 中的使用
+const dirty = state.dirtyFlags
+if (dirty.size === 0) return // 无变化，跳过保存
+const dataToSave = {}
+if (dirty.has('characters')) dataToSave.characters = state.sect.characters
+if (dirty.has('buildings')) dataToSave.buildings = state.sect.buildings
+// ...只序列化变化的部分
+```
 
 #### 受影响文件
 
@@ -341,6 +405,8 @@ src/stores/sectStore/
 ### P2-4：弟子修炼路径
 
 #### 路径定义
+
+**分配时机：** 角色招募时一次性随机决定，不可更改。
 
 | 路径 ID | 名称 | 核心加成 | 获取概率 |
 |---------|------|---------|---------|
@@ -401,6 +467,8 @@ interface Character {
 
 宗门等级 >= 5 且拥有 >= 10 名弟子。
 
+> **关于宗门等级映射**：当前 `calcSectLevel` 将 mainHall 等级映射为宗门等级（1:1）。mainHall 最高可升到多级，宗门等级上限由 mainHall 最大等级决定。解锁宗门路线需要 mainHall 升到 5 级（宗门等级 5）。
+
 #### 三条路线
 
 **丹道宗门（pill）：** 灵草产出 +50%，炼丹成功率 +15%，突破消耗灵石 -20%
@@ -436,6 +504,21 @@ interface Character {
 - 一次只能选一条路线
 - 切换路线需重置所有节点（消耗当前路线总投入 50% 的灵石）
 - 飞升重置时路线清空
+
+#### 节点存储策略
+
+`Sect` 上不存储完整的 `SectPathNode[]`（避免冗余）。改为只存储进度：
+
+```typescript
+interface Sect {
+  // ...existing
+  sectPath: SectPath
+  unlockedPathNodeIds: string[]  // 已解锁的节点 ID 列表
+  pathUnlockedAt: number | null  // 路线解锁时间戳
+}
+```
+
+节点定义和效果来自静态数据 `src/data/sectPaths.ts`，运行时通过 `unlockedPathNodeIds` 查表计算效果。
 
 #### 类型新增
 
@@ -475,7 +558,7 @@ interface Sect {
 #### 飞升条件
 
 - 至少 1 名弟子达到飞升境界（realm >= 5）
-- 宗门等级 >= 10
+- 宗门等级 >= 10（需扩展 `calcSectLevel` 映射，当前最高 5 级对应 mainHall 5 级。新增 mainHall 6-10 级映射宗门等级 6-10，升级成本指数增长）
 - 所有建筑等级 >= 5
 
 #### 飞升效果
@@ -567,6 +650,22 @@ interface SectStats {
 
 在 sectStore actions、adventureStore actions、tickAll 中埋点，递增对应计数器。
 
+**受影响的 store actions（需添加 stats 计数器）：**
+
+| Store | Action | 递增字段 |
+|-------|--------|---------|
+| sectStore | `addCharacter` | `totalRecruits` |
+| sectStore | `upgradeBuilding` | `totalBuildingUpgrades` |
+| sectStore | tickAll（突破） | `totalBreakthroughAttempts`、`totalBreakthroughSuccesses` |
+| sectStore | tickAll（资源） | `totalSpiritStoneEarned`、`totalSpiritStoneSpent` |
+| adventureStore | `startRun` | `totalAdventureRuns` |
+| adventureStore | `completeRun` | `totalAdventureCompletions` |
+| adventureStore | `failRun` | `totalAdventureFailures` |
+| adventureStore | tickAll（战斗） | `totalBattles`、`totalVictories`、`totalKills` |
+| adventureStore | `attemptPetCapture` | `totalPetCaptures` |
+
+**受影响文件：** `src/stores/sectStore.ts`、`src/stores/adventureStore.ts`
+
 #### 新增文件
 
 | 文件 | 用途 |
@@ -586,6 +685,65 @@ P0（状态简化 + 工具链）
 ```
 
 每个阶段完成后运行完整测试套件确保无回归。
+
+---
+
+## 统一类型定义（所有阶段完成后的最终形态）
+
+```typescript
+// src/types/character.ts
+type CharacterStatus = 'idle' | 'adventuring' | 'patrolling' | 'resting' | 'injured' | 'training'
+type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
+
+interface Character {
+  // ...existing fields
+  cultivationPath: CultivationPath  // P2-4 新增
+}
+
+// src/types/sect.ts
+type SectPath = 'none' | 'pill' | 'sword' | 'beast'
+
+interface Sect {
+  // ...existing fields
+  offlineAccumulator: OfflineAccumulator     // P2-1 新增
+  sectPath: SectPath                          // P3-1 新增
+  unlockedPathNodeIds: string[]               // P3-1 新增
+  pathUnlockedAt: number | null               // P3-1 新增
+  legacy: LegacyBonus                         // P3-2 新增（重置时保留）
+  stats: SectStats                            // P3-3 新增（重置时保留）
+}
+
+// src/types/adventure.ts — 新增类型
+type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribulationBane'
+type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
+
+// Enemy 新增字段
+interface Enemy {
+  // ...existing
+  affixes?: EnemyAffix[]
+  skillIds?: string[]
+}
+
+// DungeonRun 新增字段
+interface DungeonRun {
+  // ...existing
+  tacticalPreset: TacticalPreset  // P1-1 新增，默认 'balanced'
+}
+```
+
+---
+
+## 保存版本迁移
+
+当前保存版本（SaveSystem）：版本 5
+
+| 阶段 | 版本升级 | 迁移内容 |
+|------|---------|---------|
+| P0 | v5 → v6 | `status === 'cultivating'` → `'idle'`，`status === 'secluded'` → `'idle'` |
+| P2 | v6 → v7 | Character 新增 `cultivationPath: 'none'`，Sect 新增 `offlineAccumulator` |
+| P3 | v7 → v8 | Sect 新增 `sectPath: 'none'`、`unlockedPathNodeIds: []`、`legacy`、`stats` |
+
+每个版本升级在 `SaveSystem.ts` 的 `onupgradeneeded` 中处理，缺省字段自动补充默认值。
 
 ## 不在范围内
 
