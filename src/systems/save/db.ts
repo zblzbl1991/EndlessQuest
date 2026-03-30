@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb'
 
 const DB_NAME = 'endlessquest_db'
-const DB_VERSION = 2
+const DB_VERSION = 3
 
 let _db: IDBPDatabase | null = null
 
@@ -52,7 +52,7 @@ export async function getDB(): Promise<IDBPDatabase> {
           const metaStore = transaction.objectStore('meta')
           metaStore.put({
             slot: 1,
-            version: 5,
+            version: 6,
             lastOnlineTime: Date.now(),
             sectName: sect.name,
             sectLevel: sect.level,

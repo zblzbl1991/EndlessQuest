@@ -11,12 +11,12 @@ const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
 
 // ---------------------------------------------------------------------------
-// SaveMeta v5 — stored in IndexedDB 'meta' store (keyPath: slot)
+// SaveMeta v6 — stored in IndexedDB 'meta' store (keyPath: slot)
 // ---------------------------------------------------------------------------
 
 interface SaveMeta {
   slot: number
-  version: 5
+  version: 6
   lastOnlineTime: number
   sectName: string
   sectLevel: number
@@ -43,7 +43,7 @@ export async function saveGame(): Promise<void> {
     // Write meta
     await tx.objectStore('meta').put({
       slot: 1,
-      version: 5,
+      version: 6,
       lastOnlineTime: Date.now(),
       sectName: sect.name,
       sectLevel: sect.level,
@@ -128,7 +128,15 @@ export async function loadGame(): Promise<boolean> {
 
     // Migrate vault and backpacks to ItemStack format
     const vault = migrateToItemStacks(rawVault)
-    const characters = rawCharacters.map(c => ({
+    // Migrate v5→v6: cultivating/secluded → idle
+    const migratedCharacters = rawCharacters.map(c => {
+      if (c.status === 'cultivating' || c.status === 'secluded') {
+        return { ...c, status: 'idle' as const }
+      }
+      return c
+    })
+
+    const characters = migratedCharacters.map(c => ({
       ...c,
       backpack: migrateToItemStacks(c.backpack),
       specialties: (c as any).specialties ?? [],

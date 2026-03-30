@@ -139,4 +139,50 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     const buildings = await db.getAll('buildings')
     expect(buildings.length).toBeGreaterThan(0)
   })
+
+  it('should migrate cultivating status to idle on load', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    // Inject a character with old 'cultivating' status directly into IDB
+    const db = await getDB()
+    const sect = useSectStore.getState().sect
+    const cultivatingChar = { ...sect.characters[0], status: 'cultivating' }
+    await db.put('characters', cultivatingChar)
+
+    useSectStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const loadedChar = useSectStore.getState().sect.characters.find(
+      c => c.id === cultivatingChar.id,
+    )
+    expect(loadedChar).toBeDefined()
+    expect(loadedChar!.status).toBe('idle')
+  })
+
+  it('should migrate secluded status to idle on load', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    // Inject a character with old 'secluded' status directly into IDB
+    const db = await getDB()
+    const sect = useSectStore.getState().sect
+    const secludedChar = { ...sect.characters[0], status: 'secluded' }
+    await db.put('characters', secludedChar)
+
+    useSectStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const loadedChar = useSectStore.getState().sect.characters.find(
+      c => c.id === secludedChar.id,
+    )
+    expect(loadedChar).toBeDefined()
+    expect(loadedChar!.status).toBe('idle')
+  })
 })
