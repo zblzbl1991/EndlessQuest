@@ -1,0 +1,96 @@
+import type { StateCreator } from 'zustand'
+import type { SectStore } from './types'
+import type { Equipment, Sect } from '../../types'
+import { ALCHEMY_RECIPES, craftPotion as craftPotionAlchemy } from '../../systems/economy/AlchemySystem'
+import { FORGE_RECIPES, FORGE_SLOTS } from '../../systems/economy/ForgeSystem'
+import { generateEquipment } from '../../systems/item/ItemGenerator'
+import type { AutoRecipe } from '../../data/recipes'
+import { BUILDING_DEFS } from '../../data/buildings'
+import { generateCharacter } from '../../systems/character/CharacterEngine'
+import type { ShopState } from '../../systems/trade/TradeSystem'
+
+// ---------------------------------------------------------------------------
+// Helper: get equipment item by ID from vault + all character backpacks
+// ---------------------------------------------------------------------------
+
+export function findEquipmentById(sect: Sect, itemId: string): Equipment | undefined {
+  for (const stack of sect.vault) {
+    if (stack.item.id === itemId && stack.item.type === 'equipment') return stack.item
+  }
+  for (const char of sect.characters) {
+    for (const stack of char.backpack) {
+      if (stack.item.id === itemId && stack.item.type === 'equipment') return stack.item
+    }
+  }
+  return undefined
+}
+
+// ---------------------------------------------------------------------------
+// Helper: produce item from an AutoRecipe
+// ---------------------------------------------------------------------------
+
+export function produceItemAsStack(recipe: AutoRecipe, buildingLevel: number) {
+  if (recipe.productType === 'consumable') {
+    const alchemyRecipe = ALCHEMY_RECIPES.find((r) => r.id === recipe.id)
+    if (!alchemyRecipe) return null
+    const item = craftPotionAlchemy(alchemyRecipe, buildingLevel)
+    if (item) item.recipeId = recipe.id
+    return item ? { item, quantity: 1 } : null
+  }
+  if (recipe.productType === 'equipment') {
+    const forgeRecipe = FORGE_RECIPES.find((r) => r.id === recipe.id)
+    if (!forgeRecipe) return null
+    const slot = FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
+    const item = generateEquipment(slot, forgeRecipe.quality)
+    return item ? { item, quantity: 1 } : null
+  }
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// Initial state factory
+// ---------------------------------------------------------------------------
+
+export function createInitialState(): { sect: Sect } {
+  return {
+    sect: {
+      name: '无名宗门',
+      level: 1,
+      resources: {
+        spiritStone: 500,
+        spiritEnergy: 0,
+        herb: 0,
+        ore: 0,
+      },
+      buildings: BUILDING_DEFS.map((def) => ({
+        type: def.type,
+        level: def.type === 'mainHall' ? 1 : 0,
+        unlocked: def.type === 'mainHall' || def.type === 'spiritMine',
+        productionQueue: { recipeId: null, progress: 0 },
+      })),
+      characters: [generateCharacter('common')],
+      vault: [],
+      maxVaultSlots: 50,
+      pets: [],
+      totalAdventureRuns: 0,
+      totalBreakthroughs: 0,
+      lastTransmissionTime: 0,
+      techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
+      offlineAccumulator: {
+        resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+        breakthroughs: [],
+        itemsCrafted: [],
+        taxIncome: 0,
+      },
+    },
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Initial slice: owns sect + shopState state
+// ---------------------------------------------------------------------------
+
+export const createInitialSlice: StateCreator<SectStore, [], [], SectStore> = () => ({
+  sect: createInitialState().sect,
+  shopState: null as ShopState | null,
+})
