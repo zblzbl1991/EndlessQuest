@@ -3,6 +3,7 @@ import { ELEMENT_NAMES, COUNTER_MAP, getElementMultiplier } from '../data/skills
 import { createCharacterCombatUnit, createCombatUnitFromEnemy } from '../data/enemies'
 import { QUALITY_COLORS } from '../data/items'
 import { getSpiritFieldRate, BUILDING_DEFS } from '../data/buildings'
+import { getMinorBreakthroughCost } from '../data/realms'
 import type { Character } from '../types/character'
 
 // ─── Techniques Table ────────────────────────────────────────────────
@@ -284,5 +285,29 @@ describe('Buildings data', () => {
 
   it('getSpiritFieldRate should return 0 for level 0', () => {
     expect(getSpiritFieldRate(0)).toBe(0)
+  })
+})
+
+// ─── Realms (minorBreakthroughCost) ────────────────────────────────
+
+describe('Realms data', () => {
+  it('getMinorBreakthroughCost returns correct cost for valid realm/stage', () => {
+    expect(getMinorBreakthroughCost(0, 0)).toBe(50)
+    expect(getMinorBreakthroughCost(0, 1)).toBe(150)
+    expect(getMinorBreakthroughCost(0, 2)).toBe(400)
+    expect(getMinorBreakthroughCost(1, 0)).toBe(300)
+    expect(getMinorBreakthroughCost(2, 1)).toBe(5000)
+    expect(getMinorBreakthroughCost(3, 2)).toBe(100000)
+    expect(getMinorBreakthroughCost(4, 0)).toBe(100000)
+  })
+
+  it('getMinorBreakthroughCost returns Infinity for invalid realm', () => {
+    expect(getMinorBreakthroughCost(99, 0)).toBe(Infinity)
+    expect(getMinorBreakthroughCost(-1, 0)).toBe(Infinity)
+  })
+
+  it('getMinorBreakthroughCost returns Infinity for out-of-bounds stage', () => {
+    expect(getMinorBreakthroughCost(0, 3)).toBe(Infinity)
+    expect(getMinorBreakthroughCost(0, 10)).toBe(Infinity)
   })
 })

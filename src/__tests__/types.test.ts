@@ -104,7 +104,7 @@ describe('Character types', () => {
   })
 
   it('should accept all CharacterStatus values', () => {
-    const statuses: CharacterStatus[] = ['idle', 'cultivating', 'adventuring', 'injured', 'resting', 'training']
+    const statuses: CharacterStatus[] = ['idle', 'adventuring', 'patrolling', 'resting', 'injured', 'training']
     expect(statuses).toHaveLength(6)
   })
 

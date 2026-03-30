@@ -4,6 +4,7 @@ export interface RealmDef {
   name: string
   stages: string[]
   cultivationCosts: number[]
+  minorBreakthroughCost: number[]
   breakthroughExtra: string | null
   unlockContent: string
   tribulationPower?: number
@@ -16,6 +17,7 @@ export const REALMS: RealmDef[] = [
     name: '炼气期',
     stages: ['初期', '中期', '后期', '圆满'],
     cultivationCosts: [100, 300, 600, 1000],
+    minorBreakthroughCost: [50, 150, 400],
     breakthroughExtra: null,
     unlockContent: '基础功法、灵品装备掉落',
     statMultiplier: 1,
@@ -24,6 +26,7 @@ export const REALMS: RealmDef[] = [
     name: '筑基期',
     stages: ['初期', '中期', '后期', '圆满'],
     cultivationCosts: [2000, 4000, 7000, 11000],
+    minorBreakthroughCost: [300, 800, 2000],
     breakthroughExtra: '需消耗大量灵石',
     unlockContent: '秘境解锁（落云洞）',
     statMultiplier: 1.8,
@@ -32,6 +35,7 @@ export const REALMS: RealmDef[] = [
     name: '金丹期',
     stages: ['初期', '中期', '后期', '圆满'],
     cultivationCosts: [18000, 28000, 40000, 55000],
+    minorBreakthroughCost: [2000, 5000, 12000],
     breakthroughExtra: '金丹劫 + 灵石',
     unlockContent: '灵宠系统',
     tribulationPower: 0.8,
@@ -41,6 +45,7 @@ export const REALMS: RealmDef[] = [
     name: '元婴期',
     stages: ['初期', '中期', '后期', '圆满'],
     cultivationCosts: [75000, 100000, 130000, 170000],
+    minorBreakthroughCost: [15000, 40000, 100000],
     breakthroughExtra: '元婴劫 + 灵石',
     unlockContent: '弟子系统（经营线）',
     tribulationPower: 1.0,
@@ -50,6 +55,7 @@ export const REALMS: RealmDef[] = [
     name: '化神期',
     stages: ['初期', '中期', '后期', '圆满'],
     cultivationCosts: [220000, 280000, 350000, 450000],
+    minorBreakthroughCost: [100000, 250000, 600000],
     breakthroughExtra: '天劫 + 灵石',
     unlockContent: '高级功法、飞剑',
     tribulationStages: [1.0, 1.2, 1.5],
@@ -59,6 +65,7 @@ export const REALMS: RealmDef[] = [
     name: '渡劫飞升',
     stages: ['飞升'],
     cultivationCosts: [600000],
+    minorBreakthroughCost: [500000, 1200000, 3000000],
     breakthroughExtra: '全建筑满级',
     unlockContent: '游戏通关',
     statMultiplier: 1.8,
@@ -87,4 +94,10 @@ export const BREAKTHROUGH_COSTS: Record<number, { spiritStone: number }> = {
   2: { spiritStone: 15000 },
   3: { spiritStone: 80000 },
   4: { spiritStone: 350000 },
+}
+
+export function getMinorBreakthroughCost(realmIndex: number, stage: number): number {
+  const realm = REALMS[realmIndex]
+  if (!realm) return Infinity
+  return realm.minorBreakthroughCost[stage] ?? Infinity
 }
