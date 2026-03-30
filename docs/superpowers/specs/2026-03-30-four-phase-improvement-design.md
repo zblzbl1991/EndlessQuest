@@ -39,7 +39,7 @@
 
 #### 数据变更（`src/data/realms.ts`）
 
-每个 RealmStage 新增 `minorBreakthroughCost` 字段（以下数值取代 Spec 2 中的表格，为本规格的最终定义）：
+每个 RealmStage 新增 `minorBreakthroughCost` 字段。**本表格取代 Spec 2 中的同名字段定义**，Spec 2 中筑基→化神的数值不再适用。定价逻辑调整为：同境界内 x3 递增（初→中→后→圆满），跨大境界 x5~7 递增，飞升阶段单独递增至终局规模。
 
 | 境界 | 初→中 | 中→后 | 后→圆满 |
 |------|-------|-------|---------|
@@ -526,20 +526,20 @@ interface Sect {
 // src/types/sect.ts
 type SectPath = 'none' | 'pill' | 'sword' | 'beast'
 
+// SectPathNode 仅用于静态数据定义（src/data/sectPaths.ts），不存储到 Sect
 interface SectPathNode {
   id: string
   name: string
   description: string
   cost: { spiritStone: number; herb?: number; ore?: number }
   effect: PathEffect
-  unlocked: boolean
 }
 
-// Sect 新增字段
+// Sect 新增字段（只存储进度，不存储完整节点定义）
 interface Sect {
   // ...existing
   sectPath: SectPath
-  pathNodes: SectPathNode[]
+  unlockedPathNodeIds: string[]      // 已解锁的节点 ID，从 sectPaths.ts 查表
   pathUnlockedAt: number | null
 }
 ```
