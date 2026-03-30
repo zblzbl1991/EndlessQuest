@@ -51,6 +51,13 @@ export interface Building {
   productionQueue: ProductionQueue
 }
 
+export interface LegacyBonus {
+  ascensionCount: number
+  statBonus: number
+  unlockedTechniques: string[]
+  unlockedDungeons: string[]
+}
+
 export interface Sect {
   name: string
   level: number
@@ -68,4 +75,5 @@ export interface Sect {
   sectPath: SectPath
   unlockedPathNodeIds: string[]
   pathUnlockedAt: number | null
+  legacy: LegacyBonus
 }

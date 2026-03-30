@@ -29,6 +29,7 @@ interface SaveMeta {
   sectPath: Sect['sectPath']
   unlockedPathNodeIds: Sect['unlockedPathNodeIds']
   pathUnlockedAt: Sect['pathUnlockedAt']
+  legacy: Sect['legacy']
 }
 
 // ---------------------------------------------------------------------------
@@ -59,6 +60,7 @@ export async function saveGame(): Promise<void> {
       sectPath: sect.sectPath,
       unlockedPathNodeIds: sect.unlockedPathNodeIds,
       pathUnlockedAt: sect.pathUnlockedAt,
+      legacy: sect.legacy,
     })
 
     // Write characters
@@ -172,6 +174,7 @@ export async function loadGame(): Promise<boolean> {
       sectPath: (meta as any).sectPath ?? 'none',
       unlockedPathNodeIds: (meta as any).unlockedPathNodeIds ?? [],
       pathUnlockedAt: (meta as any).pathUnlockedAt ?? null,
+      legacy: (meta as any).legacy ?? { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
     }
 
     useSectStore.setState({ sect })

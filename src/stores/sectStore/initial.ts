@@ -85,6 +85,7 @@ export function createInitialState(): { sect: Sect } {
       sectPath: 'none' as const,
       unlockedPathNodeIds: [],
       pathUnlockedAt: null,
+      legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
     },
   }
 }

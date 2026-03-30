@@ -35,6 +35,7 @@ export type {
   Building,
   Sect,
   OfflineAccumulator,
+  LegacyBonus,
 } from './sect'
 export type {
   EventType,

@@ -5,6 +5,7 @@ import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
 import ActionAgenda from '../components/sect/ActionAgenda'
 import SectPathPanel from '../components/sect/SectPathPanel'
+import LegacyPanel from '../components/sect/LegacyPanel'
 import styles from './SectPage.module.css'
 
 export default function SectPage() {
@@ -66,6 +67,9 @@ export default function SectPage() {
 
       {/* Sect Path */}
       <SectPathPanel />
+
+      {/* Legacy Ascension */}
+      <LegacyPanel />
 
       {/* Character Stats */}
       <section className={styles.section}>

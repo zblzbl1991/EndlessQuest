@@ -98,5 +98,8 @@ export interface SectStore {
   unlockPathNode(nodeId: string): boolean
   resetSectPath(): void
 
+  // Legacy ascension
+  performAscension(): void
+
   reset(): void
 }
