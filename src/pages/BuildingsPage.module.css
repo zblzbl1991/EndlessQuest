@@ -168,10 +168,18 @@
 }
 
 @keyframes fadeInOut {
-  0% { opacity: 0; }
-  15% { opacity: 1; }
-  85% { opacity: 1; }
-  100% { opacity: 0; }
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
 }
 
 /* ===== Recruit Tab ===== */
@@ -349,8 +357,12 @@
   font-weight: 500;
 }
 
-.statHigh { color: var(--color-success, #4caf50); }
-.statLow { color: var(--color-danger, #e53935); }
+.statHigh {
+  color: var(--color-success, #4caf50);
+}
+.statLow {
+  color: var(--color-danger, #e53935);
+}
 
 .recruitTalents {
   border-top: 1px solid var(--color-border-light);

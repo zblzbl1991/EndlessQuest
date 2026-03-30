@@ -30,7 +30,6 @@ export default function App() {
   useEffect(() => {
     if (loadingRef.current) return
     loadingRef.current = true
-
     ;(async () => {
       try {
         await loadGame()
@@ -71,10 +70,18 @@ export default function App() {
 
   if (!isLoaded) {
     return (
-      <div className="loading-screen" style={{
-        display: 'flex', justifyContent: 'center', alignItems: 'center',
-        height: '100vh', fontFamily: 'serif', color: '#5a4a3a', background: '#f5f0e8',
-      }}>
+      <div
+        className="loading-screen"
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          fontFamily: 'serif',
+          color: '#5a4a3a',
+          background: '#f5f0e8',
+        }}
+      >
         <span style={{ fontSize: '1.25rem', opacity: 0.7 }}>加载中...</span>
       </div>
     )

@@ -46,8 +46,7 @@ export default function AdventurePage() {
   const maxRealmChar = useMemo(() => {
     if (sect.characters.length === 0) return null
     return sect.characters.reduce((best, c) =>
-      c.realm > best.realm || (c.realm === best.realm && c.realmStage > best.realmStage)
-        ? c : best
+      c.realm > best.realm || (c.realm === best.realm && c.realmStage > best.realmStage) ? c : best
     )
   }, [sect.characters])
 
@@ -58,9 +57,7 @@ export default function AdventurePage() {
 
   // Characters available for team building (cultivating or resting, not adventuring)
   const availableCharacters = useMemo(() => {
-    return sect.characters.filter(
-      (c) => c.status === 'idle' || c.status === 'resting'
-    )
+    return sect.characters.filter((c) => c.status === 'idle' || c.status === 'resting')
   }, [sect.characters])
 
   return (
@@ -86,8 +83,8 @@ export default function AdventurePage() {
         ) : (
           <div className={styles.runList}>
             {dispatches.map((dispatch) => {
-              const mission = DISPATCH_MISSIONS.find(m => m.id === dispatch.missionId)
-              const char = sect.characters.find(c => c.id === dispatch.characterId)
+              const mission = DISPATCH_MISSIONS.find((m) => m.id === dispatch.missionId)
+              const char = sect.characters.find((c) => c.id === dispatch.characterId)
               const remaining = Math.max(0, dispatch.duration - dispatch.progress)
               const minutes = Math.floor(remaining / 60)
               const seconds = Math.floor(remaining % 60)
@@ -96,7 +93,8 @@ export default function AdventurePage() {
                   <div className={styles.runHeader}>
                     <span className={styles.runDungeonName}>{mission?.name ?? '未知任务'}</span>
                     <span className={styles.runFloor}>
-                      {char?.name ?? ''} {remaining > 0 ? `· ${minutes}:${seconds.toString().padStart(2, '0')}` : '· 完成'}
+                      {char?.name ?? ''}{' '}
+                      {remaining > 0 ? `· ${minutes}:${seconds.toString().padStart(2, '0')}` : '· 完成'}
                     </span>
                   </div>
                   <div className={styles.runProgress}>
@@ -131,27 +129,17 @@ export default function AdventurePage() {
             const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
             const unlockRealmName = getRealmName(dungeon.unlockRealm, dungeon.unlockStage as 0 | 1 | 2 | 3)
             return (
-              <div
-                key={dungeon.id}
-                className={`${styles.dungeonCard} ${!unlocked ? styles.dungeonLocked : ''}`}
-              >
+              <div key={dungeon.id} className={`${styles.dungeonCard} ${!unlocked ? styles.dungeonLocked : ''}`}>
                 <div className={styles.dungeonHeader}>
                   <span className={styles.dungeonName}>{dungeon.name}</span>
-                  {!unlocked && (
-                    <span className={styles.lockBadge}>
-                      {unlockRealmName}解锁
-                    </span>
-                  )}
+                  {!unlocked && <span className={styles.lockBadge}>{unlockRealmName}解锁</span>}
                 </div>
                 <div className={styles.dungeonInfo}>
                   <span>层数: {dungeon.totalLayers}</span>
                   <span>推荐: {unlockRealmName}</span>
                 </div>
                 {unlocked && (
-                  <button
-                    className={styles.startBtn}
-                    onClick={() => setBuildingTeam(dungeon.id)}
-                  >
+                  <button className={styles.startBtn} onClick={() => setBuildingTeam(dungeon.id)}>
                     开始探索
                   </button>
                 )}
@@ -174,7 +162,14 @@ function TeamBuilder({
   onClose,
 }: {
   dungeonId: string
-  availableCharacters: { id: string; name: string; quality: CharacterQuality; realm: number; realmStage: 0 | 1 | 2 | 3; baseStats: { hp: number; atk: number; def: number; spd: number } }[]
+  availableCharacters: {
+    id: string
+    name: string
+    quality: CharacterQuality
+    realm: number
+    realmStage: 0 | 1 | 2 | 3
+    baseStats: { hp: number; atk: number; def: number; spd: number }
+  }[]
   onClose: () => void
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -218,12 +213,8 @@ function TeamBuilder({
     <div className={styles.overlay}>
       <div className={styles.teamBuilder}>
         <div className={styles.teamBuilderHeader}>
-          <span className={styles.teamBuilderTitle}>
-            选择队伍 ({selectedIds.length}/5)
-          </span>
-          <span className={styles.dungeonTarget}>
-            {dungeon?.name ?? '未知秘境'}
-          </span>
+          <span className={styles.teamBuilderTitle}>选择队伍 ({selectedIds.length}/5)</span>
+          <span className={styles.dungeonTarget}>{dungeon?.name ?? '未知秘境'}</span>
         </div>
 
         {/* Character list */}
@@ -238,26 +229,18 @@ function TeamBuilder({
                 role="button"
                 tabIndex={0}
               >
-                <div className={styles.teamCharCheck}>
-                  {selected ? '✓' : ''}
-                </div>
+                <div className={styles.teamCharCheck}>{selected ? '✓' : ''}</div>
                 <div className={styles.teamCharInfo}>
                   <span className={styles.teamCharName}>
                     {char.name}
-                    <span className={styles.teamCharQuality}>
-                      {CHAR_QUALITY_NAMES[char.quality]}
-                    </span>
+                    <span className={styles.teamCharQuality}>{CHAR_QUALITY_NAMES[char.quality]}</span>
                   </span>
-                  <span className={styles.teamCharRealm}>
-                    {getRealmName(char.realm, char.realmStage)}
-                  </span>
+                  <span className={styles.teamCharRealm}>{getRealmName(char.realm, char.realmStage)}</span>
                 </div>
               </div>
             )
           })}
-          {availableCharacters.length === 0 && (
-            <div className={styles.empty}>无可用的弟子</div>
-          )}
+          {availableCharacters.length === 0 && <div className={styles.empty}>无可用的弟子</div>}
         </div>
 
         {/* Team stats summary */}
@@ -327,9 +310,7 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
   const FLOOR_TICK_SECONDS = 10
   const remainingSec = Math.max(0, Math.ceil(FLOOR_TICK_SECONDS - floorTimer))
 
-  const hasAlive = run.teamCharacterIds.some(
-    (cid) => run.memberStates[cid]?.status !== 'dead'
-  )
+  const hasAlive = run.teamCharacterIds.some((cid) => run.memberStates[cid]?.status !== 'dead')
 
   const handleAdvance = () => {
     advanceFloor(run.id)
@@ -344,25 +325,14 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
       <div className={styles.runHeader}>
         <span className={styles.runDungeonName}>{dungeon?.name ?? '未知秘境'}</span>
         <span className={styles.runFloor}>
-          {isCompleted
-            ? `已通关 (${totalFloors}层)`
-            : `第 ${run.currentFloor} / ${totalFloors} 层`
-          }
+          {isCompleted ? `已通关 (${totalFloors}层)` : `第 ${run.currentFloor} / ${totalFloors} 层`}
         </span>
       </div>
 
       {/* Progress bar */}
       <div className={styles.runProgress}>
-        <ProgressBar
-          value={Math.min(run.currentFloor, totalFloors)}
-          max={totalFloors}
-          variant="ink"
-        />
-        {!isCompleted && (
-          <span className={styles.floorCountdown}>
-            {remainingSec}秒后自动推进
-          </span>
-        )}
+        <ProgressBar value={Math.min(run.currentFloor, totalFloors)} max={totalFloors} variant="ink" />
+        {!isCompleted && <span className={styles.floorCountdown}>{remainingSec}秒后自动推进</span>}
       </div>
 
       {/* Team members */}
@@ -434,41 +404,44 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
       )}
 
       {/* Pet capture prompt */}
-      {showPetCapture && (() => {
-        const firstAliveCharId = run.teamCharacterIds.find(
-          (cid) => run.memberStates[cid]?.status !== 'dead'
-        )
-        const char = firstAliveCharId ? sect.characters.find(c => c.id === firstAliveCharId) : null
-        const fortune = char?.cultivationStats.fortune ?? 0
-        const captureRate = Math.round((0.30 + fortune * 0.02) * 100)
-        return (
-          <div className={styles.petCapturePanel}>
-            <div className={styles.petCaptureTitle}>发现可捕获灵兽！</div>
-            <div className={styles.petCaptureRate}>捕获率: {captureRate}%</div>
-            <div className={styles.petCaptureActions}>
-              <button
-                className={styles.actionBtn}
-                onClick={() => {
-                  const success = attemptPetCapture(run.id)
-                  setShowPetCapture(false)
-                  if (success) {
-                    emitEvent('pet_capture', '成功捕获了一只灵兽')
-                  }
-                }}
-              >
-                尝试捕获
-              </button>
-              <button className={styles.cancelBtn} onClick={() => setShowPetCapture(false)}>
-                放弃
-              </button>
+      {showPetCapture &&
+        (() => {
+          const firstAliveCharId = run.teamCharacterIds.find((cid) => run.memberStates[cid]?.status !== 'dead')
+          const char = firstAliveCharId ? sect.characters.find((c) => c.id === firstAliveCharId) : null
+          const fortune = char?.cultivationStats.fortune ?? 0
+          const captureRate = Math.round((0.3 + fortune * 0.02) * 100)
+          return (
+            <div className={styles.petCapturePanel}>
+              <div className={styles.petCaptureTitle}>发现可捕获灵兽！</div>
+              <div className={styles.petCaptureRate}>捕获率: {captureRate}%</div>
+              <div className={styles.petCaptureActions}>
+                <button
+                  className={styles.actionBtn}
+                  onClick={() => {
+                    const success = attemptPetCapture(run.id)
+                    setShowPetCapture(false)
+                    if (success) {
+                      emitEvent('pet_capture', '成功捕获了一只灵兽')
+                    }
+                  }}
+                >
+                  尝试捕获
+                </button>
+                <button className={styles.cancelBtn} onClick={() => setShowPetCapture(false)}>
+                  放弃
+                </button>
+              </div>
             </div>
-          </div>
-        )
-      })()}
+          )
+        })()}
 
       {/* Check last log for pet capture trigger */}
       {!showPetCapture && recentLogs.length > 0 && recentLogs[recentLogs.length - 1].message.includes('可捕获灵兽') && (
-        <button className={styles.actionBtn} onClick={() => setShowPetCapture(true)} style={{ width: '100%', marginTop: 'var(--space-xs)' }}>
+        <button
+          className={styles.actionBtn}
+          onClick={() => setShowPetCapture(true)}
+          style={{ width: '100%', marginTop: 'var(--space-xs)' }}
+        >
           捕获灵兽
         </button>
       )}

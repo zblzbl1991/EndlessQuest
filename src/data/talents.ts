@@ -80,19 +80,25 @@ export const ALL_TALENTS: Talent[] = [
     id: 'taiji',
     name: '太极',
     description: '灵根+8, 悟性+3',
-    effect: [{ stat: 'spiritualRoot', value: 8 }, { stat: 'comprehension', value: 3 }],
+    effect: [
+      { stat: 'spiritualRoot', value: 8 },
+      { stat: 'comprehension', value: 3 },
+    ],
     rarity: 'epic',
   },
   {
     id: 'busizun',
     name: '不死尊',
     description: '生命+30, 防御+5',
-    effect: [{ stat: 'hp', value: 30 }, { stat: 'def', value: 5 }],
+    effect: [
+      { stat: 'hp', value: 30 },
+      { stat: 'def', value: 5 },
+    ],
     rarity: 'epic',
   },
 ]
 
-const talentById = new Map<string, Talent>(ALL_TALENTS.map(t => [t.id, t]))
+const talentById = new Map<string, Talent>(ALL_TALENTS.map((t) => [t.id, t]))
 
 export function getTalentById(id: string): Talent | undefined {
   return talentById.get(id)

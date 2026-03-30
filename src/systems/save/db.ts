@@ -70,10 +70,10 @@ export async function getDB(): Promise<IDBPDatabase> {
           const vaultStore = transaction.objectStore('vault')
           const petStore = transaction.objectStore('pets')
 
-          for (const c of (sect.characters ?? [])) await charStore.put(c)
-          for (const b of (sect.buildings ?? [])) await bldgStore.put(b)
-          for (const i of (sect.vault ?? [])) await vaultStore.put(i)
-          for (const p of (sect.pets ?? [])) await petStore.put(p)
+          for (const c of sect.characters ?? []) await charStore.put(c)
+          for (const b of sect.buildings ?? []) await bldgStore.put(b)
+          for (const i of sect.vault ?? []) await vaultStore.put(i)
+          for (const p of sect.pets ?? []) await petStore.put(p)
 
           // Delete old blob store
           db.deleteObjectStore('save')

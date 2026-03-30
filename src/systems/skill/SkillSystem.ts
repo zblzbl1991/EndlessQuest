@@ -11,9 +11,7 @@ export interface TotalStatsResult {
  * Calculate total bonuses from all learned techniques.
  * Sums all technique bonuses (flat additive).
  */
-export function calcTechniqueBonuses(
-  learnedTechniques: string[],
-): Record<string, number> {
+export function calcTechniqueBonuses(learnedTechniques: string[]): Record<string, number> {
   const bonus: Record<string, number> = {}
 
   for (const techId of learnedTechniques) {
@@ -33,7 +31,7 @@ export function calcTechniqueBonuses(
 export function applyTechniqueBonuses(
   baseStats: BaseStats,
   cultivationStats: CultivationStats,
-  techniqueBonuses: Record<string, number>,
+  techniqueBonuses: Record<string, number>
 ): { baseStats: BaseStats; cultivationStats: CultivationStats } {
   const result = {
     baseStats: { ...baseStats },
@@ -43,10 +41,10 @@ export function applyTechniqueBonuses(
   for (const [key, value] of Object.entries(techniqueBonuses)) {
     if (value === undefined || value === 0) continue
     if (key in result.baseStats) {
-      (result.baseStats as unknown as Record<string, number>)[key] += value
+      ;(result.baseStats as unknown as Record<string, number>)[key] += value
     }
     if (key in result.cultivationStats) {
-      (result.cultivationStats as unknown as Record<string, number>)[key] += value
+      ;(result.cultivationStats as unknown as Record<string, number>)[key] += value
     }
   }
 

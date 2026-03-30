@@ -17,16 +17,16 @@ export const PALETTE: Record<string, string> = {
   // quality / element colors
   '8': '#60a5fa', // spirit blue
   '9': '#a78bfa', // immortal purple
-  'a': '#f59e0b', // divine gold
-  'b': '#ef4444', // chaos red / fire
-  'c': '#2d6a4f', // green (healing / nature)
-  'd': '#4a9eff', // light blue
-  'e': '#e67e22', // orange (warning)
-};
+  a: '#f59e0b', // divine gold
+  b: '#ef4444', // chaos red / fire
+  c: '#2d6a4f', // green (healing / nature)
+  d: '#4a9eff', // light blue
+  e: '#e67e22', // orange (warning)
+}
 
 export interface PixelIconDef {
   /** 12 rows × 12 cols, each char indexes into PALETTE (+ per-icon overrides) */
-  grid: string[];
+  grid: string[]
   /** Optional extra color mappings merged on top of PALETTE */
-  palette?: Record<string, string>;
+  palette?: Record<string, string>
 }

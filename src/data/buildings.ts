@@ -11,14 +11,70 @@ export interface BuildingDef {
 }
 
 export const BUILDING_DEFS: BuildingDef[] = [
-  { type: 'mainHall', name: '宗门大殿', description: '宗门核心建筑', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '初始' },
-  { type: 'spiritMine', name: '灵石矿', description: '产出灵石和矿材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '初始' },
-  { type: 'spiritField', name: '灵田', description: '产出灵草和灵材', maxLevel: 10, upgradeCost: (lv) => ({ spiritStone: Math.round(80 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv1' },
-  { type: 'market', name: '坊市', description: 'NPC 商店', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv1' },
-  { type: 'alchemyFurnace', name: '丹炉', description: '炼制丹药', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(150 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv2 + 灵田 Lv2' },
-  { type: 'forge', name: '炼器坊', description: '锻造和强化装备', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(150 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv2' },
-  { type: 'scriptureHall', name: '藏经阁', description: '学习功法', maxLevel: 8, upgradeCost: (lv) => ({ spiritStone: Math.round(200 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv3' },
-  { type: 'recruitmentPavilion', name: '聚仙台', description: '招募弟子', maxLevel: 6, upgradeCost: (lv) => ({ spiritStone: Math.round(300 * Math.pow(lv + 1, 1.3)) }), unlockCondition: '大殿 Lv3' },
+  {
+    type: 'mainHall',
+    name: '宗门大殿',
+    description: '宗门核心建筑',
+    maxLevel: 10,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '初始',
+  },
+  {
+    type: 'spiritMine',
+    name: '灵石矿',
+    description: '产出灵石和矿材',
+    maxLevel: 10,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '初始',
+  },
+  {
+    type: 'spiritField',
+    name: '灵田',
+    description: '产出灵草和灵材',
+    maxLevel: 10,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(80 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '大殿 Lv1',
+  },
+  {
+    type: 'market',
+    name: '坊市',
+    description: 'NPC 商店',
+    maxLevel: 8,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(100 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '大殿 Lv1',
+  },
+  {
+    type: 'alchemyFurnace',
+    name: '丹炉',
+    description: '炼制丹药',
+    maxLevel: 8,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(150 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '大殿 Lv2 + 灵田 Lv2',
+  },
+  {
+    type: 'forge',
+    name: '炼器坊',
+    description: '锻造和强化装备',
+    maxLevel: 8,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(150 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '大殿 Lv2',
+  },
+  {
+    type: 'scriptureHall',
+    name: '藏经阁',
+    description: '学习功法',
+    maxLevel: 8,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(200 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '大殿 Lv3',
+  },
+  {
+    type: 'recruitmentPavilion',
+    name: '聚仙台',
+    description: '招募弟子',
+    maxLevel: 6,
+    upgradeCost: (lv) => ({ spiritStone: Math.round(300 * Math.pow(lv + 1, 1.3)) }),
+    unlockCondition: '大殿 Lv3',
+  },
 ]
 
 export function getBuildingDef(type: BuildingType): BuildingDef | undefined {
@@ -117,7 +173,7 @@ export const SYNERGIES: Synergy[] = [
       { building: 'spiritField', level: 3 },
       { building: 'alchemyFurnace', level: 3 },
     ],
-    effect: { target: 'alchemyFurnace', value: 0.20 },
+    effect: { target: 'alchemyFurnace', value: 0.2 },
   },
   {
     id: 'forging_mining',

@@ -7,10 +7,7 @@ import type { BuildingType } from '../../types/sect'
 // Helper
 // ---------------------------------------------------------------------------
 
-export function getBuildingLevel(
-  buildings: { type: BuildingType; level: number }[],
-  type: BuildingType,
-): number {
+export function getBuildingLevel(buildings: { type: BuildingType; level: number }[], type: BuildingType): number {
   return buildings.find((b) => b.type === type)?.level ?? 0
 }
 
@@ -102,26 +99,18 @@ export function getTargetedRecruitUnlockLevel(): number {
 // Convenience multipliers that take buildings array directly
 // ---------------------------------------------------------------------------
 
-export function getEnhanceSuccessBonus(
-  buildings: { type: BuildingType; level: number }[],
-): number {
+export function getEnhanceSuccessBonus(buildings: { type: BuildingType; level: number }[]): number {
   return getForgeBuff(getBuildingLevel(buildings, 'forge')).successBonus
 }
 
-export function getEnhanceCostReduction(
-  buildings: { type: BuildingType; level: number }[],
-): number {
+export function getEnhanceCostReduction(buildings: { type: BuildingType; level: number }[]): number {
   return getForgeBuff(getBuildingLevel(buildings, 'forge')).costReduction
 }
 
-export function getRecruitCostMult(
-  buildings: { type: BuildingType; level: number }[],
-): number {
+export function getRecruitCostMult(buildings: { type: BuildingType; level: number }[]): number {
   return getRecruitBuff(getBuildingLevel(buildings, 'recruitmentPavilion')).costMult
 }
 
-export function getPotionEffectMult(
-  buildings: { type: BuildingType; level: number }[],
-): number {
+export function getPotionEffectMult(buildings: { type: BuildingType; level: number }[]): number {
   return getAlchemyBuff(getBuildingLevel(buildings, 'alchemyFurnace')).potionEffectMult
 }

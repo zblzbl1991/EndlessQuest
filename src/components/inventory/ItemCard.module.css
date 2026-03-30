@@ -43,11 +43,21 @@
   align-self: flex-start;
 }
 
-.qualityCommon { background: var(--color-quality-common); }
-.qualitySpirit { background: var(--color-quality-spirit); }
-.qualityImmortal { background: var(--color-quality-immortal); }
-.qualityDivine { background: var(--color-quality-divine); }
-.qualityChaos { background: var(--color-quality-chaos); }
+.qualityCommon {
+  background: var(--color-quality-common);
+}
+.qualitySpirit {
+  background: var(--color-quality-spirit);
+}
+.qualityImmortal {
+  background: var(--color-quality-immortal);
+}
+.qualityDivine {
+  background: var(--color-quality-divine);
+}
+.qualityChaos {
+  background: var(--color-quality-chaos);
+}
 
 .enhance {
   font-size: 10px;

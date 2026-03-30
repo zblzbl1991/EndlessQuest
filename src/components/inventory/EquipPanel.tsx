@@ -36,16 +36,23 @@ export default function EquipPanel({ characterId, onItemClick, onSlotClick }: Eq
           const item = gearId ? findEquipmentById(gearId) : null
           const slotKey = EQUIP_SLOTS[idx] ?? ''
           return (
-            <div
-              key={idx}
-              className={styles.slot}
-              onClick={() => item ? onItemClick(item) : onSlotClick(idx)}
-            >
+            <div key={idx} className={styles.slot} onClick={() => (item ? onItemClick(item) : onSlotClick(idx))}>
               <span className={styles.slotName}>{EQUIP_SLOT_NAMES[slotKey]}</span>
               {item ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span className={styles.slotItem}>{item.name}{item.enhanceLevel > 0 ? ` +${item.enhanceLevel}` : ''}</span>
-                  <button className={styles.unequipBtn} onClick={(e) => { e.stopPropagation(); unequipItem(characterId, idx) }}>x</button>
+                  <span className={styles.slotItem}>
+                    {item.name}
+                    {item.enhanceLevel > 0 ? ` +${item.enhanceLevel}` : ''}
+                  </span>
+                  <button
+                    className={styles.unequipBtn}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      unequipItem(characterId, idx)
+                    }}
+                  >
+                    x
+                  </button>
                 </div>
               ) : (
                 <span className={styles.slotEmpty}>空</span>

@@ -17,10 +17,10 @@ describe('TradeSystem', () => {
     const lv0 = generateDailyItems(0)
     const lv5 = generateDailyItems(5)
     // lv0 only common, lv5 can have spirit or immortal
-    const lv0Qualities = lv0.map(i => i.item.quality)
-    const lv5Qualities = lv5.map(i => i.item.quality)
-    expect(lv0Qualities.every(q => q === 'common')).toBe(true)
-    expect(lv5Qualities.some(q => q === 'spirit' || q === 'immortal')).toBe(true)
+    const lv0Qualities = lv0.map((i) => i.item.quality)
+    const lv5Qualities = lv5.map((i) => i.item.quality)
+    expect(lv0Qualities.every((q) => q === 'common')).toBe(true)
+    expect(lv5Qualities.some((q) => q === 'spirit' || q === 'immortal')).toBe(true)
   })
 
   it('should create shop state', () => {

@@ -62,8 +62,16 @@ describe('resolveTribulation', () => {
   })
 
   it('higher spiritualRoot reduces failure rate (statistical test)', () => {
-    const lowRoot = makeCharacter({ realm: 2, realmStage: 3, cultivationStats: { ...makeCharacter().cultivationStats, spiritualRoot: 5 } })
-    const highRoot = makeCharacter({ realm: 2, realmStage: 3, cultivationStats: { ...makeCharacter().cultivationStats, spiritualRoot: 40 } })
+    const lowRoot = makeCharacter({
+      realm: 2,
+      realmStage: 3,
+      cultivationStats: { ...makeCharacter().cultivationStats, spiritualRoot: 5 },
+    })
+    const highRoot = makeCharacter({
+      realm: 2,
+      realmStage: 3,
+      cultivationStats: { ...makeCharacter().cultivationStats, spiritualRoot: 40 },
+    })
 
     let lowFails = 0
     let highFails = 0

@@ -65,7 +65,10 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
             c1: { currentHp: 80, maxHp: 100, status: 'alive' },
           },
           totalRewards: {
-            spiritStone: 200, spiritEnergy: 0, herb: 10, ore: 0,
+            spiritStone: 200,
+            spiritEnergy: 0,
+            herb: 10,
+            ore: 0,
           },
           itemRewards: [],
           eventLog: [{ timestamp: Date.now(), message: 'test log' }],
@@ -156,9 +159,7 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     const result = await loadGame()
     expect(result).toBe(true)
 
-    const loadedChar = useSectStore.getState().sect.characters.find(
-      c => c.id === cultivatingChar.id,
-    )
+    const loadedChar = useSectStore.getState().sect.characters.find((c) => c.id === cultivatingChar.id)
     expect(loadedChar).toBeDefined()
     expect(loadedChar!.status).toBe('idle')
   })
@@ -179,9 +180,7 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     const result = await loadGame()
     expect(result).toBe(true)
 
-    const loadedChar = useSectStore.getState().sect.characters.find(
-      c => c.id === secludedChar.id,
-    )
+    const loadedChar = useSectStore.getState().sect.characters.find((c) => c.id === secludedChar.id)
     expect(loadedChar).toBeDefined()
     expect(loadedChar!.status).toBe('idle')
   })

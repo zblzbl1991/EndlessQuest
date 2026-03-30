@@ -60,7 +60,7 @@ export async function saveGame(): Promise<void> {
     for (const c of sect.characters) await charStore.put(c)
     const charKeys = await charStore.getAllKeys()
     for (const k of charKeys) {
-      if (!sect.characters.some(c => c.id === k)) await charStore.delete(k)
+      if (!sect.characters.some((c) => c.id === k)) await charStore.delete(k)
     }
 
     // Write buildings (keyPath is 'type', put overwrites)
@@ -71,7 +71,7 @@ export async function saveGame(): Promise<void> {
     const vaultStore = tx.objectStore('vault')
     for (const s of sect.vault) await vaultStore.put({ id: s.item.id, ...s })
     const vaultKeys = await vaultStore.getAllKeys()
-    const vaultItemIds = new Set(sect.vault.map(s => s.item.id))
+    const vaultItemIds = new Set(sect.vault.map((s) => s.item.id))
     for (const k of vaultKeys) {
       if (!vaultItemIds.has(k as string)) await vaultStore.delete(k)
     }
@@ -81,7 +81,7 @@ export async function saveGame(): Promise<void> {
     for (const p of sect.pets) await petStore.put(p)
     const petKeys = await petStore.getAllKeys()
     for (const k of petKeys) {
-      if (!sect.pets.some(p => p.id === k)) await petStore.delete(k)
+      if (!sect.pets.some((p) => p.id === k)) await petStore.delete(k)
     }
 
     // Write adventure runs
@@ -91,7 +91,7 @@ export async function saveGame(): Promise<void> {
     }
     const advKeys = await advStore.getAllKeys()
     for (const k of advKeys) {
-      if (!(k as string in activeRuns)) await advStore.delete(k)
+      if (!((k as string) in activeRuns)) await advStore.delete(k)
     }
 
     await tx.done
@@ -107,7 +107,7 @@ export async function saveGame(): Promise<void> {
 export async function loadGame(): Promise<boolean> {
   try {
     const db = await getDB()
-    const meta = await db.get('meta', 1) as SaveMeta | undefined
+    const meta = (await db.get('meta', 1)) as SaveMeta | undefined
 
     // Clean up stale localStorage regardless
     if (localStorage.getItem(META_KEY)) localStorage.removeItem(META_KEY)
@@ -116,10 +116,10 @@ export async function loadGame(): Promise<boolean> {
     if (!meta) return false
 
     // Read per-entity stores
-    const rawCharacters = await db.getAll('characters') as Sect['characters']
-    const buildings = await db.getAll('buildings') as Sect['buildings']
+    const rawCharacters = (await db.getAll('characters')) as Sect['characters']
+    const buildings = (await db.getAll('buildings')) as Sect['buildings']
     const rawVault = await db.getAll('vault')
-    const pets = await db.getAll('pets') as Sect['pets']
+    const pets = (await db.getAll('pets')) as Sect['pets']
 
     // Integrity check: if meta exists but all entity stores are empty, corrupted
     if (rawCharacters.length === 0 && buildings.length === 0) {
@@ -129,14 +129,14 @@ export async function loadGame(): Promise<boolean> {
     // Migrate vault and backpacks to ItemStack format
     const vault = migrateToItemStacks(rawVault)
     // Migrate v5→v6: cultivating/secluded → idle
-    const migratedCharacters = rawCharacters.map(c => {
+    const migratedCharacters = rawCharacters.map((c) => {
       if (c.status === 'cultivating' || c.status === 'secluded') {
         return { ...c, status: 'idle' as const }
       }
       return c
     })
 
-    const characters = migratedCharacters.map(c => ({
+    const characters = migratedCharacters.map((c) => ({
       ...c,
       backpack: migrateToItemStacks(c.backpack),
       specialties: (c as any).specialties ?? [],
@@ -174,9 +174,7 @@ export async function loadGame(): Promise<boolean> {
     // Load event log from history store
     const historyRecords = await db.getAll('history')
     if (historyRecords.length > 0) {
-      const events = (historyRecords as any[])
-        .sort((a: any, b: any) => b.timestamp - a.timestamp)
-        .slice(0, 200)
+      const events = (historyRecords as any[]).sort((a: any, b: any) => b.timestamp - a.timestamp).slice(0, 200)
       useEventLogStore.setState({ events })
     }
 
@@ -212,7 +210,7 @@ export async function clearSaveData(): Promise<void> {
     const db = await getDB()
     const tx = db.transaction(
       ['meta', 'characters', 'buildings', 'vault', 'pets', 'adventure', 'history', 'resources'],
-      'readwrite',
+      'readwrite'
     )
     await tx.objectStore('meta').clear()
     await tx.objectStore('characters').clear()

@@ -40,11 +40,7 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
 
   for (let i = 0; i < numRoutes; i++) {
     const riskRoll = Math.random()
-    const riskLevel = riskRoll < 0.4
-      ? 'low' as const
-      : riskRoll < 0.75
-        ? 'medium' as const
-        : 'high' as const
+    const riskLevel = riskRoll < 0.4 ? ('low' as const) : riskRoll < 0.75 ? ('medium' as const) : ('high' as const)
 
     const events: DungeonEvent[] = []
     const rewardMult = riskLevel === 'low' ? 0.8 : riskLevel === 'medium' ? 1.2 : 1.8
@@ -53,10 +49,10 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
     for (let e = 0; e < eventsPerRoute; e++) {
       const roll = Math.random()
       let type: DungeonEvent['type']
-      if (roll < 0.40) type = 'combat'
+      if (roll < 0.4) type = 'combat'
       else if (roll < 0.65) type = 'random'
-      else if (roll < 0.80) type = 'shop'
-      else if (roll < 0.90) type = 'rest'
+      else if (roll < 0.8) type = 'shop'
+      else if (roll < 0.9) type = 'rest'
       else if (roll < 0.95) type = 'ancient_cave'
       else type = 'boss'
 

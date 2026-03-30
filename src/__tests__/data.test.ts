@@ -14,11 +14,11 @@ describe('Techniques Table', () => {
   })
 
   it('should have correct tier distribution', () => {
-    const mortal = TECHNIQUES.filter(t => t.tier === 'mortal')
-    const spirit = TECHNIQUES.filter(t => t.tier === 'spirit')
-    const immortal = TECHNIQUES.filter(t => t.tier === 'immortal')
-    const divine = TECHNIQUES.filter(t => t.tier === 'divine')
-    const chaos = TECHNIQUES.filter(t => t.tier === 'chaos')
+    const mortal = TECHNIQUES.filter((t) => t.tier === 'mortal')
+    const spirit = TECHNIQUES.filter((t) => t.tier === 'spirit')
+    const immortal = TECHNIQUES.filter((t) => t.tier === 'immortal')
+    const divine = TECHNIQUES.filter((t) => t.tier === 'divine')
+    const chaos = TECHNIQUES.filter((t) => t.tier === 'chaos')
     expect(mortal).toHaveLength(3)
     expect(spirit).toHaveLength(3)
     expect(immortal).toHaveLength(3)
@@ -27,12 +27,19 @@ describe('Techniques Table', () => {
   })
 
   it('should have all required technique IDs', () => {
-    const ids = TECHNIQUES.map(t => t.id)
+    const ids = TECHNIQUES.map((t) => t.id)
     const expected = [
-      'qingxin', 'lieyan', 'houtu',
-      'fentian', 'xuanbing', 'leiyu',
-      'leishen', 'bumiejinshen', 'jiuzhuan',
-      'wanjianguizong', 'taishang',
+      'qingxin',
+      'lieyan',
+      'houtu',
+      'fentian',
+      'xuanbing',
+      'leiyu',
+      'leishen',
+      'bumiejinshen',
+      'jiuzhuan',
+      'wanjianguizong',
+      'taishang',
       'hunduntiangong',
     ]
     for (const id of expected) {
@@ -70,26 +77,26 @@ describe('Techniques Table', () => {
   it('should have wanjianguizong as divine tier with high atk bonus', () => {
     const t = getTechniqueById('wanjianguizong')!
     expect(t.tier).toBe('divine')
-    expect(t.bonuses.some(b => b.type === 'atk' && b.value === 25)).toBe(true)
+    expect(t.bonuses.some((b) => b.type === 'atk' && b.value === 25)).toBe(true)
   })
 
   it('should have taishang with ice element and balanced bonuses', () => {
     const t = getTechniqueById('taishang')!
     expect(t.element).toBe('ice')
-    expect(t.bonuses.some(b => b.type === 'atk' && b.value === 15)).toBe(true)
+    expect(t.bonuses.some((b) => b.type === 'atk' && b.value === 15)).toBe(true)
   })
 
   it('should have leishen with lightning element', () => {
     const t = getTechniqueById('leishen')!
     expect(t.element).toBe('lightning')
-    expect(t.bonuses.some(b => b.type === 'spd' && b.value === 12)).toBe(true)
+    expect(t.bonuses.some((b) => b.type === 'spd' && b.value === 12)).toBe(true)
   })
 
   it('should have bumiejinshen with high hp and def bonuses', () => {
     const t = getTechniqueById('bumiejinshen')!
     expect(t.element).toBe('neutral')
-    expect(t.bonuses.some(b => b.type === 'hp' && b.value === 80)).toBe(true)
-    expect(t.bonuses.some(b => b.type === 'def' && b.value === 15)).toBe(true)
+    expect(t.bonuses.some((b) => b.type === 'hp' && b.value === 80)).toBe(true)
+    expect(t.bonuses.some((b) => b.type === 'def' && b.value === 15)).toBe(true)
   })
 
   it('getTechniqueById should return undefined for unknown ID', () => {
@@ -196,11 +203,11 @@ describe('Enemies data', () => {
     const char = makeTestCharacter()
     // lieyan bonuses: atk+5, crit+0.02
     const unit = createCharacterCombatUnit(char, ['lieyan'])
-    expect(unit.hp).toBe(100)    // no hp bonus from lieyan
-    expect(unit.atk).toBe(20)     // 15 + 5
-    expect(unit.def).toBe(8)      // no def bonus
-    expect(unit.spd).toBe(10)     // no spd bonus
-    expect(unit.crit).toBe(0.07)  // 0.05 + 0.02
+    expect(unit.hp).toBe(100) // no hp bonus from lieyan
+    expect(unit.atk).toBe(20) // 15 + 5
+    expect(unit.def).toBe(8) // no def bonus
+    expect(unit.spd).toBe(10) // no spd bonus
+    expect(unit.crit).toBe(0.07) // 0.05 + 0.02
   })
 
   it('should set element from technique', () => {
@@ -214,11 +221,11 @@ describe('Enemies data', () => {
     // lieyan: atk+5, crit+0.02
     const char = makeTestCharacter()
     const unit = createCharacterCombatUnit(char, ['qingxin', 'lieyan'])
-    expect(unit.hp).toBe(110)    // 100 + 10
-    expect(unit.atk).toBe(22)     // 15 + 2 + 5
-    expect(unit.def).toBe(10)     // 8 + 2
-    expect(unit.spd).toBe(11)     // 10 + 1
-    expect(unit.crit).toBe(0.07)  // 0.05 + 0.02
+    expect(unit.hp).toBe(110) // 100 + 10
+    expect(unit.atk).toBe(22) // 15 + 2 + 5
+    expect(unit.def).toBe(10) // 8 + 2
+    expect(unit.spd).toBe(11) // 10 + 1
+    expect(unit.crit).toBe(0.07) // 0.05 + 0.02
   })
 
   it('should use equippedSkills for skills list', () => {

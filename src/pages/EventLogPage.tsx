@@ -49,9 +49,7 @@ export default function EventLogPage() {
         {events.map((evt) => (
           <div key={evt.id} className={styles.entry}>
             <span className={styles.time}>{formatRelativeTime(evt.timestamp)}</span>
-            <span className={`${styles.tag} ${getEventClass(evt.type)}`}>
-              {EVENT_LABELS[evt.type] ?? evt.type}
-            </span>
+            <span className={`${styles.tag} ${getEventClass(evt.type)}`}>{EVENT_LABELS[evt.type] ?? evt.type}</span>
             <span className={styles.message}>{evt.message}</span>
           </div>
         ))}

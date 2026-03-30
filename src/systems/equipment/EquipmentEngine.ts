@@ -95,15 +95,15 @@ export function refineEquipment(item: Equipment, costReduction = 0): RefineResul
 
   // Refinement value = 30% of base stat at this quality
   const baseValue: Record<EquipSlot, Record<string, number>> = {
-    head:      { hp: 15, atk: 0, def: 5, spd: 0 },
-    armor:     { hp: 20, atk: 0, def: 8, spd: 0 },
-    bracer:    { hp: 5,  atk: 3, def: 3, spd: 0 },
-    belt:      { hp: 10, atk: 0, def: 4, spd: 2 },
-    boots:     { hp: 5,  atk: 0, def: 2, spd: 5 },
-    weapon:    { hp: 0,  atk: 8, def: 0, spd: 0 },
-    accessory1:{ hp: 8,  atk: 2, def: 2, spd: 2 },
-    accessory2:{ hp: 8,  atk: 2, def: 2, spd: 2 },
-    talisman:  { hp: 10, atk: 5, def: 0, spd: 0 },
+    head: { hp: 15, atk: 0, def: 5, spd: 0 },
+    armor: { hp: 20, atk: 0, def: 8, spd: 0 },
+    bracer: { hp: 5, atk: 3, def: 3, spd: 0 },
+    belt: { hp: 10, atk: 0, def: 4, spd: 2 },
+    boots: { hp: 5, atk: 0, def: 2, spd: 5 },
+    weapon: { hp: 0, atk: 8, def: 0, spd: 0 },
+    accessory1: { hp: 8, atk: 2, def: 2, spd: 2 },
+    accessory2: { hp: 8, atk: 2, def: 2, spd: 2 },
+    talisman: { hp: 10, atk: 5, def: 0, spd: 0 },
   }
 
   const value = Math.max(1, Math.floor(baseValue[item.slot][key] * qualityMult * 0.3))

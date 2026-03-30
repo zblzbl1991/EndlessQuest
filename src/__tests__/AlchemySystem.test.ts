@@ -21,12 +21,14 @@ describe('canCraft', () => {
     expect(canCraft(ALCHEMY_RECIPES[0], { herb: 0, spiritStone: 0 })).toBe(false)
   })
   it('returns false if furnace level too low', () => {
-    const highRecipe = ALCHEMY_RECIPES.find(r => r.minFurnaceLevel > 1)!
+    const highRecipe = ALCHEMY_RECIPES.find((r) => r.minFurnaceLevel > 1)!
     expect(canCraft(highRecipe, { herb: 999, spiritStone: 999 }, 0)).toBe(false)
   })
   it('returns true when requirements met', () => {
     const recipe = ALCHEMY_RECIPES[0]
-    expect(canCraft(recipe, { herb: recipe.cost.herb + 1, spiritStone: (recipe.cost.spiritStone ?? 0) + 1 }, 1)).toBe(true)
+    expect(canCraft(recipe, { herb: recipe.cost.herb + 1, spiritStone: (recipe.cost.spiritStone ?? 0) + 1 }, 1)).toBe(
+      true
+    )
   })
 })
 

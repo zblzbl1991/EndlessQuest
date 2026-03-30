@@ -16,9 +16,7 @@ export function canLearnTechnique(character: Character, technique: Technique): b
 /**
  * Tier ceiling for breakthrough comprehension: realm index maps to max tier.
  */
-const REALM_TIER_CEILING: TechniqueTier[] = [
-  'mortal', 'spirit', 'immortal', 'divine', 'chaos',
-]
+const REALM_TIER_CEILING: TechniqueTier[] = ['mortal', 'spirit', 'immortal', 'divine', 'chaos']
 
 /**
  * Attempt breakthrough comprehension. Returns technique ID or null.
@@ -30,9 +28,9 @@ export function tryComprehendOnBreakthrough(
   character: { learnedTechniques: string[]; realm: number; cultivationStats: { comprehension: number } },
   techniqueCodex: string[],
   isMajor: boolean,
-  randomFn: () => number = Math.random,
+  randomFn: () => number = Math.random
 ): string | null {
-  const chance = isMajor ? 0.40 : 0.15
+  const chance = isMajor ? 0.4 : 0.15
   if (randomFn() >= chance) return null
 
   const maxTier = REALM_TIER_CEILING[Math.min(character.realm, 4)]
@@ -55,10 +53,7 @@ export function tryComprehendOnBreakthrough(
 /**
  * Pick a technique for the ancient_cave adventure event based on floor number.
  */
-export function pickTechniqueForFloor(
-  floorNumber: number,
-  randomFn: () => number = Math.random,
-): string {
+export function pickTechniqueForFloor(floorNumber: number, randomFn: () => number = Math.random): string {
   const roll = randomFn()
   let tier: TechniqueTier
 

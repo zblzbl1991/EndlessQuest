@@ -1,4 +1,4 @@
-import type { PixelIconDef } from './types';
+import type { PixelIconDef } from './types'
 
 export const uiIcons: Record<string, PixelIconDef> = {
   // ── Navigation & Actions ──────────────────────────────
@@ -442,4 +442,4 @@ export const uiIcons: Record<string, PixelIconDef> = {
       '............',
     ],
   },
-};
+}

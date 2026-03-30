@@ -13,7 +13,7 @@ describe('canForge', () => {
     expect(canForge(recipe, { ore: 0, spiritStone: 0 }, 0)).toBe(false)
   })
   it('returns false if forge level too low', () => {
-    const highRecipe = FORGE_RECIPES.find(r => r.minForgeLevel > 1)!
+    const highRecipe = FORGE_RECIPES.find((r) => r.minForgeLevel > 1)!
     expect(canForge(highRecipe, { ore: 9999, spiritStone: 9999 }, 0)).toBe(false)
   })
   it('returns true when requirements met', () => {
@@ -28,7 +28,7 @@ describe('forgeEquipment', () => {
   })
   it('returns an equipment item on success', () => {
     // Use recipe with 100% success rate
-    const recipe = FORGE_RECIPES.find(r => r.successRate >= 1)!
+    const recipe = FORGE_RECIPES.find((r) => r.successRate >= 1)!
     const result = forgeEquipment(recipe, 3, 0)
     expect(result).not.toBeNull()
     expect(result!.type).toBe('equipment')

@@ -52,10 +52,10 @@ describe('getSpecialtyBonus', () => {
     expect(getSpecialtyBonus(spec.type, spec.level)).toBe(0.15)
 
     spec.level = 2
-    expect(getSpecialtyBonus(spec.type, spec.level)).toBe(0.30)
+    expect(getSpecialtyBonus(spec.type, spec.level)).toBe(0.3)
 
     spec.level = 3
-    expect(getSpecialtyBonus(spec.type, spec.level)).toBe(0.50)
+    expect(getSpecialtyBonus(spec.type, spec.level)).toBe(0.5)
   })
 
   it('returns different values for different specialty types', () => {
@@ -75,11 +75,9 @@ describe('getBuildingBonus', () => {
   })
 
   it('returns bonus when matching specialty exists', () => {
-    const specialties: Specialty[] = [
-      { type: 'alchemy', level: 2 },
-    ]
+    const specialties: Specialty[] = [{ type: 'alchemy', level: 2 }]
     const bonus = getBuildingBonus('alchemyFurnace', specialties)
-    expect(bonus).toBeCloseTo(1.30) // 1 + 0.30
+    expect(bonus).toBeCloseTo(1.3) // 1 + 0.30
   })
 
   it('takes highest level when multiple same-type specialties', () => {
@@ -88,6 +86,6 @@ describe('getBuildingBonus', () => {
       { type: 'alchemy', level: 3 },
     ]
     const bonus = getBuildingBonus('alchemyFurnace', specialties)
-    expect(bonus).toBeCloseTo(1.50) // 1 + 0.50 (level 3 wins)
+    expect(bonus).toBeCloseTo(1.5) // 1 + 0.50 (level 3 wins)
   })
 })

@@ -16,7 +16,7 @@ export interface CombatUnit {
   spiritPower: number
   maxSpiritPower: number
   skills: ActiveSkill[]
-  skillCooldowns: number[]  // remaining cooldown for each skill
+  skillCooldowns: number[] // remaining cooldown for each skill
 }
 
 export interface CombatAction {
@@ -51,22 +51,22 @@ function isAlive(unit: CombatUnit): boolean {
 }
 
 function getAllies(units: CombatUnit[], team: 'ally' | 'enemy'): CombatUnit[] {
-  return units.filter(u => u.team === team && isAlive(u))
+  return units.filter((u) => u.team === team && isAlive(u))
 }
 
 function getEnemies(units: CombatUnit[], team: 'ally' | 'enemy'): CombatUnit[] {
-  return units.filter(u => u.team !== team && isAlive(u))
+  return units.filter((u) => u.team !== team && isAlive(u))
 }
 
 function buildHpResult(originalUnits: CombatUnit[], combatUnits: CombatUnit[]): number[] {
-  return originalUnits.map(u => {
-    const match = combatUnits.find(cu => cu.id === u.id)
+  return originalUnits.map((u) => {
+    const match = combatUnits.find((cu) => cu.id === u.id)
     return match ? match.hp : 0
   })
 }
 
 export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): CombatResult {
-  const units: CombatUnit[] = [...allies.map(u => ({...u})), ...enemies.map(u => ({...u}))]
+  const units: CombatUnit[] = [...allies.map((u) => ({ ...u })), ...enemies.map((u) => ({ ...u }))]
   const actions: CombatAction[] = []
   let turn = 0
   let maxTurns = 30 // prevent infinite combat
@@ -76,10 +76,22 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
 
     // Check win/lose at start of turn
     if (getAllies(units, 'ally').length === 0) {
-      return { victory: false, turns: turn - 1, actions, allyHp: buildHpResult(allies, units), enemyHp: buildHpResult(enemies, units) }
+      return {
+        victory: false,
+        turns: turn - 1,
+        actions,
+        allyHp: buildHpResult(allies, units),
+        enemyHp: buildHpResult(enemies, units),
+      }
     }
     if (getAllies(units, 'enemy').length === 0) {
-      return { victory: true, turns: turn - 1, actions, allyHp: buildHpResult(allies, units), enemyHp: buildHpResult(enemies, units) }
+      return {
+        victory: true,
+        turns: turn - 1,
+        actions,
+        allyHp: buildHpResult(allies, units),
+        enemyHp: buildHpResult(enemies, units),
+      }
     }
 
     // Sort alive units by SPD descending
@@ -139,11 +151,16 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
       target.hp = Math.max(0, target.hp - damage)
 
       actions.push({
-        turn, actorId: actor.id, actorName: actor.name,
-        targetId: target.id, targetName: target.name,
+        turn,
+        actorId: actor.id,
+        actorName: actor.name,
+        targetId: target.id,
+        targetName: target.name,
         actionType: usedSkill ? 'skill' : 'attack',
         skillName: usedSkill?.name,
-        damage, isCrit, element: usedSkill?.element ?? 'neutral',
+        damage,
+        isCrit,
+        element: usedSkill?.element ?? 'neutral',
       })
 
       // Check if all enemies or all allies are dead
@@ -152,7 +169,7 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
 
     // Reduce cooldowns at end of turn
     for (const u of units) {
-      u.skillCooldowns = u.skillCooldowns.map(cd => Math.max(0, cd - 1))
+      u.skillCooldowns = u.skillCooldowns.map((cd) => Math.max(0, cd - 1))
     }
   }
 

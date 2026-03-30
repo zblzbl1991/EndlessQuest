@@ -177,5 +177,5 @@ export const TECHNIQUES: Technique[] = [
 ]
 
 export function getTechniqueById(id: string): Technique | undefined {
-  return TECHNIQUES.find(t => t.id === id)
+  return TECHNIQUES.find((t) => t.id === id)
 }

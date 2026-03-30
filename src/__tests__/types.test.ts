@@ -8,18 +8,9 @@ import type {
   CultivationStats,
 } from '../types/character'
 
-import type {
-  Technique,
-  TechniqueTier,
-  TechniqueBonus,
-} from '../types/technique'
+import type { Technique, TechniqueTier, TechniqueBonus } from '../types/technique'
 
-import type {
-  Element,
-  SkillCategory,
-  TechniqueType,
-  ActiveSkill,
-} from '../types/skill'
+import type { Element, SkillCategory, TechniqueType, ActiveSkill } from '../types/skill'
 
 import type {
   ItemQuality,
@@ -33,13 +24,7 @@ import type {
   TechniqueScroll,
 } from '../types/item'
 
-import type {
-  BuildingType,
-  ResourceType,
-  Resources,
-  Building,
-  Sect,
-} from '../types/sect'
+import type { BuildingType, ResourceType, Resources, Building, Sect } from '../types/sect'
 
 import type {
   EventType,
@@ -60,7 +45,11 @@ describe('Character types', () => {
   it('should create a Character with all required fields', () => {
     const baseStats: BaseStats = { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 }
     const cultivationStats: CultivationStats = {
-      spiritPower: 50, maxSpiritPower: 50, comprehension: 10, spiritualRoot: 10, fortune: 5,
+      spiritPower: 50,
+      maxSpiritPower: 50,
+      comprehension: 10,
+      spiritualRoot: 10,
+      fortune: 5,
     }
     const char: Character = {
       id: '1',
@@ -255,21 +244,44 @@ describe('Item types', () => {
   it('AnyItem should accept all item types including TechniqueScroll', () => {
     const items: AnyItem[] = [
       {
-        id: '1', name: '剑', quality: 'common', type: 'equipment',
-        slot: 'weapon', stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 },
-        enhanceLevel: 0, refinementStats: [], setId: null, description: '', sellPrice: 10,
+        id: '1',
+        name: '剑',
+        quality: 'common',
+        type: 'equipment',
+        slot: 'weapon',
+        stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 },
+        enhanceLevel: 0,
+        refinementStats: [],
+        setId: null,
+        description: '',
+        sellPrice: 10,
       },
       {
-        id: '2', name: '丹', quality: 'common', type: 'consumable',
-        effect: { type: 'heal', value: 10 }, description: '', sellPrice: 5,
+        id: '2',
+        name: '丹',
+        quality: 'common',
+        type: 'consumable',
+        effect: { type: 'heal', value: 10 },
+        description: '',
+        sellPrice: 5,
       },
       {
-        id: '3', name: '草', quality: 'common', type: 'material',
-        category: 'herb', description: '', sellPrice: 1,
+        id: '3',
+        name: '草',
+        quality: 'common',
+        type: 'material',
+        category: 'herb',
+        description: '',
+        sellPrice: 1,
       },
       {
-        id: '4', name: '残卷', quality: 'spirit', type: 'techniqueScroll',
-        description: '', sellPrice: 100, techniqueId: 't1',
+        id: '4',
+        name: '残卷',
+        quality: 'spirit',
+        type: 'techniqueScroll',
+        description: '',
+        sellPrice: 100,
+        techniqueId: 't1',
       },
     ]
     expect(items).toHaveLength(4)
@@ -325,16 +337,20 @@ describe('Sect types', () => {
 
   it('should accept all BuildingType values', () => {
     const types: BuildingType[] = [
-      'mainHall', 'spiritField', 'spiritMine', 'market', 'alchemyFurnace',
-      'forge', 'scriptureHall', 'recruitmentPavilion',
+      'mainHall',
+      'spiritField',
+      'spiritMine',
+      'market',
+      'alchemyFurnace',
+      'forge',
+      'scriptureHall',
+      'recruitmentPavilion',
     ]
     expect(types).toHaveLength(8)
   })
 
   it('should accept all ResourceType values', () => {
-    const types: ResourceType[] = [
-      'spiritStone', 'spiritEnergy', 'herb', 'ore',
-    ]
+    const types: ResourceType[] = ['spiritStone', 'spiritEnergy', 'herb', 'ore']
     expect(types).toHaveLength(4)
   })
 })
@@ -357,14 +373,16 @@ describe('Adventure types', () => {
     const floor: DungeonFloor = {
       floor: 1,
       isBossFloor: false,
-      routes: [{
-        id: 'route_1_0',
-        name: '安全路线',
-        description: '低风险',
-        riskLevel: 'low',
-        events: [{ type: 'combat' }],
-        reward: { spiritStone: 100, herb: 5, ore: 3 },
-      }],
+      routes: [
+        {
+          id: 'route_1_0',
+          name: '安全路线',
+          description: '低风险',
+          riskLevel: 'low',
+          events: [{ type: 'combat' }],
+          reward: { spiritStone: 100, herb: 5, ore: 3 },
+        },
+      ],
     }
     expect(floor.floor).toBe(1)
   })
@@ -381,7 +399,10 @@ describe('Adventure types', () => {
         char2: { currentHp: 80, maxHp: 100, status: 'alive' },
       },
       totalRewards: {
-        spiritStone: 100, spiritEnergy: 0, herb: 5, ore: 0,
+        spiritStone: 100,
+        spiritEnergy: 0,
+        herb: 5,
+        ore: 0,
       },
       itemRewards: [],
       eventLog: [{ timestamp: Date.now(), message: '进入灵草谷' }],

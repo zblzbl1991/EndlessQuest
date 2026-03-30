@@ -11,11 +11,7 @@ export interface LootResult {
 /**
  * Generate loot drops from a loot table.
  */
-export function generateLoot(
-  lootTable: LootEntry[],
-  dropsPerFight: number,
-  floor: number,
-): LootResult[] {
+export function generateLoot(lootTable: LootEntry[], dropsPerFight: number, floor: number): LootResult[] {
   if (lootTable.length === 0) return []
 
   const results: LootResult[] = []

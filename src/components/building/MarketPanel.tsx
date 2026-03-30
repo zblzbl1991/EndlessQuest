@@ -26,7 +26,7 @@ export default function MarketPanel() {
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
   const [refreshCount, setRefreshCount] = useState(0)
 
-  const marketLevel = sect.buildings.find(b => b.type === 'market')?.level ?? 0
+  const marketLevel = sect.buildings.find((b) => b.type === 'market')?.level ?? 0
   const marketBuff = getMarketBuff(marketLevel)
 
   // Lazy-init shop on mount
@@ -60,7 +60,7 @@ export default function MarketPanel() {
       return
     }
     refreshDailyShop()
-    setRefreshCount(prev => prev + 1)
+    setRefreshCount((prev) => prev + 1)
     setMessage({ success: true, text: '商品已刷新' })
     setTimeout(() => setMessage(null), 2000)
   }
@@ -77,9 +77,7 @@ export default function MarketPanel() {
     <div className={styles.buildingPanel}>
       <div className={styles.panelHeader}>
         <span className={styles.panelTitle}>坊市 Lv{marketLevel}</span>
-        <span className={styles.resourceDisplay}>
-          灵石 {sect.resources.spiritStone}
-        </span>
+        <span className={styles.resourceDisplay}>灵石 {sect.resources.spiritStone}</span>
       </div>
 
       {/* Fixed items section */}
@@ -125,17 +123,13 @@ export default function MarketPanel() {
               {QUALITY_LABELS[shopItem.item.quality] || shopItem.item.quality}
             </span>
           </div>
-          {shopItem.item.description && (
-            <div className={styles.itemDesc}>{shopItem.item.description}</div>
-          )}
+          {shopItem.item.description && <div className={styles.itemDesc}>{shopItem.item.description}</div>}
           <div className={styles.itemActions}>
             <span className={styles.itemPrice}>{shopItem.price}灵石</span>
-            <span className={styles.itemStock}>
-              {shopItem.stock === -1 ? '不限' : `剩余 ${shopItem.stock}`}
-            </span>
+            <span className={styles.itemStock}>{shopItem.stock === -1 ? '不限' : `剩余 ${shopItem.stock}`}</span>
             <button
               className={`${styles.buyBtn} ${
-                (sect.resources.spiritStone >= shopItem.price && shopItem.stock !== 0)
+                sect.resources.spiritStone >= shopItem.price && shopItem.stock !== 0
                   ? styles.buyReady
                   : styles.buyDisabled
               }`}
@@ -148,11 +142,7 @@ export default function MarketPanel() {
         </div>
       ))}
 
-      {message && (
-        <div className={message.success ? 'globalMessageSuccess' : 'globalMessageFail'}>
-          {message.text}
-        </div>
-      )}
+      {message && <div className={message.success ? 'globalMessageSuccess' : 'globalMessageFail'}>{message.text}</div>}
     </div>
   )
 }

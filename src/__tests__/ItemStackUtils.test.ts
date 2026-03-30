@@ -1,12 +1,40 @@
-import { addItemToStacks, addItemQuantityToStacks, removeStackAtIndex, removeConsumablesByRecipeId, countConsumablesByRecipeId, migrateToItemStacks } from '../systems/item/ItemStackUtils'
+import {
+  addItemToStacks,
+  addItemQuantityToStacks,
+  removeStackAtIndex,
+  removeConsumablesByRecipeId,
+  countConsumablesByRecipeId,
+  migrateToItemStacks,
+} from '../systems/item/ItemStackUtils'
 import type { Consumable } from '../types'
 
 function makeConsumable(id: string, recipeId?: string): Consumable {
-  return { id, name: 'test', quality: 'common', type: 'consumable', description: '', sellPrice: 10, effect: { type: 'hp', value: 10 }, recipeId }
+  return {
+    id,
+    name: 'test',
+    quality: 'common',
+    type: 'consumable',
+    description: '',
+    sellPrice: 10,
+    effect: { type: 'hp', value: 10 },
+    recipeId,
+  }
 }
 
 function makeEquipment(id: string) {
-  return { id, name: 'sword', quality: 'common', type: 'equipment' as const, description: '', sellPrice: 50, slot: 'weapon' as const, stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 }, enhanceLevel: 0, refinementStats: null, setId: null }
+  return {
+    id,
+    name: 'sword',
+    quality: 'common',
+    type: 'equipment' as const,
+    description: '',
+    sellPrice: 50,
+    slot: 'weapon' as const,
+    stats: { hp: 0, atk: 10, def: 0, spd: 0, crit: 0, critDmg: 0 },
+    enhanceLevel: 0,
+    refinementStats: null,
+    setId: null,
+  }
 }
 
 describe('ItemStackUtils', () => {

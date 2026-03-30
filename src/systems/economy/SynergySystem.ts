@@ -10,7 +10,7 @@ export function getActiveSynergies(buildings: Building[]): Synergy[] {
     synergy.requirements.every((req) => {
       const building = buildings.find((b) => b.type === req.building)
       return building && building.unlocked && building.level >= req.level
-    }),
+    })
   )
 }
 
@@ -39,5 +39,5 @@ export function getSynergyBonus(targetBuilding: BuildingType, buildings: Buildin
  */
 export function getMarketQualityCapBonus(buildings: Building[]): number {
   const active = getActiveSynergies(buildings)
-  return active.some(s => s.id === 'market_mining') ? 1 : 0
+  return active.some((s) => s.id === 'market_mining') ? 1 : 0
 }

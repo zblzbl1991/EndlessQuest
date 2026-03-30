@@ -1,4 +1,9 @@
-import { getEffectiveStats, attemptEnhance, refineEquipment, calcEquipmentStats } from '../systems/equipment/EquipmentEngine'
+import {
+  getEffectiveStats,
+  attemptEnhance,
+  refineEquipment,
+  calcEquipmentStats,
+} from '../systems/equipment/EquipmentEngine'
 import type { Equipment } from '../types/item'
 import { generateEquipment } from '../systems/item/ItemGenerator'
 
@@ -68,7 +73,7 @@ describe('EquipmentEngine', () => {
 
     const equippedGear = ['a1', null, null, null, null, 'w1', null, null, null]
     const items = [weapon, armor]
-    const getById = (id: string) => items.find(i => i.id === id)
+    const getById = (id: string) => items.find((i) => i.id === id)
 
     const total = calcEquipmentStats(equippedGear, items, getById)
     expect(total.hp).toBe(getEffectiveStats(armor).hp)

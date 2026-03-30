@@ -79,7 +79,7 @@ const FLOOR_TICK_SECONDS = 10
 let _runCounter = 0
 
 function generateRunId(): string {
-  return 'run_' + Date.now() + '_' + (++_runCounter)
+  return 'run_' + Date.now() + '_' + ++_runCounter
 }
 
 /** Find a dungeon by its ID */
@@ -93,14 +93,17 @@ function pickSafestRoute(floor: DungeonFloor): number {
   return floor.routes.reduce(
     (best, route, idx) =>
       (riskOrder[route.riskLevel] ?? 2) < (riskOrder[floor.routes[best].riskLevel] ?? 2) ? idx : best,
-    0,
+    0
   )
 }
 
 /** Empty Resources object */
 function emptyResources(): Resources {
   return {
-    spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0,
+    spiritStone: 0,
+    spiritEnergy: 0,
+    herb: 0,
+    ore: 0,
   }
 }
 
@@ -183,7 +186,7 @@ function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
     }
   }
   if (newVault.length !== sect.vault.length) {
-    useSectStore.setState(s => ({ sect: { ...s.sect, vault: newVault } }))
+    useSectStore.setState((s) => ({ sect: { ...s.sect, vault: newVault } }))
   }
   return count - remaining
 }
@@ -371,9 +374,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       // Handle technique reward (cross-store)
       if (result.techniqueReward) {
         const sectStore = useSectStore.getState()
-        const firstAliveCharId = run.teamCharacterIds.find(
-          (cid) => newMemberStates[cid]?.status !== 'dead'
-        )
+        const firstAliveCharId = run.teamCharacterIds.find((cid) => newMemberStates[cid]?.status !== 'dead')
         if (firstAliveCharId) {
           sectStore.unlockCodexAndLearn(result.techniqueReward.techniqueId, firstAliveCharId)
         }
@@ -392,9 +393,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     }
 
     // Check if all members are dead
-    const allDead = run.teamCharacterIds.every(
-      (cid) => newMemberStates[cid]?.status === 'dead',
-    )
+    const allDead = run.teamCharacterIds.every((cid) => newMemberStates[cid]?.status === 'dead')
     if (allDead) {
       // Update run state before failing
       set((s) => ({
@@ -464,9 +463,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     }
 
     // Check if there are alive members
-    const hasAlive = run.teamCharacterIds.some(
-      (cid) => run.memberStates[cid]?.status !== 'dead',
-    )
+    const hasAlive = run.teamCharacterIds.some((cid) => run.memberStates[cid]?.status !== 'dead')
     if (!hasAlive) {
       get().failRun(runId)
       return { success: false, message: '队伍已全军覆没' }
@@ -543,9 +540,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     }
 
     // Check if there are alive members
-    const hasAlive = run.teamCharacterIds.some(
-      (cid) => run.memberStates[cid]?.status !== 'dead',
-    )
+    const hasAlive = run.teamCharacterIds.some((cid) => run.memberStates[cid]?.status !== 'dead')
     if (!hasAlive) {
       get().failRun(runId)
       return
@@ -588,7 +583,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   tickAllIdle: (deltaSec) => {
     get().tickDispatches(deltaSec)
     // Auto-collect completed dispatches
-    const completed = get().dispatches.filter(d => d.progress >= d.duration)
+    const completed = get().dispatches.filter((d) => d.progress >= d.duration)
     for (const dispatch of completed) {
       get().collectDispatchReward(dispatch.characterId)
     }
@@ -603,7 +598,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
-    const dungeonName = DUNGEONS.find(d => d.id === run.dungeonId)?.name ?? run.dungeonId
+    const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`)
 
     // 1. Deposit 100% of totalRewards
@@ -643,7 +638,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
-    const dungeonName = DUNGEONS.find(d => d.id === run.dungeonId)?.name ?? run.dungeonId
+    const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_fail', `秘境 ${dungeonName} 失败`)
 
     // 1. Deposit 50% of totalRewards
@@ -666,45 +661,46 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   },
 
   startDispatch: (characterId, missionId) => {
-    const mission = DISPATCH_MISSIONS.find(m => m.id === missionId)
+    const mission = DISPATCH_MISSIONS.find((m) => m.id === missionId)
     if (!mission) return
 
     const state = get()
     if (state.dispatches.length >= 5) return
-    if (state.dispatches.some(d => d.characterId === characterId)) return
+    if (state.dispatches.some((d) => d.characterId === characterId)) return
 
     const { sect } = useSectStore.getState()
-    const char = sect.characters.find(c => c.id === characterId)
+    const char = sect.characters.find((c) => c.id === characterId)
     if (!char) return
     if (char.status !== 'idle') return
 
     useSectStore.getState().setCharacterStatus(characterId, 'patrolling')
 
-    set(s => ({
-      dispatches: [...s.dispatches, {
-        characterId,
-        missionId,
-        progress: 0,
-        duration: mission.duration,
-      }],
+    set((s) => ({
+      dispatches: [
+        ...s.dispatches,
+        {
+          characterId,
+          missionId,
+          progress: 0,
+          duration: mission.duration,
+        },
+      ],
     }))
   },
 
   tickDispatches: (deltaSec: number) => {
-    set(s => ({
-      dispatches: s.dispatches.map(d =>
-        d.progress >= d.duration ? d : { ...d, progress: d.progress + deltaSec }
-      ),
+    set((s) => ({
+      dispatches: s.dispatches.map((d) => (d.progress >= d.duration ? d : { ...d, progress: d.progress + deltaSec })),
     }))
   },
 
   collectDispatchReward: (characterId: string) => {
     const state = get()
-    const dispatchIndex = state.dispatches.findIndex(d => d.characterId === characterId)
+    const dispatchIndex = state.dispatches.findIndex((d) => d.characterId === characterId)
     if (dispatchIndex === -1) return
 
     const dispatch = state.dispatches[dispatchIndex]
-    const mission = DISPATCH_MISSIONS.find(m => m.id === dispatch.missionId)
+    const mission = DISPATCH_MISSIONS.find((m) => m.id === dispatch.missionId)
     if (!mission || dispatch.progress < dispatch.duration) return
 
     // Apply rewards
@@ -729,7 +725,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     useSectStore.getState().setCharacterStatus(characterId, 'idle')
 
     // Remove dispatch
-    set(s => ({
+    set((s) => ({
       dispatches: s.dispatches.filter((_, i) => i !== dispatchIndex),
     }))
   },
@@ -769,7 +765,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const newOffers = [...offers]
     newOffers.splice(offerIndex, 1)
 
-    set(s => ({
+    set((s) => ({
       activeRuns: {
         ...s.activeRuns,
         [runId]: {
@@ -788,7 +784,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       if (nextFloor > run.floors.length) {
         get().completeRun(runId)
       } else {
-        set(s => ({
+        set((s) => ({
           activeRuns: {
             ...s.activeRuns,
             [runId]: {
@@ -804,7 +800,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   closeShop: (runId: string) => {
     const run = get().activeRuns[runId]
     if (!run) return
-    set(s => ({
+    set((s) => ({
       activeRuns: {
         ...s.activeRuns,
         [runId]: {
@@ -821,12 +817,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     // Get the first alive team member's fortune stat
     const { sect } = useSectStore.getState()
-    const firstAliveCharId = run.teamCharacterIds.find(
-      (cid) => run.memberStates[cid]?.status !== 'dead'
-    )
+    const firstAliveCharId = run.teamCharacterIds.find((cid) => run.memberStates[cid]?.status !== 'dead')
     if (!firstAliveCharId) return false
 
-    const character = sect.characters.find(c => c.id === firstAliveCharId)
+    const character = sect.characters.find((c) => c.id === firstAliveCharId)
     if (!character) return false
 
     const fortune = character.cultivationStats.fortune
@@ -844,7 +838,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
       // Log the capture
       const newLog = [...run.eventLog, { timestamp: Date.now(), message: `成功捕获了 ${pet.name}！` }]
-      set(s => ({
+      set((s) => ({
         activeRuns: {
           ...s.activeRuns,
           [runId]: {
@@ -855,7 +849,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }))
     } else {
       const newLog = [...run.eventLog, { timestamp: Date.now(), message: '灵兽捕获失败，灵兽逃走了...' }]
-      set(s => ({
+      set((s) => ({
         activeRuns: {
           ...s.activeRuns,
           [runId]: {
@@ -891,8 +885,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 // ---------------------------------------------------------------------------
 
 function isDungeonUnlocked(dungeon: Dungeon, playerRealm: number, playerStage: number): boolean {
-  return playerRealm > dungeon.unlockRealm
-    || (playerRealm === dungeon.unlockRealm && playerStage >= dungeon.unlockStage)
+  return (
+    playerRealm > dungeon.unlockRealm || (playerRealm === dungeon.unlockRealm && playerStage >= dungeon.unlockStage)
+  )
 }
 
 export { isDungeonUnlocked }

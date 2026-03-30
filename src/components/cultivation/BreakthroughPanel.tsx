@@ -1,5 +1,9 @@
 import { useSectStore } from '../../stores/sectStore'
-import { canBreakthrough, calcBreakthroughFailureRate, isMajorRealmBreakthrough } from '../../systems/cultivation/CultivationEngine'
+import {
+  canBreakthrough,
+  calcBreakthroughFailureRate,
+  isMajorRealmBreakthrough,
+} from '../../systems/cultivation/CultivationEngine'
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import type { RealmStage } from '../../types/character'
@@ -18,7 +22,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const needed = getCultivationNeeded(character.realm, character.realmStage)
   const isMajor = isMajorRealmBreakthrough(character.realm, character.realmStage)
   const nextRealm = isMajor ? character.realm + 1 : character.realm
-  const nextStage = isMajor ? 0 : (character.realmStage + 1) as RealmStage
+  const nextStage = isMajor ? 0 : ((character.realmStage + 1) as RealmStage)
   const nextName = getRealmName(nextRealm, nextStage)
   const failureRate = calcBreakthroughFailureRate(character)
   const ready = canBreakthrough(character)
@@ -85,19 +89,20 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
           </div>
         </div>
       )}
-      {!isMajor && (() => {
-        const minorCost = getMinorBreakthroughCost(character.realm, character.realmStage)
-        const hasMinorStones = spiritStone >= minorCost
-        return (
-          <div className={styles.majorReq}>
-            <div className={styles.reqTitle}>突破需求</div>
-            <div className={`${styles.reqItem} ${hasMinorStones ? styles.reqMet : styles.reqUnmet}`}>
-              <span>灵石 ×{minorCost.toLocaleString()}</span>
-              <span>{hasMinorStones ? '✓' : '✗'}</span>
+      {!isMajor &&
+        (() => {
+          const minorCost = getMinorBreakthroughCost(character.realm, character.realmStage)
+          const hasMinorStones = spiritStone >= minorCost
+          return (
+            <div className={styles.majorReq}>
+              <div className={styles.reqTitle}>突破需求</div>
+              <div className={`${styles.reqItem} ${hasMinorStones ? styles.reqMet : styles.reqUnmet}`}>
+                <span>灵石 ×{minorCost.toLocaleString()}</span>
+                <span>{hasMinorStones ? '✓' : '✗'}</span>
+              </div>
             </div>
-          </div>
-        )
-      })()}
+          )
+        })()}
       <div className={`${styles.hint} ${hintClass}`}>{hint}</div>
     </div>
   )

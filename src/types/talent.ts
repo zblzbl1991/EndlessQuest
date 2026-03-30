@@ -1,8 +1,15 @@
 export type TalentId = string
 
 export type TalentStat =
-  | 'spiritualRoot' | 'comprehension' | 'fortune'
-  | 'hp' | 'atk' | 'def' | 'spd' | 'crit' | 'critDmg'
+  | 'spiritualRoot'
+  | 'comprehension'
+  | 'fortune'
+  | 'hp'
+  | 'atk'
+  | 'def'
+  | 'spd'
+  | 'crit'
+  | 'critDmg'
   | 'maxSpiritPower'
 
 export type TalentRarity = 'common' | 'rare' | 'epic'

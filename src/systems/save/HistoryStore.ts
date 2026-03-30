@@ -22,7 +22,7 @@ export async function addHistoryEntry(entry: GameHistoryEntry): Promise<void> {
 export async function queryHistoryEntries(query?: HistoryQuery): Promise<GameHistoryEntry[]> {
   const db = await getDB()
   const tx = db.transaction('history', 'readonly')
-  let index = tx.store.index('timestamp')
+  const index = tx.store.index('timestamp')
   let range: IDBKeyRange | undefined
 
   if (query?.since) {

@@ -1,5 +1,14 @@
 export type ItemQuality = 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
-export type EquipSlot = 'head' | 'armor' | 'bracer' | 'belt' | 'boots' | 'weapon' | 'accessory1' | 'accessory2' | 'talisman'
+export type EquipSlot =
+  | 'head'
+  | 'armor'
+  | 'bracer'
+  | 'belt'
+  | 'boots'
+  | 'weapon'
+  | 'accessory1'
+  | 'accessory2'
+  | 'talisman'
 
 export interface ItemStats {
   hp: number

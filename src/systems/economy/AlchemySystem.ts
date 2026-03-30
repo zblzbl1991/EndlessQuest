@@ -16,27 +16,71 @@ export interface AlchemyRecipe {
 }
 
 export const ALCHEMY_RECIPES: AlchemyRecipe[] = [
-  { id: 'hp_potion', name: '回血丹', description: '恢复20%最大生命', minFurnaceLevel: 1,
+  {
+    id: 'hp_potion',
+    name: '回血丹',
+    description: '恢复20%最大生命',
+    minFurnaceLevel: 1,
     cost: { herb: 5 },
-    product: { name: '回血丹', description: '服用后恢复20%最大生命', quality: 'common',
-      effect: { type: 'hp_percent', value: 20 }, sellPrice: 10 } },
-  { id: 'spirit_potion', name: '灵气丹', description: '恢复50灵气', minFurnaceLevel: 1,
+    product: {
+      name: '回血丹',
+      description: '服用后恢复20%最大生命',
+      quality: 'common',
+      effect: { type: 'hp_percent', value: 20 },
+      sellPrice: 10,
+    },
+  },
+  {
+    id: 'spirit_potion',
+    name: '灵气丹',
+    description: '恢复50灵气',
+    minFurnaceLevel: 1,
     cost: { herb: 8 },
-    product: { name: '灵气丹', description: '服用后恢复50灵气', quality: 'common',
-      effect: { type: 'spirit', value: 50 }, sellPrice: 15 } },
-  { id: 'hp_potion_plus', name: '大回血丹', description: '恢复40%最大生命', minFurnaceLevel: 3,
+    product: {
+      name: '灵气丹',
+      description: '服用后恢复50灵气',
+      quality: 'common',
+      effect: { type: 'spirit', value: 50 },
+      sellPrice: 15,
+    },
+  },
+  {
+    id: 'hp_potion_plus',
+    name: '大回血丹',
+    description: '恢复40%最大生命',
+    minFurnaceLevel: 3,
     cost: { herb: 12, spiritStone: 50 },
-    product: { name: '大回血丹', description: '服用后恢复40%最大生命', quality: 'spirit',
-      effect: { type: 'hp_percent', value: 40 }, sellPrice: 30 } },
-  { id: 'spirit_potion_plus', name: '大灵气丹', description: '恢复150灵气', minFurnaceLevel: 3,
+    product: {
+      name: '大回血丹',
+      description: '服用后恢复40%最大生命',
+      quality: 'spirit',
+      effect: { type: 'hp_percent', value: 40 },
+      sellPrice: 30,
+    },
+  },
+  {
+    id: 'spirit_potion_plus',
+    name: '大灵气丹',
+    description: '恢复150灵气',
+    minFurnaceLevel: 3,
     cost: { herb: 15, spiritStone: 80 },
-    product: { name: '大灵气丹', description: '服用后恢复150灵气', quality: 'spirit',
-      effect: { type: 'spirit', value: 150 }, sellPrice: 40 } },
+    product: {
+      name: '大灵气丹',
+      description: '服用后恢复150灵气',
+      quality: 'spirit',
+      effect: { type: 'spirit', value: 150 },
+      sellPrice: 40,
+    },
+  },
 ]
 
 let _idCounter = 0
 
-export function canCraft(recipe: AlchemyRecipe, resources: { herb: number; spiritStone: number }, furnaceLevel: number = 0): boolean {
+export function canCraft(
+  recipe: AlchemyRecipe,
+  resources: { herb: number; spiritStone: number },
+  furnaceLevel: number = 0
+): boolean {
   if (furnaceLevel < recipe.minFurnaceLevel) return false
   if (resources.herb < recipe.cost.herb) return false
   if (recipe.cost.spiritStone && resources.spiritStone < recipe.cost.spiritStone) return false

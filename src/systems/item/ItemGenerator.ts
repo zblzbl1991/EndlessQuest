@@ -6,23 +6,32 @@ import { TECHNIQUES } from '../../data/techniquesTable'
 import { QUALITY_NAMES } from '../../data/items'
 
 export interface SlotBaseStats {
-  hp: number; atk: number; def: number; spd: number; crit: number; critDmg: number
+  hp: number
+  atk: number
+  def: number
+  spd: number
+  crit: number
+  critDmg: number
 }
 
 const QUALITY_MULT: Record<ItemQuality, number> = {
-  common: 1, spirit: 1.8, immortal: 3, divine: 5, chaos: 8,
+  common: 1,
+  spirit: 1.8,
+  immortal: 3,
+  divine: 5,
+  chaos: 8,
 }
 
 const SLOT_BASE: Record<EquipSlot, SlotBaseStats> = {
-  head:      { hp: 15, atk: 0, def: 5, spd: 0, crit: 0, critDmg: 0 },
-  armor:     { hp: 20, atk: 0, def: 8, spd: 0, crit: 0, critDmg: 0 },
-  bracer:    { hp: 5, atk: 3, def: 3, spd: 0, crit: 0, critDmg: 0 },
-  belt:      { hp: 10, atk: 0, def: 4, spd: 2, crit: 0, critDmg: 0 },
-  boots:     { hp: 5, atk: 0, def: 2, spd: 5, crit: 0, critDmg: 0 },
-  weapon:    { hp: 0, atk: 8, def: 0, spd: 0, crit: 0, critDmg: 0 },
-  accessory1:{ hp: 8, atk: 2, def: 2, spd: 2, crit: 0, critDmg: 0 },
-  accessory2:{ hp: 8, atk: 2, def: 2, spd: 2, crit: 0, critDmg: 0 },
-  talisman:  { hp: 10, atk: 5, def: 0, spd: 0, crit: 0.05, critDmg: 0 },
+  head: { hp: 15, atk: 0, def: 5, spd: 0, crit: 0, critDmg: 0 },
+  armor: { hp: 20, atk: 0, def: 8, spd: 0, crit: 0, critDmg: 0 },
+  bracer: { hp: 5, atk: 3, def: 3, spd: 0, crit: 0, critDmg: 0 },
+  belt: { hp: 10, atk: 0, def: 4, spd: 2, crit: 0, critDmg: 0 },
+  boots: { hp: 5, atk: 0, def: 2, spd: 5, crit: 0, critDmg: 0 },
+  weapon: { hp: 0, atk: 8, def: 0, spd: 0, crit: 0, critDmg: 0 },
+  accessory1: { hp: 8, atk: 2, def: 2, spd: 2, crit: 0, critDmg: 0 },
+  accessory2: { hp: 8, atk: 2, def: 2, spd: 2, crit: 0, critDmg: 0 },
+  talisman: { hp: 10, atk: 5, def: 0, spd: 0, crit: 0.05, critDmg: 0 },
 }
 
 // Add some randomness: +/-20% variance
@@ -33,12 +42,23 @@ function vary(value: number): number {
 
 // Chinese item name generator
 const SLOT_PREFIX: Record<string, string> = {
-  head: '冠', armor: '袍', bracer: '腕', belt: '带', boots: '靴',
-  weapon: '剑', accessory1: '佩', accessory2: '佩', talisman: '符',
+  head: '冠',
+  armor: '袍',
+  bracer: '腕',
+  belt: '带',
+  boots: '靴',
+  weapon: '剑',
+  accessory1: '佩',
+  accessory2: '佩',
+  talisman: '符',
 }
 
 const QUALITY_PREFIX: Record<ItemQuality, string> = {
-  common: '', spirit: '灵', immortal: '仙', divine: '神', chaos: '混沌',
+  common: '',
+  spirit: '灵',
+  immortal: '仙',
+  divine: '神',
+  chaos: '混沌',
 }
 
 const WEAPON_NAMES = ['青锋', '流云', '碎星', '寒霜', '赤焰', '苍穹']
@@ -52,11 +72,7 @@ function generateId(): string {
   return `item_${Date.now()}_${++_idCounter}`
 }
 
-export function generateEquipment(
-  slot: EquipSlot,
-  quality: ItemQuality,
-  _seed?: number,
-): Equipment {
+export function generateEquipment(slot: EquipSlot, quality: ItemQuality, _seed?: number): Equipment {
   const mult = QUALITY_MULT[quality]
   const base = SLOT_BASE[slot]
 
@@ -91,13 +107,26 @@ export function generateEquipment(
     enhanceLevel: 0,
     refinementStats: [],
     setId: null,
-    description: `${QUALITY_NAMES[quality]}品质${SLOT_PREFIX[slot]}，${Object.entries(stats).filter(([, v]) => v > 0).map(([k, v]) => `${k.toUpperCase()}+${v}`).join(' ')}`,
+    description: `${QUALITY_NAMES[quality]}品质${SLOT_PREFIX[slot]}，${Object.entries(stats)
+      .filter(([, v]) => v > 0)
+      .map(([k, v]) => `${k.toUpperCase()}+${v}`)
+      .join(' ')}`,
     sellPrice: Math.floor(mult * 10),
   }
 }
 
 export function generateRandomEquipment(maxQuality: ItemQuality = 'common'): Equipment {
-  const slots: EquipSlot[] = ['head', 'armor', 'bracer', 'belt', 'boots', 'weapon', 'accessory1', 'accessory2', 'talisman']
+  const slots: EquipSlot[] = [
+    'head',
+    'armor',
+    'bracer',
+    'belt',
+    'boots',
+    'weapon',
+    'accessory1',
+    'accessory2',
+    'talisman',
+  ]
   const qualities: ItemQuality[] = ['common', 'spirit', 'immortal', 'divine', 'chaos']
   const maxIdx = qualities.indexOf(maxQuality)
   const quality = qualities[Math.floor(Math.random() * (maxIdx + 1))]
@@ -130,7 +159,7 @@ const TIER_TO_QUALITY: Record<TechniqueTier, ItemQuality> = {
  * Generate a technique scroll item for a random technique of the given tier.
  */
 export function generateTechniqueScroll(tier: TechniqueTier): TechniqueScroll {
-  const techniquesOfTier = TECHNIQUES.filter(t => t.tier === tier)
+  const techniquesOfTier = TECHNIQUES.filter((t) => t.tier === tier)
   if (techniquesOfTier.length === 0) {
     throw new Error(`No techniques found for tier: ${tier}`)
   }

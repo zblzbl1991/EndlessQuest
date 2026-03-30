@@ -11,10 +11,10 @@ interface SpecialtyConfig {
 
 const QUALITY_SPECIALTY_CONFIG: Record<CharacterQuality, SpecialtyConfig> = {
   common: { minCount: 0, maxCount: 0, probability: 0, level2Chance: 0, level3Chance: 0 },
-  spirit: { minCount: 0, maxCount: 1, probability: 0.5, level2Chance: 0.20, level3Chance: 0 },
-  immortal: { minCount: 1, maxCount: 1, probability: 1.0, level2Chance: 0.30, level3Chance: 0.05 },
-  divine: { minCount: 1, maxCount: 2, probability: 1.0, level2Chance: 0.40, level3Chance: 0.10 },
-  chaos: { minCount: 1, maxCount: 2, probability: 1.0, level2Chance: 0.50, level3Chance: 0.20 },
+  spirit: { minCount: 0, maxCount: 1, probability: 0.5, level2Chance: 0.2, level3Chance: 0 },
+  immortal: { minCount: 1, maxCount: 1, probability: 1.0, level2Chance: 0.3, level3Chance: 0.05 },
+  divine: { minCount: 1, maxCount: 2, probability: 1.0, level2Chance: 0.4, level3Chance: 0.1 },
+  chaos: { minCount: 1, maxCount: 2, probability: 1.0, level2Chance: 0.5, level3Chance: 0.2 },
 }
 
 export function rollSpecialties(quality: CharacterQuality): Specialty[] {
@@ -26,7 +26,7 @@ export function rollSpecialties(quality: CharacterQuality): Specialty[] {
   const specialties: Specialty[] = []
 
   for (let i = 0; i < count; i++) {
-    const available = ALL_SPECIALTY_TYPES.filter(t => !usedTypes.has(t))
+    const available = ALL_SPECIALTY_TYPES.filter((t) => !usedTypes.has(t))
     if (available.length === 0) break
 
     const type = available[Math.floor(Math.random() * available.length)]

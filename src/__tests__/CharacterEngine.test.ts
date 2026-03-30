@@ -138,7 +138,7 @@ describe('CharacterEngine', () => {
       const c = generateCharacter('common')
       c.equippedGear = ['eq_1']
       const eq = makeEquipment({ hp: 50, atk: 10 })
-      const result = calcCharacterTotalStats(c, c.learnedTechniques, (id) => id === 'eq_1' ? eq : undefined)
+      const result = calcCharacterTotalStats(c, c.learnedTechniques, (id) => (id === 'eq_1' ? eq : undefined))
       // base + qingxin bonuses + equipment
       expect(result.hp).toBe(c.baseStats.hp + 10 + 50)
       expect(result.atk).toBe(c.baseStats.atk + 2 + 10)
@@ -242,7 +242,7 @@ describe('generateCharacter with variance', () => {
   it('should not have duplicate talents', () => {
     for (let i = 0; i < 100; i++) {
       const c = generateCharacter('immortal')
-      const ids = c.talents.map(t => t.id)
+      const ids = c.talents.map((t) => t.id)
       expect(new Set(ids).size).toBe(ids.length)
     }
   })
@@ -273,8 +273,10 @@ describe('isQualityUnlocked', () => {
 describe('getAvailableQualities', () => {
   it('level 1 should return [common]', () => expect(getAvailableQualities(1)).toEqual(['common']))
   it('level 2 should return [common, spirit]', () => expect(getAvailableQualities(2)).toEqual(['common', 'spirit']))
-  it('level 4 should return [common, spirit, immortal, divine]', () => expect(getAvailableQualities(4)).toEqual(['common', 'spirit', 'immortal', 'divine']))
-  it('level 5+ should also return [common, spirit, immortal, divine]', () => expect(getAvailableQualities(5)).toEqual(['common', 'spirit', 'immortal', 'divine']))
+  it('level 4 should return [common, spirit, immortal, divine]', () =>
+    expect(getAvailableQualities(4)).toEqual(['common', 'spirit', 'immortal', 'divine']))
+  it('level 5+ should also return [common, spirit, immortal, divine]', () =>
+    expect(getAvailableQualities(5)).toEqual(['common', 'spirit', 'immortal', 'divine']))
 })
 
 describe('chaos upgrade from divine', () => {

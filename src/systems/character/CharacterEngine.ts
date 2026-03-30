@@ -32,15 +32,33 @@ const QUALITY_VARIANCE: Record<CharacterQuality, number> = {
 // Talent configuration per quality
 // ---------------------------------------------------------------------------
 
-const QUALITY_TALENT_CONFIG: Record<CharacterQuality, {
-  talentCount: { min: number; max: number; probabilities: number[] }
-  rarityWeights: Record<TalentRarity, number>
-}> = {
-  common: { talentCount: { min: 0, max: 1, probabilities: [0.6, 0.4] }, rarityWeights: { common: 0.70, rare: 0.30, epic: 0 } },
-  spirit: { talentCount: { min: 0, max: 1, probabilities: [0.5, 0.5] }, rarityWeights: { common: 0.60, rare: 0.35, epic: 0.05 } },
-  immortal: { talentCount: { min: 0, max: 2, probabilities: [0.4, 0.35, 0.25] }, rarityWeights: { common: 0.50, rare: 0.40, epic: 0.10 } },
-  divine: { talentCount: { min: 1, max: 2, probabilities: [0.6, 0.4] }, rarityWeights: { common: 0.40, rare: 0.45, epic: 0.15 } },
-  chaos: { talentCount: { min: 1, max: 3, probabilities: [0.5, 0.3, 0.2] }, rarityWeights: { common: 0.30, rare: 0.45, epic: 0.25 } },
+const QUALITY_TALENT_CONFIG: Record<
+  CharacterQuality,
+  {
+    talentCount: { min: number; max: number; probabilities: number[] }
+    rarityWeights: Record<TalentRarity, number>
+  }
+> = {
+  common: {
+    talentCount: { min: 0, max: 1, probabilities: [0.6, 0.4] },
+    rarityWeights: { common: 0.7, rare: 0.3, epic: 0 },
+  },
+  spirit: {
+    talentCount: { min: 0, max: 1, probabilities: [0.5, 0.5] },
+    rarityWeights: { common: 0.6, rare: 0.35, epic: 0.05 },
+  },
+  immortal: {
+    talentCount: { min: 0, max: 2, probabilities: [0.4, 0.35, 0.25] },
+    rarityWeights: { common: 0.5, rare: 0.4, epic: 0.1 },
+  },
+  divine: {
+    talentCount: { min: 1, max: 2, probabilities: [0.6, 0.4] },
+    rarityWeights: { common: 0.4, rare: 0.45, epic: 0.15 },
+  },
+  chaos: {
+    talentCount: { min: 1, max: 3, probabilities: [0.5, 0.3, 0.2] },
+    rarityWeights: { common: 0.3, rare: 0.45, epic: 0.25 },
+  },
 }
 
 function rollTalents(quality: CharacterQuality): Talent[] {
@@ -78,7 +96,7 @@ function rollTalents(quality: CharacterQuality): Talent[] {
       }
     }
 
-    const candidates = available.filter(t => t.rarity === selectedRarity)
+    const candidates = available.filter((t) => t.rarity === selectedRarity)
     if (candidates.length > 0) {
       const talent = candidates[Math.floor(Math.random() * candidates.length)]
       talents.push(talent)
@@ -121,20 +139,107 @@ const SECT_LEVEL_TABLE = [
 // ---------------------------------------------------------------------------
 
 const SURNAMES = [
-  '李', '王', '张', '刘', '陈', '杨', '赵', '黄', '周', '吴',
-  '徐', '孙', '马', '朱', '胡', '郭', '林', '何', '高', '梁',
-  '郑', '罗', '宋', '谢', '唐', '韩', '曹', '许', '邓', '萧',
-  '冯', '程', '蔡', '彭', '潘', '袁', '于', '董', '余', '苏',
-  '叶', '吕', '魏', '蒋', '田', '杜', '丁', '沈', '姜', '范',
+  '李',
+  '王',
+  '张',
+  '刘',
+  '陈',
+  '杨',
+  '赵',
+  '黄',
+  '周',
+  '吴',
+  '徐',
+  '孙',
+  '马',
+  '朱',
+  '胡',
+  '郭',
+  '林',
+  '何',
+  '高',
+  '梁',
+  '郑',
+  '罗',
+  '宋',
+  '谢',
+  '唐',
+  '韩',
+  '曹',
+  '许',
+  '邓',
+  '萧',
+  '冯',
+  '程',
+  '蔡',
+  '彭',
+  '潘',
+  '袁',
+  '于',
+  '董',
+  '余',
+  '苏',
+  '叶',
+  '吕',
+  '魏',
+  '蒋',
+  '田',
+  '杜',
+  '丁',
+  '沈',
+  '姜',
+  '范',
 ]
 
 const GIVEN_NAMES = [
-  '天行', '无极', '清风', '明月', '紫霄', '玄霜', '青云', '碧落',
-  '长风', '凌霄', '若水', '流光', '星辰', '天羽', '墨尘', '云深',
-  '孤鸿', '寒烟', '素心', '秋水', '踏雪', '寻仙', '问道', '归元',
-  '灵虚', '清虚', '玄冥', '玉清', '太初', '无尘', '沧海', '拂晓',
-  '明远', '怀瑾', '逸仙', '若兰', '沐风', '揽月', '听雨', '临渊',
-  '飞鸿', '映雪', '望舒', '扶摇', '栖桐', '鹤鸣', '子墨', '青衫',
+  '天行',
+  '无极',
+  '清风',
+  '明月',
+  '紫霄',
+  '玄霜',
+  '青云',
+  '碧落',
+  '长风',
+  '凌霄',
+  '若水',
+  '流光',
+  '星辰',
+  '天羽',
+  '墨尘',
+  '云深',
+  '孤鸿',
+  '寒烟',
+  '素心',
+  '秋水',
+  '踏雪',
+  '寻仙',
+  '问道',
+  '归元',
+  '灵虚',
+  '清虚',
+  '玄冥',
+  '玉清',
+  '太初',
+  '无尘',
+  '沧海',
+  '拂晓',
+  '明远',
+  '怀瑾',
+  '逸仙',
+  '若兰',
+  '沐风',
+  '揽月',
+  '听雨',
+  '临渊',
+  '飞鸿',
+  '映雪',
+  '望舒',
+  '扶摇',
+  '栖桐',
+  '鹤鸣',
+  '子墨',
+  '青衫',
 ]
 
 function randomPick<T>(arr: T[]): T {
@@ -194,9 +299,9 @@ export function generateCharacter(quality: CharacterQuality): Character {
   for (const talent of talents) {
     for (const eff of talent.effect) {
       if (eff.stat in baseStats) {
-        (baseStats as any)[eff.stat] += eff.value
+        ;(baseStats as any)[eff.stat] += eff.value
       } else if (eff.stat in cultivationStats) {
-        (cultivationStats as any)[eff.stat] += eff.value
+        ;(cultivationStats as any)[eff.stat] += eff.value
       }
     }
   }
@@ -207,7 +312,7 @@ export function generateCharacter(quality: CharacterQuality): Character {
   }
 
   return {
-    id: 'char_' + Date.now() + '_' + (++_idCounter),
+    id: 'char_' + Date.now() + '_' + ++_idCounter,
     name: generateName(),
     title: 'disciple',
     quality,
@@ -238,7 +343,7 @@ export function generateCharacter(quality: CharacterQuality): Character {
 export function calcCharacterTotalStats(
   character: Character,
   learnedTechniques: string[],
-  getEquipmentById: (id: string) => Equipment | undefined,
+  getEquipmentById: (id: string) => Equipment | undefined
 ): BaseStats {
   // 1. Start with base stats
   const total: BaseStats = { ...character.baseStats }
@@ -263,7 +368,7 @@ export function calcCharacterTotalStats(
     for (const bonus of technique.bonuses) {
       const key = bonus.type as keyof BaseStats
       if (key in total) {
-        (total as unknown as Record<string, number>)[key] += bonus.value
+        ;(total as unknown as Record<string, number>)[key] += bonus.value
       }
     }
   }
@@ -341,7 +446,7 @@ export function isQualityUnlocked(quality: CharacterQuality, sectLevel: number):
 
 export function getAvailableQualities(sectLevel: number): CharacterQuality[] {
   const qualities: CharacterQuality[] = ['common', 'spirit', 'immortal', 'divine']
-  return qualities.filter(q => isQualityUnlocked(q, sectLevel))
+  return qualities.filter((q) => isQualityUnlocked(q, sectLevel))
 }
 
 /** Get the mainHall level required to unlock a character quality (for UI display) */

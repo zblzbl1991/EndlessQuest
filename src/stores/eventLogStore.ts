@@ -45,7 +45,7 @@ export const useEventLogStore = create<EventLogStore>((set) => ({
 
   addEvent: (type, message) => {
     const evt: GameEvent = {
-      id: 'evt_' + Date.now() + '_' + (++_counter),
+      id: 'evt_' + Date.now() + '_' + ++_counter,
       timestamp: Date.now(),
       type,
       message,

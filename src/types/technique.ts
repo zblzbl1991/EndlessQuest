@@ -28,6 +28,4 @@ export const TECHNIQUE_TIER_NAMES: Record<TechniqueTier, string> = {
   chaos: '混沌级',
 }
 
-export const TECHNIQUE_TIER_ORDER: TechniqueTier[] = [
-  'mortal', 'spirit', 'immortal', 'divine', 'chaos',
-]
+export const TECHNIQUE_TIER_ORDER: TechniqueTier[] = ['mortal', 'spirit', 'immortal', 'divine', 'chaos']

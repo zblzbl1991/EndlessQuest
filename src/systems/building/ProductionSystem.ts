@@ -36,7 +36,7 @@ export function tickProductionQueue(
     return empty
   }
 
-  let newProgress = queue.progress + deltaSec
+  const newProgress = queue.progress + deltaSec
 
   if (newProgress >= recipe.productionTime) {
     return {
@@ -85,7 +85,12 @@ export function calcOfflineProduction(
   const items = Math.max(0, Math.min(maxFromHerbs, maxFromStone, maxFromOre, maxFromTime, maxFromVault))
   return {
     itemsProduced: items,
-    consumed: { spiritStone: items * stonePerItem, spiritEnergy: 0, herb: items * herbPerItem, ore: items * orePerItem },
+    consumed: {
+      spiritStone: items * stonePerItem,
+      spiritEnergy: 0,
+      herb: items * herbPerItem,
+      ore: items * orePerItem,
+    },
   }
 }
 

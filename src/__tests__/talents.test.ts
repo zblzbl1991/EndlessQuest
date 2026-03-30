@@ -20,7 +20,10 @@ describe('talent types', () => {
       id: 'taiji',
       name: '太极',
       description: '灵根+8, 悟性+3',
-      effect: [{ stat: 'spiritualRoot', value: 8 }, { stat: 'comprehension', value: 3 }],
+      effect: [
+        { stat: 'spiritualRoot', value: 8 },
+        { stat: 'comprehension', value: 3 },
+      ],
       rarity: 'epic',
     }
     expect(t.effect).toHaveLength(2)
@@ -41,7 +44,7 @@ describe('talent data table', () => {
   })
 
   it('should have all talents with unique ids', () => {
-    const ids = new Set(ALL_TALENTS.map(t => t.id))
+    const ids = new Set(ALL_TALENTS.map((t) => t.id))
     expect(ids.size).toBe(12)
   })
 
@@ -65,8 +68,16 @@ describe('talent data table', () => {
 
   it('all effects should reference valid stats', () => {
     const validStats = new Set([
-      'spiritualRoot', 'comprehension', 'fortune',
-      'hp', 'atk', 'def', 'spd', 'crit', 'critDmg', 'maxSpiritPower',
+      'spiritualRoot',
+      'comprehension',
+      'fortune',
+      'hp',
+      'atk',
+      'def',
+      'spd',
+      'crit',
+      'critDmg',
+      'maxSpiritPower',
     ])
     for (const talent of ALL_TALENTS) {
       for (const eff of talent.effect) {

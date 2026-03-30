@@ -18,17 +18,19 @@ export default class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%',
-          minHeight: '200px',
-          gap: '12px',
-          color: 'var(--color-text-secondary)',
-          fontSize: '0.875rem',
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            minHeight: '200px',
+            gap: '12px',
+            color: 'var(--color-text-secondary)',
+            fontSize: '0.875rem',
+          }}
+        >
           <span style={{ fontSize: '1.5rem' }}>⚠</span>
           <span>加载出现异常</span>
           <button

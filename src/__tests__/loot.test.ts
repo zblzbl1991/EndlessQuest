@@ -49,11 +49,14 @@ describe('Enemy loot tables', () => {
   })
 
   it('wild_spirit_beast has expected loot table', () => {
-    const beast = ENEMY_TEMPLATES.find(e => e.id === 'wild_spirit_beast')!
-    const weights = beast.lootTable.reduce((acc, e) => {
-      acc[e.type] = (acc[e.type] ?? 0) + e.weight
-      return acc
-    }, {} as Record<string, number>)
+    const beast = ENEMY_TEMPLATES.find((e) => e.id === 'wild_spirit_beast')!
+    const weights = beast.lootTable.reduce(
+      (acc, e) => {
+        acc[e.type] = (acc[e.type] ?? 0) + e.weight
+        return acc
+      },
+      {} as Record<string, number>
+    )
     expect(weights.spiritStone).toBe(40)
     expect(weights.herb).toBe(25)
     expect(weights.ore).toBe(15)
@@ -62,10 +65,10 @@ describe('Enemy loot tables', () => {
   })
 
   it('spirit_boss has higher total weight and better drops', () => {
-    const boss = ENEMY_TEMPLATES.find(e => e.id === 'spirit_boss')!
+    const boss = ENEMY_TEMPLATES.find((e) => e.id === 'spirit_boss')!
     const totalWeight = boss.lootTable.reduce((s, e) => s + e.weight, 0)
     expect(totalWeight).toBeGreaterThan(85) // richer table
-    const hasDivine = boss.lootTable.some(e => e.type === 'equipment' && e.quality === 'divine')
+    const hasDivine = boss.lootTable.some((e) => e.type === 'equipment' && e.quality === 'divine')
     expect(hasDivine).toBe(true)
   })
 })

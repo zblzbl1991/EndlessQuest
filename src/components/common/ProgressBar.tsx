@@ -11,10 +11,7 @@ export default function ProgressBar({ value, max, variant = 'default', className
   const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0
   return (
     <div className={`${styles.bar} ${className ?? ''}`}>
-      <div
-        className={`${styles.fill} ${variant === 'ink' ? styles.fillInk : ''}`}
-        style={{ width: `${pct}%` }}
-      />
+      <div className={`${styles.fill} ${variant === 'ink' ? styles.fillInk : ''}`} style={{ width: `${pct}%` }} />
     </div>
   )
 }

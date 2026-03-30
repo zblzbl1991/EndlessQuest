@@ -29,9 +29,7 @@ export default function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.to === '/'}
-            className={({ isActive }) =>
-              `${styles.navItem} ${isActive ? styles.navActive : ''}`
-            }
+            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navActive : ''}`}
           >
             <span className={styles.navIcon}>{item.icon}</span>
             <span className={styles.navLabel}>{item.label}</span>

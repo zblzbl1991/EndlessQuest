@@ -9,9 +9,7 @@ import type { AnyItem, Consumable, ItemStack } from '../../types'
 export function addItemToStacks(stacks: ItemStack[], item: AnyItem): ItemStack[] {
   const rid = item.type === 'consumable' ? (item as Consumable).recipeId : null
   if (rid) {
-    const existing = stacks.findIndex(
-      s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === rid
-    )
+    const existing = stacks.findIndex((s) => s.item.type === 'consumable' && (s.item as Consumable).recipeId === rid)
     if (existing !== -1) {
       const next = [...stacks]
       next[existing] = { ...next[existing], quantity: next[existing].quantity + 1 }
@@ -28,9 +26,7 @@ export function addItemQuantityToStacks(stacks: ItemStack[], item: AnyItem, quan
   if (quantity <= 0) return stacks
   const rid = item.type === 'consumable' ? (item as Consumable).recipeId : null
   if (rid) {
-    const existing = stacks.findIndex(
-      s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === rid
-    )
+    const existing = stacks.findIndex((s) => s.item.type === 'consumable' && (s.item as Consumable).recipeId === rid)
     if (existing !== -1) {
       const next = [...stacks]
       next[existing] = { ...next[existing], quantity: next[existing].quantity + quantity }
@@ -44,7 +40,10 @@ export function addItemQuantityToStacks(stacks: ItemStack[], item: AnyItem, quan
  * Remove one item at index. For consumables with recipeId, decrement quantity.
  * Returns { stacks, removed: ItemStack | null }.
  */
-export function removeStackAtIndex(stacks: ItemStack[], index: number): { stacks: ItemStack[]; removed: ItemStack | null } {
+export function removeStackAtIndex(
+  stacks: ItemStack[],
+  index: number
+): { stacks: ItemStack[]; removed: ItemStack | null } {
   if (index < 0 || index >= stacks.length) return { stacks, removed: null }
   const target = stacks[index]
   const rid = target.item.type === 'consumable' ? (target.item as Consumable).recipeId : null
@@ -59,7 +58,11 @@ export function removeStackAtIndex(stacks: ItemStack[], index: number): { stacks
 /**
  * Remove N consumable items matching a recipeId. Returns new stacks and number removed.
  */
-export function removeConsumablesByRecipeId(stacks: ItemStack[], recipeId: string, count: number): { stacks: ItemStack[]; removed: number } {
+export function removeConsumablesByRecipeId(
+  stacks: ItemStack[],
+  recipeId: string,
+  count: number
+): { stacks: ItemStack[]; removed: number } {
   let remaining = count
   const next = [...stacks]
   for (let i = next.length - 1; i >= 0 && remaining > 0; i--) {
@@ -99,5 +102,5 @@ export function migrateToItemStacks(data: unknown[]): ItemStack[] {
   if (first && typeof first === 'object' && 'item' in first && 'quantity' in first) {
     return data as ItemStack[]
   }
-  return (data as AnyItem[]).map(item => ({ item, quantity: 1 }))
+  return (data as AnyItem[]).map((item) => ({ item, quantity: 1 }))
 }

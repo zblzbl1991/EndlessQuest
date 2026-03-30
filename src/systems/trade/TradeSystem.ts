@@ -4,10 +4,10 @@ import { generateEquipment } from '../item/ItemGenerator'
 export interface ShopItem {
   id: string
   item: AnyItem
-  price: number       // in spiritStone
+  price: number // in spiritStone
   currency: 'spiritStone'
-  stock: number       // -1 = unlimited
-  isDaily: boolean    // refreshes daily
+  stock: number // -1 = unlimited
+  isDaily: boolean // refreshes daily
 }
 
 export interface ShopState {
@@ -96,8 +96,15 @@ const DAILY_QUALITY_BY_MARKET_LEVEL: Record<number, ItemQuality[]> = {
 }
 
 const EQUIP_SLOTS = [
-  'head', 'armor', 'bracer', 'belt', 'boots',
-  'weapon', 'accessory1', 'accessory2', 'talisman',
+  'head',
+  'armor',
+  'bracer',
+  'belt',
+  'boots',
+  'weapon',
+  'accessory1',
+  'accessory2',
+  'talisman',
 ] as const
 
 export function generateDailyItems(marketLevel: number): ShopItem[] {

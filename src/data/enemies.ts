@@ -116,10 +116,7 @@ export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUn
  * 4. Resolve equippedSkills to ActiveSkill objects
  * 5. Use highest tier technique's element, or 'neutral' if no techniques
  */
-export function createCharacterCombatUnit(
-  character: Character,
-  learnedTechniques: string[],
-): CombatUnit {
+export function createCharacterCombatUnit(character: Character, learnedTechniques: string[]): CombatUnit {
   const base = character.baseStats
 
   let hp = base.hp
@@ -147,12 +144,24 @@ export function createCharacterCombatUnit(
     // Sum bonuses
     for (const bonus of technique.bonuses) {
       switch (bonus.type) {
-        case 'hp': hp += bonus.value; break
-        case 'atk': atk += bonus.value; break
-        case 'def': def += bonus.value; break
-        case 'spd': spd += bonus.value; break
-        case 'crit': crit = Math.round((crit + bonus.value) * 10000) / 10000; break
-        case 'critDmg': critDmg = Math.round((critDmg + bonus.value) * 100) / 100; break
+        case 'hp':
+          hp += bonus.value
+          break
+        case 'atk':
+          atk += bonus.value
+          break
+        case 'def':
+          def += bonus.value
+          break
+        case 'spd':
+          spd += bonus.value
+          break
+        case 'crit':
+          crit = Math.round((crit + bonus.value) * 10000) / 10000
+          break
+        case 'critDmg':
+          critDmg = Math.round((critDmg + bonus.value) * 100) / 100
+          break
         // cultivationRate and other non-stat bonuses are handled elsewhere
       }
     }

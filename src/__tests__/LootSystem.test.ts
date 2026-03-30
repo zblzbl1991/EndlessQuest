@@ -28,7 +28,7 @@ describe('generateLoot', () => {
     for (let i = 0; i < 50; i++) {
       results.push(generateLoot(testLootTable, 3, 5))
     }
-    const resourceDrops = results.flat().filter(d => d.type === 'spiritStone')
+    const resourceDrops = results.flat().filter((d) => d.type === 'spiritStone')
     // With floor=5, minAmount=10, amounts should be >= 10*5 = 50
     for (const drop of resourceDrops) {
       expect(drop.amount).toBeGreaterThanOrEqual(50)
@@ -40,7 +40,7 @@ describe('generateLoot', () => {
     for (let i = 0; i < 100; i++) {
       results.push(generateLoot(testLootTable, 3, 1))
     }
-    const equipDrops = results.flat().filter(d => d.type === 'equipment')
+    const equipDrops = results.flat().filter((d) => d.type === 'equipment')
     expect(equipDrops.length).toBeGreaterThan(0)
     for (const drop of equipDrops) {
       expect(drop.amount).toBe(1)
@@ -49,9 +49,7 @@ describe('generateLoot', () => {
   })
 
   it('petCapture drops have amount 1', () => {
-    const petTable: LootEntry[] = [
-      { type: 'petCapture', weight: 100 },
-    ]
+    const petTable: LootEntry[] = [{ type: 'petCapture', weight: 100 }]
     const result = generateLoot(petTable, 1, 1)
     expect(result[0].type).toBe('petCapture')
     expect(result[0].amount).toBe(1)

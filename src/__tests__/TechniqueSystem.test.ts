@@ -1,8 +1,5 @@
 // src/__tests__/TechniqueSystem.test.ts
-import {
-  tryComprehendOnBreakthrough,
-  pickTechniqueForFloor,
-} from '../systems/technique/TechniqueSystem'
+import { tryComprehendOnBreakthrough, pickTechniqueForFloor } from '../systems/technique/TechniqueSystem'
 
 describe('tryComprehendOnBreakthrough', () => {
   const codex = ['qingxin', 'lieyan', 'fentian', 'xuanbing', 'leishen']
@@ -12,7 +9,7 @@ describe('tryComprehendOnBreakthrough', () => {
       { learnedTechniques: ['qingxin'], realm: 1, cultivationStats: { comprehension: 30 } },
       codex,
       false,
-      () => 0.99,
+      () => 0.99
     )
     expect(result).toBeNull()
   })
@@ -22,7 +19,7 @@ describe('tryComprehendOnBreakthrough', () => {
       { learnedTechniques: ['qingxin', 'lieyan'], realm: 1, cultivationStats: { comprehension: 30 } },
       codex,
       false,
-      () => 0.14,
+      () => 0.14
     )
     expect(result).not.toBeNull()
     expect(['fentian', 'xuanbing']).toContain(result!)
@@ -33,7 +30,7 @@ describe('tryComprehendOnBreakthrough', () => {
       { learnedTechniques: ['qingxin'], realm: 1, cultivationStats: { comprehension: 30 } },
       codex,
       true,
-      () => 0.39,
+      () => 0.39
     )
     expect(result).not.toBeNull()
   })
@@ -43,7 +40,7 @@ describe('tryComprehendOnBreakthrough', () => {
       { learnedTechniques: codex, realm: 4, cultivationStats: { comprehension: 30 } },
       codex,
       true,
-      () => 0,
+      () => 0
     )
     expect(result).toBeNull()
   })
@@ -53,7 +50,7 @@ describe('tryComprehendOnBreakthrough', () => {
       { learnedTechniques: ['qingxin', 'lieyan'], realm: 0, cultivationStats: { comprehension: 30 } },
       ['qingxin', 'lieyan', 'houtu', 'fentian', 'xuanbing', 'leishen'],
       true,
-      () => 0,
+      () => 0
     )
     expect(result).toBe('houtu')
   })
@@ -63,7 +60,7 @@ describe('tryComprehendOnBreakthrough', () => {
       { learnedTechniques: ['qingxin'], realm: 2, cultivationStats: { comprehension: 5 } },
       ['leishen', 'bumiejinshen', 'jiuzhuan'],
       true,
-      () => 0,
+      () => 0
     )
     expect(result).toBeNull()
   })

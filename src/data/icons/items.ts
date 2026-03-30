@@ -1,4 +1,4 @@
-import type { PixelIconDef } from './types';
+import type { PixelIconDef } from './types'
 
 export const itemIcons: Record<string, PixelIconDef> = {
   // ════════════════════════════════════════════
@@ -354,4 +354,4 @@ export const itemIcons: Record<string, PixelIconDef> = {
       '............',
     ],
   },
-};
+}

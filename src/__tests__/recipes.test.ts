@@ -39,14 +39,14 @@ describe('AUTO_RECIPES', () => {
   })
 
   it('should split recipes between alchemyFurnace and forge', () => {
-    const alchemy = AUTO_RECIPES.filter(r => r.buildingType === 'alchemyFurnace')
-    const forge = AUTO_RECIPES.filter(r => r.buildingType === 'forge')
+    const alchemy = AUTO_RECIPES.filter((r) => r.buildingType === 'alchemyFurnace')
+    const forge = AUTO_RECIPES.filter((r) => r.buildingType === 'forge')
     expect(alchemy.length).toBeGreaterThanOrEqual(2)
     expect(forge.length).toBeGreaterThanOrEqual(4)
   })
 
   it('should have unique IDs', () => {
-    const ids = AUTO_RECIPES.map(r => r.id)
+    const ids = AUTO_RECIPES.map((r) => r.id)
     expect(new Set(ids).size).toBe(ids.length)
   })
 })

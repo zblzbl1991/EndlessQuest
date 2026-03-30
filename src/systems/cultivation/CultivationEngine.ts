@@ -50,7 +50,7 @@ function getTribulationPower(realmIndex: number, stage: RealmStage): number {
 export function isMajorRealmBreakthrough(realm: number, stage: RealmStage): boolean {
   const r = REALMS[realm]
   if (!r) return false
-  return (stage + 1) >= r.stages.length
+  return stage + 1 >= r.stages.length
 }
 
 /**
@@ -64,7 +64,7 @@ export function calcBreakthroughFailureRate(character: Character): number {
   if (major) {
     // Use target realm's tribulation power
     const targetPower = getTribulationPower(character.realm + 1, 0)
-    return 0.10 + targetPower * 0.25
+    return 0.1 + targetPower * 0.25
   }
   // Sub-level: use current realm's tribulation power at next stage
   const nextStage = (character.realmStage + 1) as RealmStage
@@ -88,9 +88,9 @@ export function calcCultivationRate(character: Character, learnedTechniques: str
   for (const techId of learnedTechniques) {
     const technique = getTechniqueById(techId)
     if (!technique) continue
-    const cultivationBonus = technique.bonuses.find(b => b.type === 'cultivationRate')
+    const cultivationBonus = technique.bonuses.find((b) => b.type === 'cultivationRate')
     if (cultivationBonus) {
-      rate *= (1 + cultivationBonus.value)
+      rate *= 1 + cultivationBonus.value
     }
   }
 
@@ -113,7 +113,7 @@ export function tick(
   character: Character,
   spiritEnergyAvailable: number,
   deltaSec: number,
-  learnedTechniques: string[] = [],
+  learnedTechniques: string[] = []
 ): TickResult {
   if (!canCultivate(spiritEnergyAvailable)) {
     return { cultivationGained: 0, spiritSpent: 0 }
@@ -134,7 +134,7 @@ export function tick(
 export function canBreakthrough(
   character: Character,
   spiritStoneCost?: number,
-  availableSpiritStones?: number,
+  availableSpiritStones?: number
 ): boolean {
   const realm = REALMS[character.realm]
   if (!realm) return false
@@ -202,10 +202,7 @@ function calcStatGrowth(currentStats: BaseStats, isMajorRealm: boolean): BaseSta
  * failureRate: probability of failure (0~1). On failure, realm/stage stay the same
  * and the caller should reset cultivation to 0.
  */
-export function breakthrough(
-  character: Character,
-  failureRate: number = 0,
-): BreakthroughResult {
+export function breakthrough(character: Character, failureRate: number = 0): BreakthroughResult {
   if (!canBreakthrough(character)) {
     return {
       success: false,

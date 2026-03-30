@@ -63,7 +63,8 @@ export class IdleEngine {
     const now = Date.now()
     const deltaSec = Math.min((now - this.lastTickTime) / 1000, 10) // cap at 10s for active ticks
     this.lastTickTime = now
-    if (deltaSec >= 0.5) { // avoid tiny deltas
+    if (deltaSec >= 0.5) {
+      // avoid tiny deltas
       this.callback(deltaSec)
     }
   }

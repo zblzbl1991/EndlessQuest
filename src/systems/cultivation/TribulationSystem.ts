@@ -29,7 +29,7 @@ export function resolveTribulation(character: Character): TribulationResult {
   const targetRealm = character.realm + 1
   const realmData = REALMS[targetRealm]
   const power = realmData.tribulationPower ?? 0
-  const baseFailRate = 0.10 + power * 0.25
+  const baseFailRate = 0.1 + power * 0.25
 
   // Character attributes reduce failure rate
   const spiritRootBonus = character.cultivationStats.spiritualRoot * 0.005
@@ -52,7 +52,7 @@ export function resolveTribulation(character: Character): TribulationResult {
   }
 
   // Failure: 10% chance of severe outcome
-  const severe = Math.random() < 0.10
+  const severe = Math.random() < 0.1
   return {
     success: false,
     severe,

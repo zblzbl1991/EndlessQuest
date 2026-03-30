@@ -1,10 +1,6 @@
 // src/systems/sect/SectEngine.ts
 
-import {
-  calcSectLevel,
-  getMaxCharacters,
-  getMaxSimultaneousRuns,
-} from '../character/CharacterEngine'
+import { calcSectLevel, getMaxCharacters, getMaxSimultaneousRuns } from '../character/CharacterEngine'
 
 // Re-export for convenience and semantic grouping under the sect module.
 export { calcSectLevel, getMaxCharacters, getMaxSimultaneousRuns }

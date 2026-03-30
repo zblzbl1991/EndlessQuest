@@ -47,7 +47,7 @@ function getNonBossTemplates() {
  * Dead allies are skipped in subsequent floors.
  */
 function getAliveTeam(team: CombatUnit[]): CombatUnit[] {
-  return team.filter(u => u.hp > 0)
+  return team.filter((u) => u.hp > 0)
 }
 
 /**
@@ -101,11 +101,7 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
  * Dead allies are filtered out before combat and non-combat events.
  * Returns rewards (resources + items) without mutating any store.
  */
-export function resolveEvent(
-  event: DungeonEvent,
-  team: CombatUnit[],
-  floorNumber: number,
-): EventResult {
+export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumber: number): EventResult {
   const emptyReward = { spiritStone: 0, herb: 0, ore: 0 }
 
   switch (event.type) {
@@ -276,7 +272,9 @@ export function resolveEvent(
           reward,
           itemRewards,
           combatResult: result,
-          message: hasPetCapture ? `击败了 BOSS: ${bossTemplate.name}！发现可捕获灵兽！` : `击败了 BOSS: ${bossTemplate.name}！`,
+          message: hasPetCapture
+            ? `击败了 BOSS: ${bossTemplate.name}！发现可捕获灵兽！`
+            : `击败了 BOSS: ${bossTemplate.name}！`,
           hpChanges,
           petCaptureAvailable: hasPetCapture || undefined,
         }

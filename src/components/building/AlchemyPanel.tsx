@@ -20,8 +20,8 @@ export default function AlchemyPanel() {
   const craftPotion = useSectStore((s) => s.craftPotion)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
 
-  const furnaceLevel = sect.buildings.find(b => b.type === 'alchemyFurnace')?.level ?? 0
-  const availableRecipes = ALCHEMY_RECIPES.filter(r => r.minFurnaceLevel <= furnaceLevel)
+  const furnaceLevel = sect.buildings.find((b) => b.type === 'alchemyFurnace')?.level ?? 0
+  const availableRecipes = ALCHEMY_RECIPES.filter((r) => r.minFurnaceLevel <= furnaceLevel)
 
   const handleCraft = (recipeId: string) => {
     const result = craftPotion(recipeId)
@@ -42,8 +42,12 @@ export default function AlchemyPanel() {
         </span>
       </div>
 
-      {availableRecipes.map(recipe => {
-        const affordable = canCraft(recipe, { herb: sect.resources.herb, spiritStone: sect.resources.spiritStone }, furnaceLevel)
+      {availableRecipes.map((recipe) => {
+        const affordable = canCraft(
+          recipe,
+          { herb: sect.resources.herb, spiritStone: sect.resources.spiritStone },
+          furnaceLevel
+        )
         return (
           <div key={recipe.id} className={styles.recipeCard}>
             <div className={styles.recipeHeader}>
@@ -54,14 +58,8 @@ export default function AlchemyPanel() {
             </div>
             <div className={styles.recipeDesc}>{recipe.description}</div>
             <div className={styles.recipeCost}>
-              <span className={styles.costItem}>
-                灵草 {recipe.cost.herb}
-              </span>
-              {recipe.cost.spiritStone && (
-                <span className={styles.costItem}>
-                  灵石 {recipe.cost.spiritStone}
-                </span>
-              )}
+              <span className={styles.costItem}>灵草 {recipe.cost.herb}</span>
+              {recipe.cost.spiritStone && <span className={styles.costItem}>灵石 {recipe.cost.spiritStone}</span>}
             </div>
             <button
               className={`${styles.craftBtn} ${affordable ? styles.craftReady : styles.craftDisabled}`}
@@ -74,15 +72,9 @@ export default function AlchemyPanel() {
         )
       })}
 
-      {availableRecipes.length === 0 && (
-        <div className={styles.empty}>暂无可用丹方</div>
-      )}
+      {availableRecipes.length === 0 && <div className={styles.empty}>暂无可用丹方</div>}
 
-      {message && (
-        <div className={message.success ? 'globalMessageSuccess' : 'globalMessageFail'}>
-          {message.text}
-        </div>
-      )}
+      {message && <div className={message.success ? 'globalMessageSuccess' : 'globalMessageFail'}>{message.text}</div>}
     </div>
   )
 }

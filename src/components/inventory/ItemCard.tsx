@@ -10,8 +10,11 @@ interface ItemCardProps {
 }
 
 const qualityClass: Record<string, string> = {
-  common: styles.qualityCommon, spirit: styles.qualitySpirit,
-  immortal: styles.qualityImmortal, divine: styles.qualityDivine, chaos: styles.qualityChaos,
+  common: styles.qualityCommon,
+  spirit: styles.qualitySpirit,
+  immortal: styles.qualityImmortal,
+  divine: styles.qualityDivine,
+  chaos: styles.qualityChaos,
 }
 
 export default function ItemCard({ item, selected, onClick }: ItemCardProps) {
@@ -21,9 +24,7 @@ export default function ItemCard({ item, selected, onClick }: ItemCardProps) {
 
   return (
     <div className={`${styles.card} ${selected ? styles.selected : ''}`} onClick={onClick}>
-      <span className={`${styles.qualityTag} ${qualityClass[item.quality] ?? ''}`}>
-        {QUALITY_NAMES[item.quality]}
-      </span>
+      <span className={`${styles.qualityTag} ${qualityClass[item.quality] ?? ''}`}>{QUALITY_NAMES[item.quality]}</span>
       <span className={styles.name}>{item.name}</span>
       {isEquipment && (
         <>
@@ -31,9 +32,7 @@ export default function ItemCard({ item, selected, onClick }: ItemCardProps) {
           {(item as Equipment).enhanceLevel > 0 && (
             <span className={styles.enhance}>+{(item as Equipment).enhanceLevel}</span>
           )}
-          <span className={styles.stats}>
-            {formatStats(getEffectiveStats(item as Equipment))}
-          </span>
+          <span className={styles.stats}>{formatStats(getEffectiveStats(item as Equipment))}</span>
         </>
       )}
     </div>

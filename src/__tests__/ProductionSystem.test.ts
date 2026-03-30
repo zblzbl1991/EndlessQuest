@@ -1,9 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  tickProductionQueue,
-  calcOfflineProduction,
-  canStartRecipe,
-} from '../systems/building/ProductionSystem'
+import { tickProductionQueue, calcOfflineProduction, canStartRecipe } from '../systems/building/ProductionSystem'
 import type { ProductionQueue, Resources } from '../types/sect'
 
 const emptyResources: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }

@@ -50,15 +50,11 @@ export default function EnhancePanel({ characterId, backpackIndex, item, onEnhan
       </div>
       <div className={styles.cost}>
         <span>灵石</span>
-        <span className={canAfford ? styles.costValue : styles.costInsufficient}>
-          {cost.spiritStone}
-        </span>
+        <span className={canAfford ? styles.costValue : styles.costInsufficient}>{cost.spiritStone}</span>
       </div>
       <div className={styles.cost}>
         <span>矿材</span>
-        <span className={canAfford ? styles.costValue : styles.costInsufficient}>
-          {cost.ore}
-        </span>
+        <span className={canAfford ? styles.costValue : styles.costInsufficient}>{cost.ore}</span>
       </div>
       <button
         className={`${styles.button} ${canAfford ? styles.buttonReady : styles.buttonDisabled}`}

@@ -1,4 +1,4 @@
-import type { PixelIconDef } from './types';
+import type { PixelIconDef } from './types'
 
 export const worldIcons: Record<string, PixelIconDef> = {
   // ── Elements ──
@@ -426,4 +426,4 @@ export const worldIcons: Record<string, PixelIconDef> = {
       '............',
     ],
   },
-};
+}

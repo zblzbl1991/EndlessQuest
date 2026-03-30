@@ -68,14 +68,17 @@ export function generatePet(quality: PetQuality): Pet {
   const innate = PET_INNATE_SKILLS[Math.floor(Math.random() * PET_INNATE_SKILLS.length)]
 
   const names = [
-    '\u5c0f\u706b\u72d0', '\u51b0\u6676\u5154', '\u96f7\u9e70', '\u7075\u9e7f',
-    '\u7389\u87fe', '\u98ce\u72fc', '\u4e91\u9e64', '\u7384\u9f9f',
+    '\u5c0f\u706b\u72d0',
+    '\u51b0\u6676\u5154',
+    '\u96f7\u9e70',
+    '\u7075\u9e7f',
+    '\u7389\u87fe',
+    '\u98ce\u72fc',
+    '\u4e91\u9e64',
+    '\u7384\u9f9f',
   ]
   const qualityPrefix =
-    quality === 'common' ? '' :
-    quality === 'spirit' ? '\u7075' :
-    quality === 'immortal' ? '\u4ed9' :
-    '\u795e'
+    quality === 'common' ? '' : quality === 'spirit' ? '\u7075' : quality === 'immortal' ? '\u4ed9' : '\u795e'
 
   return {
     id,
@@ -107,13 +110,10 @@ export function feedPet(pet: Pet): Pet {
 }
 
 export function tryCapturePet(fortune: number, targetQuality: PetQuality): boolean {
-  const baseRate = 0.30 + fortune * 0.02
+  const baseRate = 0.3 + fortune * 0.02
   // Lower quality = higher rate
   const qualityMod =
-    targetQuality === 'common' ? 1.0 :
-    targetQuality === 'spirit' ? 0.7 :
-    targetQuality === 'immortal' ? 0.4 :
-    0.2
+    targetQuality === 'common' ? 1.0 : targetQuality === 'spirit' ? 0.7 : targetQuality === 'immortal' ? 0.4 : 0.2
   return Math.random() < baseRate * qualityMod
 }
 

@@ -1,5 +1,11 @@
 // src/__tests__/ItemGenerator.test.ts
-import { generateEquipment, generateRandomEquipment, getEnhanceCost, generateTechniqueScroll, generateRandomTechniqueScroll } from '../systems/item/ItemGenerator'
+import {
+  generateEquipment,
+  generateRandomEquipment,
+  getEnhanceCost,
+  generateTechniqueScroll,
+  generateRandomTechniqueScroll,
+} from '../systems/item/ItemGenerator'
 
 describe('ItemGenerator', () => {
   it('should generate a common weapon with appropriate stats', () => {
@@ -23,7 +29,17 @@ describe('ItemGenerator', () => {
   })
 
   it('should generate valid equipment for all slots', () => {
-    const slots = ['head', 'armor', 'bracer', 'belt', 'boots', 'weapon', 'accessory1', 'accessory2', 'talisman'] as const
+    const slots = [
+      'head',
+      'armor',
+      'bracer',
+      'belt',
+      'boots',
+      'weapon',
+      'accessory1',
+      'accessory2',
+      'talisman',
+    ] as const
     for (const slot of slots) {
       const item = generateEquipment(slot, 'spirit')
       expect(item.slot).toBe(slot)

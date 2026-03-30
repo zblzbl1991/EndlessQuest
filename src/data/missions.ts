@@ -57,5 +57,5 @@ export const DISPATCH_MISSIONS: DispatchMission[] = [
 ]
 
 export function getAvailableMissions(characterRealm: number): DispatchMission[] {
-  return DISPATCH_MISSIONS.filter(m => m.minRealm <= characterRealm)
+  return DISPATCH_MISSIONS.filter((m) => m.minRealm <= characterRealm)
 }

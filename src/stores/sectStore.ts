@@ -1,22 +1,38 @@
 import { create } from 'zustand'
-import type {
-  Character, CharacterTitle, CharacterQuality, CharacterStatus,
-} from '../types/character'
-import type {
-  BuildingType, Resources, ResourceType, Sect, AnyItem, Equipment, Consumable, ItemStack,
-} from '../types'
+import type { Character, CharacterTitle, CharacterQuality, CharacterStatus } from '../types/character'
+import type { BuildingType, Resources, ResourceType, Sect, AnyItem, Equipment, Consumable, ItemStack } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
-import { generateCharacter, calcSectLevel, getMaxCharacters, getRecruitCost, isQualityUnlocked } from '../systems/character/CharacterEngine'
+import {
+  generateCharacter,
+  calcSectLevel,
+  getMaxCharacters,
+  getRecruitCost,
+  isQualityUnlocked,
+} from '../systems/character/CharacterEngine'
 import { calcResourceRates, calcTaxRate } from '../systems/economy/ResourceEngine'
-import { tick as cultivationTick, canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from '../systems/cultivation/CultivationEngine'
+import {
+  tick as cultivationTick,
+  canBreakthrough,
+  breakthrough as performBreakthrough,
+  calcBreakthroughFailureRate,
+} from '../systems/cultivation/CultivationEngine'
 import { tryComprehendOnBreakthrough } from '../systems/technique/TechniqueSystem'
 import { attemptEnhance } from '../systems/equipment/EquipmentEngine'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../systems/sect/BuildingSystem'
 import { getRecruitCostMult, getForgeBuff, getBuildingLevel } from '../systems/economy/BuildingEffects'
 import { createShopState, generateDailyItems } from '../systems/trade/TradeSystem'
 import type { ShopState } from '../systems/trade/TradeSystem'
-import { ALCHEMY_RECIPES, canCraft as canCraftAlchemy, craftPotion as craftPotionAlchemy } from '../systems/economy/AlchemySystem'
-import { FORGE_RECIPES, FORGE_SLOTS, canForge, forgeEquipment as forgeEquipmentSystem } from '../systems/economy/ForgeSystem'
+import {
+  ALCHEMY_RECIPES,
+  canCraft as canCraftAlchemy,
+  craftPotion as craftPotionAlchemy,
+} from '../systems/economy/AlchemySystem'
+import {
+  FORGE_RECIPES,
+  FORGE_SLOTS,
+  canForge,
+  forgeEquipment as forgeEquipmentSystem,
+} from '../systems/economy/ForgeSystem'
 import { generateEquipment } from '../systems/item/ItemGenerator'
 import { getTechniqueById, TECHNIQUES } from '../data/techniquesTable'
 import { TECHNIQUE_TIER_ORDER } from '../types/technique'
@@ -61,7 +77,10 @@ function createInitialState(): { sect: Sect } {
       name: '无名宗门',
       level: 1,
       resources: {
-        spiritStone: 500, spiritEnergy: 0, herb: 0, ore: 0,
+        spiritStone: 500,
+        spiritEnergy: 0,
+        herb: 0,
+        ore: 0,
       },
       buildings: BUILDING_DEFS.map((def) => ({
         type: def.type,
@@ -120,7 +139,10 @@ export interface SectStore {
   // Character inventory
   equipItem(characterId: string, backpackIndex: number, slotIndex: number): boolean
   unequipItem(characterId: string, slotIndex: number): boolean
-  enhanceItem(characterId: string, backpackIndex: number): { success: boolean; newLevel: number; cost: { spiritStone: number; ore: number } }
+  enhanceItem(
+    characterId: string,
+    backpackIndex: number
+  ): { success: boolean; newLevel: number; cost: { spiritStone: number; ore: number } }
   sellCharacterItem(characterId: string, backpackIndex: number): boolean
 
   // Healing
@@ -131,7 +153,11 @@ export interface SectStore {
   addResource(type: keyof Resources, amount: number): void
 
   // Market exchange
-  exchangeResources(from: ResourceType, to: ResourceType, amount: number): { success: boolean; received?: number; reason?: string }
+  exchangeResources(
+    from: ResourceType,
+    to: ResourceType,
+    amount: number
+  ): { success: boolean; received?: number; reason?: string }
 
   // Main tick (called every second)
   tickAll(deltaSec: number): { spiritProduced: number; spiritConsumed: number }
@@ -161,14 +187,14 @@ export interface SectStore {
 
 function produceItemAsStack(recipe: AutoRecipe, buildingLevel: number): ItemStack | null {
   if (recipe.productType === 'consumable') {
-    const alchemyRecipe = ALCHEMY_RECIPES.find(r => r.id === recipe.id)
+    const alchemyRecipe = ALCHEMY_RECIPES.find((r) => r.id === recipe.id)
     if (!alchemyRecipe) return null
     const item = craftPotionAlchemy(alchemyRecipe, buildingLevel)
     if (item) item.recipeId = recipe.id
     return item ? { item, quantity: 1 } : null
   }
   if (recipe.productType === 'equipment') {
-    const forgeRecipe = FORGE_RECIPES.find(r => r.id === recipe.id)
+    const forgeRecipe = FORGE_RECIPES.find((r) => r.id === recipe.id)
     if (!forgeRecipe) return null
     const slot = FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
     const item = generateEquipment(slot, forgeRecipe.quality)
@@ -189,7 +215,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   initShop: () => {
     const { sect } = get()
-    const marketLevel = sect.buildings.find(b => b.type === 'market')?.level ?? 0
+    const marketLevel = sect.buildings.find((b) => b.type === 'market')?.level ?? 0
     const shop = createShopState(marketLevel)
     set({ shopState: shop })
   },
@@ -204,12 +230,17 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (shopItem.stock === 0) return { success: false, reason: '已售罄' }
     if (sect.resources.spiritStone < shopItem.price) return { success: false, reason: '灵石不足' }
     // Deduct and add to vault
-    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - shopItem.price } } }))
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - shopItem.price },
+      },
+    }))
     get().addToVault(shopItem.item)
     // Mark as sold
     if (isDaily) {
       const newDaily = [...shop.dailyItems]
-      newDaily[shopItemIndex] = { ...shopItem, stock: (shopItem.stock === -1 ? -1 : shopItem.stock - 1) }
+      newDaily[shopItemIndex] = { ...shopItem, stock: shopItem.stock === -1 ? -1 : shopItem.stock - 1 }
       set({ shopState: { ...shop, dailyItems: newDaily } })
     }
     return { success: true, reason: '' }
@@ -217,7 +248,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   refreshDailyShop: () => {
     const { sect } = get()
-    const marketLevel = sect.buildings.find(b => b.type === 'market')?.level ?? 0
+    const marketLevel = sect.buildings.find((b) => b.type === 'market')?.level ?? 0
     const newDailyItems = generateDailyItems(marketLevel)
     const shop = get().shopState
     if (shop) {
@@ -244,7 +275,13 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // Deduct stones
     const character = generateCharacter(quality)
-    const qualityLabel: Record<string, string> = { common: '凡品', spirit: '灵品', immortal: '仙品', divine: '神品', chaos: '混沌' }
+    const qualityLabel: Record<string, string> = {
+      common: '凡品',
+      spirit: '灵品',
+      immortal: '仙品',
+      divine: '神品',
+      chaos: '混沌',
+    }
     emitEvent('recruit', `招收弟子 ${character.name} (${qualityLabel[quality] ?? quality})`)
     set((s) => ({
       sect: {
@@ -288,9 +325,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     set((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === id ? { ...c, title: newTitle } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === id ? { ...c, title: newTitle } : c)),
       },
     }))
   },
@@ -365,9 +400,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     set((s) => ({
       sect: {
         ...s.sect,
-        buildings: s.sect.buildings.map((b) =>
-          b.type === type ? { ...b, level: b.level + 1 } : b
-        ),
+        buildings: s.sect.buildings.map((b) => (b.type === type ? { ...b, level: b.level + 1 } : b)),
         resources: {
           ...s.sect.resources,
           spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
@@ -379,7 +412,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   tryUpgradeBuilding: (type) => {
     const { sect } = get()
-    const bDef = BUILDING_DEFS.find(d => d.type === type)
+    const bDef = BUILDING_DEFS.find((d) => d.type === type)
     const isNewBuilding = !sect.buildings.find((b) => b.type === type)?.unlocked
 
     // Check unlock first
@@ -391,9 +424,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       set((s) => ({
         sect: {
           ...s.sect,
-          buildings: s.sect.buildings.map((b) =>
-            b.type === type ? { ...b, unlocked: true } : b
-          ),
+          buildings: s.sect.buildings.map((b) => (b.type === type ? { ...b, unlocked: true } : b)),
         },
       }))
     }
@@ -405,7 +436,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // Perform upgrade
     const success = get().upgradeBuilding(type)
     if (success) {
-      const newLevel = get().sect.buildings.find(b => b.type === type)?.level ?? 0
+      const newLevel = get().sect.buildings.find((b) => b.type === type)?.level ?? 0
       if (isNewBuilding) {
         emitEvent('building_build', `建造 ${bDef?.name ?? type}`)
       } else {
@@ -424,9 +455,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       sect: {
         ...state.sect,
         buildings: state.sect.buildings.map((b) =>
-          b.type === buildingType
-            ? { ...b, productionQueue: { recipeId, progress: 0 } }
-            : b
+          b.type === buildingType ? { ...b, productionQueue: { recipeId, progress: 0 } } : b
         ),
       },
     }))
@@ -444,7 +473,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const isStackable = stack.item.type === 'consumable' && (stack.item as Consumable).recipeId
     if (isStackable) {
       const existingBp = char.backpack.findIndex(
-        s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (stack.item as Consumable).recipeId
+        (s) => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (stack.item as Consumable).recipeId
       )
       if (existingBp === -1 && char.backpack.length >= char.maxBackpackSlots) return false
     } else {
@@ -459,9 +488,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       sect: {
         ...s.sect,
         vault: newVault,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId ? { ...c, backpack: newBackpack } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, backpack: newBackpack } : c)),
       },
     }))
     return true
@@ -477,7 +504,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const isStackable = stack.item.type === 'consumable' && (stack.item as Consumable).recipeId
     if (isStackable) {
       const existing = sect.vault.findIndex(
-        s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (stack.item as Consumable).recipeId
+        (s) => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (stack.item as Consumable).recipeId
       )
       if (existing === -1 && sect.vault.length >= sect.maxVaultSlots) return false
     } else {
@@ -492,9 +519,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       sect: {
         ...s.sect,
         vault: newVault,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId ? { ...c, backpack: newBackpack } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, backpack: newBackpack } : c)),
       },
     }))
     return true
@@ -506,7 +531,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (!isConsumableWithRecipe && sect.vault.length >= sect.maxVaultSlots) return false
     if (isConsumableWithRecipe) {
       const existing = sect.vault.findIndex(
-        s => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (item as Consumable).recipeId
+        (s) => s.item.type === 'consumable' && (s.item as Consumable).recipeId === (item as Consumable).recipeId
       )
       if (existing === -1 && sect.vault.length >= sect.maxVaultSlots) return false
     }
@@ -573,9 +598,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, backpack: newBackpack, equippedGear: gear }
-            : c
+          c.id === characterId ? { ...c, backpack: newBackpack, equippedGear: gear } : c
         ),
       },
     }))
@@ -606,9 +629,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, equippedGear: gear, backpack: addItemToStacks(c.backpack, equipment) }
-            : c
+          c.id === characterId ? { ...c, equippedGear: gear, backpack: addItemToStacks(c.backpack, equipment) } : c
         ),
       },
     }))
@@ -659,9 +680,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       set((s) => ({
         sect: {
           ...s.sect,
-          characters: s.sect.characters.map((c) =>
-            c.id === characterId ? { ...c, backpack: newBackpack } : c
-          ),
+          characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, backpack: newBackpack } : c)),
         },
       }))
     }
@@ -680,9 +699,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     set((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId ? { ...c, backpack: newBackpack } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, backpack: newBackpack } : c)),
         resources: {
           ...s.sect.resources,
           spiritStone: s.sect.resources.spiritStone + removed.item.sellPrice,
@@ -705,9 +722,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, status: 'idle' as const, injuryTimer: 0 }
-            : c
+          c.id === characterId ? { ...c, status: 'idle' as const, injuryTimer: 0 } : c
         ),
         resources: {
           ...s.sect.resources,
@@ -764,7 +779,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     }
 
     // Calculate market level and loss rate
-    const marketLevel = sect.buildings.find(b => b.type === 'market')?.level ?? 0
+    const marketLevel = sect.buildings.find((b) => b.type === 'market')?.level ?? 0
     const lossRate = Math.max(0.3, 0.667 - 0.05 * marketLevel)
 
     // Calculate received amount
@@ -774,7 +789,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       received = amount * 2
     } else {
       // Selling: herb/ore -> spiritStone with loss
-      received = Math.floor(amount / 3 * (1 - lossRate))
+      received = Math.floor((amount / 3) * (1 - lossRate))
     }
 
     // Deduct source, add received
@@ -819,14 +834,11 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const bonuses: ProductionBonuses = { techniqueMultiplier: maxTechRate, discipleMultiplier: 1 }
 
     // 4. Calculate resource rates with production bonuses
-    const rates = calcResourceRates(
-      { spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel },
-      bonuses,
-    )
+    const rates = calcResourceRates({ spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel }, bonuses)
 
     // 4b. Apply specialty bonuses from assigned disciples
     const assignedSpecialties = (buildingType: string) =>
-      sect.characters.filter(c => c.assignedBuilding === buildingType).flatMap(c => c.specialties)
+      sect.characters.filter((c) => c.assignedBuilding === buildingType).flatMap((c) => c.specialties)
     rates.spiritStone *= getBuildingBonus('spiritMine', assignedSpecialties('spiritMine'))
     rates.ore *= getBuildingBonus('spiritMine', assignedSpecialties('spiritMine'))
     rates.spiritEnergy *= getBuildingBonus('spiritField', assignedSpecialties('spiritField'))
@@ -948,9 +960,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
                       cultivation: 0,
                       baseStats: btResult.newStats,
                     }
-                    const comprehendedId = tryComprehendOnBreakthrough(
-                      updatedChar, get().sect.techniqueCodex, true
-                    )
+                    const comprehendedId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, true)
                     if (comprehendedId) {
                       updatedChar = {
                         ...updatedChar,
@@ -975,7 +985,10 @@ export const useSectStore = create<SectStore>((set, get) => ({
                       ...updatedChar,
                       realmStage: (updatedChar.realmStage - 1) as Character['realmStage'],
                     }
-                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，境界跌落至 ${getRealmName(updatedChar.realm, updatedChar.realmStage)}`)
+                    emitEvent(
+                      'breakthrough_failure',
+                      `${updatedChar.name} 天劫重伤，境界跌落至 ${getRealmName(updatedChar.realm, updatedChar.realmStage)}`
+                    )
                   } else if (tribResult.severe) {
                     emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，修为尽失`)
                   } else {
@@ -998,7 +1011,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
                   }
                   // Breakthrough comprehension (major)
                   const comprehendedId = tryComprehendOnBreakthrough(
-                    updatedChar, get().sect.techniqueCodex, isMajorBreakthrough
+                    updatedChar,
+                    get().sect.techniqueCodex,
+                    isMajorBreakthrough
                   )
                   if (comprehendedId) {
                     updatedChar = {
@@ -1034,9 +1049,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
                   baseStats: btResult.newStats,
                 }
                 // Breakthrough comprehension (sub-level)
-                const subComprehendedId = tryComprehendOnBreakthrough(
-                  updatedChar, get().sect.techniqueCodex, false
-                )
+                const subComprehendedId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, false)
                 if (subComprehendedId) {
                   updatedChar = {
                     ...updatedChar,
@@ -1071,16 +1084,22 @@ export const useSectStore = create<SectStore>((set, get) => ({
     })
 
     // 11. Recalculate sect level from mainHall building level
-    const mainHallLevel = updatedCharacters.length > 0
-      ? get().sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
-      : 1
+    const mainHallLevel =
+      updatedCharacters.length > 0 ? (get().sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1) : 1
     const newSectLevel = calcSectLevel(mainHallLevel)
 
     // 12. Build new sect with updated resources (production + cultivation - consumed + tax)
     const taxProduced = calcTaxRate(newSectLevel, sect.characters.length) * deltaSec
     const newResources = {
       spiritEnergy: Math.max(0, updatedSpiritEnergy),
-      spiritStone: Math.max(0, sect.resources.spiritStone + rates.spiritStone * deltaSec + taxProduced - totalConsumed.spiritStone - breakthroughStoneCost),
+      spiritStone: Math.max(
+        0,
+        sect.resources.spiritStone +
+          rates.spiritStone * deltaSec +
+          taxProduced -
+          totalConsumed.spiritStone -
+          breakthroughStoneCost
+      ),
       herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb,
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
     }
@@ -1112,15 +1131,24 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   craftPotion: (recipeId) => {
     const { sect } = get()
-    const furnaceLevel = sect.buildings.find(b => b.type === 'alchemyFurnace')?.level ?? 0
-    const recipe = ALCHEMY_RECIPES.find(r => r.id === recipeId)
+    const furnaceLevel = sect.buildings.find((b) => b.type === 'alchemyFurnace')?.level ?? 0
+    const recipe = ALCHEMY_RECIPES.find((r) => r.id === recipeId)
     if (!recipe) return { success: false, reason: '未知丹方' }
     if (!canCraftAlchemy(recipe, { herb: sect.resources.herb, spiritStone: sect.resources.spiritStone }, furnaceLevel))
       return { success: false, reason: '资源或等级不足' }
     const potion = craftPotionAlchemy(recipe, furnaceLevel)
     if (!potion) return { success: false, reason: '炼制失败' }
     // Deduct resources
-    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, herb: s.sect.resources.herb - recipe.cost.herb, spiritStone: s.sect.resources.spiritStone - (recipe.cost.spiritStone ?? 0) } } }))
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: {
+          ...s.sect.resources,
+          herb: s.sect.resources.herb - recipe.cost.herb,
+          spiritStone: s.sect.resources.spiritStone - (recipe.cost.spiritStone ?? 0),
+        },
+      },
+    }))
     // Add to vault
     get().addToVault(potion)
     return { success: true, reason: '' }
@@ -1128,8 +1156,8 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   forgeEquipment: (recipeId) => {
     const { sect } = get()
-    const forgeLevel = sect.buildings.find(b => b.type === 'forge')?.level ?? 0
-    const recipe = FORGE_RECIPES.find(r => r.id === recipeId)
+    const forgeLevel = sect.buildings.find((b) => b.type === 'forge')?.level ?? 0
+    const recipe = FORGE_RECIPES.find((r) => r.id === recipeId)
     if (!recipe) return { success: false, reason: '未知配方' }
     if (!canForge(recipe, { ore: sect.resources.ore, spiritStone: sect.resources.spiritStone }, forgeLevel))
       return { success: false, reason: '资源或等级不足' }
@@ -1138,20 +1166,29 @@ export const useSectStore = create<SectStore>((set, get) => ({
     const item = forgeEquipmentSystem(recipe, forgeLevel, successBonus)
     if (!item) return { success: false, reason: '锻造失败' }
     // Deduct resources only on success
-    set(s => ({ sect: { ...s.sect, resources: { ...s.sect.resources, ore: s.sect.resources.ore - recipe.cost.ore, spiritStone: s.sect.resources.spiritStone - recipe.cost.spiritStone } } }))
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        resources: {
+          ...s.sect.resources,
+          ore: s.sect.resources.ore - recipe.cost.ore,
+          spiritStone: s.sect.resources.spiritStone - recipe.cost.spiritStone,
+        },
+      },
+    }))
     get().addToVault(item)
     return { success: true, reason: '' }
   },
 
   studyTechnique: () => {
     const { sect } = get()
-    const scriptureLevel = sect.buildings.find(b => b.type === 'scriptureHall')?.level ?? 0
+    const scriptureLevel = sect.buildings.find((b) => b.type === 'scriptureHall')?.level ?? 0
     if (scriptureLevel < 3) return { success: false, reason: '藏经阁等级不足' }
     const cost = 100 * sect.level
     if (sect.resources.spiritStone < cost) return { success: false, reason: '灵石不足' }
 
     // Determine max tier from highest character realm
-    const maxRealm = Math.max(...sect.characters.map(c => c.realm), 0)
+    const maxRealm = Math.max(...sect.characters.map((c) => c.realm), 0)
     const maxTierIdx = Math.min(maxRealm, TECHNIQUE_TIER_ORDER.length - 1)
 
     // Weighted random: lower tiers more likely
@@ -1164,13 +1201,14 @@ export const useSectStore = create<SectStore>((set, get) => ({
     let selectedTierIdx = 0
     for (let i = 0; i < weights.length; i++) {
       roll -= weights[i]
-      if (roll <= 0) { selectedTierIdx = i; break }
+      if (roll <= 0) {
+        selectedTierIdx = i
+        break
+      }
     }
     const selectedTier = TECHNIQUE_TIER_ORDER[selectedTierIdx]
 
-    const candidates = TECHNIQUES.filter(
-      (t) => t.tier === selectedTier && !sect.techniqueCodex.includes(t.id)
-    )
+    const candidates = TECHNIQUES.filter((t) => t.tier === selectedTier && !sect.techniqueCodex.includes(t.id))
 
     if (candidates.length === 0) {
       return { success: false, reason: '所有该品阶功法已解锁' }
@@ -1195,7 +1233,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   targetedRecruit: (minQuality) => {
     const { sect } = get()
-    const recruitmentPavilion = sect.buildings.find(b => b.type === 'recruitmentPavilion')
+    const recruitmentPavilion = sect.buildings.find((b) => b.type === 'recruitmentPavilion')
     if (!recruitmentPavilion || recruitmentPavilion.level < 3) return null
 
     // Check character cap
@@ -1232,7 +1270,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     if (!character) return null
 
     // Deduct resources and add character
-    set(s => ({
+    set((s) => ({
       sect: {
         ...s.sect,
         characters: [...s.sect.characters, character!],
@@ -1282,11 +1320,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     set((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, petIds: [...c.petIds, petId] }
-            : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, petIds: [...c.petIds, petId] } : c)),
       },
     }))
     return true
@@ -1297,9 +1331,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === characterId
-            ? { ...c, petIds: c.petIds.filter((id) => id !== petId) }
-            : c
+          c.id === characterId ? { ...c, petIds: c.petIds.filter((id) => id !== petId) } : c
         ),
       },
     }))
@@ -1309,20 +1341,18 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   assignToBuilding: (characterId, buildingType) => {
     set((s) => {
-      const character = s.sect.characters.find(c => c.id === characterId)
+      const character = s.sect.characters.find((c) => c.id === characterId)
       if (!character) return s
       if (character.status !== 'idle') return s
 
-      const assigned = s.sect.characters.filter(c => c.assignedBuilding === buildingType)
+      const assigned = s.sect.characters.filter((c) => c.assignedBuilding === buildingType)
       if (assigned.length >= 3) return s
 
       return {
         sect: {
           ...s.sect,
-          characters: s.sect.characters.map(c =>
-            c.id === characterId
-              ? { ...c, status: 'training' as const, assignedBuilding: buildingType }
-              : c
+          characters: s.sect.characters.map((c) =>
+            c.id === characterId ? { ...c, status: 'training' as const, assignedBuilding: buildingType } : c
           ),
         },
       }
@@ -1331,17 +1361,15 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
   unassignFromBuilding: (characterId) => {
     set((s) => {
-      const character = s.sect.characters.find(c => c.id === characterId)
+      const character = s.sect.characters.find((c) => c.id === characterId)
       if (!character) return s
       if (character.status !== 'training' || !character.assignedBuilding) return s
 
       return {
         sect: {
           ...s.sect,
-          characters: s.sect.characters.map(c =>
-            c.id === characterId
-              ? { ...c, status: 'idle' as const, assignedBuilding: null }
-              : c
+          characters: s.sect.characters.map((c) =>
+            c.id === characterId ? { ...c, status: 'idle' as const, assignedBuilding: null } : c
           ),
         },
       }

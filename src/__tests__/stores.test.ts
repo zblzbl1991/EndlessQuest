@@ -68,9 +68,7 @@ function setCharacterCultivation(charId: string, amount: number) {
   useSectStore.setState((s) => ({
     sect: {
       ...s.sect,
-      characters: s.sect.characters.map((c) =>
-        c.id === charId ? { ...c, cultivation: amount } : c
-      ),
+      characters: s.sect.characters.map((c) => (c.id === charId ? { ...c, cultivation: amount } : c)),
     },
   }))
 }
@@ -307,9 +305,7 @@ describe('SectStore - Item Transfer', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: items } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, backpack: items } : c)),
         vault: [{ item: makeEquipment('sword_1'), quantity: 1 }],
       },
     }))
@@ -438,7 +434,9 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [{ item: sword, quantity: 1 }], equippedGear: new Array(9).fill(null) } : c
+          c.id === char.id
+            ? { ...c, backpack: [{ item: sword, quantity: 1 }], equippedGear: new Array(9).fill(null) }
+            : c
         ),
       },
     }))
@@ -458,7 +456,9 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, backpack: [{ item: potion, quantity: 1 }], equippedGear: new Array(9).fill(null) } : c
+          c.id === char.id
+            ? { ...c, backpack: [{ item: potion, quantity: 1 }], equippedGear: new Array(9).fill(null) }
+            : c
         ),
       },
     }))
@@ -486,9 +486,7 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         vault: [{ item: sword, quantity: 1 }], // Put the equipment in vault so unequip can find it
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, equippedGear: updatedGear } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, equippedGear: updatedGear } : c)),
       },
     }))
 
@@ -569,9 +567,7 @@ describe('SectStore - Healing', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, status: 'injured' } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, status: 'injured' } : c)),
       },
     }))
     getStore().addResource('herb', 5)
@@ -587,9 +583,7 @@ describe('SectStore - Healing', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, status: 'injured' } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, status: 'injured' } : c)),
       },
     }))
 
@@ -610,9 +604,7 @@ describe('SectStore - Healing', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, status: 'injured' } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, status: 'injured' } : c)),
       },
     }))
     getStore().addResource('herb', 5)
@@ -730,9 +722,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       sect: {
         ...s.sect,
         resources: { ...s.sect.resources, spiritStone: 1000 },
-        vault: [
-          { item: makeConsumable('pill_1', { name: '回血丹' }), quantity: 1 },
-        ],
+        vault: [{ item: makeConsumable('pill_1', { name: '回血丹' }), quantity: 1 }],
       },
     }))
 
@@ -1392,9 +1382,7 @@ describe('setProductionRecipe', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        buildings: s.sect.buildings.map((b) =>
-          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1 } : b
-        ),
+        buildings: s.sect.buildings.map((b) => (b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1 } : b)),
       },
     }))
 
@@ -1409,7 +1397,9 @@ describe('setProductionRecipe', () => {
       sect: {
         ...s.sect,
         buildings: s.sect.buildings.map((b) =>
-          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 50 } } : b
+          b.type === 'alchemyFurnace'
+            ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 50 } }
+            : b
         ),
       },
     }))
@@ -1432,9 +1422,7 @@ describe('setProductionRecipe', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        buildings: s.sect.buildings.map((b) =>
-          b.type === 'forge' ? { ...b, unlocked: true, level: 1 } : b
-        ),
+        buildings: s.sect.buildings.map((b) => (b.type === 'forge' ? { ...b, unlocked: true, level: 1 } : b)),
       },
     }))
 
@@ -1448,7 +1436,9 @@ describe('setProductionRecipe', () => {
       sect: {
         ...s.sect,
         buildings: s.sect.buildings.map((b) =>
-          b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 15 } } : b
+          b.type === 'alchemyFurnace'
+            ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 15 } }
+            : b
         ),
       },
     }))
@@ -1516,11 +1506,7 @@ describe('tickAll with production queue', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        buildings: s.sect.buildings.map((b) =>
-          b.type === 'spiritField'
-            ? { ...b, unlocked: true, level: 1 }
-            : b
-        ),
+        buildings: s.sect.buildings.map((b) => (b.type === 'spiritField' ? { ...b, unlocked: true, level: 1 } : b)),
         resources: { ...s.sect.resources, spiritEnergy: 790 },
       },
     }))
@@ -1587,9 +1573,7 @@ describe('exchangeResources', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        buildings: s.sect.buildings.map((b) =>
-          b.type === 'market' ? { ...b, unlocked: true, level: 7 } : b
-        ),
+        buildings: s.sect.buildings.map((b) => (b.type === 'market' ? { ...b, unlocked: true, level: 7 } : b)),
       },
     }))
 
@@ -1715,9 +1699,7 @@ describe('expedition supply', () => {
     const char = getStore().sect.characters[0]
 
     // Add 5 hp_potion but no breakthrough_pill
-    const vaultItems: ItemStack[] = [
-      { item: { ...makeConsumable('hp_0'), recipeId: 'hp_potion' }, quantity: 5 },
-    ]
+    const vaultItems: ItemStack[] = [{ item: { ...makeConsumable('hp_0'), recipeId: 'hp_potion' }, quantity: 5 }]
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,

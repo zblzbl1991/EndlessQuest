@@ -16,7 +16,7 @@ export default function SectPage() {
     const cultivating = sect.characters.filter((c) => c.status === 'idle').length
     const adventuring = sect.characters.filter((c) => c.status === 'adventuring' || c.status === 'patrolling').length
     const resting = sect.characters.filter(
-      (c) => c.status === 'resting' || c.status === 'injured' || c.status === 'idle',
+      (c) => c.status === 'resting' || c.status === 'injured' || c.status === 'idle'
     ).length
     return { cultivating, adventuring, resting }
   }, [sect.characters])
@@ -38,36 +38,24 @@ export default function SectPage() {
         <div className={styles.resourceGrid}>
           <div className={styles.resourceCard}>
             <span className={styles.resourceLabel}>灵石</span>
-            <span className={styles.resourceValue}>
-              {Math.floor(sect.resources.spiritStone).toLocaleString()}
-            </span>
+            <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritStone).toLocaleString()}</span>
           </div>
           <div className={styles.resourceCard}>
             <span className={styles.resourceLabel}>灵气</span>
-            <span className={styles.resourceValue}>
-              {Math.floor(sect.resources.spiritEnergy).toLocaleString()}
-            </span>
+            <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritEnergy).toLocaleString()}</span>
           </div>
           <div className={styles.resourceCard}>
             <span className={styles.resourceLabel}>灵草</span>
-            <span className={styles.resourceValue}>
-              {Math.floor(sect.resources.herb).toLocaleString()}
-            </span>
+            <span className={styles.resourceValue}>{Math.floor(sect.resources.herb).toLocaleString()}</span>
           </div>
           <div className={styles.resourceCard}>
             <span className={styles.resourceLabel}>矿石</span>
-            <span className={styles.resourceValue}>
-              {Math.floor(sect.resources.ore).toLocaleString()}
-            </span>
+            <span className={styles.resourceValue}>{Math.floor(sect.resources.ore).toLocaleString()}</span>
           </div>
         </div>
         <div className={styles.rateRow}>
           <ResourceRate />
-          {herbRate > 0 && (
-            <span className={styles.herbRate}>
-              灵草 +{herbRate.toFixed(2)}/s
-            </span>
-          )}
+          {herbRate > 0 && <span className={styles.herbRate}>灵草 +{herbRate.toFixed(2)}/s</span>}
         </div>
       </section>
 

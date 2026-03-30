@@ -6,5 +6,12 @@ export const DUNGEONS: Dungeon[] = [
   { id: 'bloodDemonAbyss', name: '血魔渊', totalLayers: 10, eventsPerLayer: 4, unlockRealm: 2, unlockStage: 3 },
   { id: 'dragonBoneWasteland', name: '龙骨荒原', totalLayers: 12, eventsPerLayer: 4, unlockRealm: 3, unlockStage: 3 },
   { id: 'nineNetherPurgatory', name: '九幽炼狱', totalLayers: 15, eventsPerLayer: 5, unlockRealm: 4, unlockStage: 3 },
-  { id: 'heavenlyTribulationRealm', name: '天劫秘境', totalLayers: 20, eventsPerLayer: 5, unlockRealm: 5, unlockStage: 3 },
+  {
+    id: 'heavenlyTribulationRealm',
+    name: '天劫秘境',
+    totalLayers: 20,
+    eventsPerLayer: 5,
+    unlockRealm: 5,
+    unlockStage: 3,
+  },
 ]

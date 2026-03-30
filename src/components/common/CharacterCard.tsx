@@ -69,7 +69,9 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
         <div className={styles.progress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <div className={styles.progressStats}>
-            <span>修为 {Math.floor(character.cultivation).toLocaleString()}/{needed.toLocaleString()}</span>
+            <span>
+              修为 {Math.floor(character.cultivation).toLocaleString()}/{needed.toLocaleString()}
+            </span>
             <span>·</span>
             <span>+{calcCultivationRate(character, character.learnedTechniques).toFixed(1)}/s</span>
           </div>

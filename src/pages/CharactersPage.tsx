@@ -84,10 +84,7 @@ export default function CharactersPage() {
   if (selectedId) {
     return (
       <div className={styles.page}>
-        <CharacterDetail
-          characterId={selectedId}
-          onBack={() => setSelectedId(null)}
-        />
+        <CharacterDetail characterId={selectedId} onBack={() => setSelectedId(null)} />
       </div>
     )
   }
@@ -125,15 +122,9 @@ export default function CharactersPage() {
 
       <div className={`${styles.characterGrid} ${view === 'grid' ? styles.gridView : styles.listView}`}>
         {filteredCharacters.map((char) => (
-          <CharacterCard
-            key={char.id}
-            character={char}
-            onClick={() => setSelectedId(char.id)}
-          />
+          <CharacterCard key={char.id} character={char} onClick={() => setSelectedId(char.id)} />
         ))}
-        {filteredCharacters.length === 0 && (
-          <div className={styles.empty}>暂无弟子</div>
-        )}
+        {filteredCharacters.length === 0 && <div className={styles.empty}>暂无弟子</div>}
       </div>
     </div>
   )
@@ -143,13 +134,7 @@ export default function CharactersPage() {
 // CharacterDetail
 // ---------------------------------------------------------------------------
 
-function CharacterDetail({
-  characterId,
-  onBack,
-}: {
-  characterId: string
-  onBack: () => void
-}) {
+function CharacterDetail({ characterId, onBack }: { characterId: string; onBack: () => void }) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const equipItem = useSectStore((s) => s.equipItem)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
@@ -203,7 +188,8 @@ function CharacterDetail({
         <div className={styles.detailProgress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <span className={styles.progressText}>
-            {Math.floor(character.cultivation).toLocaleString()} / {needed.toLocaleString()} (+{cultivationSpeed.toFixed(1)}/s)
+            {Math.floor(character.cultivation).toLocaleString()} / {needed.toLocaleString()} (+
+            {cultivationSpeed.toFixed(1)}/s)
           </span>
         </div>
       </div>
@@ -287,31 +273,32 @@ function CharacterDetail({
       {character.status === 'adventuring' && (
         <section className={styles.section}>
           <div className={styles.sectionTitle}>秘境</div>
-          <div className={styles.adventureInfo}>
-            正在秘境中探索...
-          </div>
+          <div className={styles.adventureInfo}>正在秘境中探索...</div>
         </section>
       )}
 
       {/* Dispatch info */}
-      {character.status === 'patrolling' && (() => {
-        const dispatch = dispatches.find(d => d.characterId === character.id)
-        if (!dispatch) return null
-        const mission = DISPATCH_MISSIONS.find(m => m.id === dispatch.missionId)
-        const remaining = Math.max(0, dispatch.duration - dispatch.progress)
-        const minutes = Math.floor(remaining / 60)
-        const seconds = Math.floor(remaining % 60)
-        return (
-          <section className={styles.section}>
-            <div className={styles.sectionTitle}>派遣任务</div>
-            <div className={styles.dispatchInfo}>
-              <span>{mission?.name ?? '未知任务'}</span>
-              <span>剩余: {minutes}:{seconds.toString().padStart(2, '0')}</span>
-            </div>
-            <ProgressBar value={dispatch.progress} max={dispatch.duration} variant="ink" />
-          </section>
-        )
-      })()}
+      {character.status === 'patrolling' &&
+        (() => {
+          const dispatch = dispatches.find((d) => d.characterId === character.id)
+          if (!dispatch) return null
+          const mission = DISPATCH_MISSIONS.find((m) => m.id === dispatch.missionId)
+          const remaining = Math.max(0, dispatch.duration - dispatch.progress)
+          const minutes = Math.floor(remaining / 60)
+          const seconds = Math.floor(remaining % 60)
+          return (
+            <section className={styles.section}>
+              <div className={styles.sectionTitle}>派遣任务</div>
+              <div className={styles.dispatchInfo}>
+                <span>{mission?.name ?? '未知任务'}</span>
+                <span>
+                  剩余: {minutes}:{seconds.toString().padStart(2, '0')}
+                </span>
+              </div>
+              <ProgressBar value={dispatch.progress} max={dispatch.duration} variant="ink" />
+            </section>
+          )
+        })()}
 
       {/* Mission selection modal */}
       {showingMissions && (
@@ -319,7 +306,7 @@ function CharacterDetail({
           <div className={styles.missionPanel}>
             <div className={styles.missionPanelTitle}>选择派遣任务</div>
             <div className={styles.missionList}>
-              {getAvailableMissions(character.realm).map(mission => (
+              {getAvailableMissions(character.realm).map((mission) => (
                 <div
                   key={mission.id}
                   className={styles.missionCard}
@@ -332,15 +319,26 @@ function CharacterDetail({
                   <div className={styles.missionDesc}>{mission.description}</div>
                   <div className={styles.missionMeta}>
                     <span>{Math.floor(mission.duration / 60)}分钟</span>
-                    <span>{mission.rewards.map(r => {
-                      const typeLabel: Record<string, string> = { spiritStone: '灵石', herb: '灵药', ore: '矿石', consumable: '物品' }
-                      return `${typeLabel[r.type] ?? r.type} ×${r.amount}`
-                    }).join(', ')}</span>
+                    <span>
+                      {mission.rewards
+                        .map((r) => {
+                          const typeLabel: Record<string, string> = {
+                            spiritStone: '灵石',
+                            herb: '灵药',
+                            ore: '矿石',
+                            consumable: '物品',
+                          }
+                          return `${typeLabel[r.type] ?? r.type} ×${r.amount}`
+                        })
+                        .join(', ')}
+                    </span>
                   </div>
                 </div>
               ))}
             </div>
-            <button className={styles.cancelBtn} onClick={() => setShowingMissions(false)}>关闭</button>
+            <button className={styles.cancelBtn} onClick={() => setShowingMissions(false)}>
+              关闭
+            </button>
           </div>
         </div>
       )}
@@ -358,9 +356,7 @@ function CharacterDetail({
                 <div key={techId} className={styles.techniquePanel}>
                   <div className={styles.techniqueName}>
                     {tech.name}
-                    <span className={`${styles.techniqueTier} ${tierClass}`}>
-                      {TECHNIQUE_TIER_NAMES[tech.tier]}
-                    </span>
+                    <span className={`${styles.techniqueTier} ${tierClass}`}>{TECHNIQUE_TIER_NAMES[tech.tier]}</span>
                   </div>
                   <div className={styles.bonuses}>
                     {tech.bonuses.map((b, i) => (
@@ -433,9 +429,7 @@ function CharacterDetail({
               {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
               {selectedBackpackIdx === idx && (
                 <div className={styles.itemActions}>
-                  {stack.item.type === 'equipment' && (
-                    <span className={styles.itemHint}>点击装备栏空槽位穿戴</span>
-                  )}
+                  {stack.item.type === 'equipment' && <span className={styles.itemHint}>点击装备栏空槽位穿戴</span>}
                   <button
                     className={styles.itemActionBtn}
                     onClick={() => {
@@ -458,9 +452,7 @@ function CharacterDetail({
               )}
             </div>
           ))}
-          {character.backpack.length === 0 && (
-            <div className={styles.empty}>背包为空</div>
-          )}
+          {character.backpack.length === 0 && <div className={styles.empty}>背包为空</div>}
         </div>
       </section>
 
@@ -473,26 +465,19 @@ function CharacterDetail({
               {skillId ? (
                 <span className={styles.skillName}>{skillId}</span>
               ) : (
-                <span className={styles.skillEmpty}>
-                  {idx < 4 ? `技能${idx + 1}` : '绝技'}
-                </span>
+                <span className={styles.skillEmpty}>{idx < 4 ? `技能${idx + 1}` : '绝技'}</span>
               )}
             </div>
           ))}
           {/* Show empty slots if equippedSkills is short */}
-          {Array.from(
-            { length: Math.max(0, 5 - character.equippedSkills.length) },
-            (_, i) => {
-              const actualIdx = character.equippedSkills.length + i
-              return (
-                <div key={`empty-${actualIdx}`} className={styles.skillSlot}>
-                  <span className={styles.skillEmpty}>
-                    {actualIdx < 4 ? `技能${actualIdx + 1}` : '绝技'}
-                  </span>
-                </div>
-              )
-            }
-          )}
+          {Array.from({ length: Math.max(0, 5 - character.equippedSkills.length) }, (_, i) => {
+            const actualIdx = character.equippedSkills.length + i
+            return (
+              <div key={`empty-${actualIdx}`} className={styles.skillSlot}>
+                <span className={styles.skillEmpty}>{actualIdx < 4 ? `技能${actualIdx + 1}` : '绝技'}</span>
+              </div>
+            )
+          })}
         </div>
       </section>
     </div>

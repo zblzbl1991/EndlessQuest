@@ -1,5 +1,7 @@
 export const TECHNIQUE_TYPE_NAMES: Record<string, string> = {
-  mental: '心法', body: '体修', spiritual: '神识',
+  mental: '心法',
+  body: '体修',
+  spiritual: '神识',
 }
 
 export const TECHNIQUE_TIER_NAMES = ['初级', '中级', '高级', '顶级']

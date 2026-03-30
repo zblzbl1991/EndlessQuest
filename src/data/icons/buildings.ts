@@ -1,4 +1,4 @@
-import type { PixelIconDef } from './types';
+import type { PixelIconDef } from './types'
 
 export const buildingIcons: Record<string, PixelIconDef> = {
   // ── 1. mainHall (宗门大殿) ──
@@ -228,4 +228,4 @@ export const buildingIcons: Record<string, PixelIconDef> = {
       '............',
     ],
   },
-};
+}

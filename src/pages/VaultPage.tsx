@@ -65,14 +65,12 @@ function VaultTab() {
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null)
   const [showCharSelector, setShowCharSelector] = useState(false)
 
-  const selectedStack = selectedIndex !== null ? vault[selectedIndex] ?? null : null
+  const selectedStack = selectedIndex !== null ? (vault[selectedIndex] ?? null) : null
   const selectedItem = selectedStack?.item ?? null
 
   // Characters with available backpack space
   const eligibleCharacters = useMemo(() => {
-    return characters.filter(
-      (c) => c.backpack.length < c.maxBackpackSlots
-    )
+    return characters.filter((c) => c.backpack.length < c.maxBackpackSlots)
   }, [characters])
 
   const handleSell = () => {
@@ -123,9 +121,7 @@ function VaultTab() {
 
           {/* Equipment stats */}
           {selectedItem.type === 'equipment' && (
-            <div className={styles.detailStats}>
-              {formatEquipStats(selectedItem as Equipment)}
-            </div>
+            <div className={styles.detailStats}>{formatEquipStats(selectedItem as Equipment)}</div>
           )}
 
           {/* Technique scroll info */}
@@ -149,10 +145,7 @@ function VaultTab() {
             <button className={styles.actionSell} onClick={handleSell}>
               出售
             </button>
-            <button
-              className={styles.actionTransfer}
-              onClick={() => setShowCharSelector(!showCharSelector)}
-            >
+            <button className={styles.actionTransfer} onClick={() => setShowCharSelector(!showCharSelector)}>
               装备给弟子
             </button>
           </div>
@@ -164,11 +157,7 @@ function VaultTab() {
                 <div className={styles.empty}>无可用弟子</div>
               ) : (
                 eligibleCharacters.map((char) => (
-                  <button
-                    key={char.id}
-                    className={styles.charOption}
-                    onClick={() => handleTransferToChar(char.id)}
-                  >
+                  <button key={char.id} className={styles.charOption} onClick={() => handleTransferToChar(char.id)}>
                     {char.name} ({char.backpack.length}/{char.maxBackpackSlots})
                   </button>
                 ))
@@ -199,8 +188,17 @@ function BackpackTab() {
     const stack = character.backpack[bpIdx]
     if (!stack || stack.item.type !== 'equipment') return
     const item = stack.item as Equipment
-    const slotIndex = ['head', 'armor', 'bracer', 'belt', 'boots', 'weapon', 'accessory1', 'accessory2', 'talisman']
-      .indexOf(item.slot)
+    const slotIndex = [
+      'head',
+      'armor',
+      'bracer',
+      'belt',
+      'boots',
+      'weapon',
+      'accessory1',
+      'accessory2',
+      'talisman',
+    ].indexOf(item.slot)
     if (slotIndex >= 0) {
       equipItem(charId, bpIdx, slotIndex)
     }
@@ -233,14 +231,16 @@ function BackpackTab() {
         const selCharId = selectedKey?.split('-')[0]
         const selIdx = selectedKey ? parseInt(selectedKey.split('-').slice(1).join('-'), 10) : null
         const isThisChar = selCharId === char.id
-        const selectedStack = isThisChar && selIdx !== null ? bp[selIdx] ?? null : null
+        const selectedStack = isThisChar && selIdx !== null ? (bp[selIdx] ?? null) : null
         const selectedItem = selectedStack?.item ?? null
 
         return (
           <div key={char.id} className={styles.charSection}>
             <div className={styles.charSectionHeader}>
               <span className={styles.charSectionName}>{char.name}</span>
-              <span className={styles.charSectionCount}>{bp.length}/{char.maxBackpackSlots}</span>
+              <span className={styles.charSectionCount}>
+                {bp.length}/{char.maxBackpackSlots}
+              </span>
             </div>
 
             {bp.length === 0 ? (
@@ -270,23 +270,14 @@ function BackpackTab() {
 
                 <div className={styles.detailActions}>
                   {selectedItem.type === 'equipment' && (
-                    <button
-                      className={styles.actionEquip}
-                      onClick={() => handleEquip(char.id, selIdx)}
-                    >
+                    <button className={styles.actionEquip} onClick={() => handleEquip(char.id, selIdx)}>
                       装备
                     </button>
                   )}
-                  <button
-                    className={styles.actionTransfer}
-                    onClick={() => handleTransferToVault(char.id, selIdx)}
-                  >
+                  <button className={styles.actionTransfer} onClick={() => handleTransferToVault(char.id, selIdx)}>
                     转移到仓库
                   </button>
-                  <button
-                    className={styles.actionSell}
-                    onClick={() => handleSell(char.id, selIdx)}
-                  >
+                  <button className={styles.actionSell} onClick={() => handleSell(char.id, selIdx)}>
                     出售
                   </button>
                 </div>
@@ -317,7 +308,9 @@ function formatEquipStats(item: Equipment): React.ReactNode {
     <div className={styles.equipStats}>
       <div>部位: {EQUIP_SLOT_NAMES[item.slot] ?? item.slot}</div>
       {item.enhanceLevel > 0 && <div>强化: +{item.enhanceLevel}</div>}
-      {parts.map((p, i) => <div key={i}>{p}</div>)}
+      {parts.map((p, i) => (
+        <div key={i}>{p}</div>
+      ))}
     </div>
   )
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
 import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
@@ -108,26 +108,22 @@ export default function BuildingsPage() {
       { key: 'buildings', label: '建筑' },
       { key: 'vault', label: '仓库' },
     ]
-    const rp = sect.buildings.find(b => b.type === 'recruitmentPavilion')
+    const rp = sect.buildings.find((b) => b.type === 'recruitmentPavilion')
     if (rp && rp.unlocked) tabs.push({ key: 'recruit', label: '招收' })
-    const af = sect.buildings.find(b => b.type === 'alchemyFurnace')
+    const af = sect.buildings.find((b) => b.type === 'alchemyFurnace')
     if (af && af.unlocked) tabs.push({ key: 'alchemy', label: '炼丹' })
-    const fg = sect.buildings.find(b => b.type === 'forge')
+    const fg = sect.buildings.find((b) => b.type === 'forge')
     if (fg && fg.unlocked) tabs.push({ key: 'forge', label: '锻造' })
-    const sh = sect.buildings.find(b => b.type === 'scriptureHall')
+    const sh = sect.buildings.find((b) => b.type === 'scriptureHall')
     if (sh && sh.unlocked) tabs.push({ key: 'study', label: '参悟' })
     if (sh && sh.unlocked) tabs.push({ key: 'codex', label: '图鉴' })
-    const mk = sect.buildings.find(b => b.type === 'market')
+    const mk = sect.buildings.find((b) => b.type === 'market')
     if (mk && mk.unlocked) tabs.push({ key: 'market', label: '坊市' })
     return tabs
   }, [sect.buildings])
 
-  // Reset tab if current tab is no longer available
-  useEffect(() => {
-    if (!availableTabs.some(t => t.key === tab)) {
-      setTab('buildings')
-    }
-  }, [availableTabs, tab])
+  // Derived: clamp tab to an available option
+  const activeTab = availableTabs.some((t) => t.key === tab) ? tab : 'buildings'
 
   return (
     <div className={styles.page}>
@@ -135,7 +131,7 @@ export default function BuildingsPage() {
         {availableTabs.map((t) => (
           <button
             key={t.key}
-            className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
+            className={`${styles.tab} ${activeTab === t.key ? styles.tabActive : ''}`}
             onClick={() => setTab(t.key)}
           >
             {t.label}
@@ -143,14 +139,14 @@ export default function BuildingsPage() {
         ))}
       </div>
 
-      {tab === 'buildings' && <BuildingsTab />}
-      {tab === 'recruit' && <RecruitTab />}
-      {tab === 'vault' && <VaultTab />}
-      {tab === 'alchemy' && <AlchemyPanel />}
-      {tab === 'forge' && <ForgePanel />}
-      {tab === 'study' && <StudyPanel />}
-      {tab === 'codex' && <CodexPanel />}
-      {tab === 'market' && <MarketPanel />}
+      {activeTab === 'buildings' && <BuildingsTab />}
+      {activeTab === 'recruit' && <RecruitTab />}
+      {activeTab === 'vault' && <VaultTab />}
+      {activeTab === 'alchemy' && <AlchemyPanel />}
+      {activeTab === 'forge' && <ForgePanel />}
+      {activeTab === 'study' && <StudyPanel />}
+      {activeTab === 'codex' && <CodexPanel />}
+      {activeTab === 'market' && <MarketPanel />}
     </div>
   )
 }
@@ -177,10 +173,13 @@ function BuildingsTab() {
     setTimeout(() => setMessage(null), 2000)
   }
 
-  const handleSelectRecipe = useCallback((buildingType: BuildingType, recipeId: string | null) => {
-    setProductionRecipe(buildingType, recipeId)
-    setDrawerBuilding(null)
-  }, [setProductionRecipe])
+  const handleSelectRecipe = useCallback(
+    (buildingType: BuildingType, recipeId: string | null) => {
+      setProductionRecipe(buildingType, recipeId)
+      setDrawerBuilding(null)
+    },
+    [setProductionRecipe]
+  )
 
   return (
     <div className={styles.buildingsGrid}>
@@ -207,7 +206,8 @@ function BuildingsTab() {
             <div className={styles.buildingHeader}>
               <span className={styles.buildingName}>{def.name}</span>
               <span className={styles.buildingLevel}>
-                Lv{building.level}{isMaxLevel ? ' MAX' : ''}
+                Lv{building.level}
+                {isMaxLevel ? ' MAX' : ''}
               </span>
             </div>
             <div className={styles.buildingDesc}>{def.description}</div>
@@ -215,16 +215,19 @@ function BuildingsTab() {
               const effectText = getBuildingEffectText(building)
               return effectText && <div className={styles.buildingEffect}>{effectText}</div>
             })()}
-            {def.type === 'mainHall' && isUnlocked && (() => {
-              const sectLevel = calcSectLevel(building.level)
-              const discipleCount = useSectStore.getState().sect.characters.length
-              const tax = calcTaxRate(sectLevel, discipleCount)
-              return <div className={styles.buildingEffect}>赋税收入: +{tax.toFixed(1)}/秒</div>
-            })()}
-            {!isUnlocked && (() => {
-              const unlockText = getBuildingUnlockText(building)
-              return unlockText && <div className={styles.buildingUnlockPreview}>{unlockText}</div>
-            })()}
+            {def.type === 'mainHall' &&
+              isUnlocked &&
+              (() => {
+                const sectLevel = calcSectLevel(building.level)
+                const discipleCount = useSectStore.getState().sect.characters.length
+                const tax = calcTaxRate(sectLevel, discipleCount)
+                return <div className={styles.buildingEffect}>赋税收入: +{tax.toFixed(1)}/秒</div>
+              })()}
+            {!isUnlocked &&
+              (() => {
+                const unlockText = getBuildingUnlockText(building)
+                return unlockText && <div className={styles.buildingUnlockPreview}>{unlockText}</div>
+              })()}
 
             {/* Production queue section for processing buildings */}
             {isUnlocked && isProcessing && (
@@ -237,25 +240,15 @@ function BuildingsTab() {
                   <div className={styles.productionStatus}>
                     <div className={styles.productionRecipeName}>
                       {activeRecipe.name}
-                      <span className={styles.productionInputRate}>
-                        {formatInputPerSec(activeRecipe)}
-                      </span>
+                      <span className={styles.productionInputRate}>{formatInputPerSec(activeRecipe)}</span>
                     </div>
                     <div className={styles.progressBar}>
-                      <div
-                        className={styles.progressBarFill}
-                        style={{ width: `${progressPercent}%` }}
-                      />
+                      <div className={styles.progressBarFill} style={{ width: `${progressPercent}%` }} />
                     </div>
-                    <div className={styles.productionTime}>
-                      {formatProductionTime(activeRecipe.productionTime)}
-                    </div>
+                    <div className={styles.productionTime}>{formatProductionTime(activeRecipe.productionTime)}</div>
                   </div>
                 )}
-                <button
-                  className={styles.recipeSelectBtn}
-                  onClick={() => setDrawerBuilding(def.type)}
-                >
+                <button className={styles.recipeSelectBtn} onClick={() => setDrawerBuilding(def.type)}>
                   选择配方
                 </button>
               </div>
@@ -270,30 +263,29 @@ function BuildingsTab() {
                 升级 ({cost.spiritStone}灵石)
               </button>
             )}
-            {isMaxLevel && (
-              <span className={styles.maxLevelTag}>已满级</span>
-            )}
-            {!isUnlocked && (() => {
-              const unlockCheck = checkBuildingUnlock(def.type, sect.buildings)
-              if (unlockCheck.unlocked) {
-                const buildCost = def.upgradeCost(building.level)
-                const canBuild = sect.resources.spiritStone >= buildCost.spiritStone
+            {isMaxLevel && <span className={styles.maxLevelTag}>已满级</span>}
+            {!isUnlocked &&
+              (() => {
+                const unlockCheck = checkBuildingUnlock(def.type, sect.buildings)
+                if (unlockCheck.unlocked) {
+                  const buildCost = def.upgradeCost(building.level)
+                  const canBuild = sect.resources.spiritStone >= buildCost.spiritStone
+                  return (
+                    <button
+                      className={`${styles.upgradeBtn} ${canBuild ? styles.upgradeReady : styles.upgradeDisabled}`}
+                      onClick={() => handleUpgrade(def.type)}
+                      disabled={!canBuild}
+                    >
+                      建造 ({buildCost.spiritStone}灵石)
+                    </button>
+                  )
+                }
                 return (
-                  <button
-                    className={`${styles.upgradeBtn} ${canBuild ? styles.upgradeReady : styles.upgradeDisabled}`}
-                    onClick={() => handleUpgrade(def.type)}
-                    disabled={!canBuild}
-                  >
-                    建造 ({buildCost.spiritStone}灵石)
-                  </button>
+                  <div className={styles.unlockInfo}>
+                    <span className={styles.unlockCondition}>解锁条件: {def.unlockCondition}</span>
+                  </div>
                 )
-              }
-              return (
-                <div className={styles.unlockInfo}>
-                  <span className={styles.unlockCondition}>解锁条件: {def.unlockCondition}</span>
-                </div>
-              )
-            })()}
+              })()}
           </div>
         )
       })}
@@ -307,8 +299,8 @@ function BuildingsTab() {
       {drawerBuilding && (
         <RecipeDrawer
           buildingType={drawerBuilding as 'alchemyFurnace' | 'forge'}
-          buildingLevel={sect.buildings.find(b => b.type === drawerBuilding)?.level ?? 1}
-          currentRecipeId={sect.buildings.find(b => b.type === drawerBuilding)?.productionQueue.recipeId ?? null}
+          buildingLevel={sect.buildings.find((b) => b.type === drawerBuilding)?.level ?? 1}
+          currentRecipeId={sect.buildings.find((b) => b.type === drawerBuilding)?.productionQueue.recipeId ?? null}
           onSelect={handleSelectRecipe}
           onClose={() => setDrawerBuilding(null)}
         />
@@ -319,15 +311,18 @@ function BuildingsTab() {
         <div className={styles.sectionTitle}>建筑协同</div>
         <div className={styles.synergyList}>
           {SYNERGIES.map((synergy) => {
-            const isActive = activeSynergies.some(a => a.id === synergy.id)
+            const isActive = activeSynergies.some((a) => a.id === synergy.id)
             return (
-              <div key={synergy.id} className={`${styles.synergyCard} ${isActive ? styles.synergyActive : styles.synergyInactive}`}>
+              <div
+                key={synergy.id}
+                className={`${styles.synergyCard} ${isActive ? styles.synergyActive : styles.synergyInactive}`}
+              >
                 <div className={styles.synergyName}>{synergy.name}</div>
                 <div className={styles.synergyDesc}>{synergy.description}</div>
                 <div className={styles.synergyReq}>
                   {synergy.requirements.map((req, i) => (
                     <span key={i}>
-                      {BUILDING_DEFS.find(d => d.type === req.building)?.name ?? req.building} Lv{req.level}
+                      {BUILDING_DEFS.find((d) => d.type === req.building)?.name ?? req.building} Lv{req.level}
                       {i < synergy.requirements.length - 1 && ' + '}
                     </span>
                   ))}
@@ -357,25 +352,23 @@ function RecruitTab() {
 
   const maxChars = getMaxCharacters(sect.level)
   const availableQualities = getAvailableQualities(sect.level)
-  const recruitCheck = canRecruit(selectedQuality)
-  const cost = getRecruitCost(selectedQuality)
 
-  const recruitmentPavilionLevel = sect.buildings.find(b => b.type === 'recruitmentPavilion')?.level ?? 0
+  const recruitmentPavilionLevel = sect.buildings.find((b) => b.type === 'recruitmentPavilion')?.level ?? 0
   const hasTargetedRecruit = recruitmentPavilionLevel >= 3
 
   // Targeted recruit qualities: spirit, immortal, divine (minimum)
   const targetedOptions: CharacterQuality[] = ['spirit', 'immortal', 'divine']
 
-  // If the currently selected quality is no longer available, fall back
-  useEffect(() => {
-    if (!availableQualities.includes(selectedQuality) && availableQualities.length > 0) {
-      setSelectedQuality(availableQualities[0])
-    }
-  }, [availableQualities, selectedQuality])
+  // Derived: clamp selected quality to an available option
+  const effectiveQuality = availableQualities.includes(selectedQuality)
+    ? selectedQuality
+    : (availableQualities[0] ?? selectedQuality)
+  const recruitCheck = canRecruit(effectiveQuality)
+  const cost = getRecruitCost(effectiveQuality)
 
   const handleRecruit = () => {
     if (!recruitCheck.allowed) return
-    const character = addCharacter(selectedQuality)
+    const character = addCharacter(effectiveQuality)
     if (character) {
       setRecruitedCharacter(character)
     }
@@ -401,9 +394,7 @@ function RecruitTab() {
         <span className={styles.recruitCount}>
           弟子数量: {sect.characters.length} / {maxChars}
         </span>
-        <span className={styles.recruitSpiritStones}>
-          灵石: {sect.resources.spiritStone}
-        </span>
+        <span className={styles.recruitSpiritStones}>灵石: {sect.resources.spiritStone}</span>
       </div>
 
       <div className={styles.qualitySelect}>
@@ -414,7 +405,7 @@ function RecruitTab() {
           return (
             <button
               key={quality}
-              className={`${styles.qualityBtn} ${selectedQuality === quality ? styles.qualityActive : ''} ${!available ? styles.qualityLocked : ''}`}
+              className={`${styles.qualityBtn} ${effectiveQuality === quality ? styles.qualityActive : ''} ${!available ? styles.qualityLocked : ''}`}
               onClick={() => available && setSelectedQuality(quality)}
               disabled={!available}
             >
@@ -433,9 +424,7 @@ function RecruitTab() {
         onClick={handleRecruit}
         disabled={!recruitCheck.allowed}
       >
-        {!recruitCheck.allowed
-          ? recruitCheck.reason
-          : `招收${QUALITY_LABELS[selectedQuality]}弟子 (${cost}灵石)`}
+        {!recruitCheck.allowed ? recruitCheck.reason : `招收${QUALITY_LABELS[effectiveQuality]}弟子 (${cost}灵石)`}
       </button>
 
       {/* Targeted Recruitment Section */}
@@ -443,9 +432,7 @@ function RecruitTab() {
         <>
           <div className={styles.targetedSection}>
             <div className={styles.targetedHeader}>定向招募</div>
-            <div className={styles.targetedDesc}>
-              聚仙台 Lv3+ 解锁。保证招募不低于指定品质的弟子。
-            </div>
+            <div className={styles.targetedDesc}>聚仙台 Lv3+ 解锁。保证招募不低于指定品质的弟子。</div>
 
             <div className={styles.targetedQualitySelect}>
               {targetedOptions.map((quality) => {
@@ -457,8 +444,7 @@ function RecruitTab() {
                     className={`${styles.targetedQualityBtn} ${isSelected ? styles.targetedQualityActive : ''}`}
                     onClick={() => setTargetedQuality(quality)}
                   >
-                    {QUALITY_LABELS[quality]}+
-                    <span className={styles.targetedCost}>{qCost}灵石 + 10灵草</span>
+                    {QUALITY_LABELS[quality]}+<span className={styles.targetedCost}>{qCost}灵石 + 10灵草</span>
                   </button>
                 )
               })}
@@ -472,18 +458,13 @@ function RecruitTab() {
               定向招募{QUALITY_LABELS[targetedQuality]}+弟子 ({targetedStoneCost}灵石 + 10灵草)
             </button>
 
-            {targetedMessage && (
-              <div className={styles.targetedFailMsg}>{targetedMessage}</div>
-            )}
+            {targetedMessage && <div className={styles.targetedFailMsg}>{targetedMessage}</div>}
           </div>
         </>
       )}
 
       {recruitedCharacter && (
-        <RecruitResultModal
-          character={recruitedCharacter}
-          onClose={() => setRecruitedCharacter(null)}
-        />
+        <RecruitResultModal character={recruitedCharacter} onClose={() => setRecruitedCharacter(null)} />
       )}
     </div>
   )
@@ -516,9 +497,7 @@ function RecruitResultModal({ character, onClose }: { character: Character; onCl
       <div className={styles.recruitResultContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.recruitCharHeader}>
           <div className={styles.recruitCharName}>{character.name}</div>
-          <span className={styles.recruitCharQuality}>
-            {QUALITY_LABELS[character.quality]}
-          </span>
+          <span className={styles.recruitCharQuality}>{QUALITY_LABELS[character.quality]}</span>
         </div>
 
         <div className={styles.recruitStats}>
@@ -545,10 +524,7 @@ function RecruitResultModal({ character, onClose }: { character: Character; onCl
             <div className={styles.recruitTalentTitle}>天赋</div>
             <div className={styles.recruitTalentList}>
               {character.talents.map((talent) => (
-                <span
-                  key={talent.id}
-                  className={`${styles.recruitTalent} ${getTalentClass(talent.rarity)}`}
-                >
+                <span key={talent.id} className={`${styles.recruitTalent} ${getTalentClass(talent.rarity)}`}>
                   {TALENT_RARITY_NAMES[talent.rarity]} {talent.name}
                 </span>
               ))}
@@ -590,7 +566,9 @@ function RecipeDrawer({
           <span className={styles.recipeDrawerTitle}>
             {buildingType === 'alchemyFurnace' ? '炼丹配方' : '锻造配方'}
           </span>
-          <button className={styles.recipeDrawerClose} onClick={onClose}>x</button>
+          <button className={styles.recipeDrawerClose} onClick={onClose}>
+            x
+          </button>
         </div>
 
         <div className={styles.recipeList}>
@@ -610,16 +588,11 @@ function RecipeDrawer({
               </button>
             )
           })}
-          {recipes.length === 0 && (
-            <div className={styles.empty}>暂无可用配方</div>
-          )}
+          {recipes.length === 0 && <div className={styles.empty}>暂无可用配方</div>}
         </div>
 
         {currentRecipeId && (
-          <button
-            className={styles.recipeStopBtn}
-            onClick={() => onSelect(buildingType, null)}
-          >
+          <button className={styles.recipeStopBtn} onClick={() => onSelect(buildingType, null)}>
             停止生产
           </button>
         )}
@@ -682,9 +655,7 @@ function VaultTab() {
             )}
           </div>
         ))}
-        {sect.vault.length === 0 && (
-          <div className={styles.empty}>仓库为空</div>
-        )}
+        {sect.vault.length === 0 && <div className={styles.empty}>仓库为空</div>}
       </div>
 
       {/* Character select for transfer */}
@@ -693,11 +664,7 @@ function VaultTab() {
           <div className={styles.transferModalContent}>
             <div className={styles.transferTitle}>选择弟子</div>
             {sect.characters.map((char) => (
-              <button
-                key={char.id}
-                className={styles.transferCharBtn}
-                onClick={() => handleTransferTo(char.id)}
-              >
+              <button key={char.id} className={styles.transferCharBtn} onClick={() => handleTransferTo(char.id)}>
                 {char.name} ({char.backpack.length}/{char.maxBackpackSlots})
               </button>
             ))}

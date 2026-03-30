@@ -23,9 +23,9 @@ export default function ForgePanel() {
   const forgeEquipment = useSectStore((s) => s.forgeEquipment)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
 
-  const forgeLevel = sect.buildings.find(b => b.type === 'forge')?.level ?? 0
+  const forgeLevel = sect.buildings.find((b) => b.type === 'forge')?.level ?? 0
   const forgeBuff = getForgeBuff(forgeLevel)
-  const availableRecipes = FORGE_RECIPES.filter(r => r.minForgeLevel <= forgeLevel)
+  const availableRecipes = FORGE_RECIPES.filter((r) => r.minForgeLevel <= forgeLevel)
 
   const handleForge = (recipeId: string) => {
     const result = forgeEquipment(recipeId)
@@ -46,8 +46,12 @@ export default function ForgePanel() {
         </span>
       </div>
 
-      {availableRecipes.map(recipe => {
-        const affordable = canForge(recipe, { ore: sect.resources.ore, spiritStone: sect.resources.spiritStone }, forgeLevel)
+      {availableRecipes.map((recipe) => {
+        const affordable = canForge(
+          recipe,
+          { ore: sect.resources.ore, spiritStone: sect.resources.spiritStone },
+          forgeLevel
+        )
         const effectiveRate = Math.min(1, recipe.successRate + forgeBuff.successBonus)
         return (
           <div key={recipe.id} className={styles.recipeCard}>
@@ -65,7 +69,8 @@ export default function ForgePanel() {
               成功率: {Math.round(effectiveRate * 100)}%
               {forgeBuff.successBonus > 0 && (
                 <span className={styles.successRateWithBuff}>
-                  {' '}(基础 {Math.round(recipe.successRate * 100)}% + 炼器加成 {Math.round(forgeBuff.successBonus * 100)}%)
+                  {' '}
+                  (基础 {Math.round(recipe.successRate * 100)}% + 炼器加成 {Math.round(forgeBuff.successBonus * 100)}%)
                 </span>
               )}
             </div>
@@ -80,15 +85,9 @@ export default function ForgePanel() {
         )
       })}
 
-      {availableRecipes.length === 0 && (
-        <div className={styles.empty}>暂无可用配方</div>
-      )}
+      {availableRecipes.length === 0 && <div className={styles.empty}>暂无可用配方</div>}
 
-      {message && (
-        <div className={message.success ? 'globalMessageSuccess' : 'globalMessageFail'}>
-          {message.text}
-        </div>
-      )}
+      {message && <div className={message.success ? 'globalMessageSuccess' : 'globalMessageFail'}>{message.text}</div>}
     </div>
   )
 }

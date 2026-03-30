@@ -3,8 +3,18 @@ import type { CombatUnit } from '../systems/combat/CombatEngine'
 
 function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; team: 'ally' | 'enemy' }): CombatUnit {
   return {
-    maxHp: 100, hp: 100, atk: 15, def: 8, spd: 10, crit: 0, critDmg: 1.5,
-    element: 'neutral', spiritPower: 50, maxSpiritPower: 50, skills: [], skillCooldowns: [],
+    maxHp: 100,
+    hp: 100,
+    atk: 15,
+    def: 8,
+    spd: 10,
+    crit: 0,
+    critDmg: 1.5,
+    element: 'neutral',
+    spiritPower: 50,
+    maxSpiritPower: 50,
+    skills: [],
+    skillCooldowns: [],
     ...overrides,
   }
 }
@@ -30,7 +40,9 @@ describe('CombatEngine', () => {
   it('should apply elemental advantage', () => {
     // fire > ice = 1.5x
     const allies = [makeUnit({ id: 'p1', name: 'Fire', team: 'ally', element: 'fire', atk: 10, spd: 10 })]
-    const enemies = [makeUnit({ id: 'e1', name: 'Ice', team: 'enemy', element: 'ice', hp: 1000, maxHp: 1000, atk: 0, def: 0, spd: 5 })]
+    const enemies = [
+      makeUnit({ id: 'e1', name: 'Ice', team: 'enemy', element: 'ice', hp: 1000, maxHp: 1000, atk: 0, def: 0, spd: 5 }),
+    ]
     const result = simulateCombat(allies, enemies)
     // With fire > ice, damage should be higher. Hard to test exact value due to variance, but check combat completes.
     expect(result.actions.length).toBeGreaterThan(0)
@@ -38,20 +50,40 @@ describe('CombatEngine', () => {
 
   it('should handle defeat (all allies dead)', () => {
     const allies = [makeUnit({ id: 'p1', name: 'Weak', team: 'ally', hp: 10, maxHp: 10, atk: 1, spd: 10 })]
-    const enemies = [makeUnit({ id: 'e1', name: 'Strong', team: 'enemy', hp: 1000, maxHp: 1000, atk: 50, def: 10, spd: 20 })]
+    const enemies = [
+      makeUnit({ id: 'e1', name: 'Strong', team: 'enemy', hp: 1000, maxHp: 1000, atk: 50, def: 10, spd: 20 }),
+    ]
     const result = simulateCombat(allies, enemies)
     expect(result.victory).toBe(false)
   })
 
   it('should use skills when available', () => {
-    const allies = [makeUnit({
-      id: 'p1', name: 'Mage', team: 'ally', atk: 10, spd: 10,
-      skills: [{ id: 'fire_palm', name: '烈焰掌', category: 'attack', element: 'fire', multiplier: 1.8, spiritCost: 15, cooldown: 1, description: '', tier: 2 }],
-      skillCooldowns: [0],
-    })]
+    const allies = [
+      makeUnit({
+        id: 'p1',
+        name: 'Mage',
+        team: 'ally',
+        atk: 10,
+        spd: 10,
+        skills: [
+          {
+            id: 'fire_palm',
+            name: '烈焰掌',
+            category: 'attack',
+            element: 'fire',
+            multiplier: 1.8,
+            spiritCost: 15,
+            cooldown: 1,
+            description: '',
+            tier: 2,
+          },
+        ],
+        skillCooldowns: [0],
+      }),
+    ]
     const enemies = [makeUnit({ id: 'e1', name: 'Target', team: 'enemy', hp: 500, maxHp: 500, atk: 0, def: 0, spd: 5 })]
     const result = simulateCombat(allies, enemies)
-    const skillActions = result.actions.filter(a => a.actionType === 'skill')
+    const skillActions = result.actions.filter((a) => a.actionType === 'skill')
     expect(skillActions.length).toBeGreaterThan(0)
     expect(skillActions[0].skillName).toBe('烈焰掌')
   })
@@ -75,19 +107,37 @@ describe('CombatEngine', () => {
     const enemies = [makeUnit({ id: 'e1', name: 'Target', team: 'enemy', hp: 200, maxHp: 200, atk: 0, def: 0, spd: 5 })]
     const result = simulateCombat(allies, enemies)
     // All actions from the ally should be crits
-    const allyActions = result.actions.filter(a => a.actorId === 'p1')
+    const allyActions = result.actions.filter((a) => a.actorId === 'p1')
     for (const action of allyActions) {
       expect(action.isCrit).toBe(true)
     }
   })
 
   it('should respect skill cooldowns', () => {
-    const allies = [makeUnit({
-      id: 'p1', name: 'Mage', team: 'ally', atk: 10, spd: 10,
-      skills: [{ id: 'fire_palm', name: '烈焰掌', category: 'attack', element: 'fire', multiplier: 1.8, spiritCost: 15, cooldown: 5, description: '', tier: 2 }],
-      skillCooldowns: [3], // on cooldown
-      spiritPower: 50,
-    })]
+    const allies = [
+      makeUnit({
+        id: 'p1',
+        name: 'Mage',
+        team: 'ally',
+        atk: 10,
+        spd: 10,
+        skills: [
+          {
+            id: 'fire_palm',
+            name: '烈焰掌',
+            category: 'attack',
+            element: 'fire',
+            multiplier: 1.8,
+            spiritCost: 15,
+            cooldown: 5,
+            description: '',
+            tier: 2,
+          },
+        ],
+        skillCooldowns: [3], // on cooldown
+        spiritPower: 50,
+      }),
+    ]
     const enemies = [makeUnit({ id: 'e1', name: 'Target', team: 'enemy', hp: 500, maxHp: 500, atk: 0, def: 0, spd: 5 })]
     const result = simulateCombat(allies, enemies)
     // First few turns should be normal attacks while skill is on cooldown
@@ -95,7 +145,9 @@ describe('CombatEngine', () => {
   })
 
   it('should cap spirit power regeneration', () => {
-    const allies = [makeUnit({ id: 'p1', name: 'Full', team: 'ally', atk: 20, spd: 10, spiritPower: 50, maxSpiritPower: 50 })]
+    const allies = [
+      makeUnit({ id: 'p1', name: 'Full', team: 'ally', atk: 20, spd: 10, spiritPower: 50, maxSpiritPower: 50 }),
+    ]
     const enemies = [makeUnit({ id: 'e1', name: 'Goblin', team: 'enemy', hp: 30, maxHp: 30, atk: 0, def: 0, spd: 5 })]
     const result = simulateCombat(allies, enemies)
     expect(result.victory).toBe(true)

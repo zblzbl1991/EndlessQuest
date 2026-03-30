@@ -27,9 +27,7 @@ export default function CodexPanel() {
             <div key={tech.id} className={`${styles.card} ${unlocked ? styles.unlocked : styles.locked}`}>
               <div className={styles.cardName}>{unlocked ? tech.name : '???'}</div>
               <div className={styles.cardTier}>{TECHNIQUE_TIER_NAMES[tech.tier]}</div>
-              {unlocked && (
-                <div className={styles.cardDesc}>{tech.description}</div>
-              )}
+              {unlocked && <div className={styles.cardDesc}>{tech.description}</div>}
               {unlocked && (
                 <div className={styles.cardStats}>
                   {tech.bonuses.map((b: TechniqueBonus, i: number) => (
