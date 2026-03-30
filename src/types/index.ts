@@ -28,6 +28,8 @@ export type { BuildingType, ResourceType, Resources, ProductionQueue, ResourceCa
 export type {
   EventType,
   Enemy,
+  EnemyAffix,
+  TacticalPreset,
   DungeonEvent,
   RouteOption,
   DungeonFloor,

@@ -29,6 +29,8 @@ import type { BuildingType, ResourceType, Resources, Building, Sect } from '../t
 import type {
   EventType,
   Enemy,
+  EnemyAffix,
+  TacticalPreset,
   DungeonEvent,
   RouteOption,
   DungeonFloor,
@@ -434,5 +436,42 @@ describe('Adventure types', () => {
   it('DungeonRun status should accept all values', () => {
     const statuses: DungeonRun['status'][] = ['active', 'retreated', 'completed', 'failed']
     expect(statuses).toHaveLength(4)
+  })
+
+  it('EnemyAffix should accept all affix values', () => {
+    const affixes: EnemyAffix[] = ['berserk', 'shield', 'spiritDrain', 'swift', 'tribulationBane']
+    expect(affixes).toHaveLength(5)
+  })
+
+  it('TacticalPreset should accept all preset values', () => {
+    const presets: TacticalPreset[] = ['conservative', 'balanced', 'burst', 'bossCounter']
+    expect(presets).toHaveLength(4)
+  })
+
+  it('Enemy should support optional affixes and skillIds', () => {
+    const enemy: Enemy = {
+      id: 'e1',
+      name: '狂暴妖兽',
+      element: 'fire',
+      stats: { hp: 200, atk: 30, def: 10, spd: 15 },
+      isBoss: false,
+      affixes: ['berserk', 'swift'],
+      skillIds: ['sk1', 'sk2'],
+    }
+    expect(enemy.affixes).toHaveLength(2)
+    expect(enemy.skillIds).toHaveLength(2)
+    expect(enemy.affixes).toContain('berserk')
+  })
+
+  it('Enemy should work without optional fields', () => {
+    const enemy: Enemy = {
+      id: 'e2',
+      name: '普通妖兽',
+      element: 'neutral',
+      stats: { hp: 100, atk: 10, def: 5, spd: 8 },
+      isBoss: false,
+    }
+    expect(enemy.affixes).toBeUndefined()
+    expect(enemy.skillIds).toBeUndefined()
   })
 })

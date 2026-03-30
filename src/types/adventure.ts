@@ -2,6 +2,9 @@ import type { AnyItem } from './item'
 import type { Resources } from './sect'
 import type { ShopOffer } from '../systems/roguelike/EventSystem'
 
+export type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribulationBane'
+export type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
+
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancient_cave'
 
 export interface Enemy {
@@ -10,6 +13,8 @@ export interface Enemy {
   element: string
   stats: { hp: number; atk: number; def: number; spd: number }
   isBoss: boolean
+  affixes?: EnemyAffix[]
+  skillIds?: string[]
 }
 
 export interface DungeonEvent {
