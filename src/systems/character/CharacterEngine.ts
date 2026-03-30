@@ -223,7 +223,7 @@ export function generateCharacter(quality: CharacterQuality): Character {
     maxBackpackSlots: 20,
     petIds: [],
     talents,
-    status: 'cultivating',
+    status: 'idle',
     injuryTimer: 0,
     createdAt: Date.now(),
     totalCultivation: 0,

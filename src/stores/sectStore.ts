@@ -21,7 +21,7 @@ import { generateEquipment } from '../systems/item/ItemGenerator'
 import { getTechniqueById, TECHNIQUES } from '../data/techniquesTable'
 import { TECHNIQUE_TIER_ORDER } from '../types/technique'
 import { BUILDING_DEFS, calcResourceCaps } from '../data/buildings'
-import { REALMS, BREAKTHROUGH_COSTS } from '../data/realms'
+import { REALMS, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../data/realms'
 import { tickProductionQueue, calcOfflineProduction, canStartRecipe } from '../systems/building/ProductionSystem'
 import { clampResources } from '../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../systems/economy/ResourceEngine'
@@ -151,10 +151,6 @@ export interface SectStore {
   // Building assignment
   assignToBuilding(characterId: string, buildingType: string): void
   unassignFromBuilding(characterId: string): void
-
-  // Seclusion
-  startSeclusion(characterId: string): void
-  stopSeclusion(characterId: string): void
 
   reset(): void
 }
@@ -710,7 +706,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
         ...s.sect,
         characters: s.sect.characters.map((c) =>
           c.id === characterId
-            ? { ...c, status: 'cultivating', injuryTimer: 0 }
+            ? { ...c, status: 'idle' as const, injuryTimer: 0 }
             : c
         ),
         resources: {
@@ -813,7 +809,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
 
     // 3. Calculate technique multiplier from best cultivating character
     const maxTechRate = sect.characters
-      .filter((c) => c.status === 'cultivating' && c.learnedTechniques.length > 0)
+      .filter((c) => c.status === 'idle' && c.learnedTechniques.length > 0)
       .reduce((max, c) => {
         const rate = calcCultivationRate(c, c.learnedTechniques)
         const baseRate = calcCultivationRate(c, [])
@@ -891,7 +887,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     }
 
     // 6. Count cultivating characters (secluded uses spirit stones, not spirit energy)
-    const cultivatingCount = sect.characters.filter((c) => c.status === 'cultivating').length
+    const cultivatingCount = sect.characters.filter((c) => c.status === 'idle').length
     const spiritConsumed = cultivatingCount * 2 * deltaSec
 
     // 7. Spirit ratio
@@ -903,147 +899,96 @@ export const useSectStore = create<SectStore>((set, get) => ({
     // 8. Add spirit energy
     let updatedSpiritEnergy = sect.resources.spiritEnergy + spiritProduced
 
-    // 9. Process each cultivating character
+    // 9. Process each character
     let breakthroughStoneCost = 0
     const updatedCharacters = sect.characters.map((char) => {
-      if (char.status !== 'cultivating' && char.status !== 'secluded') {
-        // Training characters are assigned to buildings, skip them
-        if (char.status === 'training' || char.status === 'idle') {
-          return char
-        }
-        // Handle resting/injured characters
-        if (char.status === 'injured' || char.status === 'resting') {
-          // Reduce injuryTimer (reused as recovery timer for resting)
-          const newTimer = Math.max(0, char.injuryTimer - deltaSec)
-          if (newTimer <= 0) {
-            return { ...char, status: 'cultivating' as const, injuryTimer: 0 }
-          }
-          return { ...char, injuryTimer: newTimer }
-        }
-        return char
-      }
+      // Branch 1: idle characters auto-cultivate
+      if (char.status === 'idle') {
+        const effectiveSpirit = 2 * spiritRatio * deltaSec
+        const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
+        const gained = result.cultivationGained
 
-      // Handle secluded characters: spend spirit stones for 2.5x cultivation
-      if (char.status === 'secluded') {
-        const stoneCost = 10 * (char.realm + 1) * deltaSec
-        if (updatedSpiritEnergy >= 0 && sect.resources.spiritStone + spiritProduced >= stoneCost + breakthroughStoneCost) {
-          breakthroughStoneCost += stoneCost
-          const seclusionSpirit = 2 * deltaSec * 2.5
-          const seclResult = cultivationTick(char, seclusionSpirit, deltaSec, char.learnedTechniques)
-          const seclGained = seclResult.cultivationGained
-          let updatedChar: Character = {
-            ...char,
-            cultivation: char.cultivation + seclGained,
-            totalCultivation: char.totalCultivation + seclGained,
-          }
-          // Auto-breakthrough check for secluded
-          if (canBreakthrough(updatedChar)) {
-            const currentRealm = REALMS[updatedChar.realm]
-            const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
-            const newRealmIndex = isMajorBreakthrough ? updatedChar.realm + 1 : updatedChar.realm
-            const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
-            if (cost && shouldTriggerTribulation(updatedChar.realm, updatedChar.realmStage)) {
-              const tribResult = resolveTribulation(updatedChar)
-              if (tribResult.success) {
-                const btResult = performBreakthrough(updatedChar, calcBreakthroughFailureRate(updatedChar))
-                if (btResult.success) {
-                  const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-                  emitEvent('breakthrough_success', `${updatedChar.name} 闭关中渡过天劫，突破至 ${nextName}！`)
-                  updatedChar = { ...updatedChar, realm: btResult.newRealm, realmStage: btResult.newStage, cultivation: 0, baseStats: btResult.newStats }
-                  const compId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, true)
-                  if (compId) {
-                    updatedChar = { ...updatedChar, learnedTechniques: [...updatedChar.learnedTechniques, compId] }
-                    emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${getTechniqueById(compId)?.name ?? compId}`)
-                  }
-                } else {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中天劫虽过，突破失败`)
-                  updatedChar = { ...updatedChar, cultivation: 0, status: 'cultivating' as const }
-                }
-              } else {
-                updatedChar = { ...updatedChar, cultivation: 0, status: 'injured' as const, injuryTimer: tribResult.injuryTimer ?? 60 }
-                if (tribResult.severe && updatedChar.realmStage > 0) {
-                  updatedChar = { ...updatedChar, realmStage: (updatedChar.realmStage - 1) as Character['realmStage'] }
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中天劫重伤，境界跌落`)
-                } else {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中天劫失败，修为尽失`)
-                }
-              }
-            } else if (cost) {
-              if (sect.resources.spiritStone + spiritProduced - breakthroughStoneCost >= cost.spiritStone) {
-                breakthroughStoneCost += cost.spiritStone
-                const btResult = performBreakthrough(updatedChar, calcBreakthroughFailureRate(updatedChar))
-                if (btResult.success) {
-                  emitEvent('breakthrough_success', `${updatedChar.name} 闭关中突破至 ${getRealmName(btResult.newRealm, btResult.newStage)}`)
-                  updatedChar = { ...updatedChar, realm: btResult.newRealm, realmStage: btResult.newStage, cultivation: 0, baseStats: btResult.newStats }
-                  const compId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, isMajorBreakthrough)
-                  if (compId) {
-                    updatedChar = { ...updatedChar, learnedTechniques: [...updatedChar.learnedTechniques, compId] }
-                    emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${getTechniqueById(compId)?.name ?? compId}`)
-                  }
-                } else {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中突破失败`)
-                  updatedChar = { ...updatedChar, cultivation: 0, status: 'cultivating' as const }
-                }
-              }
+        let updatedChar: Character = {
+          ...char,
+          cultivation: char.cultivation + gained,
+          totalCultivation: char.totalCultivation + gained,
+        }
+
+        // Deduct spirit energy
+        updatedSpiritEnergy -= effectiveSpirit
+
+        // Auto-breakthrough check
+        if (canBreakthrough(updatedChar)) {
+          // Check if this is a major realm breakthrough (max stage -> new realm)
+          const currentRealm = REALMS[updatedChar.realm]
+          const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
+          const newRealmIndex = isMajorBreakthrough ? updatedChar.realm + 1 : updatedChar.realm
+          const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
+
+          if (cost) {
+            // Major realm transition requires spiritStone
+            if (sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone) {
+              // Cannot breakthrough: insufficient stones - skip
             } else {
-              const btResult = performBreakthrough(updatedChar, calcBreakthroughFailureRate(updatedChar))
-              if (btResult.success) {
-                emitEvent('breakthrough_success', `${updatedChar.name} 闭关中突破至 ${getRealmName(btResult.newRealm, btResult.newStage)}`)
-                updatedChar = { ...updatedChar, realm: btResult.newRealm, realmStage: btResult.newStage, cultivation: 0, baseStats: btResult.newStats }
-                const compId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, false)
-                if (compId) {
-                  updatedChar = { ...updatedChar, learnedTechniques: [...updatedChar.learnedTechniques, compId] }
-                  emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${getTechniqueById(compId)?.name ?? compId}`)
+              breakthroughStoneCost += cost.spiritStone
+
+              if (shouldTriggerTribulation(updatedChar.realm, updatedChar.realmStage)) {
+                // Tribulation path for realms with tribulationPower
+                const tribResult = resolveTribulation(updatedChar)
+                if (tribResult.success) {
+                  const failureRate = calcBreakthroughFailureRate(updatedChar)
+                  const btResult = performBreakthrough(updatedChar, failureRate)
+                  if (btResult.success) {
+                    const nextName = getRealmName(btResult.newRealm, btResult.newStage)
+                    emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
+                    updatedChar = {
+                      ...updatedChar,
+                      realm: btResult.newRealm,
+                      realmStage: btResult.newStage,
+                      cultivation: 0,
+                      baseStats: btResult.newStats,
+                    }
+                    const comprehendedId = tryComprehendOnBreakthrough(
+                      updatedChar, get().sect.techniqueCodex, true
+                    )
+                    if (comprehendedId) {
+                      updatedChar = {
+                        ...updatedChar,
+                        learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+                      }
+                      const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
+                      emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
+                    }
+                  } else {
+                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫虽过，但突破失败，修为散尽`)
+                    updatedChar = { ...updatedChar, cultivation: 0 }
+                  }
+                } else {
+                  updatedChar = {
+                    ...updatedChar,
+                    cultivation: 0,
+                    status: 'injured' as const,
+                    injuryTimer: tribResult.injuryTimer ?? 60,
+                  }
+                  if (tribResult.severe && updatedChar.realmStage > 0) {
+                    updatedChar = {
+                      ...updatedChar,
+                      realmStage: (updatedChar.realmStage - 1) as Character['realmStage'],
+                    }
+                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，境界跌落至 ${getRealmName(updatedChar.realm, updatedChar.realmStage)}`)
+                  } else if (tribResult.severe) {
+                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，修为尽失`)
+                  } else {
+                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫失败，修为尽失`)
+                  }
                 }
               } else {
-                emitEvent('breakthrough_failure', `${updatedChar.name} 闭关中突破失败`)
-                updatedChar = { ...updatedChar, cultivation: 0, status: 'cultivating' as const }
-              }
-            }
-          }
-          return updatedChar
-        } else {
-          return { ...char, status: 'cultivating' as const }
-        }
-      }
-
-      const effectiveSpirit = 2 * spiritRatio * deltaSec
-      const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
-      const gained = result.cultivationGained
-
-      let updatedChar: Character = {
-        ...char,
-        cultivation: char.cultivation + gained,
-        totalCultivation: char.totalCultivation + gained,
-      }
-
-      // Deduct spirit energy
-      updatedSpiritEnergy -= effectiveSpirit
-
-      // Auto-breakthrough check
-      if (canBreakthrough(updatedChar)) {
-        // Check if this is a major realm breakthrough (max stage -> new realm)
-        const currentRealm = REALMS[updatedChar.realm]
-        const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
-        const newRealmIndex = isMajorBreakthrough ? updatedChar.realm + 1 : updatedChar.realm
-        const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
-
-        if (cost) {
-          // Major realm transition requires spiritStone only
-          if (sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone) {
-            // Cannot breakthrough: insufficient stones - skip
-          } else {
-            breakthroughStoneCost += cost.spiritStone
-
-            if (shouldTriggerTribulation(updatedChar.realm, updatedChar.realmStage)) {
-              // Tribulation path for realms with tribulationPower
-              const tribResult = resolveTribulation(updatedChar)
-              if (tribResult.success) {
+                // Non-tribulation path for realms without tribulationPower
                 const failureRate = calcBreakthroughFailureRate(updatedChar)
                 const btResult = performBreakthrough(updatedChar, failureRate)
                 if (btResult.success) {
                   const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-                  emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
+                  emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
                   updatedChar = {
                     ...updatedChar,
                     realm: btResult.newRealm,
@@ -1051,8 +996,9 @@ export const useSectStore = create<SectStore>((set, get) => ({
                     cultivation: 0,
                     baseStats: btResult.newStats,
                   }
+                  // Breakthrough comprehension (major)
                   const comprehendedId = tryComprehendOnBreakthrough(
-                    updatedChar, get().sect.techniqueCodex, true
+                    updatedChar, get().sect.techniqueCodex, isMajorBreakthrough
                   )
                   if (comprehendedId) {
                     updatedChar = {
@@ -1063,30 +1009,18 @@ export const useSectStore = create<SectStore>((set, get) => ({
                     emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
                   }
                 } else {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫虽过，但突破失败，修为散尽`)
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
                   updatedChar = { ...updatedChar, cultivation: 0 }
                 }
-              } else {
-                updatedChar = {
-                  ...updatedChar,
-                  cultivation: 0,
-                  status: 'injured' as const,
-                  injuryTimer: tribResult.injuryTimer ?? 60,
-                }
-                if (tribResult.severe && updatedChar.realmStage > 0) {
-                  updatedChar = {
-                    ...updatedChar,
-                    realmStage: (updatedChar.realmStage - 1) as Character['realmStage'],
-                  }
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，境界跌落至 ${getRealmName(updatedChar.realm, updatedChar.realmStage)}`)
-                } else if (tribResult.severe) {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，修为尽失`)
-                } else {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 天劫失败，修为尽失`)
-                }
               }
+            }
+          } else {
+            // Sub-level breakthrough: check minor breakthrough spirit stone cost
+            const minorCost = getMinorBreakthroughCost(updatedChar.realm, updatedChar.realmStage)
+            if (sect.resources.spiritStone - breakthroughStoneCost < minorCost) {
+              // Cannot breakthrough: insufficient stones - skip (keep cultivation full)
             } else {
-              // Non-tribulation path for realms without tribulationPower
+              breakthroughStoneCost += minorCost
               const failureRate = calcBreakthroughFailureRate(updatedChar)
               const btResult = performBreakthrough(updatedChar, failureRate)
               if (btResult.success) {
@@ -1099,17 +1033,17 @@ export const useSectStore = create<SectStore>((set, get) => ({
                   cultivation: 0,
                   baseStats: btResult.newStats,
                 }
-                // Breakthrough comprehension (major)
-                const comprehendedId = tryComprehendOnBreakthrough(
-                  updatedChar, get().sect.techniqueCodex, isMajorBreakthrough
+                // Breakthrough comprehension (sub-level)
+                const subComprehendedId = tryComprehendOnBreakthrough(
+                  updatedChar, get().sect.techniqueCodex, false
                 )
-                if (comprehendedId) {
+                if (subComprehendedId) {
                   updatedChar = {
                     ...updatedChar,
-                    learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+                    learnedTechniques: [...updatedChar.learnedTechniques, subComprehendedId],
                   }
-                  const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
-                  emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
+                  const subCompName = getTechniqueById(subComprehendedId)?.name ?? subComprehendedId
+                  emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${subCompName}`)
                 }
               } else {
                 emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
@@ -1117,39 +1051,23 @@ export const useSectStore = create<SectStore>((set, get) => ({
               }
             }
           }
-        } else {
-          const failureRate = calcBreakthroughFailureRate(updatedChar)
-          const btResult = performBreakthrough(updatedChar, failureRate)
-          if (btResult.success) {
-          const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-          emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
-          updatedChar = {
-            ...updatedChar,
-            realm: btResult.newRealm,
-            realmStage: btResult.newStage,
-            cultivation: 0,
-            baseStats: btResult.newStats,
-          }
-          // Breakthrough comprehension (sub-level)
-          const subComprehendedId = tryComprehendOnBreakthrough(
-            updatedChar, get().sect.techniqueCodex, false
-          )
-          if (subComprehendedId) {
-            updatedChar = {
-              ...updatedChar,
-              learnedTechniques: [...updatedChar.learnedTechniques, subComprehendedId],
-            }
-            const subCompName = getTechniqueById(subComprehendedId)?.name ?? subComprehendedId
-            emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${subCompName}`)
-          }
-        } else {
-          emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
-          updatedChar = { ...updatedChar, cultivation: 0 }
         }
-      }
+
+        return updatedChar
       }
 
-      return updatedChar
+      // Branch 2: non-idle characters (training/adventuring/patrolling/injured/resting)
+      if (char.status === 'injured' || char.status === 'resting') {
+        // Reduce injuryTimer (reused as recovery timer for resting)
+        const newTimer = Math.max(0, char.injuryTimer - deltaSec)
+        if (newTimer <= 0) {
+          return { ...char, status: 'idle' as const, injuryTimer: 0 }
+        }
+        return { ...char, injuryTimer: newTimer }
+      }
+
+      // training, adventuring, patrolling — return unchanged
+      return char
     })
 
     // 11. Recalculate sect level from mainHall building level
@@ -1393,7 +1311,7 @@ export const useSectStore = create<SectStore>((set, get) => ({
     set((s) => {
       const character = s.sect.characters.find(c => c.id === characterId)
       if (!character) return s
-      if (character.status !== 'idle' && character.status !== 'cultivating') return s
+      if (character.status !== 'idle') return s
 
       const assigned = s.sect.characters.filter(c => c.assignedBuilding === buildingType)
       if (assigned.length >= 3) return s
@@ -1423,48 +1341,6 @@ export const useSectStore = create<SectStore>((set, get) => ({
           characters: s.sect.characters.map(c =>
             c.id === characterId
               ? { ...c, status: 'idle' as const, assignedBuilding: null }
-              : c
-          ),
-        },
-      }
-    })
-  },
-
-  // ---- Seclusion ----
-
-  startSeclusion: (characterId) => {
-    set((s) => {
-      const character = s.sect.characters.find(c => c.id === characterId)
-      if (!character) return s
-      if (character.status !== 'cultivating') return s
-
-      const secludedCount = s.sect.characters.filter(c => c.status === 'secluded').length
-      if (secludedCount >= 3) return s
-
-      return {
-        sect: {
-          ...s.sect,
-          characters: s.sect.characters.map(c =>
-            c.id === characterId
-              ? { ...c, status: 'secluded' as const }
-              : c
-          ),
-        },
-      }
-    })
-  },
-
-  stopSeclusion: (characterId) => {
-    set((s) => {
-      const character = s.sect.characters.find(c => c.id === characterId)
-      if (!character || character.status !== 'secluded') return s
-
-      return {
-        sect: {
-          ...s.sect,
-          characters: s.sect.characters.map(c =>
-            c.id === characterId
-              ? { ...c, status: 'cultivating' as const }
               : c
           ),
         },

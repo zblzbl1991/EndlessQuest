@@ -126,8 +126,8 @@ describe('SectStore - Initialization', () => {
     expect(getStore().sect.level).toBe(1)
   })
 
-  it('initial character should be cultivating', () => {
-    expect(getFirstCharacter().status).toBe('cultivating')
+  it('initial character should be idle', () => {
+    expect(getFirstCharacter().status).toBe('idle')
   })
 })
 
@@ -187,7 +187,7 @@ describe('SectStore - Character Management', () => {
 
   it('setCharacterStatus should ignore unknown character', () => {
     getStore().setCharacterStatus('nonexistent', 'injured')
-    expect(getFirstCharacter().status).toBe('cultivating')
+    expect(getFirstCharacter().status).toBe('idle')
   })
 })
 
@@ -578,7 +578,7 @@ describe('SectStore - Healing', () => {
 
     const result = getStore().healCharacter(char.id)
     expect(result).toBe(true)
-    expect(getStore().sect.characters[0].status).toBe('cultivating')
+    expect(getStore().sect.characters[0].status).toBe('idle')
     expect(getStore().sect.resources.herb).toBe(3) // 5 - 2 herbs consumed
   })
 
@@ -603,6 +603,23 @@ describe('SectStore - Healing', () => {
     getStore().addResource('herb', 5)
     const result = getStore().healCharacter(char.id)
     expect(result).toBe(false)
+  })
+
+  it('healCharacter should set status to idle', () => {
+    const char = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id ? { ...c, status: 'injured' } : c
+        ),
+      },
+    }))
+    getStore().addResource('herb', 5)
+
+    const result = getStore().healCharacter(char.id)
+    expect(result).toBe(true)
+    expect(getStore().sect.characters[0].status).toBe('idle')
   })
 })
 
@@ -706,7 +723,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(getStore().sect.resources.spiritStone).toBe(100.5)
   })
 
-  it('should not consume vault/stones for sub-level breakthrough', () => {
+  it('should consume spirit stones for sub-level breakthrough', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100)
     useSectStore.setState((s) => ({
@@ -722,9 +739,32 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.99)
     getStore().tickAll(1)
 
-    // Sub-level breakthrough should not consume vault or stones (tax adds 0.5)
+    // Sub-level breakthrough consumes minor breakthrough cost (50 for realm 0, stage 0) but not vault items
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.resources.spiritStone).toBe(1000.5)
+    expect(getStore().sect.resources.spiritStone).toBe(950.5) // 1000 - 50 (minor cost) + 0.5 (tax)
+  })
+
+  it('should skip minor breakthrough when spirit stones insufficient', () => {
+    const char = getFirstCharacter()
+    setCharacterCultivation(char.id, 100) // realm 0, stage 0 needs 100 cultivation
+
+    // Set spirit stones to less than minor breakthrough cost (50 for realm 0, stage 0)
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: 30 },
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
+
+    const updated = getStore().sect.characters[0]
+    // Should NOT have broken through (insufficient spirit stones)
+    expect(updated.realm).toBe(0)
+    expect(updated.realmStage).toBe(0)
+    // Cultivation should remain full (not reset)
+    expect(updated.cultivation).toBe(100)
   })
 })
 
@@ -763,13 +803,13 @@ describe('SectStore - tickAll', () => {
     expect(result.spiritConsumed).toBeGreaterThan(0)
   })
 
-  it('tickAll should not consume spirit for idle characters', () => {
+  it('tickAll should not consume spirit for training characters', () => {
     const char = getFirstCharacter()
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, status: 'idle' } : c
+          c.id === char.id ? { ...c, status: 'training', assignedBuilding: 'spiritField' } : c
         ),
       },
     }))
@@ -889,7 +929,7 @@ describe('AdventureStore - startRun', () => {
 
   it('should create a run with a single character', () => {
     const char = getStore().sect.characters[0]
-    expect(char.status).toBe('cultivating')
+    expect(char.status).toBe('idle')
 
     const run = getAdventureStore().startRun('lingCaoValley', [char.id])
     expect(run).not.toBeNull()
@@ -1035,7 +1075,7 @@ describe('AdventureStore - retreat', () => {
 
     expect(getStore().sect.characters[0].status).toBe('adventuring')
     getAdventureStore().retreat(runId)
-    expect(getStore().sect.characters[0].status).toBe('cultivating')
+    expect(getStore().sect.characters[0].status).toBe('idle')
   })
 
   it('should remove run from activeRuns on retreat', () => {
@@ -1128,7 +1168,7 @@ describe('AdventureStore - completeRun', () => {
     expect(run).not.toBeNull()
 
     getAdventureStore().completeRun(run!.id)
-    expect(getStore().sect.characters[0].status).toBe('cultivating')
+    expect(getStore().sect.characters[0].status).toBe('idle')
   })
 
   it('should remove run from activeRuns', () => {
@@ -1625,7 +1665,7 @@ describe('expedition supply', () => {
     // Nothing should have been consumed
     expect(getStore().sect.resources.spiritStone).toBe(beforeStones)
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.characters[0].status).toBe('cultivating')
+    expect(getStore().sect.characters[0].status).toBe('idle')
   })
 
   it('should fail enhanced supply without enough spirit stones', () => {

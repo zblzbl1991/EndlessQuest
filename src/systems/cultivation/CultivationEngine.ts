@@ -129,8 +129,13 @@ export function tick(
 /**
  * Check if a character can breakthrough.
  * Requires enough cultivation AND not being at the max stage of the last realm.
+ * Optionally checks if the player has enough spirit stones.
  */
-export function canBreakthrough(character: Character): boolean {
+export function canBreakthrough(
+  character: Character,
+  spiritStoneCost?: number,
+  availableSpiritStones?: number,
+): boolean {
   const realm = REALMS[character.realm]
   if (!realm) return false
 
@@ -142,7 +147,13 @@ export function canBreakthrough(character: Character): boolean {
   }
 
   const needed = getCultivationNeeded(character.realm, character.realmStage)
-  return character.cultivation >= needed
+  if (character.cultivation < needed) return false
+
+  if (spiritStoneCost !== undefined && availableSpiritStones !== undefined && availableSpiritStones < spiritStoneCost) {
+    return false
+  }
+
+  return true
 }
 
 /**
