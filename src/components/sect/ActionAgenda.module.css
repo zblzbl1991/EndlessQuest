@@ -1,0 +1,66 @@
+.container {
+  margin-bottom: var(--space-lg);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  padding-left: var(--space-xs);
+  border-left: 2px solid var(--color-accent);
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.2s,
+    border-color 0.2s;
+  font-family: inherit;
+  color: inherit;
+  width: 100%;
+}
+
+.card:hover {
+  background: var(--color-panel-hover);
+  border-color: var(--color-accent);
+}
+
+.card:active {
+  background: var(--color-panel);
+}
+
+.cardLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.cardDetail {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+@media (min-width: 1024px) {
+  .cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-sm);
+  }
+}

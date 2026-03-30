@@ -3,6 +3,7 @@ import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
+import ActionAgenda from '../components/sect/ActionAgenda'
 import styles from './SectPage.module.css'
 
 export default function SectPage() {
@@ -58,6 +59,9 @@ export default function SectPage() {
           {herbRate > 0 && <span className={styles.herbRate}>灵草 +{herbRate.toFixed(2)}/s</span>}
         </div>
       </section>
+
+      {/* Action Agenda */}
+      <ActionAgenda />
 
       {/* Character Stats */}
       <section className={styles.section}>
