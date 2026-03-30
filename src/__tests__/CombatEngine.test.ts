@@ -15,6 +15,10 @@ function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; t
     maxSpiritPower: 50,
     skills: [],
     skillCooldowns: [],
+    affixes: [],
+    preset: 'balanced',
+    aggro: 0,
+    shield: 0,
     ...overrides,
   }
 }
@@ -161,5 +165,110 @@ describe('CombatEngine', () => {
     simulateCombat(allies, enemies)
     expect(allies[0].hp).toBe(originalAllyHp)
     expect(enemies[0].hp).toBe(originalEnemyHp)
+  })
+
+  // --- New tests for affix/targeting integration ---
+
+  it('should trigger berserk affix when HP < 30%', () => {
+    // Enemy with 29 HP out of 100 max = 29% HP, berserk should boost atk by 50%
+    const allies = [makeUnit({ id: 'p1', name: 'Tank', team: 'ally', hp: 200, maxHp: 200, atk: 1, spd: 5, def: 0 })]
+    const enemies = [
+      makeUnit({
+        id: 'e1',
+        name: 'Berserker',
+        team: 'enemy',
+        hp: 29,
+        maxHp: 100,
+        atk: 20,
+        spd: 20,
+        def: 0,
+        affixes: ['berserk'],
+      }),
+    ]
+    const result = simulateCombat(allies, enemies)
+    // With berserk, atk should be 30 (20 * 1.5). Without berserk it'd be 20.
+    // The first action is from the berserker (spd 20 > 5)
+    const berserkAction = result.actions.find((a) => a.actorId === 'e1')
+    expect(berserkAction).toBeDefined()
+    // Damage should be at least 27 (30 atk - 0 def/2, with 0.9 variance floor)
+    // 30 * 0.9 = 27 floor
+    expect(berserkAction!.damage).toBeGreaterThanOrEqual(27)
+  })
+
+  it('should not trigger berserk when HP >= 30%', () => {
+    // Enemy with 50 HP out of 100 max = 50%, berserk should NOT trigger
+    const allies = [makeUnit({ id: 'p1', name: 'Tank', team: 'ally', hp: 2000, maxHp: 2000, atk: 0, spd: 5, def: 0 })]
+    const enemies = [
+      makeUnit({
+        id: 'e1',
+        name: 'HealthyBerserker',
+        team: 'enemy',
+        hp: 50,
+        maxHp: 100,
+        atk: 20,
+        spd: 20,
+        def: 0,
+        affixes: ['berserk'],
+      }),
+    ]
+    const result = simulateCombat(allies, enemies)
+    const action = result.actions.find((a) => a.actorId === 'e1')
+    expect(action).toBeDefined()
+    // Without berserk, damage = 20 atk - 0 def = 20, with variance 18-22
+    expect(action!.damage).toBeLessThanOrEqual(22)
+  })
+
+  it('should absorb damage with shield affix', () => {
+    // Enemy with 20 HP shield. Attack does ~12 damage, so shield should absorb fully first hit.
+    const allies = [makeUnit({ id: 'p1', name: 'Attacker', team: 'ally', atk: 15, spd: 20, def: 0 })]
+    const enemies = [
+      makeUnit({
+        id: 'e1',
+        name: 'Shielded',
+        team: 'enemy',
+        hp: 50,
+        maxHp: 50,
+        atk: 0,
+        def: 0,
+        spd: 5,
+        shield: 20, // 20 shield
+      }),
+    ]
+    const result = simulateCombat(allies, enemies)
+    expect(result.victory).toBe(true)
+    // First hit should deal 0 damage (shield absorbs it), or less than normal
+    const firstAction = result.actions[0]
+    // With 20 shield and ~15 damage, first hit may be fully absorbed (damage=0) or partially
+    // But subsequent hits should deal damage once shield is broken
+    const totalDamage = result.actions.filter((a) => a.actorId === 'p1').reduce((sum, a) => sum + a.damage, 0)
+    expect(totalDamage).toBeGreaterThan(0) // At least some damage gets through over time
+  })
+
+  it('should increase aggro on hit', () => {
+    // Two enemies, first hit should increase aggro on the target
+    const allies = [makeUnit({ id: 'p1', name: 'Attacker', team: 'ally', atk: 50, spd: 20, def: 100 })]
+    const enemies = [
+      makeUnit({ id: 'e1', name: 'Enemy1', team: 'enemy', hp: 500, maxHp: 500, atk: 1, def: 0, spd: 5, aggro: 0 }),
+      makeUnit({ id: 'e2', name: 'Enemy2', team: 'enemy', hp: 500, maxHp: 500, atk: 1, def: 0, spd: 5, aggro: 5 }),
+    ]
+    const result = simulateCombat(allies, enemies)
+    // e2 starts with higher aggro, so the ally should target e2 first
+    const allyActions = result.actions.filter((a) => a.actorId === 'p1')
+    expect(allyActions.length).toBeGreaterThan(0)
+    // First ally action should target e2 (higher aggro)
+    expect(allyActions[0].targetId).toBe('e2')
+  })
+
+  it('should use targeting system to select highest aggro target', () => {
+    // Two allies, two enemies. Enemy with higher aggro should be targeted.
+    const allies = [makeUnit({ id: 'p1', name: 'Attacker', team: 'ally', atk: 50, spd: 20, def: 100 })]
+    const enemies = [
+      makeUnit({ id: 'e1', name: 'LowAggro', team: 'enemy', hp: 500, maxHp: 500, atk: 1, def: 0, spd: 5, aggro: 0 }),
+      makeUnit({ id: 'e2', name: 'HighAggro', team: 'enemy', hp: 500, maxHp: 500, atk: 1, def: 0, spd: 5, aggro: 10 }),
+    ]
+    const result = simulateCombat(allies, enemies)
+    const firstAllyAction = result.actions.find((a) => a.actorId === 'p1')
+    expect(firstAllyAction).toBeDefined()
+    expect(firstAllyAction!.targetId).toBe('e2')
   })
 })

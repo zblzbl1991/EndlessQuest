@@ -11,6 +11,7 @@ import { generateLoot } from './LootSystem'
 import type { LootResult } from './LootSystem'
 import { EQUIP_SLOTS } from '../../data/items'
 import type { Resources } from '../../types/sect'
+import { hasAffix, calcShield } from '../combat/AffixSystem'
 
 export interface ShopOffer {
   name: string
@@ -120,7 +121,22 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
       const templates = getNonBossTemplates()
       const enemyTemplate = templates[Math.floor(Math.random() * templates.length)] as EnemyTemplate
       const enemyUnit = createCombatUnitFromEnemy(enemyTemplate, floorNumber)
-      const result = simulateCombat(aliveTeam, [enemyUnit])
+
+      // Initialize enemy affix-based shield
+      if (hasAffix(enemyUnit.affixes, 'shield')) {
+        enemyUnit.shield = calcShield(enemyUnit.maxHp, true)
+      }
+
+      // Initialize ally units with default fields
+      const combatTeam = aliveTeam.map((u) => ({
+        ...u,
+        affixes: u.affixes ?? [],
+        preset: u.preset ?? ('balanced' as const),
+        aggro: u.aggro ?? 0,
+        shield: u.shield ?? 0,
+      }))
+
+      const result = simulateCombat(combatTeam, [enemyUnit])
       const victory = result.victory
 
       // Calculate HP changes for each alive team member
@@ -252,7 +268,22 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
       bossUnit.hp = Math.floor(bossUnit.hp * 2)
       bossUnit.maxHp = bossUnit.hp
       bossUnit.atk = Math.floor(bossUnit.atk * 1.5)
-      const result = simulateCombat(aliveTeam, [bossUnit])
+
+      // Initialize boss affix-based shield
+      if (hasAffix(bossUnit.affixes, 'shield')) {
+        bossUnit.shield = calcShield(bossUnit.maxHp, true)
+      }
+
+      // Initialize ally units with default fields
+      const combatTeam = aliveTeam.map((u) => ({
+        ...u,
+        affixes: u.affixes ?? [],
+        preset: u.preset ?? ('balanced' as const),
+        aggro: u.aggro ?? 0,
+        shield: u.shield ?? 0,
+      }))
+
+      const result = simulateCombat(combatTeam, [bossUnit])
       const victory = result.victory
 
       // Calculate HP changes for each alive team member

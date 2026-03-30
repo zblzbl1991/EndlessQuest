@@ -19,6 +19,10 @@ const dummyPlayer: CombatUnit = {
   maxSpiritPower: 50,
   skills: [],
   skillCooldowns: [],
+  affixes: [],
+  preset: 'balanced',
+  aggro: 0,
+  shield: 0,
 }
 
 const dummyTeam = [dummyPlayer]

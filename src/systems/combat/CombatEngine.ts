@@ -1,5 +1,9 @@
 import type { ActiveSkill } from '../../types/skill'
+import type { EnemyAffix, TacticalPreset } from '../../types/adventure'
 import { getElementMultiplier } from '../../data/skills'
+import { selectAttackTarget, selectSupportTarget, increaseAggro } from './TargetingSystem'
+import { selectAction } from './SkillAI'
+import { applyBerserk, calcTribulationBaneDamage, calcSpiritDrainHeal, hasAffix } from './AffixSystem'
 
 export interface CombatUnit {
   id: string
@@ -17,6 +21,10 @@ export interface CombatUnit {
   maxSpiritPower: number
   skills: ActiveSkill[]
   skillCooldowns: number[] // remaining cooldown for each skill
+  affixes?: EnemyAffix[]
+  preset?: TacticalPreset
+  aggro?: number
+  shield?: number
 }
 
 export interface CombatAction {
@@ -66,7 +74,11 @@ function buildHpResult(originalUnits: CombatUnit[], combatUnits: CombatUnit[]): 
 }
 
 export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): CombatResult {
-  const units: CombatUnit[] = [...allies.map((u) => ({ ...u })), ...enemies.map((u) => ({ ...u }))]
+  // Initialize all units with aggro and shield defaults
+  const units: CombatUnit[] = [
+    ...allies.map((u) => ({ ...u, aggro: u.aggro ?? 0, shield: u.shield ?? 0, affixes: u.affixes ?? [] })),
+    ...enemies.map((u) => ({ ...u, aggro: u.aggro ?? 0, shield: u.shield ?? 0, affixes: u.affixes ?? [] })),
+  ]
   const actions: CombatAction[] = []
   let turn = 0
   let maxTurns = 30 // prevent infinite combat
@@ -104,25 +116,61 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
       // Regen spirit
       actor.spiritPower = Math.min(actor.maxSpiritPower, actor.spiritPower + 10)
 
-      // Pick target
-      const targets = getEnemies(units, actor.team)
-      if (targets.length === 0) break
+      // Pick target using TargetingSystem
+      const enemyTeam = getEnemies(units, actor.team)
+      if (enemyTeam.length === 0) break
 
-      const target = targets[0] // target first alive enemy
+      const targetId = selectAttackTarget(enemyTeam)
+      const target = enemyTeam.find((u) => u.id === targetId)
+      if (!target) break
 
-      // Try to use a skill
+      // Select skill: allies use SkillAI, enemies use simple logic
       let usedSkill: ActiveSkill | null = null
       let skillIdx = -1
-      for (let i = 0; i < actor.skills.length; i++) {
-        const skill = actor.skills[i]
-        if (!skill) continue
-        if ((actor.skillCooldowns[i] ?? 0) > 0) continue
-        if (actor.spiritPower < skill.spiritCost) continue
-        // Don't auto-use support skills for now (Phase 8 will add AI)
-        if (skill.category === 'support' || skill.category === 'defense') continue
-        usedSkill = skill
-        skillIdx = i
-        break
+
+      if (actor.team === 'ally') {
+        // Use SkillAI for ally units
+        const cooldownMap: Record<string, number> = {}
+        actor.skills.forEach((s, i) => {
+          cooldownMap[s.id] = actor.skillCooldowns[i] ?? 0
+        })
+
+        const selected = selectAction(
+          actor.skills,
+          cooldownMap,
+          {
+            hpPercent: actor.hp / actor.maxHp,
+            spiritPower: actor.spiritPower,
+            maxSpiritPower: actor.maxSpiritPower,
+            isBossFight: enemies.some((e) => hasAffix(e.affixes ?? [], 'shield') || e.maxHp > 200),
+          },
+          actor.preset ?? 'balanced'
+        )
+
+        if (selected) {
+          skillIdx = actor.skills.findIndex((s) => s.id === selected.id)
+          if (skillIdx >= 0 && actor.spiritPower >= selected.spiritCost) {
+            usedSkill = selected
+          }
+        }
+      } else {
+        // Enemy: simple skill selection (first available attack skill)
+        for (let i = 0; i < actor.skills.length; i++) {
+          const skill = actor.skills[i]
+          if (!skill) continue
+          if ((actor.skillCooldowns[i] ?? 0) > 0) continue
+          if (actor.spiritPower < skill.spiritCost) continue
+          if (skill.category === 'support' || skill.category === 'defense') continue
+          usedSkill = skill
+          skillIdx = i
+          break
+        }
+      }
+
+      // Calculate effective attack with berserk affix
+      let effectiveAtk = actor.atk
+      if (hasAffix(actor.affixes, 'berserk')) {
+        effectiveAtk = applyBerserk(effectiveAtk, actor.hp, actor.maxHp)
       }
 
       let damage = 0
@@ -131,12 +179,12 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
       if (usedSkill && usedSkill.category === 'attack') {
         // Skill attack
         const elementMult = getElementMultiplier(usedSkill.element, target.element)
-        damage = Math.max(1, Math.floor(actor.atk * usedSkill.multiplier * elementMult - target.def / 2))
+        damage = Math.max(1, Math.floor(effectiveAtk * usedSkill.multiplier * elementMult - target.def / 2))
         actor.spiritPower -= usedSkill.spiritCost
         actor.skillCooldowns[skillIdx] = usedSkill.cooldown
       } else {
         // Normal attack
-        damage = Math.max(1, Math.floor(actor.atk - target.def / 2))
+        damage = Math.max(1, Math.floor(effectiveAtk - target.def / 2))
       }
 
       // Apply variance
@@ -148,7 +196,33 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
         damage = Math.floor(damage * actor.critDmg)
       }
 
+      // Tribulation Bane: bonus damage ignoring defense
+      if (hasAffix(actor.affixes, 'tribulationBane')) {
+        const bonusDamage = calcTribulationBaneDamage(effectiveAtk, true)
+        damage += bonusDamage
+      }
+
+      // Shield absorption: absorb damage from shield first
+      if (target.shield && target.shield > 0) {
+        if (damage <= target.shield) {
+          target.shield -= damage
+          damage = 0
+        } else {
+          damage -= target.shield
+          target.shield = 0
+        }
+      }
+
       target.hp = Math.max(0, target.hp - damage)
+
+      // Spirit Drain: heal attacker
+      if (hasAffix(actor.affixes, 'spiritDrain') && damage > 0) {
+        const heal = calcSpiritDrainHeal(damage, true)
+        actor.hp = Math.min(actor.maxHp, actor.hp + heal)
+      }
+
+      // Increase aggro on target after hit
+      target.aggro = increaseAggro(target.aggro ?? 0, isCrit)
 
       actions.push({
         turn,

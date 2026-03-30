@@ -1,10 +1,11 @@
-import type { Enemy } from '../types/adventure'
+import type { Enemy, EnemyAffix } from '../types/adventure'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import type { Character } from '../types/character'
 import { TECHNIQUE_TIER_ORDER } from '../types/technique'
 import { getTechniqueById } from './techniquesTable'
 import type { ActiveSkill } from '../types/skill'
 import { getActiveSkillById } from './activeSkills'
+import { rollAffixes } from './affixes'
 
 export type LootType = 'spiritStone' | 'herb' | 'ore' | 'equipment' | 'consumable' | 'petCapture'
 
@@ -29,6 +30,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
     element: 'neutral',
     stats: { hp: 50, atk: 8, def: 4, spd: 6 },
     isBoss: false,
+    affixPool: [],
     dropsPerFight: 1,
     lootTable: [
       { type: 'spiritStone', weight: 40, minAmount: 20, maxAmount: 50 },
@@ -45,6 +47,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
     element: 'fire',
     stats: { hp: 120, atk: 18, def: 10, spd: 8 },
     isBoss: false,
+    affixPool: ['berserk', 'swift'],
     dropsPerFight: 2,
     lootTable: [
       { type: 'spiritStone', weight: 35, minAmount: 40, maxAmount: 80 },
@@ -62,6 +65,8 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
     element: 'lightning',
     stats: { hp: 500, atk: 40, def: 25, spd: 12 },
     isBoss: true,
+    affixPool: ['berserk', 'shield', 'tribulationBane'],
+    skillIds: ['fireball'],
     dropsPerFight: 3,
     lootTable: [
       { type: 'spiritStone', weight: 30, minAmount: 100, maxAmount: 300 },
@@ -87,6 +92,22 @@ export function scaleEnemy(baseStats: { hp: number; atk: number; def: number; sp
 
 export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUnit {
   const scaled = scaleEnemy(enemy.stats, layer)
+
+  // Resolve skills from skillIds
+  const skills: ActiveSkill[] = []
+  if (enemy.skillIds) {
+    for (const sid of enemy.skillIds) {
+      const skill = getActiveSkillById(sid)
+      if (skill) skills.push(skill)
+    }
+  }
+
+  // Roll affixes from pool
+  const affixes =
+    enemy.affixPool && enemy.affixPool.length > 0
+      ? rollAffixes(enemy.affixPool, enemy.isBoss ? 2 : 1)
+      : (enemy.affixes ?? [])
+
   return {
     id: enemy.id,
     name: enemy.name,
@@ -101,8 +122,11 @@ export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUn
     element: enemy.element,
     spiritPower: 30,
     maxSpiritPower: 30,
-    skills: [],
-    skillCooldowns: [],
+    skills,
+    skillCooldowns: new Array(skills.length).fill(0),
+    affixes,
+    aggro: 0,
+    shield: 0,
   }
 }
 
@@ -185,6 +209,10 @@ export function createCharacterCombatUnit(character: Character, learnedTechnique
     maxSpiritPower: character.cultivationStats.maxSpiritPower,
     skills,
     skillCooldowns: new Array(skills.length).fill(0),
+    affixes: [],
+    preset: 'balanced',
+    aggro: 0,
+    shield: 0,
   }
 }
 
@@ -235,5 +263,9 @@ export function createPlayerCombatUnit(player: {
     maxSpiritPower: player.maxSpiritPower ?? 50,
     skills: player.skills ?? [],
     skillCooldowns: new Array((player.skills ?? []).length).fill(0),
+    affixes: [],
+    preset: 'balanced',
+    aggro: 0,
+    shield: 0,
   }
 }

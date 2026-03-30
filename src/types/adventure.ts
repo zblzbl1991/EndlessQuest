@@ -14,6 +14,7 @@ export interface Enemy {
   stats: { hp: number; atk: number; def: number; spd: number }
   isBoss: boolean
   affixes?: EnemyAffix[]
+  affixPool?: EnemyAffix[]
   skillIds?: string[]
 }
 
