@@ -26,6 +26,9 @@ interface SaveMeta {
   totalAdventureRuns: number
   totalBreakthroughs: number
   lastTransmissionTime: number
+  sectPath: Sect['sectPath']
+  unlockedPathNodeIds: Sect['unlockedPathNodeIds']
+  pathUnlockedAt: Sect['pathUnlockedAt']
 }
 
 // ---------------------------------------------------------------------------
@@ -53,6 +56,9 @@ export async function saveGame(): Promise<void> {
       totalAdventureRuns: sect.totalAdventureRuns,
       totalBreakthroughs: sect.totalBreakthroughs,
       lastTransmissionTime: sect.lastTransmissionTime,
+      sectPath: sect.sectPath,
+      unlockedPathNodeIds: sect.unlockedPathNodeIds,
+      pathUnlockedAt: sect.pathUnlockedAt,
     })
 
     // Write characters
@@ -163,6 +169,9 @@ export async function loadGame(): Promise<boolean> {
         itemsCrafted: [],
         taxIncome: 0,
       },
+      sectPath: (meta as any).sectPath ?? 'none',
+      unlockedPathNodeIds: (meta as any).unlockedPathNodeIds ?? [],
+      pathUnlockedAt: (meta as any).pathUnlockedAt ?? null,
     }
 
     useSectStore.setState({ sect })

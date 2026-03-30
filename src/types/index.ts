@@ -26,6 +26,7 @@ export type {
   InventoryState,
 } from './item'
 export type {
+  SectPath,
   BuildingType,
   ResourceType,
   Resources,

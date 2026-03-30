@@ -1,5 +1,6 @@
 import type { Character, CharacterTitle, CharacterQuality, CharacterStatus } from '../../types/character'
 import type {
+  SectPath,
   BuildingType,
   Resources,
   ResourceType,
@@ -91,6 +92,11 @@ export interface SectStore {
 
   // Offline report
   clearOfflineAccumulator(): void
+
+  // Sect path
+  chooseSectPath(path: SectPath): void
+  unlockPathNode(nodeId: string): boolean
+  resetSectPath(): void
 
   reset(): void
 }

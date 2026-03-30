@@ -4,6 +4,7 @@ import { useAdventureStore } from '../stores/adventureStore'
 import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
 import ActionAgenda from '../components/sect/ActionAgenda'
+import SectPathPanel from '../components/sect/SectPathPanel'
 import styles from './SectPage.module.css'
 
 export default function SectPage() {
@@ -62,6 +63,9 @@ export default function SectPage() {
 
       {/* Action Agenda */}
       <ActionAgenda />
+
+      {/* Sect Path */}
+      <SectPathPanel />
 
       {/* Character Stats */}
       <section className={styles.section}>

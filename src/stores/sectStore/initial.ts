@@ -82,6 +82,9 @@ export function createInitialState(): { sect: Sect } {
         itemsCrafted: [],
         taxIncome: 0,
       },
+      sectPath: 'none' as const,
+      unlockedPathNodeIds: [],
+      pathUnlockedAt: null,
     },
   }
 }

@@ -2,6 +2,8 @@ import type { Character } from './character'
 import type { ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 
+export type SectPath = 'none' | 'pill' | 'sword' | 'beast'
+
 export type BuildingType =
   | 'mainHall'
   | 'spiritField'
@@ -63,4 +65,7 @@ export interface Sect {
   lastTransmissionTime: number
   techniqueCodex: string[] // 已解锁功法 ID 列表
   offlineAccumulator: OfflineAccumulator
+  sectPath: SectPath
+  unlockedPathNodeIds: string[]
+  pathUnlockedAt: number | null
 }

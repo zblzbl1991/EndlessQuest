@@ -11,7 +11,7 @@ describe('db', () => {
     const db = await getDB()
     expect(db).toBeDefined()
     expect(db.name).toBe('endlessquest_db')
-    expect(db.version).toBe(2)
+    expect(db.version).toBe(3)
   })
 
   it('should create all required object stores', async () => {
