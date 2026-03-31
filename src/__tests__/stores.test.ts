@@ -843,6 +843,37 @@ describe('SectStore - tickAll', () => {
     expect(result.spiritConsumed).toBe(0)
   })
 
+  it('tickAll should ignore assigned building bonuses for non-training characters', () => {
+    const configureCharacter = (status: Character['status']) => {
+      resetStore()
+      const char = getFirstCharacter()
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          buildings: s.sect.buildings.map((b) => (b.type === 'spiritMine' ? { ...b, unlocked: true, level: 1 } : b)),
+          characters: s.sect.characters.map((c) =>
+            c.id === char.id
+              ? {
+                  ...c,
+                  status,
+                  assignedBuilding: 'spiritMine',
+                  specialties: [{ type: 'mining', level: 3 }],
+                }
+              : c
+          ),
+        },
+      }))
+      const beforeStone = getStore().sect.resources.spiritStone
+      getStore().tickAll(10)
+      return getStore().sect.resources.spiritStone - beforeStone
+    }
+
+    const idleGain = configureCharacter('idle')
+    const trainingGain = configureCharacter('training')
+
+    expect(idleGain).toBeLessThan(trainingGain)
+  })
+
   it('tickAll should work with 0 delta', () => {
     const result = getStore().tickAll(0)
     expect(result.spiritProduced).toBe(0)

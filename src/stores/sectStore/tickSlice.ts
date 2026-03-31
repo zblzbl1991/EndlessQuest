@@ -56,7 +56,9 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     // 4b. Apply specialty bonuses from assigned disciples
     const assignedSpecialties = (buildingType: string) =>
-      sect.characters.filter((c) => c.assignedBuilding === buildingType).flatMap((c) => c.specialties)
+      sect.characters
+        .filter((c) => c.status === 'training' && c.assignedBuilding === buildingType)
+        .flatMap((c) => c.specialties)
     rates.spiritStone *= getBuildingBonus('spiritMine', assignedSpecialties('spiritMine'))
     rates.ore *= getBuildingBonus('spiritMine', assignedSpecialties('spiritMine'))
     rates.spiritEnergy *= getBuildingBonus('spiritField', assignedSpecialties('spiritField'))

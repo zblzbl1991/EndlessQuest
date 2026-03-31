@@ -2,6 +2,7 @@ import type { Sect, SectStats } from '../../types'
 import type { DungeonRun } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
+import type { DispatchState } from '../../stores/adventureStore'
 import { useGameStore } from '../../stores/gameStore'
 import { useEventLogStore } from '../../stores/eventLogStore'
 import { getDB } from './db'
@@ -34,6 +35,18 @@ interface SaveMeta {
   archiveMilestones: Sect['archiveMilestones']
 }
 
+type SavedAdventureRunRecord = {
+  id: string
+  kind?: 'run'
+  run: DungeonRun
+}
+
+type SavedDispatchRecord = {
+  id: string
+  kind: 'dispatch'
+  dispatch: DispatchState
+}
+
 // ---------------------------------------------------------------------------
 // saveGame — write sect data to per-entity stores
 // ---------------------------------------------------------------------------
@@ -41,7 +54,7 @@ interface SaveMeta {
 export async function saveGame(): Promise<void> {
   try {
     const sect = useSectStore.getState().sect
-    const activeRuns = useAdventureStore.getState().activeRuns
+    const { activeRuns, dispatches } = useAdventureStore.getState()
     const db = await getDB()
     const storeNames = ['meta', 'characters', 'buildings', 'vault', 'pets', 'adventure'] as const
     const tx = db.transaction(storeNames, 'readwrite')
@@ -99,11 +112,22 @@ export async function saveGame(): Promise<void> {
     // Write adventure runs
     const advStore = tx.objectStore('adventure')
     for (const run of Object.values(activeRuns)) {
-      await advStore.put({ id: run.id, run })
+      await advStore.put({ id: run.id, kind: 'run', run })
+    }
+    for (const dispatch of dispatches) {
+      await advStore.put({
+        id: `dispatch_${dispatch.characterId}`,
+        kind: 'dispatch',
+        dispatch,
+      })
     }
     const advKeys = await advStore.getAllKeys()
+    const expectedAdventureKeys = new Set([
+      ...Object.keys(activeRuns),
+      ...dispatches.map((dispatch) => `dispatch_${dispatch.characterId}`),
+    ])
     for (const k of advKeys) {
-      if (!((k as string) in activeRuns)) await advStore.delete(k)
+      if (!expectedAdventureKeys.has(k as string)) await advStore.delete(k)
     }
 
     await tx.done
@@ -149,14 +173,40 @@ export async function loadGame(): Promise<boolean> {
       return c
     })
 
-    const characters = migratedCharacters.map((c) => ({
-      ...c,
-      backpack: migrateToItemStacks(c.backpack),
-      specialties: (c as any).specialties ?? [],
-      assignedBuilding: (c as any).assignedBuilding ?? null,
-      cultivationPath: (c as any).cultivationPath ?? 'none',
-      fateTags: (c as any).fateTags ?? [],
-    }))
+    const advRecords = (await db.getAll('adventure')) as Array<SavedAdventureRunRecord | SavedDispatchRecord>
+    const dispatches: DispatchState[] = advRecords.flatMap((rec) =>
+      rec.kind === 'dispatch' && 'dispatch' in rec ? [rec.dispatch] : []
+    )
+    const dispatchCharacterIds = new Set(dispatches.map((dispatch) => dispatch.characterId))
+    const activeRunCharacterIds = new Set(advRecords.flatMap((rec) => ('run' in rec ? rec.run.teamCharacterIds : [])))
+    const unlockedBuildingTypes = new Set(
+      buildings.filter((building) => building.unlocked).map((building) => building.type)
+    )
+
+    const characters = migratedCharacters.map((c) => {
+      const rawAssignedBuilding = (c as any).assignedBuilding ?? null
+      const hasValidTrainingAssignment =
+        c.status === 'training' && rawAssignedBuilding !== null && unlockedBuildingTypes.has(rawAssignedBuilding)
+
+      let normalizedStatus = c.status
+      if (c.status === 'patrolling' && !dispatchCharacterIds.has(c.id)) {
+        normalizedStatus = 'idle'
+      } else if (c.status === 'adventuring' && !activeRunCharacterIds.has(c.id)) {
+        normalizedStatus = 'idle'
+      } else if (c.status === 'training' && !hasValidTrainingAssignment) {
+        normalizedStatus = 'idle'
+      }
+
+      return {
+        ...c,
+        status: normalizedStatus,
+        backpack: migrateToItemStacks(c.backpack),
+        specialties: (c as any).specialties ?? [],
+        assignedBuilding: normalizedStatus === 'training' && hasValidTrainingAssignment ? rawAssignedBuilding : null,
+        cultivationPath: (c as any).cultivationPath ?? 'none',
+        fateTags: (c as any).fateTags ?? [],
+      }
+    })
 
     const sect: Sect = {
       name: meta.sectName,
@@ -205,23 +255,20 @@ export async function loadGame(): Promise<boolean> {
     useSectStore.setState({ sect })
 
     // Load adventure runs
-    const advRecords = await db.getAll('adventure')
-    if (advRecords.length > 0) {
-      const activeRuns: Record<string, DungeonRun> = {}
-      for (const rec of advRecords) {
-        const r = rec as { id: string; run: DungeonRun }
-        activeRuns[r.id] = {
-          ...r.run,
-          pendingShopOffers: (r.run as any).pendingShopOffers ?? [],
-          tacticalPreset: (r.run as any).tacticalPreset ?? 'balanced',
-          blessings: (r.run as any).blessings ?? [],
-          relics: (r.run as any).relics ?? [],
-          branchTags: (r.run as any).branchTags ?? [],
-          pendingBlessingOptions: (r.run as any).pendingBlessingOptions ?? [],
-        }
+    const activeRuns: Record<string, DungeonRun> = {}
+    for (const rec of advRecords) {
+      if (!('run' in rec)) continue
+      activeRuns[rec.id] = {
+        ...rec.run,
+        pendingShopOffers: (rec.run as any).pendingShopOffers ?? [],
+        tacticalPreset: (rec.run as any).tacticalPreset ?? 'balanced',
+        blessings: (rec.run as any).blessings ?? [],
+        relics: (rec.run as any).relics ?? [],
+        branchTags: (rec.run as any).branchTags ?? [],
+        pendingBlessingOptions: (rec.run as any).pendingBlessingOptions ?? [],
       }
-      useAdventureStore.setState({ activeRuns })
     }
+    useAdventureStore.setState({ activeRuns, dispatches })
 
     // Load event log from history store
     const historyRecords = await db.getAll('history')

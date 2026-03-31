@@ -94,6 +94,102 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     expect(useAdventureStore.getState().activeRuns['test_run_1'].currentFloor).toBe(3)
   })
 
+  it('should preserve dispatches through save/load with patrolling character status', async () => {
+    useGameStore.getState().startGame()
+    const characterId = useSectStore.getState().sect.characters[0].id
+
+    useSectStore.getState().setCharacterStatus(characterId, 'patrolling')
+    useAdventureStore.setState({
+      dispatches: [
+        {
+          characterId,
+          missionId: 'spiritStoneSweep',
+          progress: 45,
+          duration: 300,
+        },
+      ],
+    })
+
+    await saveGame()
+
+    useSectStore.getState().reset()
+    useAdventureStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const loadedCharacter = useSectStore.getState().sect.characters.find((c) => c.id === characterId)
+    expect(loadedCharacter?.status).toBe('patrolling')
+    expect(useAdventureStore.getState().dispatches).toEqual([
+      {
+        characterId,
+        missionId: 'spiritStoneSweep',
+        progress: 45,
+        duration: 300,
+      },
+    ])
+  })
+
+  it('should normalize patrolling status to idle when no dispatch record exists on load', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    const db = await getDB()
+    const character = useSectStore.getState().sect.characters[0]
+    await db.put('characters', { ...character, status: 'patrolling' })
+
+    useSectStore.getState().reset()
+    useAdventureStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const loadedCharacter = useSectStore.getState().sect.characters.find((c) => c.id === character.id)
+    expect(loadedCharacter?.status).toBe('idle')
+    expect(useAdventureStore.getState().dispatches).toEqual([])
+  })
+
+  it('should normalize adventuring status to idle when no active run includes the character', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    const db = await getDB()
+    const character = useSectStore.getState().sect.characters[0]
+    await db.put('characters', { ...character, status: 'adventuring' })
+
+    useSectStore.getState().reset()
+    useAdventureStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const loadedCharacter = useSectStore.getState().sect.characters.find((c) => c.id === character.id)
+    expect(loadedCharacter?.status).toBe('idle')
+  })
+
+  it('should normalize training status to idle when assigned building is missing or locked', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    const db = await getDB()
+    const character = useSectStore.getState().sect.characters[0]
+    await db.put('characters', { ...character, status: 'training', assignedBuilding: 'alchemyFurnace' })
+
+    useSectStore.getState().reset()
+    useAdventureStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const loadedCharacter = useSectStore.getState().sect.characters.find((c) => c.id === character.id)
+    expect(loadedCharacter?.status).toBe('idle')
+    expect(loadedCharacter?.assignedBuilding).toBeNull()
+  })
+
   it('should save characters to independent store', async () => {
     const sect = useSectStore.getState().sect
     expect(sect.characters.length).toBeGreaterThan(0)
