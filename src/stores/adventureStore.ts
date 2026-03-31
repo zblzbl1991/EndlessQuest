@@ -1,5 +1,16 @@
 import { create } from 'zustand'
-import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem, BlessingId, TacticalPreset } from '../types'
+import type {
+  Dungeon,
+  DungeonRun,
+  DungeonFloor,
+  Resources,
+  AnyItem,
+  BlessingId,
+  TacticalPreset,
+  AdventureRunConfig,
+  AdventureReport,
+  AdventureReportSummary,
+} from '../types'
 import { SUPPLY_COSTS } from '../types/adventure'
 import type { SupplyLevel } from '../types/adventure'
 import { useSectStore } from './sectStore'
@@ -21,6 +32,7 @@ import {
   pickBlessingOptions,
   pickRelicReward,
 } from '../systems/roguelike/RunBuildSystem'
+import { resolveAutomatedRun } from '../systems/roguelike/AutoRunEngine'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../data/archiveMilestones'
 import { BLESSINGS } from '../data/blessings'
 import { RELICS } from '../data/relics'
@@ -39,6 +51,12 @@ export interface DispatchState {
 export interface AdventureStore {
   /** All currently active dungeon runs, keyed by run id (Record for JSON serialization) */
   activeRuns: Record<string, DungeonRun>
+
+  /** Recent automation report summaries */
+  reports: AdventureReportSummary[]
+
+  /** Full automation reports keyed by id */
+  reportDetails: Record<string, AdventureReport>
 
   /** The dungeon definitions available */
   dungeons: Dungeon[]
@@ -65,8 +83,10 @@ export interface AdventureStore {
   completeRun(runId: string): void
   failRun(runId: string): void
   getRun(id: string): DungeonRun | undefined
+  getReport(id: string): AdventureReport | undefined
   getMaxSimultaneousRuns(): number
   reset(): void
+  runAutomation(config: AdventureRunConfig): AdventureReport | null
 
   // Dispatch
   startDispatch(characterId: string, missionId: string): void
@@ -88,6 +108,7 @@ export interface AdventureStore {
 
 /** Seconds per floor in idle mode */
 const FLOOR_TICK_SECONDS = 10
+const REPORT_LIMIT = 30
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -121,6 +142,22 @@ function emptyResources(): Resources {
     spiritEnergy: 0,
     herb: 0,
     ore: 0,
+  }
+}
+
+function summarizeReport(report: AdventureReport): AdventureReportSummary {
+  return {
+    id: report.id,
+    dungeonId: report.dungeonId,
+    teamCharacterIds: [...report.teamCharacterIds],
+    strategy: report.config.automationStrategy,
+    tacticalPreset: report.config.tacticalPreset,
+    startedAt: report.startedAt,
+    finishedAt: report.finishedAt,
+    result: report.result,
+    floorsCleared: report.floorsCleared,
+    rewards: { ...report.rewards },
+    itemRewardCount: report.itemRewards.length,
   }
 }
 
@@ -253,6 +290,8 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
 
 export const useAdventureStore = create<AdventureStore>((set, get) => ({
   activeRuns: {},
+  reports: [],
+  reportDetails: {},
   dungeons: DUNGEONS,
   completedDungeons: [],
   dispatches: [],
@@ -366,6 +405,86 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     emitEvent('adventure_start', `队伍进入秘境 ${dungeon.name}`)
 
     return run
+  },
+
+  runAutomation: (config) => {
+    const state = get()
+    const dungeon = findDungeon(config.dungeonId)
+    if (!dungeon) return null
+
+    const startedRun = state.startRun(
+      config.dungeonId,
+      config.teamCharacterIds,
+      config.supplyLevel ?? 'basic',
+      config.tacticalPreset ?? 'balanced'
+    )
+    if (!startedRun) return null
+
+    const { sect } = useSectStore.getState()
+    const baseTeamUnits = config.teamCharacterIds
+      .map((charId) => {
+        const character = sect.characters.find((c) => c.id === charId)
+        return character ? createCharacterCombatUnit(character, character.learnedTechniques) : null
+      })
+      .filter((unit): unit is CombatUnit => unit !== null)
+
+    if (baseTeamUnits.length !== config.teamCharacterIds.length) {
+      get().retreat(startedRun.id)
+      return null
+    }
+
+    const report = resolveAutomatedRun({
+      run: startedRun,
+      dungeon,
+      automationStrategy: config.automationStrategy,
+      baseTeamUnits,
+    })
+
+    const finalRun: DungeonRun = {
+      ...startedRun,
+      currentFloor: report.floorsCleared + 1,
+      memberStates: Object.fromEntries(
+        Object.entries(report.finalMemberStates).map(([id, state]) => [id, { ...state }])
+      ),
+      totalRewards: { ...report.rewards },
+      itemRewards: [...report.itemRewards],
+      status: 'active',
+    }
+
+    set((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [startedRun.id]: finalRun,
+      },
+    }))
+
+    if (report.result === 'completed') {
+      get().completeRun(startedRun.id)
+    } else if (report.result === 'failed') {
+      get().failRun(startedRun.id)
+    } else {
+      get().retreat(startedRun.id)
+    }
+
+    const summary = summarizeReport(report)
+    set((s) => {
+      const nextReports = [summary, ...s.reports.filter((existing) => existing.id !== summary.id)].slice(
+        0,
+        REPORT_LIMIT
+      )
+      const nextDetails = { ...s.reportDetails, [report.id]: report }
+      const keepIds = new Set(nextReports.map((item) => item.id))
+      for (const id of Object.keys(nextDetails)) {
+        if (!keepIds.has(id)) delete nextDetails[id]
+      }
+
+      return {
+        reports: nextReports,
+        reportDetails: nextDetails,
+      }
+    })
+
+    return report
   },
 
   selectRoute: (runId, routeIndex) => {
@@ -1064,6 +1183,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     return get().activeRuns[id]
   },
 
+  getReport: (id) => {
+    return get().reportDetails[id]
+  },
+
   getMaxSimultaneousRuns: () => {
     const level = getSectLevel()
     return getMaxSimultaneousRuns(level)
@@ -1072,6 +1195,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   reset: () =>
     set({
       activeRuns: {},
+      reports: [],
+      reportDetails: {},
       completedDungeons: [],
       dispatches: [],
     }),

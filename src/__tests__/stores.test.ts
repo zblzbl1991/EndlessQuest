@@ -1339,6 +1339,38 @@ describe('AdventureStore - getRun', () => {
   })
 })
 
+describe('AdventureStore - runAutomation', () => {
+  beforeEach(() => resetAdventureStore())
+
+  it('should resolve a run instantly into a stored report', () => {
+    const char = getStore().sect.characters[0]
+
+    const report = getAdventureStore().runAutomation({
+      dungeonId: 'lingCaoValley',
+      teamCharacterIds: [char.id],
+      supplyLevel: 'basic',
+      tacticalPreset: 'balanced',
+      automationStrategy: 'steady',
+    })
+
+    expect(report).not.toBeNull()
+    expect(getAdventureStore().reports[0]?.id).toBe(report!.id)
+    expect(getAdventureStore().getReport(report!.id)?.id).toBe(report!.id)
+    expect(getStore().sect.characters[0].status).toMatch(/idle|resting/)
+  })
+
+  it('tickAllIdle should still progress dispatches after adventure automation was introduced', () => {
+    const characterId = getStore().sect.characters[0].id
+
+    getAdventureStore().startDispatch(characterId, 'gather_herbs')
+    expect(getAdventureStore().dispatches[0]?.progress).toBe(0)
+
+    getAdventureStore().tickAllIdle(30)
+
+    expect(getAdventureStore().dispatches[0]?.progress).toBeGreaterThan(0)
+  })
+})
+
 describe('AdventureStore - reset', () => {
   beforeEach(() => resetAdventureStore())
 
