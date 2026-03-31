@@ -28,6 +28,11 @@ import type { BuildingType, ResourceType, Resources, Building, Sect } from '../t
 
 import type {
   EventType,
+  AutomationStrategy,
+  AdventureRunConfig,
+  AdventureReport,
+  AdventureReportStep,
+  AdventureReportSummary,
   Enemy,
   EnemyAffix,
   TacticalPreset,
@@ -446,6 +451,90 @@ describe('Adventure types', () => {
   it('TacticalPreset should accept all preset values', () => {
     const presets: TacticalPreset[] = ['conservative', 'balanced', 'burst', 'bossCounter']
     expect(presets).toHaveLength(4)
+  })
+
+  it('AutomationStrategy should accept all automation values', () => {
+    const strategies: AutomationStrategy[] = ['steady', 'combat', 'profit']
+    expect(strategies).toHaveLength(3)
+  })
+
+  it('should create an AdventureRunConfig', () => {
+    const config: AdventureRunConfig = {
+      dungeonId: 'lingCaoValley',
+      teamCharacterIds: ['char1'],
+      supplyLevel: 'basic',
+      tacticalPreset: 'balanced',
+      automationStrategy: 'combat',
+    }
+
+    expect(config.automationStrategy).toBe('combat')
+  })
+
+  it('should create an AdventureReportStep with optional reasoning', () => {
+    const step: AdventureReportStep = {
+      id: 'step_1',
+      type: 'route_selected',
+      timestamp: Date.now(),
+      floor: 2,
+      summary: '选择了左侧岔路',
+      detail: '收益策略下优先选择灵草较多的中风险路线。',
+      decisionReason: '当前队伍状态稳定，优先资源收益',
+      snapshot: {
+        teamHp: {
+          char1: { currentHp: 90, maxHp: 100, status: 'alive' },
+        },
+        rewards: { spiritStone: 100, spiritEnergy: 0, herb: 10, ore: 0 },
+        blessings: [],
+        relics: [],
+        branchTags: ['medium'],
+      },
+      meta: { routeId: 'route_2_1' },
+    }
+
+    expect(step.type).toBe('route_selected')
+    expect(step.snapshot?.teamHp.char1.currentHp).toBe(90)
+  })
+
+  it('should create an AdventureReport and AdventureReportSummary', () => {
+    const report: AdventureReport = {
+      id: 'report_1',
+      config: {
+        dungeonId: 'lingCaoValley',
+        teamCharacterIds: ['char1'],
+        supplyLevel: 'basic',
+        tacticalPreset: 'balanced',
+        automationStrategy: 'steady',
+      },
+      dungeonId: 'lingCaoValley',
+      teamCharacterIds: ['char1'],
+      startedAt: 1,
+      finishedAt: 2,
+      result: 'completed',
+      floorsCleared: 5,
+      rewards: { spiritStone: 120, spiritEnergy: 0, herb: 12, ore: 0 },
+      itemRewards: [],
+      finalMemberStates: {
+        char1: { currentHp: 80, maxHp: 100, status: 'alive' },
+      },
+      steps: [],
+    }
+
+    const summary: AdventureReportSummary = {
+      id: report.id,
+      dungeonId: report.dungeonId,
+      teamCharacterIds: report.teamCharacterIds,
+      strategy: report.config.automationStrategy,
+      tacticalPreset: report.config.tacticalPreset,
+      startedAt: report.startedAt,
+      finishedAt: report.finishedAt,
+      result: report.result,
+      floorsCleared: report.floorsCleared,
+      rewards: report.rewards,
+      itemRewardCount: report.itemRewards.length,
+    }
+
+    expect(summary.strategy).toBe('steady')
+    expect(summary.result).toBe('completed')
   })
 
   it('Enemy should support optional affixes and skillIds', () => {

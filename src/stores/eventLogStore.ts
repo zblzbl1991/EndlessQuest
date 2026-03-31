@@ -27,11 +27,12 @@ export interface GameEvent {
   timestamp: number
   type: EventType
   message: string
+  data?: Record<string, unknown>
 }
 
 export interface EventLogStore {
   events: GameEvent[]
-  addEvent: (type: EventType, message: string) => void
+  addEvent: (type: EventType, message: string, data?: Record<string, unknown>) => void
   reset: () => void
 }
 
@@ -45,12 +46,13 @@ let _counter = 0
 export const useEventLogStore = create<EventLogStore>((set) => ({
   events: [],
 
-  addEvent: (type, message) => {
+  addEvent: (type, message, data = {}) => {
     const evt: GameEvent = {
       id: 'evt_' + Date.now() + '_' + ++_counter,
       timestamp: Date.now(),
       type,
       message,
+      data,
     }
     set((s) => ({
       events: [evt, ...s.events].slice(0, MAX_EVENTS),
@@ -64,12 +66,12 @@ export const useEventLogStore = create<EventLogStore>((set) => ({
 // Convenience: standalone emit (no hook needed)
 // ---------------------------------------------------------------------------
 
-export function emitEvent(type: EventType, message: string): void {
-  useEventLogStore.getState().addEvent(type, message)
+export function emitEvent(type: EventType, message: string, data: Record<string, unknown> = {}): void {
+  useEventLogStore.getState().addEvent(type, message, data)
   void addHistoryEntry({
     type,
     timestamp: Date.now(),
     summary: message,
-    data: {},
+    data,
   })
 }
