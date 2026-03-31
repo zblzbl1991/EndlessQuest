@@ -2,10 +2,11 @@ import type { Character, CharacterQuality } from '../../types/character'
 import type { TechniqueTier } from '../../types/technique'
 import { getRealmName, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
-import { calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
+import { calcEffectiveCultivationRate } from '../../systems/cultivation/CultivationDisplay'
 import { getPathName } from '../../data/cultivationPaths'
 import { getFateTagDef } from '../../data/fateTags'
 import { formatCultivationValue } from '../../utils/format'
+import { useSectStore } from '../../stores/sectStore'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
 import styles from './CharacterCard.module.css'
@@ -32,6 +33,7 @@ interface CharacterCardProps {
 }
 
 export default function CharacterCard({ character, onClick }: CharacterCardProps) {
+  const sect = useSectStore((s) => s.sect)
   const TECHNIQUE_TIER_CLASS: Record<TechniqueTier, string> = {
     mortal: styles.techMortal,
     spirit: styles.techSpirit,
@@ -42,6 +44,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
 
   const realmName = getRealmName(character.realm, character.realmStage)
   const needed = getCultivationNeeded(character.realm, character.realmStage)
+  const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
 
   return (
     <div
@@ -101,7 +104,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
               修为 {formatCultivationValue(character.cultivation)}/{needed.toLocaleString()}
             </span>
             <span>·</span>
-            <span>+{calcCultivationRate(character, character.learnedTechniques).toFixed(1)}/s</span>
+            <span>+{effectiveCultivationSpeed.toFixed(1)}/s</span>
           </div>
         </div>
       )}

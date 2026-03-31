@@ -62,6 +62,16 @@ describe('CharactersPage', () => {
     expect(getCultivationHeaderText()).toMatch(/^(0\.\d|1\.\d) \/ 100/)
   })
 
+  it('shows zero effective cultivation rate when there is no spirit supply', () => {
+    const character = useSectStore.getState().sect.characters[0]
+
+    render(<CharactersPage />)
+
+    fireEvent.click(screen.getByText(character.name))
+
+    expect(getCultivationHeaderText()).toContain('(+0.0/s)')
+  })
+
   it('updates cultivation text over time when the idle engine is running', () => {
     vi.useFakeTimers()
 

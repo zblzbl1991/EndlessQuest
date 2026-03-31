@@ -4,7 +4,7 @@ import { useAdventureStore } from '../stores/adventureStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getAvailableMissions, DISPATCH_MISSIONS } from '../data/missions'
-import { calcCultivationRate } from '../systems/cultivation/CultivationEngine'
+import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
 import { getPathDef } from '../data/cultivationPaths'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
@@ -137,6 +137,7 @@ export default function CharactersPage() {
 // ---------------------------------------------------------------------------
 
 function CharacterDetail({ characterId, onBack }: { characterId: string; onBack: () => void }) {
+  const sect = useSectStore((s) => s.sect)
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const equipItem = useSectStore((s) => s.equipItem)
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
@@ -155,7 +156,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
   const needed = getCultivationNeeded(character.realm, character.realmStage)
 
   // Cultivation speed
-  const cultivationSpeed = calcCultivationRate(character, character.learnedTechniques)
+  const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
 
   function formatBonusValue(type: string, value: number): string {
     if (type === 'crit' || type === 'critDmg' || type === 'cultivationRate') {
@@ -202,7 +203,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <span className={styles.progressText}>
             {formatCultivationValue(character.cultivation)} / {needed.toLocaleString()} (+
-            {cultivationSpeed.toFixed(1)}/s)
+            {effectiveCultivationSpeed.toFixed(1)}/s)
           </span>
         </div>
       </div>
@@ -265,7 +266,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
       <section className={styles.section}>
         <div className={styles.sectionTitle}>修炼</div>
         <div className={styles.cultivationInfo}>
-          <span>修炼速度: {cultivationSpeed.toFixed(1)}/s</span>
+          <span>修炼速度: {effectiveCultivationSpeed.toFixed(1)}/s</span>
         </div>
         <BreakthroughPanel characterId={characterId} />
         <div className={styles.cultivationActions}>
