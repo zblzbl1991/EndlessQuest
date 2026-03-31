@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSectStore } from '../../stores/sectStore'
 import { calcResourceRates } from '../../systems/economy/ResourceEngine'
+import { PixelIcon } from './PixelIcon'
 import styles from './ResourceRate.module.css'
 
 export default function ResourceRate() {
@@ -20,35 +21,41 @@ export default function ResourceRate() {
     <div className={styles.container}>
       {rates.spiritEnergy > 0 && (
         <span className={styles.rateItem}>
+          <PixelIcon name="spiritEnergy" size={14} className={styles.rateIcon} aria-label="灵气产出" />
           <span className={styles.rateLabel}>灵气</span>
           <span className={styles.rateValue}>+{rates.spiritEnergy.toFixed(1)}/s</span>
         </span>
       )}
       {spiritConsumption > 0 && (
         <span className={styles.rateItem}>
+          <PixelIcon name="cultivation" size={14} className={styles.rateIcon} aria-label="修炼消耗" />
           <span className={styles.rateLabel}>修炼</span>
           <span className={styles.rateValueNegative}>-{spiritConsumption}/s</span>
         </span>
       )}
       {rates.spiritStone > 0 && (
         <span className={styles.rateItem}>
+          <PixelIcon name="spiritStone" size={14} className={styles.rateIcon} aria-label="灵石产出" />
           <span className={styles.rateLabel}>灵石</span>
           <span className={styles.rateValue}>+{rates.spiritStone.toFixed(1)}/s</span>
         </span>
       )}
       {rates.herb > 0 && (
         <span className={styles.rateItem}>
+          <PixelIcon name="herb" size={14} className={styles.rateIcon} aria-label="灵草产出" />
           <span className={styles.rateLabel}>灵草</span>
           <span className={styles.rateValue}>+{rates.herb.toFixed(1)}/s</span>
         </span>
       )}
       {rates.ore > 0 ? (
         <span className={styles.rateItem}>
+          <PixelIcon name="ore" size={14} className={styles.rateIcon} aria-label="矿材产出" />
           <span className={styles.rateLabel}>矿材</span>
           <span className={styles.rateValue}>+{rates.ore.toFixed(2)}/s</span>
         </span>
       ) : (
         <span className={styles.rateItem}>
+          <PixelIcon name="ore" size={14} className={styles.rateIcon} aria-label="矿材" />
           <span className={styles.rateLabel}>矿材</span>
           <span className={styles.rateHint}>冒险获取</span>
         </span>

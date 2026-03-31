@@ -1,6 +1,7 @@
 import { useSectStore } from '../../stores/sectStore'
 import type { Equipment } from '../../types/item'
 import { EQUIP_SLOTS, EQUIP_SLOT_NAMES } from '../../data/items'
+import { PixelIcon } from '../common/PixelIcon'
 import styles from './EquipPanel.module.css'
 
 interface EquipPanelProps {
@@ -30,16 +31,43 @@ export default function EquipPanel({ characterId, onItemClick, onSlotClick }: Eq
 
   return (
     <div className={styles.panel}>
-      <div className={styles.title}>已装备</div>
+      <div className={styles.title}>
+        <PixelIcon name="typeEquipment" size={18} className={styles.inlineIcon} aria-label="已装备" />
+        已装备
+      </div>
       <div className={styles.slots}>
         {character.equippedGear.map((gearId, idx) => {
           const item = gearId ? findEquipmentById(gearId) : null
           const slotKey = EQUIP_SLOTS[idx] ?? ''
+          const slotIcon =
+            slotKey === 'head'
+              ? 'equipHead'
+              : slotKey === 'armor'
+                ? 'equipArmor'
+                : slotKey === 'bracer'
+                  ? 'equipBracer'
+                  : slotKey === 'belt'
+                    ? 'equipBelt'
+                    : slotKey === 'boots'
+                      ? 'equipBoots'
+                      : slotKey === 'weapon'
+                        ? 'equipWeapon'
+                        : slotKey === 'talisman'
+                          ? 'equipTalisman'
+                          : 'equipAccessory'
           return (
             <div key={idx} className={styles.slot} onClick={() => (item ? onItemClick(item) : onSlotClick(idx))}>
-              <span className={styles.slotName}>{EQUIP_SLOT_NAMES[slotKey]}</span>
+              <span className={styles.slotName}>
+                <PixelIcon
+                  name={slotIcon}
+                  size={14}
+                  className={styles.inlineIcon}
+                  aria-label={EQUIP_SLOT_NAMES[slotKey]}
+                />
+                {EQUIP_SLOT_NAMES[slotKey]}
+              </span>
               {item ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <div className={styles.slotItemRow}>
                   <span className={styles.slotItem}>
                     {item.name}
                     {item.enhanceLevel > 0 ? ` +${item.enhanceLevel}` : ''}

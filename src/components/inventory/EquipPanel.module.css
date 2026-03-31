@@ -7,11 +7,18 @@
 }
 
 .title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 700;
   color: var(--color-accent);
   margin-bottom: var(--space-sm);
+}
+
+.inlineIcon {
+  opacity: 0.95;
 }
 
 .slots {
@@ -37,7 +44,16 @@
 }
 
 .slotName {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--color-text-secondary);
+}
+
+.slotItemRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .slotItem {

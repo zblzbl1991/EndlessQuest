@@ -4,6 +4,7 @@ import { useAdventureStore } from '../stores/adventureStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getAvailableMissions, DISPATCH_MISSIONS } from '../data/missions'
+import { getActiveSkillById } from '../data/activeSkills'
 import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
 import { getPathDef } from '../data/cultivationPaths'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
@@ -102,6 +103,18 @@ function getMissionIconName(missionId: string): string {
     default:
       return 'dispatch'
   }
+}
+
+function getSkillIconName(skillId: string): string {
+  const skill = getActiveSkillById(skillId)
+  if (!skill) return 'technique'
+  if (skill.category === 'ultimate') return 'eventBoss'
+  if (skill.element === 'lightning') return 'thunderArt'
+  if (skill.element === 'fire') return 'spellPath'
+  if (skill.element === 'ice') return skill.category === 'attack' ? 'swordManual' : 'spellPath'
+  if (skill.element === 'healing') return 'eventRest'
+  if (skill.category === 'defense') return 'bodyPath'
+  return 'technique'
 }
 
 // ---------------------------------------------------------------------------
@@ -554,6 +567,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
       {/* Backpack */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>
+          <PixelIcon name="building" size={16} className={styles.inlineIcon} aria-label="背包" />
           背包 ({character.backpack.length}/{character.maxBackpackSlots})
         </div>
         <div className={styles.backpackGrid}>
@@ -596,14 +610,28 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
       {/* Skills */}
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>技能</div>
+        <div className={styles.sectionTitle}>
+          <PixelIcon name="technique" size={16} className={styles.inlineIcon} aria-label="技能" />
+          技能
+        </div>
         <div className={styles.skillsGrid}>
           {character.equippedSkills.map((skillId, idx) => (
             <div key={idx} className={styles.skillSlot}>
               {skillId ? (
-                <span className={styles.skillName}>{skillId}</span>
+                <span className={styles.skillName}>
+                  <PixelIcon
+                    name={getSkillIconName(skillId)}
+                    size={14}
+                    className={styles.inlineIcon}
+                    aria-label={skillId}
+                  />
+                  {getActiveSkillById(skillId)?.name ?? skillId}
+                </span>
               ) : (
-                <span className={styles.skillEmpty}>{idx < 4 ? `技能${idx + 1}` : '绝技'}</span>
+                <span className={styles.skillEmpty}>
+                  <PixelIcon name="technique" size={14} className={styles.inlineIcon} aria-label="空技能槽" />
+                  {idx < 4 ? `技能${idx + 1}` : '绝技'}
+                </span>
               )}
             </div>
           ))}
@@ -612,7 +640,10 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
             const actualIdx = character.equippedSkills.length + i
             return (
               <div key={`empty-${actualIdx}`} className={styles.skillSlot}>
-                <span className={styles.skillEmpty}>{actualIdx < 4 ? `技能${actualIdx + 1}` : '绝技'}</span>
+                <span className={styles.skillEmpty}>
+                  <PixelIcon name="technique" size={14} className={styles.inlineIcon} aria-label="空技能槽" />
+                  {actualIdx < 4 ? `技能${actualIdx + 1}` : '绝技'}
+                </span>
               </div>
             )
           })}

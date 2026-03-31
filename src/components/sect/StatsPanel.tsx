@@ -1,5 +1,6 @@
 import { useSectStore } from '../../stores/sectStore'
 import { calcResourceRates } from '../../systems/economy/ResourceEngine'
+import { PixelIcon } from '../common/PixelIcon'
 import styles from './StatsPanel.module.css'
 
 export default function StatsPanel() {
@@ -27,11 +28,17 @@ export default function StatsPanel() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.title}>宗门统计</div>
+      <div className={styles.title}>
+        <PixelIcon name="mainHall" size={18} className={styles.inlineIcon} aria-label="宗门统计" />
+        宗门统计
+      </div>
 
       {/* Resources */}
       <div className={styles.category}>
-        <div className={styles.categoryLabel}>资源</div>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="spiritStone" size={16} className={styles.inlineIcon} aria-label="资源" />
+          资源
+        </div>
         <div className={styles.statRows}>
           <StatRow label="总灵石收入" value={stats.totalSpiritStoneEarned.toLocaleString('zh-CN')} />
           <StatRow label="总灵石支出" value={stats.totalSpiritStoneSpent.toLocaleString('zh-CN')} />
@@ -41,7 +48,10 @@ export default function StatsPanel() {
 
       {/* Combat */}
       <div className={styles.category}>
-        <div className={styles.categoryLabel}>战斗</div>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="eventCombat" size={16} className={styles.inlineIcon} aria-label="战斗" />
+          战斗
+        </div>
         <div className={styles.statRows}>
           <StatRow label="总战斗次数" value={stats.totalBattles.toLocaleString('zh-CN')} />
           <StatRow label="胜率" value={`${winRate}%`} />
@@ -52,7 +62,10 @@ export default function StatsPanel() {
 
       {/* Disciples */}
       <div className={styles.category}>
-        <div className={styles.categoryLabel}>弟子</div>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="弟子" />
+          弟子
+        </div>
         <div className={styles.statRows}>
           <StatRow label="总招募数" value={stats.totalRecruits.toLocaleString('zh-CN')} />
           <StatRow
@@ -64,7 +77,10 @@ export default function StatsPanel() {
 
       {/* Buildings */}
       <div className={styles.category}>
-        <div className={styles.categoryLabel}>建筑</div>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="building" size={16} className={styles.inlineIcon} aria-label="建筑" />
+          建筑
+        </div>
         <div className={styles.statRows}>
           <StatRow label="总升级次数" value={stats.totalBuildingUpgrades.toLocaleString('zh-CN')} />
         </div>
@@ -72,7 +88,10 @@ export default function StatsPanel() {
 
       {/* Adventure */}
       <div className={styles.category}>
-        <div className={styles.categoryLabel}>秘境</div>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="dungeonCave" size={16} className={styles.inlineIcon} aria-label="秘境" />
+          秘境
+        </div>
         <div className={styles.statRows}>
           <StatRow label="总运行次数" value={stats.totalAdventureRuns.toLocaleString('zh-CN')} />
           <StatRow label="完成次数" value={stats.totalAdventureCompletions.toLocaleString('zh-CN')} />
@@ -82,7 +101,10 @@ export default function StatsPanel() {
 
       {/* Pets */}
       <div className={styles.category}>
-        <div className={styles.categoryLabel}>灵宠</div>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="beastPath" size={16} className={styles.inlineIcon} aria-label="灵宠" />
+          灵宠
+        </div>
         <div className={styles.statRows}>
           <StatRow label="总捕获数" value={stats.totalPetCaptures.toLocaleString('zh-CN')} />
         </div>
@@ -90,7 +112,10 @@ export default function StatsPanel() {
 
       {/* Time */}
       <div className={styles.category}>
-        <div className={styles.categoryLabel}>时间</div>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="eventRest" size={16} className={styles.inlineIcon} aria-label="时间" />
+          时间
+        </div>
         <div className={styles.statRows}>
           <StatRow label="游戏时长" value={`${playHours}时${playMinutes}分`} />
           {longestOfflineMin > 0 && (

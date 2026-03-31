@@ -3,6 +3,7 @@ import { useSectStore } from '../../stores/sectStore'
 import { canAscend } from '../../systems/sect/LegacySystem'
 import { LEGACY_REWARD_TIERS, getLegacyBonus } from '../../data/legacy'
 import { BUILDING_DEFS } from '../../data/buildings'
+import { PixelIcon } from '../common/PixelIcon'
 import styles from './LegacyPanel.module.css'
 
 export default function LegacyPanel() {
@@ -20,7 +21,10 @@ export default function LegacyPanel() {
 
   return (
     <div className={styles.container}>
-      <div className={styles.title}>传承飞升</div>
+      <div className={styles.title}>
+        <PixelIcon name="eventAncientCave" size={18} className={styles.inlineIcon} aria-label="传承飞升" />
+        传承飞升
+      </div>
 
       {/* Current status */}
       <div className={styles.statusCard}>
@@ -49,7 +53,10 @@ export default function LegacyPanel() {
       </div>
 
       {/* Conditions checklist */}
-      <div className={styles.sectionLabel}>飞升条件</div>
+      <div className={styles.sectionLabel}>
+        <PixelIcon name="realmGoldenCore" size={14} className={styles.inlineIcon} aria-label="飞升条件" />
+        飞升条件
+      </div>
       <div className={styles.checklist}>
         <CheckItem label="至少 1 名弟子达到化神期" met={sect.characters.some((c) => c.realm >= 4)} />
         <CheckItem
@@ -68,7 +75,10 @@ export default function LegacyPanel() {
       {/* Next reward preview */}
       {nextTier && (
         <>
-          <div className={styles.sectionLabel}>下次飞升奖励预览</div>
+          <div className={styles.sectionLabel}>
+            <PixelIcon name="eventAncientCave" size={14} className={styles.inlineIcon} aria-label="下次飞升奖励预览" />
+            下次飞升奖励预览
+          </div>
           <div className={styles.rewardPreview}>
             <div className={styles.rewardTier}>
               <span className={styles.tierCount}>第 {nextTier.ascensionCount} 次飞升</span>
@@ -138,7 +148,14 @@ export default function LegacyPanel() {
 function CheckItem({ label, met, detail }: { label: string; met: boolean; detail?: string }) {
   return (
     <div className={`${styles.checkItem} ${met ? styles.checkMet : styles.checkUnmet}`}>
-      <span className={styles.checkDot}>{met ? '✓' : '✗'}</span>
+      <span className={styles.checkDot}>
+        <PixelIcon
+          name={met ? 'eventAncientCave' : 'eventBoss'}
+          size={12}
+          className={styles.checkIcon}
+          aria-label={met ? '达成' : '未达成'}
+        />
+      </span>
       <div className={styles.checkInfo}>
         <span className={styles.checkLabel}>{label}</span>
         {detail && !met && <span className={styles.checkDetail}>{detail}</span>}

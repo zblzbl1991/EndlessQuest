@@ -11,6 +11,10 @@
   color: var(--color-text-secondary);
 }
 
+.rateIcon {
+  opacity: 0.94;
+}
+
 .rateLabel {
   color: var(--color-text-tertiary);
 }

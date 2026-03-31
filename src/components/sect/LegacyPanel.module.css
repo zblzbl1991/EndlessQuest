@@ -3,6 +3,9 @@
 }
 
 .title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 600;
@@ -10,6 +13,10 @@
   margin-bottom: var(--space-sm);
   padding-left: var(--space-xs);
   border-left: 2px solid var(--color-accent);
+}
+
+.inlineIcon {
+  opacity: 0.95;
 }
 
 /* Status card */
@@ -60,6 +67,9 @@
 
 /* Section labels */
 .sectionLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-text-tertiary);
@@ -95,9 +105,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
-  font-weight: 700;
   margin-top: 1px;
+}
+
+.checkIcon {
+  opacity: 0.96;
 }
 
 .checkMet .checkDot {

@@ -3,6 +3,9 @@
 }
 
 .title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 600;
@@ -10,6 +13,10 @@
   margin-bottom: var(--space-sm);
   padding-left: var(--space-xs);
   border-left: 2px solid var(--color-accent);
+}
+
+.inlineIcon {
+  opacity: 0.95;
 }
 
 /* Category sections */
@@ -22,6 +29,9 @@
 }
 
 .categoryLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 12px;
   font-weight: 600;
