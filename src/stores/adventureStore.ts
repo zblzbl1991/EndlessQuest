@@ -80,8 +80,8 @@ export interface AdventureStore {
   retreat(runId: string): void
   idleTick(runId: string, deltaSec: number): void
   tickAllIdle(deltaSec: number): void
-  completeRun(runId: string): void
-  failRun(runId: string): void
+  completeRun(runId: string, eventData?: Record<string, unknown>): void
+  failRun(runId: string, eventData?: Record<string, unknown>): void
   getRun(id: string): DungeonRun | undefined
   getReport(id: string): AdventureReport | undefined
   getMaxSimultaneousRuns(): number
@@ -458,12 +458,20 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       },
     }))
 
+    const reportEventData = {
+      reportId: report.id,
+      dungeonId: report.dungeonId,
+      result: report.result,
+      floorsCleared: report.floorsCleared,
+    }
+
     if (report.result === 'completed') {
-      get().completeRun(startedRun.id)
+      get().completeRun(startedRun.id, reportEventData)
     } else if (report.result === 'failed') {
-      get().failRun(startedRun.id)
+      get().failRun(startedRun.id, reportEventData)
     } else {
       get().retreat(startedRun.id)
+      emitEvent('adventure_fail', `秘境 ${dungeon.name} 撤退`, reportEventData)
     }
 
     const summary = summarizeReport(report)
@@ -873,13 +881,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     }
   },
 
-  completeRun: (runId) => {
+  completeRun: (runId, eventData = {}) => {
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`)
+    emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`, eventData)
     unlockSectMilestone('firstDungeonClear')
 
     // Update stats: adventure completion + max floor
@@ -926,13 +934,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     })
   },
 
-  failRun: (runId) => {
+  failRun: (runId, eventData = {}) => {
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_fail', `秘境 ${dungeonName} 失败`)
+    emitEvent('adventure_fail', `秘境 ${dungeonName} 失败`, eventData)
 
     // Update stats: adventure failure
     useSectStore.setState((s) => ({
