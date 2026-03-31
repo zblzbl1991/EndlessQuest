@@ -155,3 +155,34 @@
   flex: 1;
   min-width: 0;
 }
+
+@media (max-width: 520px) {
+  .sectionHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: var(--space-xs);
+  }
+
+  .archiveHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .entry {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 8px;
+    align-items: start;
+  }
+
+  .time {
+    min-width: 0;
+  }
+
+  .message {
+    grid-column: 1 / -1;
+    padding-left: 0;
+    line-height: 1.5;
+  }
+}

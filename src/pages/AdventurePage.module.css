@@ -521,6 +521,25 @@
   color: var(--color-text-secondary);
 }
 
+.teamBuilderMeta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin: calc(var(--space-sm) * -1) 0 var(--space-xs);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.teamConfirmHint {
+  margin-bottom: var(--space-md);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.03);
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
 /* Team Actions */
 .teamActions {
   display: flex;

@@ -258,6 +258,13 @@ function TeamBuilder({
     return total
   }, [selectedIds, availableCharacters])
 
+  const confirmHint =
+    availableCharacters.length === 0
+      ? '当前没有可出战弟子，可先等待冒险、派遣或疗伤结束。'
+      : selectedIds.length === 0
+        ? '至少选择 1 名弟子后才可出发。'
+        : `本次将由 ${selectedIds.length} 名弟子组成队伍。`
+
   return (
     <div className={styles.overlay}>
       <div className={styles.teamBuilder}>
@@ -322,6 +329,11 @@ function TeamBuilder({
 
         <TacticPresetPicker value={preset} onChange={setPreset} />
         <div className={styles.teamBuilderHint}>默认会携带基础补给出发，途中获得的祝福与遗物会持续影响本次秘境。</div>
+        <div className={styles.teamBuilderMeta}>
+          <span>可选弟子 {availableCharacters.length} 名</span>
+          <span>已选 {selectedIds.length} 名</span>
+        </div>
+        <div className={styles.teamConfirmHint}>{confirmHint}</div>
 
         {/* Actions */}
         <div className={styles.teamActions}>

@@ -26,7 +26,7 @@ export default function RunBuildSummary({ tacticalPreset, blessings, relics, bra
       </div>
 
       <div className={styles.section}>
-        <div className={styles.label}>祝福</div>
+        <div className={styles.label}>祝福 {blessings.length > 0 ? `· ${blessings.length}` : ''}</div>
         <div className={styles.tags}>
           {blessings.length > 0 ? (
             blessings.map((id) => (
@@ -41,7 +41,7 @@ export default function RunBuildSummary({ tacticalPreset, blessings, relics, bra
       </div>
 
       <div className={styles.section}>
-        <div className={styles.label}>遗物</div>
+        <div className={styles.label}>遗物 {relics.length > 0 ? `· ${relics.length}` : ''}</div>
         <div className={styles.tags}>
           {relics.length > 0 ? (
             relics.map((id) => (
@@ -57,7 +57,7 @@ export default function RunBuildSummary({ tacticalPreset, blessings, relics, bra
 
       {branchTags.length > 0 && (
         <div className={styles.section}>
-          <div className={styles.label}>行路风格</div>
+          <div className={styles.label}>行路风格 · {branchTags.length}</div>
           <div className={styles.tags}>
             {branchTags.map((tag) => (
               <span key={tag} className={styles.branchTag}>
