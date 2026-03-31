@@ -1,0 +1,73 @@
+.panel {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: linear-gradient(180deg, rgba(139, 69, 19, 0.05), rgba(139, 69, 19, 0.02));
+  border: 1px solid rgba(139, 69, 19, 0.14);
+  border-radius: var(--radius-md);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.preset {
+  font-size: 11px;
+  color: var(--color-accent);
+}
+
+.section + .section {
+  margin-top: var(--space-xs);
+}
+
+.label {
+  margin-bottom: 4px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.blessingTag,
+.relicTag,
+.branchTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.blessingTag {
+  background: rgba(184, 134, 11, 0.12);
+  color: #8a5b00;
+}
+
+.relicTag {
+  background: rgba(69, 90, 100, 0.12);
+  color: #455a64;
+}
+
+.branchTag {
+  background: rgba(139, 69, 19, 0.1);
+  color: var(--color-accent);
+}
+
+.empty {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}

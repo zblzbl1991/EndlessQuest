@@ -1,7 +1,7 @@
 import type { ActiveSkill } from '../../types/skill'
 import type { EnemyAffix, TacticalPreset } from '../../types/adventure'
 import { getElementMultiplier } from '../../data/skills'
-import { selectAttackTarget, selectSupportTarget, increaseAggro } from './TargetingSystem'
+import { selectAttackTarget, increaseAggro } from './TargetingSystem'
 import { selectAction } from './SkillAI'
 import { applyBerserk, calcTribulationBaneDamage, calcSpiritDrainHeal, hasAffix } from './AffixSystem'
 
@@ -120,7 +120,7 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
       const enemyTeam = getEnemies(units, actor.team)
       if (enemyTeam.length === 0) break
 
-      const targetId = selectAttackTarget(enemyTeam)
+      const targetId = selectAttackTarget(enemyTeam.map((unit) => ({ ...unit, aggro: unit.aggro ?? 0 })))
       const target = enemyTeam.find((u) => u.id === targetId)
       if (!target) break
 

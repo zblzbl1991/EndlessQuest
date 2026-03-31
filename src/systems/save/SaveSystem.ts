@@ -16,7 +16,7 @@ const OLD_SAVE_KEY = 'endlessquest_save'
 
 interface SaveMeta {
   slot: number
-  version: 6
+  version: 7
   lastOnlineTime: number
   sectName: string
   sectLevel: number
@@ -31,6 +31,7 @@ interface SaveMeta {
   pathUnlockedAt: Sect['pathUnlockedAt']
   legacy: Sect['legacy']
   stats: SectStats
+  archiveMilestones: Sect['archiveMilestones']
 }
 
 // ---------------------------------------------------------------------------
@@ -48,7 +49,7 @@ export async function saveGame(): Promise<void> {
     // Write meta
     await tx.objectStore('meta').put({
       slot: 1,
-      version: 6,
+      version: 7,
       lastOnlineTime: Date.now(),
       sectName: sect.name,
       sectLevel: sect.level,
@@ -63,6 +64,7 @@ export async function saveGame(): Promise<void> {
       pathUnlockedAt: sect.pathUnlockedAt,
       legacy: sect.legacy,
       stats: sect.stats,
+      archiveMilestones: sect.archiveMilestones,
     })
 
     // Write characters
@@ -126,7 +128,7 @@ export async function loadGame(): Promise<boolean> {
     if (!meta) return false
 
     // Read per-entity stores
-    const rawCharacters = (await db.getAll('characters')) as Sect['characters']
+    const rawCharacters = (await db.getAll('characters')) as Array<Sect['characters'][number] & { status?: string }>
     const buildings = (await db.getAll('buildings')) as Sect['buildings']
     const rawVault = await db.getAll('vault')
     const pets = (await db.getAll('pets')) as Sect['pets']
@@ -140,7 +142,8 @@ export async function loadGame(): Promise<boolean> {
     const vault = migrateToItemStacks(rawVault)
     // Migrate v5→v6: cultivating/secluded → idle
     const migratedCharacters = rawCharacters.map((c) => {
-      if (c.status === 'cultivating' || c.status === 'secluded') {
+      const persistedStatus = c.status as string | undefined
+      if (persistedStatus === 'cultivating' || persistedStatus === 'secluded') {
         return { ...c, status: 'idle' as const }
       }
       return c
@@ -152,6 +155,7 @@ export async function loadGame(): Promise<boolean> {
       specialties: (c as any).specialties ?? [],
       assignedBuilding: (c as any).assignedBuilding ?? null,
       cultivationPath: (c as any).cultivationPath ?? 'none',
+      fateTags: (c as any).fateTags ?? [],
     }))
 
     const sect: Sect = {
@@ -177,6 +181,7 @@ export async function loadGame(): Promise<boolean> {
       unlockedPathNodeIds: (meta as any).unlockedPathNodeIds ?? [],
       pathUnlockedAt: (meta as any).pathUnlockedAt ?? null,
       legacy: (meta as any).legacy ?? { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      archiveMilestones: (meta as any).archiveMilestones ?? [],
       stats: (meta as any).stats ?? {
         totalSpiritStoneEarned: 0,
         totalSpiritStoneSpent: 0,
@@ -205,7 +210,15 @@ export async function loadGame(): Promise<boolean> {
       const activeRuns: Record<string, DungeonRun> = {}
       for (const rec of advRecords) {
         const r = rec as { id: string; run: DungeonRun }
-        activeRuns[r.id] = { ...r.run, pendingShopOffers: (r.run as any).pendingShopOffers ?? [] }
+        activeRuns[r.id] = {
+          ...r.run,
+          pendingShopOffers: (r.run as any).pendingShopOffers ?? [],
+          tacticalPreset: (r.run as any).tacticalPreset ?? 'balanced',
+          blessings: (r.run as any).blessings ?? [],
+          relics: (r.run as any).relics ?? [],
+          branchTags: (r.run as any).branchTags ?? [],
+          pendingBlessingOptions: (r.run as any).pendingBlessingOptions ?? [],
+        }
       }
       useAdventureStore.setState({ activeRuns })
     }
@@ -213,7 +226,15 @@ export async function loadGame(): Promise<boolean> {
     // Load event log from history store
     const historyRecords = await db.getAll('history')
     if (historyRecords.length > 0) {
-      const events = (historyRecords as any[]).sort((a: any, b: any) => b.timestamp - a.timestamp).slice(0, 200)
+      const events = (historyRecords as any[])
+        .sort((a: any, b: any) => b.timestamp - a.timestamp)
+        .slice(0, 200)
+        .map((entry: any, index: number) => ({
+          id: `hist_${entry.id ?? index}`,
+          timestamp: entry.timestamp,
+          type: entry.type,
+          message: entry.summary,
+        }))
       useEventLogStore.setState({ events })
     }
 

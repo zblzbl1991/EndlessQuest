@@ -1,5 +1,7 @@
 # P1: 弟子特长与建筑指派 + 宗门赋税 + 闭关系统 实现计划
 
+> Status Snapshot (2026-03-31): Largely implemented with one important design adjustment. Specialties, assignments, and tax systems are landed. The original seclusion design was superseded by the later status simplification, and the final shipped model uses `idle` auto-cultivation rather than a dedicated `secluded` state.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a specialty system where disciples can be assigned to buildings for production bonuses, implement passive spirit stone tax from the main hall, and add a seclusion mechanic that trades spirit stones for faster cultivation.

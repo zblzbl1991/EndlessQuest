@@ -1,5 +1,7 @@
 # IndexedDB 统一数据持久化 Implementation Plan
 
+> Status Snapshot (2026-03-31): Implemented. Unified IndexedDB persistence, migration handling, and per-entity save/load paths are active. Event history persistence was also reconnected and verified.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 将所有游戏数据从单一 JSON blob 拆分为按实体独立存储的 IndexedDB object stores，通过 write-through + debounce 自动持久化，完全消除 localStorage 依赖。

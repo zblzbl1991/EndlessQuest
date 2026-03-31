@@ -25,8 +25,10 @@ import { getSynergyBonus } from '../../systems/economy/SynergySystem'
 import { addItemQuantityToStacks } from '../../systems/item/ItemStackUtils'
 import { produceItemAsStack } from './initial'
 import { getTechniqueById } from '../../data/techniquesTable'
+import { resolveSuccessfulBreakthroughFates, resolveTribulationFailureFates } from '../../systems/character/FateSystem'
+import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
 
-export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   tickAll: (deltaSec: number) => {
     const { sect } = get()
 
@@ -137,6 +139,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
     let breakthroughStoneCost = 0
     let statBreakthroughAttempts = 0
     let statBreakthroughSuccesses = 0
+    let unlockedFirstTribulationSuccess = false
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
       if (char.status === 'idle') {
@@ -186,7 +189,12 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
                       realmStage: btResult.newStage,
                       cultivation: 0,
                       baseStats: btResult.newStats,
+                      fateTags: resolveSuccessfulBreakthroughFates(updatedChar.fateTags, {
+                        tribulation: true,
+                        failureRate,
+                      }),
                     }
+                    unlockedFirstTribulationSuccess = true
                     const comprehendedId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, true)
                     if (comprehendedId) {
                       updatedChar = {
@@ -211,6 +219,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
                     cultivation: 0,
                     status: 'injured' as const,
                     injuryTimer: tribResult.injuryTimer ?? 60,
+                    fateTags: resolveTribulationFailureFates(updatedChar.fateTags, tribResult.severe ?? false),
                   }
                   if (tribResult.severe && updatedChar.realmStage > 0) {
                     updatedChar = {
@@ -243,6 +252,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
                     realmStage: btResult.newStage,
                     cultivation: 0,
                     baseStats: btResult.newStats,
+                    fateTags: resolveSuccessfulBreakthroughFates(updatedChar.fateTags, {
+                      tribulation: false,
+                      failureRate,
+                    }),
                   }
                   // Breakthrough comprehension (major)
                   const comprehendedId = tryComprehendOnBreakthrough(
@@ -290,6 +303,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
                   realmStage: btResult.newStage,
                   cultivation: 0,
                   baseStats: btResult.newStats,
+                  fateTags: resolveSuccessfulBreakthroughFates(updatedChar.fateTags, {
+                    tribulation: false,
+                    failureRate,
+                  }),
                 }
                 // Breakthrough comprehension (sub-level)
                 const subComprehendedId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, false)
@@ -374,6 +391,15 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
     const spiritStoneEarned = rates.spiritStone * deltaSec + taxProduced
 
     // Build the updated sect for the set call
+    let archiveMilestones = sect.archiveMilestones
+    if (unlockedFirstTribulationSuccess) {
+      const nextMilestones = unlockArchiveMilestone(archiveMilestones, 'firstTribulationSuccess')
+      if (nextMilestones.length !== archiveMilestones.length) {
+        archiveMilestones = nextMilestones
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstTribulationSuccess').title}`)
+      }
+    }
+
     const newSect = {
       ...sect,
       characters: updatedCharacters,
@@ -382,6 +408,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], SectStore> = (set,
       vault: newVault,
       level: newSectLevel,
       offlineAccumulator: updatedAccumulator,
+      archiveMilestones,
       stats: {
         ...sect.stats,
         totalSpiritStoneEarned: sect.stats.totalSpiritStoneEarned + spiritStoneEarned,

@@ -9,8 +9,9 @@ import {
 } from '../../systems/character/CharacterEngine'
 import { getRecruitCostMult } from '../../systems/economy/BuildingEffects'
 import { emitEvent } from '../eventLogStore'
+import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
 
-export const createCharacterSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   addCharacter: (quality: CharacterQuality) => {
     const { sect } = get()
 
@@ -51,6 +52,21 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], SectStore> = 
         },
       },
     }))
+
+    if (character.quality !== 'common') {
+      const currentMilestones = get().sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstRareRecruit')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstRareRecruit').title}`)
+      }
+    }
+
     return character
   },
 
@@ -156,6 +172,20 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], SectStore> = 
         },
       },
     }))
+
+    if (character.quality !== 'common') {
+      const currentMilestones = get().sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstRareRecruit')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstRareRecruit').title}`)
+      }
+    }
 
     return character
   },

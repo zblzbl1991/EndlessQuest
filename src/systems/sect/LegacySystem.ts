@@ -104,6 +104,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     },
     // Preserve stats across ascensions
     stats: sect.stats,
+    archiveMilestones: sect.archiveMilestones,
   }
 
   const report: AscensionReport = {

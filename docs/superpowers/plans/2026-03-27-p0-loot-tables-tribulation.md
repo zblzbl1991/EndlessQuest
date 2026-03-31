@@ -1,5 +1,7 @@
 # P0: 掉落表系统 + 天劫系统 实现计划
 
+> Status Snapshot (2026-03-31): Implemented and integrated. Loot tables, loot resolution, and tribulation flow are present in code and covered by tests/build verification.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace hardcoded combat drops with weighted loot tables, and add a passive tribulation system for major realm breakthroughs with injury consequences.

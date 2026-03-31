@@ -1,0 +1,62 @@
+.panel {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  background: rgba(139, 69, 19, 0.05);
+  border: 1px solid rgba(139, 69, 19, 0.12);
+  border-radius: var(--radius-md);
+}
+
+.title {
+  margin-bottom: var(--space-xs);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xs);
+}
+
+.option {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.option:hover {
+  background: var(--color-panel-hover);
+}
+
+.optionActive {
+  border-color: var(--color-accent);
+  background: rgba(139, 69, 19, 0.08);
+}
+
+.optionName {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.optionDesc {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  line-height: 1.4;
+}
+
+@media (max-width: 420px) {
+  .options {
+    grid-template-columns: 1fr;
+  }
+}

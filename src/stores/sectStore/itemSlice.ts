@@ -1,12 +1,12 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
-import type { AnyItem, Consumable, Equipment, ItemStack } from '../../types'
+import type { AnyItem, Consumable, Equipment } from '../../types'
 import { findEquipmentById } from './initial'
 import { attemptEnhance } from '../../systems/equipment/EquipmentEngine'
 import { getBuildingLevel, getForgeBuff } from '../../systems/economy/BuildingEffects'
 import { addItemToStacks, removeStackAtIndex } from '../../systems/item/ItemStackUtils'
 
-export const createItemSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createItemSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   transferItemToCharacter: (characterId: string, vaultIndex: number) => {
     const { sect } = get()
     const char = sect.characters.find((c) => c.id === characterId)

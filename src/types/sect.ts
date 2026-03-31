@@ -3,6 +3,7 @@ import type { ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 
 export type SectPath = 'none' | 'pill' | 'sword' | 'beast'
+export type ArchiveMilestoneId = 'firstRareRecruit' | 'firstTribulationSuccess' | 'firstDungeonClear'
 
 export type BuildingType =
   | 'mainHall'
@@ -58,6 +59,11 @@ export interface LegacyBonus {
   unlockedDungeons: string[]
 }
 
+export interface ArchiveMilestoneEntry {
+  id: ArchiveMilestoneId
+  unlockedAt: number
+}
+
 /** 宗门累计统计 */
 export interface SectStats {
   totalSpiritStoneEarned: number
@@ -97,4 +103,5 @@ export interface Sect {
   pathUnlockedAt: number | null
   legacy: LegacyBonus
   stats: SectStats
+  archiveMilestones: ArchiveMilestoneEntry[]
 }

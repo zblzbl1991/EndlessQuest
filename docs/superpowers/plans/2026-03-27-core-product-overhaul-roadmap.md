@@ -1,5 +1,20 @@
 # Core Product Overhaul Implementation Plan
 
+> Status Snapshot (2026-03-31)
+>
+> The roadmap items in this document are now effectively implemented in the current codebase.
+>
+> Landed slices:
+> - Unified character state and action-oriented dashboard
+> - Adventure preparation flow with tactical presets
+> - Blessing / relic / branch-based run-build layer
+> - Disciple fate tags and sect archive milestones
+> - Long-term meta progression panels and supporting save data
+>
+> Notes:
+> - Some structures were implemented directly in existing files instead of the exact file split suggested here.
+> - The step-by-step checkboxes below were not updated during execution; use this snapshot as the authoritative state.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Reframe EndlessQuest around a clearer action loop, stronger roguelike decision-making, and tighter sect-disciple-adventure integration without discarding the existing codebase.

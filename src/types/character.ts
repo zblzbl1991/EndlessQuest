@@ -2,6 +2,7 @@ import type { ItemStack } from './item'
 import type { Talent } from './talent'
 
 export type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
+export type FateTag = 'tribulationScar' | 'heartDevilSeed' | 'suddenInsight' | 'stableDaoHeart'
 
 export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
 
@@ -67,4 +68,5 @@ export interface Character {
   specialties: Specialty[]
   assignedBuilding: string | null
   cultivationPath: CultivationPath
+  fateTags: FateTag[]
 }

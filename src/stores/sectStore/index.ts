@@ -15,17 +15,20 @@ import { createMiscSlice } from './miscSlice'
 
 export type { SectStore } from './types'
 
-export const useSectStore = create<SectStore>()((...a) => ({
-  ...createInitialSlice(...a),
-  ...createCharacterSlice(...a),
-  ...createBuildingSlice(...a),
-  ...createResourceSlice(...a),
-  ...createItemSlice(...a),
-  ...createTechniqueSlice(...a),
-  ...createPetSlice(...a),
-  ...createTickSlice(...a),
-  ...createShopSlice(...a),
-  ...createSectPathSlice(...a),
-  ...createLegacySlice(...a),
-  ...createMiscSlice(...a),
-}))
+export const useSectStore = create<SectStore>()(
+  (...a) =>
+    ({
+      ...createInitialSlice(...a),
+      ...createCharacterSlice(...a),
+      ...createBuildingSlice(...a),
+      ...createResourceSlice(...a),
+      ...createItemSlice(...a),
+      ...createTechniqueSlice(...a),
+      ...createPetSlice(...a),
+      ...createTickSlice(...a),
+      ...createShopSlice(...a),
+      ...createSectPathSlice(...a),
+      ...createLegacySlice(...a),
+      ...createMiscSlice(...a),
+    }) as SectStore
+)

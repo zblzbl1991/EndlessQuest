@@ -4,6 +4,7 @@ import { getRealmName, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
 import { getPathName } from '../../data/cultivationPaths'
+import { getFateTagDef } from '../../data/fateTags'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
 import styles from './CharacterCard.module.css'
@@ -55,6 +56,28 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
       <div className={styles.realm}>{realmName}</div>
       {character.cultivationPath !== 'none' && (
         <span className={styles.pathTag}>{getPathName(character.cultivationPath)}</span>
+      )}
+      {character.fateTags.length > 0 && (
+        <div className={styles.fateTags}>
+          {character.fateTags.map((tag) => {
+            const def = getFateTagDef(tag)
+            return (
+              <span
+                key={tag}
+                className={`${styles.fateTag} ${
+                  def.tone === 'danger'
+                    ? styles.fateDanger
+                    : def.tone === 'positive'
+                      ? styles.fatePositive
+                      : styles.fateAccent
+                }`}
+                title={def.description}
+              >
+                {def.name}
+              </span>
+            )
+          })}
+        </div>
       )}
       {character.learnedTechniques.length > 0 && (
         <div className={styles.techniques}>

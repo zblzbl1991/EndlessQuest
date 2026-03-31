@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import { createShopState, generateDailyItems } from '../../systems/trade/TradeSystem'
 
-export const createShopSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createShopSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   initShop: () => {
     const { sect } = get()
     const marketLevel = sect.buildings.find((b) => b.type === 'market')?.level ?? 0

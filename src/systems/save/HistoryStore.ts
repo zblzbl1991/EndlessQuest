@@ -1,8 +1,9 @@
+import type { EventType } from '../../stores/eventLogStore'
 import { getDB } from './db'
 
 export interface GameHistoryEntry {
   id?: number
-  type: 'dungeonComplete' | 'breakthrough' | 'recruit' | 'itemForge' | 'potionCraft'
+  type: EventType
   timestamp: number
   summary: string
   data: Record<string, unknown>

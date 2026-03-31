@@ -336,6 +336,7 @@ export function generateCharacter(quality: CharacterQuality): Character {
     specialties: [],
     assignedBuilding: null,
     cultivationPath: rollCultivationPath(quality),
+    fateTags: [],
   }
 }
 

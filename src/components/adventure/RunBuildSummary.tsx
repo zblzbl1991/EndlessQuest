@@ -1,0 +1,72 @@
+import { BLESSINGS } from '../../data/blessings'
+import { RELICS } from '../../data/relics'
+import type { BlessingId, RelicId, TacticalPreset } from '../../types/adventure'
+import styles from './RunBuildSummary.module.css'
+
+const PRESET_LABELS: Record<TacticalPreset, string> = {
+  conservative: '守势',
+  balanced: '平衡',
+  burst: '爆发',
+  bossCounter: '破首',
+}
+
+interface RunBuildSummaryProps {
+  tacticalPreset: TacticalPreset
+  blessings: BlessingId[]
+  relics: RelicId[]
+  branchTags: string[]
+}
+
+export default function RunBuildSummary({ tacticalPreset, blessings, relics, branchTags }: RunBuildSummaryProps) {
+  return (
+    <div className={styles.panel}>
+      <div className={styles.header}>
+        <span className={styles.title}>本次构筑</span>
+        <span className={styles.preset}>战术: {PRESET_LABELS[tacticalPreset]}</span>
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.label}>祝福</div>
+        <div className={styles.tags}>
+          {blessings.length > 0 ? (
+            blessings.map((id) => (
+              <span key={id} className={styles.blessingTag} title={BLESSINGS[id].description}>
+                {BLESSINGS[id].name}
+              </span>
+            ))
+          ) : (
+            <span className={styles.empty}>尚未获得祝福</span>
+          )}
+        </div>
+      </div>
+
+      <div className={styles.section}>
+        <div className={styles.label}>遗物</div>
+        <div className={styles.tags}>
+          {relics.length > 0 ? (
+            relics.map((id) => (
+              <span key={id} className={styles.relicTag} title={RELICS[id].description}>
+                {RELICS[id].name}
+              </span>
+            ))
+          ) : (
+            <span className={styles.empty}>尚未获得遗物</span>
+          )}
+        </div>
+      </div>
+
+      {branchTags.length > 0 && (
+        <div className={styles.section}>
+          <div className={styles.label}>行路风格</div>
+          <div className={styles.tags}>
+            {branchTags.map((tag) => (
+              <span key={tag} className={styles.branchTag}>
+                {tag === 'low' ? '稳妥' : tag === 'medium' ? '均衡' : '冒险'}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

@@ -73,6 +73,14 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
           itemRewards: [],
           eventLog: [{ timestamp: Date.now(), message: 'test log' }],
           status: 'active',
+          supplyLevel: 'basic',
+          rewardMultiplier: 1,
+          pendingShopOffers: [],
+          tacticalPreset: 'balanced',
+          blessings: [],
+          relics: [],
+          branchTags: [],
+          pendingBlessingOptions: [],
         },
       },
     })
@@ -183,5 +191,23 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     const loadedChar = useSectStore.getState().sect.characters.find((c) => c.id === secludedChar.id)
     expect(loadedChar).toBeDefined()
     expect(loadedChar!.status).toBe('idle')
+  })
+
+  it('should load missing fate tags and archive milestones with safe defaults', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    const db = await getDB()
+    const sect = useSectStore.getState().sect
+    await db.put('characters', { ...sect.characters[0], fateTags: undefined })
+    await db.put('meta', { ...(await db.get('meta', 1)), archiveMilestones: undefined })
+
+    useSectStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+    expect(useSectStore.getState().sect.characters[0].fateTags).toEqual([])
+    expect(useSectStore.getState().sect.archiveMilestones).toEqual([])
   })
 })

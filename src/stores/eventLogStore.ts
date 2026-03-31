@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { addHistoryEntry } from '../systems/save/HistoryStore'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -19,6 +20,7 @@ export type EventType =
   | 'item_crafted'
   | 'technique_unlocked'
   | 'breakthrough_comprehension'
+  | 'milestone'
 
 export interface GameEvent {
   id: string
@@ -64,4 +66,10 @@ export const useEventLogStore = create<EventLogStore>((set) => ({
 
 export function emitEvent(type: EventType, message: string): void {
   useEventLogStore.getState().addEvent(type, message)
+  void addHistoryEntry({
+    type,
+    timestamp: Date.now(),
+    summary: message,
+    data: {},
+  })
 }

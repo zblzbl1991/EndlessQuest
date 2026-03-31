@@ -123,3 +123,33 @@
   font-weight: 500;
   margin-bottom: 2px;
 }
+
+.fateTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.fateTag {
+  display: inline-block;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.fateDanger {
+  background: rgba(198, 40, 40, 0.1);
+  color: #b71c1c;
+}
+
+.fateAccent {
+  background: rgba(139, 69, 19, 0.1);
+  color: var(--color-accent);
+}
+
+.fatePositive {
+  background: rgba(46, 125, 50, 0.1);
+  color: #2e7d32;
+}

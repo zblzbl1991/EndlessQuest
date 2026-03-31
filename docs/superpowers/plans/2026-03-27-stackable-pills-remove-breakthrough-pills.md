@@ -1,5 +1,7 @@
 # 丹药叠加 + 移除突破丹 实现计划
 
+> Status Snapshot (2026-03-31): Implemented. Stackable consumables and the updated breakthrough resource model are reflected in code and tests.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 将丹药改为按 recipeId 可叠加存储，移除突破丹配方和消耗逻辑，大幅提高大境界突破灵石消耗。

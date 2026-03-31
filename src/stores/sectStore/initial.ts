@@ -86,6 +86,7 @@ export function createInitialState(): { sect: Sect } {
       unlockedPathNodeIds: [],
       pathUnlockedAt: null,
       legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      archiveMilestones: [],
       stats: {
         totalSpiritStoneEarned: 0,
         totalSpiritStoneSpent: 0,
@@ -112,7 +113,7 @@ export function createInitialState(): { sect: Sect } {
 // Initial slice: owns sect + shopState state
 // ---------------------------------------------------------------------------
 
-export const createInitialSlice: StateCreator<SectStore, [], [], SectStore> = () => ({
+export const createInitialSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = () => ({
   sect: createInitialState().sect,
   shopState: null as ShopState | null,
 })

@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem } from '../types'
+import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem, BlessingId, TacticalPreset } from '../types'
 import { SUPPLY_COSTS } from '../types/adventure'
 import type { SupplyLevel } from '../types/adventure'
 import { useSectStore } from './sectStore'
@@ -13,6 +13,17 @@ import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 import { DISPATCH_MISSIONS } from '../data/missions'
 import { generatePet, tryCapturePet } from '../systems/pet/PetSystem'
 import type { PetQuality } from '../systems/pet/PetSystem'
+import {
+  applyRunCombatModifiers,
+  applyRunRecovery,
+  applyRunRewardModifiers,
+  getShopCostMultiplier,
+  pickBlessingOptions,
+  pickRelicReward,
+} from '../systems/roguelike/RunBuildSystem'
+import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../data/archiveMilestones'
+import { BLESSINGS } from '../data/blessings'
+import { RELICS } from '../data/relics'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -39,8 +50,14 @@ export interface AdventureStore {
   dispatches: DispatchState[]
 
   // Actions
-  startRun(dungeonId: string, characterIds: string[], supplyLevel?: SupplyLevel): DungeonRun | null
+  startRun(
+    dungeonId: string,
+    characterIds: string[],
+    supplyLevel?: SupplyLevel,
+    tacticalPreset?: TacticalPreset
+  ): DungeonRun | null
   selectRoute(runId: string, routeIndex: number): boolean
+  chooseBlessing(runId: string, blessingId: BlessingId): boolean
   advanceFloor(runId: string): { success: boolean; message: string }
   retreat(runId: string): void
   idleTick(runId: string, deltaSec: number): void
@@ -157,6 +174,21 @@ function setCharacterResting(charId: string, timerSec: number): void {
   sectStore.setCharacterStatus(charId, 'resting', { injuryTimer: timerSec })
 }
 
+function unlockSectMilestone(id: 'firstDungeonClear'): void {
+  const { sect } = useSectStore.getState()
+  const nextMilestones = unlockArchiveMilestone(sect.archiveMilestones, id)
+  if (nextMilestones.length === sect.archiveMilestones.length) return
+
+  const def = getArchiveMilestoneDef(id)
+  useSectStore.setState((s) => ({
+    sect: {
+      ...s.sect,
+      archiveMilestones: nextMilestones,
+    },
+  }))
+  emitEvent('milestone', `宗门里程碑达成：${def.title}`)
+}
+
 /** Count vault items matching a given recipeId */
 function countVaultItemsByRecipeId(recipeId: string): number {
   const { sect } = useSectStore.getState()
@@ -204,9 +236,12 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
     if (!character) continue
 
     const unit = createCharacterCombatUnit(character, character.learnedTechniques)
+    const tunedUnit = applyRunCombatModifiers(unit, run.blessings ?? [], run.relics ?? [])
     // Override HP with current member state HP (not max)
-    unit.hp = memberState.currentHp
-    units.push(unit)
+    tunedUnit.hp = memberState.currentHp
+    tunedUnit.maxHp = memberState.maxHp
+    tunedUnit.preset = run.tacticalPreset ?? 'balanced'
+    units.push(tunedUnit)
   }
 
   return units
@@ -222,7 +257,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   completedDungeons: [],
   dispatches: [],
 
-  startRun: (dungeonId, characterIds, supplyLevel = 'basic') => {
+  startRun: (dungeonId, characterIds, supplyLevel = 'basic', tacticalPreset = 'balanced') => {
     const state = get()
     const dungeon = findDungeon(dungeonId)
     if (!dungeon) return null
@@ -305,6 +340,11 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       supplyLevel,
       rewardMultiplier: supplyCost.rewardMultiplier,
       pendingShopOffers: [],
+      tacticalPreset,
+      blessings: [],
+      relics: [],
+      branchTags: [],
+      pendingBlessingOptions: [],
     }
 
     set((s) => ({
@@ -322,6 +362,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         },
       },
     }))
+
+    emitEvent('adventure_start', `队伍进入秘境 ${dungeon.name}`)
 
     return run
   },
@@ -349,6 +391,20 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const newItemRewards = [...run.itemRewards]
     const newLog = [...run.eventLog]
     let newShopOffers = run.pendingShopOffers ?? []
+    let newBlessingOptions = [...(run.pendingBlessingOptions ?? [])]
+    const newBlessings = [...(run.blessings ?? [])]
+    const newRelics = [...(run.relics ?? [])]
+    const newBranchTags = run.branchTags.includes(route.riskLevel)
+      ? [...run.branchTags]
+      : [...run.branchTags, route.riskLevel]
+
+    const addScaledReward = (reward: Resources) => {
+      const modified = applyRunRewardModifiers(reward, newBlessings, newRelics)
+      newRewards.spiritStone += Math.floor(modified.spiritStone * (run.rewardMultiplier ?? 1))
+      newRewards.spiritEnergy += Math.floor(modified.spiritEnergy * (run.rewardMultiplier ?? 1))
+      newRewards.herb += Math.floor(modified.herb * (run.rewardMultiplier ?? 1))
+      newRewards.ore += Math.floor(modified.ore * (run.rewardMultiplier ?? 1))
+    }
 
     // Resolve all events on the route
     let statBattles = 0
@@ -385,10 +441,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         }
       }
 
-      // Accumulate rewards
-      newRewards.spiritStone += result.reward.spiritStone
-      newRewards.herb += result.reward.herb
-      newRewards.ore += result.reward.ore
+      addScaledReward({ ...result.reward, spiritEnergy: 0 })
 
       // Accumulate item rewards
       for (const item of result.itemRewards) {
@@ -414,6 +467,21 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         timestamp: Date.now(),
         message: result.message,
       })
+    }
+
+    addScaledReward({ ...route.reward, spiritEnergy: 0 })
+
+    for (const charId of run.teamCharacterIds) {
+      const memberState = newMemberStates[charId]
+      if (!memberState || memberState.status === 'dead') continue
+
+      memberState.currentHp = applyRunRecovery(memberState.currentHp, memberState.maxHp, newBlessings, newRelics)
+
+      if (memberState.currentHp < memberState.maxHp * 0.3) {
+        memberState.status = 'wounded'
+      } else {
+        memberState.status = 'alive'
+      }
     }
 
     // Update combat stats on sect store
@@ -445,6 +513,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
             itemRewards: newItemRewards,
             eventLog: newLog,
             pendingShopOffers: newShopOffers,
+            blessings: newBlessings,
+            relics: newRelics,
+            branchTags: newBranchTags,
+            pendingBlessingOptions: newBlessingOptions,
           },
         },
       }))
@@ -457,6 +529,15 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     // If next floor exceeds total floors, complete the run
     if (nextFloor > run.floors.length) {
+      const relicReward = pickRelicReward(newRelics)
+      if (relicReward) {
+        newRelics.push(relicReward)
+        newLog.push({
+          timestamp: Date.now(),
+          message: `获得遗物：${RELICS[relicReward].name}`,
+        })
+      }
+
       set((s) => ({
         activeRuns: {
           ...s.activeRuns,
@@ -468,11 +549,25 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
             itemRewards: newItemRewards,
             eventLog: newLog,
             pendingShopOffers: newShopOffers,
+            blessings: newBlessings,
+            relics: newRelics,
+            branchTags: newBranchTags,
+            pendingBlessingOptions: newBlessingOptions,
           },
         },
       }))
       get().completeRun(runId)
       return true
+    }
+
+    if (nextFloor % 2 === 1 && newBlessings.length < 4 && newBlessingOptions.length === 0) {
+      newBlessingOptions = pickBlessingOptions(newBlessings)
+      if (newBlessingOptions.length > 0) {
+        newLog.push({
+          timestamp: Date.now(),
+          message: '感悟到新的机缘，可择一祝福。',
+        })
+      }
     }
 
     // Update run with new floor and states
@@ -487,6 +582,33 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           itemRewards: newItemRewards,
           eventLog: newLog,
           pendingShopOffers: newShopOffers,
+          blessings: newBlessings,
+          relics: newRelics,
+          branchTags: newBranchTags,
+          pendingBlessingOptions: newBlessingOptions,
+        },
+      },
+    }))
+
+    return true
+  },
+
+  chooseBlessing: (runId, blessingId) => {
+    const run = get().activeRuns[runId]
+    if (!run) return false
+    if (!(run.pendingBlessingOptions ?? []).includes(blessingId)) return false
+
+    const nextBlessings = run.blessings.includes(blessingId) ? run.blessings : [...run.blessings, blessingId]
+    const nextLog = [...run.eventLog, { timestamp: Date.now(), message: `获得祝福：${BLESSINGS[blessingId].name}` }]
+
+    set((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [runId]: {
+          ...s.activeRuns[runId]!,
+          blessings: nextBlessings,
+          pendingBlessingOptions: [],
+          eventLog: nextLog,
         },
       },
     }))
@@ -639,6 +761,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`)
+    unlockSectMilestone('firstDungeonClear')
 
     // Update stats: adventure completion + max floor
     useSectStore.setState((s) => ({
@@ -803,10 +926,11 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!offers || offerIndex >= offers.length) return
 
     const offer = offers[offerIndex]
-    if (run.totalRewards.spiritStone < offer.cost) return
+    const finalCost = Math.floor(offer.cost * getShopCostMultiplier(run.relics ?? []))
+    if (run.totalRewards.spiritStone < finalCost) return
 
     // Deduct cost
-    const newRewards = { ...run.totalRewards, spiritStone: run.totalRewards.spiritStone - offer.cost }
+    const newRewards = { ...run.totalRewards, spiritStone: run.totalRewards.spiritStone - finalCost }
     const newMemberStates = { ...run.memberStates }
     const newLog = [...run.eventLog]
 

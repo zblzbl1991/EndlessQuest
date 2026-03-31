@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import { createInitialState } from './initial'
 
-export const createMiscSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createMiscSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   healCharacter: (characterId: string) => {
     const { sect } = get()
     const char = sect.characters.find((c) => c.id === characterId)

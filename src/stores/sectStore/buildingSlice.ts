@@ -6,7 +6,7 @@ import { checkBuildingUnlock, canUpgradeBuilding } from '../../systems/sect/Buil
 import { emitEvent } from '../eventLogStore'
 import { canStartRecipe } from '../../systems/building/ProductionSystem'
 
-export const createBuildingSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   upgradeBuilding: (type: BuildingType) => {
     const { sect } = get()
     const building = sect.buildings.find((b) => b.type === type)

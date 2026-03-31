@@ -6,9 +6,14 @@ import { DISPATCH_MISSIONS } from '../data/missions'
 import { emitEvent } from '../stores/eventLogStore'
 import { getRealmName } from '../data/realms'
 import { QUALITY_NAMES as CHAR_QUALITY_NAMES } from '../components/common/CharacterCard'
+import { BLESSINGS } from '../data/blessings'
 import ProgressBar from '../components/common/ProgressBar'
 import type { CharacterQuality } from '../types/character'
 import type { DungeonRun } from '../types'
+import type { TacticalPreset } from '../types/adventure'
+import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
+import RunBuildSummary from '../components/adventure/RunBuildSummary'
+import { getShopCostMultiplier } from '../systems/roguelike/RunBuildSystem'
 import styles from './AdventurePage.module.css'
 
 // ---------------------------------------------------------------------------
@@ -173,6 +178,7 @@ function TeamBuilder({
   onClose: () => void
 }) {
   const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [preset, setPreset] = useState<TacticalPreset>('balanced')
   const startRun = useAdventureStore((s) => s.startRun)
 
   const dungeon = DUNGEONS.find((d) => d.id === dungeonId)
@@ -189,7 +195,7 @@ function TeamBuilder({
 
   const handleConfirm = () => {
     if (selectedIds.length === 0) return
-    const run = startRun(dungeonId, selectedIds)
+    const run = startRun(dungeonId, selectedIds, undefined, preset)
     if (run) {
       onClose()
     }
@@ -265,6 +271,8 @@ function TeamBuilder({
           </div>
         )}
 
+        <TacticPresetPicker value={preset} onChange={setPreset} />
+
         {/* Actions */}
         <div className={styles.teamActions}>
           <button className={styles.cancelBtn} onClick={onClose}>
@@ -293,6 +301,7 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
   const buyFromShop = useAdventureStore((s) => s.buyFromShop)
   const closeShop = useAdventureStore((s) => s.closeShop)
   const attemptPetCapture = useAdventureStore((s) => s.attemptPetCapture)
+  const chooseBlessing = useAdventureStore((s) => s.chooseBlessing)
   const dungeons = useAdventureStore((s) => s.dungeons)
   const sect = useSectStore((s) => s.sect)
 
@@ -364,6 +373,33 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
         })}
       </div>
 
+      <RunBuildSummary
+        tacticalPreset={run.tacticalPreset}
+        blessings={run.blessings}
+        relics={run.relics}
+        branchTags={run.branchTags}
+      />
+
+      {run.pendingBlessingOptions.length > 0 && (
+        <div className={styles.blessingPanel}>
+          <div className={styles.shopTitle}>机缘择祝</div>
+          <div className={styles.blessingHint}>本层感悟已成，选择一项祝福延续本次探索。</div>
+          <div className={styles.blessingOptions}>
+            {run.pendingBlessingOptions.map((blessingId) => (
+              <button
+                key={blessingId}
+                type="button"
+                className={styles.blessingOption}
+                onClick={() => chooseBlessing(run.id, blessingId)}
+              >
+                <span className={styles.blessingName}>{BLESSINGS[blessingId].name}</span>
+                <span className={styles.blessingDesc}>{BLESSINGS[blessingId].description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Event log */}
       {recentLogs.length > 0 && (
         <div className={styles.runLog}>
@@ -382,21 +418,33 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
       {run.pendingShopOffers && run.pendingShopOffers.length > 0 && (
         <div className={styles.shopPanel}>
           <div className={styles.shopTitle}>游商</div>
-          {run.pendingShopOffers.map((offer, i) => (
-            <div key={i} className={styles.shopItem}>
-              <div className={styles.shopItemInfo}>
-                <span className={styles.shopItemName}>{offer.name}</span>
-                <span className={styles.shopItemDesc}>{offer.description}</span>
+          {run.pendingShopOffers.map((offer, i) => {
+            const finalCost = Math.floor(offer.cost * getShopCostMultiplier(run.relics))
+            const discounted = finalCost !== offer.cost
+
+            return (
+              <div key={i} className={styles.shopItem}>
+                <div className={styles.shopItemInfo}>
+                  <span className={styles.shopItemName}>{offer.name}</span>
+                  <span className={styles.shopItemDesc}>{offer.description}</span>
+                </div>
+                <button
+                  className={`${styles.shopBuyBtn} ${run.totalRewards.spiritStone < finalCost ? styles.btnDisabled : ''}`}
+                  disabled={run.totalRewards.spiritStone < finalCost}
+                  onClick={() => buyFromShop(run.id, i)}
+                >
+                  {discounted ? (
+                    <span className={styles.shopPriceStack}>
+                      <span className={styles.shopPriceNow}>{finalCost} 灵石</span>
+                      <span className={styles.shopPriceOld}>{offer.cost}</span>
+                    </span>
+                  ) : (
+                    `${offer.cost} 灵石`
+                  )}
+                </button>
               </div>
-              <button
-                className={`${styles.shopBuyBtn} ${run.totalRewards.spiritStone < offer.cost ? styles.btnDisabled : ''}`}
-                disabled={run.totalRewards.spiritStone < offer.cost}
-                onClick={() => buyFromShop(run.id, i)}
-              >
-                {offer.cost} 灵石
-              </button>
-            </div>
-          ))}
+            )
+          })}
           <button className={styles.cancelBtn} onClick={() => closeShop(run.id)}>
             离开
           </button>

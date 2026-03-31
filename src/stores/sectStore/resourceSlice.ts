@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import type { Resources, ResourceType } from '../../types'
 
-export const createResourceSlice: StateCreator<SectStore, [], [], SectStore> = (set, _get) => ({
+export const createResourceSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, _get) => ({
   spendResource: (type: keyof Resources, amount: number) => {
     const { sect } = _get()
     if (sect.resources[type] < amount) return false

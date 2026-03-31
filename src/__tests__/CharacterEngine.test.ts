@@ -51,15 +51,15 @@ describe('CharacterEngine', () => {
     it('should generate common character with correct quality', () => {
       const c = generateCharacter('common')
       expect(c.quality).toBe('common')
-      // Base stats vary ±20% around base values
+      // Base stats vary ±20% around base values; rare talents can boost cultivation stats.
       expect(c.baseStats.hp).toBeGreaterThanOrEqual(80)
       expect(c.baseStats.hp).toBeLessThanOrEqual(120)
       expect(c.cultivationStats.spiritualRoot).toBeGreaterThanOrEqual(8)
-      expect(c.cultivationStats.spiritualRoot).toBeLessThanOrEqual(12)
+      expect(c.cultivationStats.spiritualRoot).toBeLessThanOrEqual(17)
       expect(c.cultivationStats.comprehension).toBeGreaterThanOrEqual(8)
-      expect(c.cultivationStats.comprehension).toBeLessThanOrEqual(12)
+      expect(c.cultivationStats.comprehension).toBeLessThanOrEqual(17)
       expect(c.cultivationStats.fortune).toBeGreaterThanOrEqual(4)
-      expect(c.cultivationStats.fortune).toBeLessThanOrEqual(6)
+      expect(c.cultivationStats.fortune).toBeLessThanOrEqual(11)
     })
 
     it('should generate spirit character with higher base stats', () => {

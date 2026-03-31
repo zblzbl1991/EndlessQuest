@@ -1,5 +1,7 @@
 # P2: 建筑协同 + 任务派遣 + 探险商店与灵宠 实现计划
 
+> Status Snapshot (2026-03-31): Implemented and verified. Building synergy, dispatch missions, adventure shop, and pet capture are all present in the current codebase.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add passive building synergy bonuses, replace the simple patrol system with multi-mission dispatch, and implement adventure shop + pet capture during dungeon runs.

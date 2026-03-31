@@ -11,7 +11,7 @@ import { getTechniqueById, TECHNIQUES } from '../../data/techniquesTable'
 import { TECHNIQUE_TIER_ORDER } from '../../types/technique'
 import { emitEvent } from '../eventLogStore'
 
-export const createTechniqueSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createTechniqueSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   unlockCodexEntry: (techniqueId: string): boolean => {
     const { sect } = get()
     if (sect.techniqueCodex.includes(techniqueId)) return false

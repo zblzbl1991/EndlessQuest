@@ -4,6 +4,8 @@ import type { ShopOffer } from '../systems/roguelike/EventSystem'
 
 export type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribulationBane'
 export type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
+export type BlessingId = 'stoneHarvest' | 'verdantBounty' | 'ironBody' | 'galeStride' | 'battleFocus'
+export type RelicId = 'jadeGourd' | 'merchantSeal' | 'warBanner'
 
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancient_cave'
 
@@ -94,4 +96,9 @@ export interface DungeonRun {
   rewardMultiplier: number
   /** Pending shop offers from the last shop event */
   pendingShopOffers: ShopOffer[]
+  tacticalPreset: TacticalPreset
+  blessings: BlessingId[]
+  relics: RelicId[]
+  branchTags: string[]
+  pendingBlessingOptions: BlessingId[]
 }

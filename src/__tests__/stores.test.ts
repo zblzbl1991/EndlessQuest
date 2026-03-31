@@ -756,6 +756,40 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     // Cultivation should remain full (not reset)
     expect(updated.cultivation).toBe(100)
   })
+
+  it('should add fate tags and unlock milestone after first tribulation success', () => {
+    const char = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === char.id
+            ? {
+                ...c,
+                realm: 1,
+                realmStage: 3,
+                cultivation: 11000,
+                cultivationStats: {
+                  ...c.cultivationStats,
+                  spiritualRoot: 30,
+                  comprehension: 30,
+                },
+              }
+            : c
+        ),
+        resources: { ...s.sect.resources, spiritStone: 20000, spiritEnergy: 1000 },
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
+
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(2)
+    expect(updated.realmStage).toBe(0)
+    expect(updated.fateTags).toContain('stableDaoHeart')
+    expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'firstTribulationSuccess')).toBe(true)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -1019,6 +1053,17 @@ describe('AdventureStore - startRun', () => {
     expect(ms!.currentHp).toBeGreaterThan(0)
     expect(ms!.status).toBe('alive')
   })
+
+  it('should initialize tactical preset and run-build fields', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'basic', 'burst')
+    expect(run).not.toBeNull()
+    expect(run!.tacticalPreset).toBe('burst')
+    expect(run!.blessings).toEqual([])
+    expect(run!.relics).toEqual([])
+    expect(run!.branchTags).toEqual([])
+    expect(run!.pendingBlessingOptions).toEqual([])
+  })
 })
 
 describe('AdventureStore - retreat', () => {
@@ -1168,6 +1213,16 @@ describe('AdventureStore - completeRun', () => {
 
     getAdventureStore().completeRun(run!.id)
     expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(0)
+  })
+
+  it('should unlock the first dungeon clear archive milestone', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    getAdventureStore().completeRun(run!.id)
+
+    expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'firstDungeonClear')).toBe(true)
   })
 })
 
@@ -1352,6 +1407,20 @@ describe('SectStore - Recruit Cost', () => {
     expect(result.allowed).toBe(true)
     expect(result.reason).toBe('')
   })
+
+  it('should unlock the first rare recruit archive milestone', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        level: 2,
+        resources: { ...s.sect.resources, spiritStone: 5000 },
+      },
+    }))
+
+    const recruit = getStore().addCharacter('spirit')
+    expect(recruit).not.toBeNull()
+    expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'firstRareRecruit')).toBe(true)
+  })
 })
 
 describe('AdventureStore - selectRoute', () => {
@@ -1367,6 +1436,28 @@ describe('AdventureStore - selectRoute', () => {
     expect(run).not.toBeNull()
 
     expect(getAdventureStore().selectRoute(run!.id, 999)).toBe(false)
+  })
+
+  it('should consume pending blessing choice and add the blessing to the run', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    useAdventureStore.setState((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [run!.id]: {
+          ...s.activeRuns[run!.id]!,
+          pendingBlessingOptions: ['battleFocus', 'ironBody'],
+        },
+      },
+    }))
+
+    expect(getAdventureStore().chooseBlessing(run!.id, 'battleFocus')).toBe(true)
+
+    const updatedRun = getAdventureStore().getRun(run!.id)
+    expect(updatedRun?.blessings).toContain('battleFocus')
+    expect(updatedRun?.pendingBlessingOptions).toEqual([])
   })
 })
 

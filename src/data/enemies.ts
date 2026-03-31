@@ -1,4 +1,4 @@
-import type { Enemy, EnemyAffix } from '../types/adventure'
+import type { Enemy } from '../types/adventure'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import type { Character } from '../types/character'
 import { TECHNIQUE_TIER_ORDER } from '../types/technique'

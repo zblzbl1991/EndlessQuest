@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import type { Pet } from '../../systems/pet/PetSystem'
 
-export const createPetSlice: StateCreator<SectStore, [], [], SectStore> = (set, _get) => ({
+export const createPetSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, _get) => ({
   addPet: (pet: Pet) => {
     set((s) => ({
       sect: { ...s.sect, pets: [...s.sect.pets, pet] },

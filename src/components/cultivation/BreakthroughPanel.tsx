@@ -7,6 +7,7 @@ import {
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import type { RealmStage } from '../../types/character'
+import { getFateTagDef } from '../../data/fateTags'
 import styles from './BreakthroughPanel.module.css'
 
 interface BreakthroughPanelProps {
@@ -80,6 +81,21 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
           <span className={styles.failureRate}>将触发天劫</span>
         </div>
       )}
+      {character.fateTags.length > 0 && (
+        <div className={styles.fateSection}>
+          <div className={styles.reqTitle}>命格痕印</div>
+          <div className={styles.fateTags}>
+            {character.fateTags.map((tag) => {
+              const def = getFateTagDef(tag)
+              return (
+                <span key={tag} className={styles.fateTag} title={def.description}>
+                  {def.name}
+                </span>
+              )
+            })}
+          </div>
+        </div>
+      )}
       {isMajor && cost && (
         <div className={styles.majorReq}>
           <div className={styles.reqTitle}>突破需求</div>
@@ -103,6 +119,9 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
             </div>
           )
         })()}
+      {hasTribulation && (
+        <div className={styles.tribulationHint}>天劫成功有机会沉淀为命格，失败则可能留下劫痕与心魔。</div>
+      )}
       <div className={`${styles.hint} ${hintClass}`}>{hint}</div>
     </div>
   )

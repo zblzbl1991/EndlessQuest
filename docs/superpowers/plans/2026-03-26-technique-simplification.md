@@ -1,5 +1,7 @@
 # Technique System Simplification — Implementation Plan
 
+> Status Snapshot (2026-03-31): Implemented. Technique data and usage have been simplified and integrated into the current combat / character flow.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Simplify the technique system from single-technique-with-comprehension to multi-technique-stacking with instant mastery.

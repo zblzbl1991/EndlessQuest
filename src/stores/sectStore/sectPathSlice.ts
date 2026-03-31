@@ -4,7 +4,7 @@ import type { SectPath } from '../../types/sect'
 import { SECT_PATHS } from '../../data/sectPaths'
 import { canUnlockNode, getPathNode } from '../../systems/sect/SectPathSystem'
 
-export const createSectPathSlice: StateCreator<SectStore, [], [], SectStore> = (set, get) => ({
+export const createSectPathSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   chooseSectPath: (path: SectPath) => {
     set((s) => ({
       sect: {

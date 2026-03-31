@@ -1,5 +1,7 @@
 # Technique System Enhancement Implementation Plan
 
+> Status Snapshot (2026-03-31): Implemented. Technique unlock, comprehension, and combat integration are active in the current codebase.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a global technique codex system where techniques are collected through exploration, study, and breakthrough comprehension, replacing the scroll-item-based learning flow.

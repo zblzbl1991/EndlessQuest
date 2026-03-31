@@ -1,5 +1,7 @@
 # 建筑生产链与经济循环重设计 实现计划
 
+> Status Snapshot (2026-03-31): Implemented. Production queues, recipe execution, and related tests are in place.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 建立建筑自动生产链和资源消耗闭环，让放置类玩法形成"采集→加工→消费→成长"的完整经济循环。

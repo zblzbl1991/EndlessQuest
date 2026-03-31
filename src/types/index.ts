@@ -7,6 +7,7 @@ export type {
   BaseStats,
   CultivationStats,
   CultivationPath,
+  FateTag,
 } from './character'
 export type { Technique, TechniqueTier, TechniqueBonus } from './technique'
 export type { Element, SkillCategory, TechniqueType, ActiveSkill } from './skill'
@@ -37,12 +38,16 @@ export type {
   SectStats,
   OfflineAccumulator,
   LegacyBonus,
+  ArchiveMilestoneId,
+  ArchiveMilestoneEntry,
 } from './sect'
 export type {
   EventType,
   Enemy,
   EnemyAffix,
   TacticalPreset,
+  BlessingId,
+  RelicId,
   DungeonEvent,
   RouteOption,
   DungeonFloor,

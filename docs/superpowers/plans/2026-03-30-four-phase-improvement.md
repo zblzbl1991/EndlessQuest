@@ -1,5 +1,21 @@
 # Four-Phase Improvement Implementation Plan
 
+> Status Snapshot (2026-03-31)
+>
+> This plan has been substantially implemented in the codebase. The checkbox steps below were not maintained during execution, so treat them as historical execution scaffolding rather than current status.
+>
+> Implemented:
+> - Character status simplification and related save migration
+> - Combat deepening: affixes, targeting, skill AI, tactical presets
+> - Sect dashboard agenda, offline reports, sectStore slice refactor
+> - Cultivation paths, sect routes, legacy system, statistics dashboard
+> - Adventure run-build layer: blessings, relics, branch tags, tactic picker, build summary
+> - Fate tags and archive milestones, including UI and save compatibility
+>
+> Verified on 2026-03-31:
+> - `npm test` passed
+> - `npm run build` passed
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Implement the four-phase improvement plan from `docs/superpowers/specs/2026-03-30-four-phase-improvement-design.md` — cultivation state simplification, combat deepening, action agenda panel, offline reports, store refactoring, cultivation paths, sect routes, legacy system, and statistics dashboard.
