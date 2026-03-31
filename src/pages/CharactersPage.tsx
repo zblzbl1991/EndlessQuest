@@ -14,6 +14,7 @@ import ProgressBar from '../components/common/ProgressBar'
 import BreakthroughPanel from '../components/cultivation/BreakthroughPanel'
 import EquipPanel from '../components/inventory/EquipPanel'
 import ItemCard from '../components/inventory/ItemCard'
+import { formatCultivationValue } from '../utils/format'
 import styles from './CharactersPage.module.css'
 
 // ---------------------------------------------------------------------------
@@ -200,7 +201,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
         <div className={styles.detailProgress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <span className={styles.progressText}>
-            {Math.floor(character.cultivation).toLocaleString()} / {needed.toLocaleString()} (+
+            {formatCultivationValue(character.cultivation)} / {needed.toLocaleString()} (+
             {cultivationSpeed.toFixed(1)}/s)
           </span>
         </div>

@@ -5,6 +5,7 @@ import { getTechniqueById } from '../../data/techniquesTable'
 import { calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
 import { getPathName } from '../../data/cultivationPaths'
 import { getFateTagDef } from '../../data/fateTags'
+import { formatCultivationValue } from '../../utils/format'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
 import styles from './CharacterCard.module.css'
@@ -97,7 +98,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <div className={styles.progressStats}>
             <span>
-              修为 {Math.floor(character.cultivation).toLocaleString()}/{needed.toLocaleString()}
+              修为 {formatCultivationValue(character.cultivation)}/{needed.toLocaleString()}
             </span>
             <span>·</span>
             <span>+{calcCultivationRate(character, character.learnedTechniques).toFixed(1)}/s</span>

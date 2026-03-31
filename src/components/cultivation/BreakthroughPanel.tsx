@@ -8,6 +8,7 @@ import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakth
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import type { RealmStage } from '../../types/character'
 import { getFateTagDef } from '../../data/fateTags'
+import { formatCultivationValue } from '../../utils/format'
 import styles from './BreakthroughPanel.module.css'
 
 interface BreakthroughPanelProps {
@@ -85,7 +86,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       <div className={styles.requirement}>
         <span>修为进度</span>
         <span className={ready ? styles.ready : ''}>
-          {Math.floor(character.cultivation).toLocaleString()} / {needed.toLocaleString()}
+          {formatCultivationValue(character.cultivation)} / {needed.toLocaleString()}
         </span>
       </div>
       <div className={styles.progressBar}>
