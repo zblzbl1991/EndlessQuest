@@ -1,5 +1,17 @@
 import { create } from 'zustand'
-import type { Dungeon, DungeonRun, DungeonFloor, Resources, AnyItem, BlessingId, TacticalPreset } from '../types'
+import type {
+  Dungeon,
+  DungeonRun,
+  DungeonFloor,
+  Resources,
+  AnyItem,
+  Consumable,
+  BlessingId,
+  TacticalPreset,
+  AdventureRunConfig,
+  AdventureReport,
+  AdventureReportSummary,
+} from '../types'
 import { SUPPLY_COSTS } from '../types/adventure'
 import type { SupplyLevel } from '../types/adventure'
 import { useSectStore } from './sectStore'
@@ -21,6 +33,7 @@ import {
   pickBlessingOptions,
   pickRelicReward,
 } from '../systems/roguelike/RunBuildSystem'
+import { resolveAutomatedRun } from '../systems/roguelike/AutoRunEngine'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../data/archiveMilestones'
 import { BLESSINGS } from '../data/blessings'
 import { RELICS } from '../data/relics'
@@ -39,6 +52,12 @@ export interface DispatchState {
 export interface AdventureStore {
   /** All currently active dungeon runs, keyed by run id (Record for JSON serialization) */
   activeRuns: Record<string, DungeonRun>
+
+  /** Recent automation report summaries */
+  reports: AdventureReportSummary[]
+
+  /** Full automation reports keyed by id */
+  reportDetails: Record<string, AdventureReport>
 
   /** The dungeon definitions available */
   dungeons: Dungeon[]
@@ -62,11 +81,13 @@ export interface AdventureStore {
   retreat(runId: string): void
   idleTick(runId: string, deltaSec: number): void
   tickAllIdle(deltaSec: number): void
-  completeRun(runId: string): void
-  failRun(runId: string): void
+  completeRun(runId: string, eventData?: Record<string, unknown>): void
+  failRun(runId: string, eventData?: Record<string, unknown>): void
   getRun(id: string): DungeonRun | undefined
+  getReport(id: string): AdventureReport | undefined
   getMaxSimultaneousRuns(): number
   reset(): void
+  runAutomation(config: AdventureRunConfig): AdventureReport | null
 
   // Dispatch
   startDispatch(characterId: string, missionId: string): void
@@ -88,6 +109,7 @@ export interface AdventureStore {
 
 /** Seconds per floor in idle mode */
 const FLOOR_TICK_SECONDS = 10
+const REPORT_LIMIT = 30
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -121,6 +143,22 @@ function emptyResources(): Resources {
     spiritEnergy: 0,
     herb: 0,
     ore: 0,
+  }
+}
+
+function summarizeReport(report: AdventureReport): AdventureReportSummary {
+  return {
+    id: report.id,
+    dungeonId: report.dungeonId,
+    teamCharacterIds: [...report.teamCharacterIds],
+    strategy: report.config.automationStrategy,
+    tacticalPreset: report.config.tacticalPreset,
+    startedAt: report.startedAt,
+    finishedAt: report.finishedAt,
+    result: report.result,
+    floorsCleared: report.floorsCleared,
+    rewards: { ...report.rewards },
+    itemRewardCount: report.itemRewards.length,
   }
 }
 
@@ -193,7 +231,7 @@ function unlockSectMilestone(id: 'firstDungeonClear'): void {
 function countVaultItemsByRecipeId(recipeId: string): number {
   const { sect } = useSectStore.getState()
   return sect.vault.reduce((sum, s) => {
-    if (s.item.type === 'consumable' && (s.item as any).recipeId === recipeId) {
+    if (s.item.type === 'consumable' && (s.item as Consumable).recipeId === recipeId) {
       return sum + s.quantity
     }
     return sum
@@ -207,7 +245,7 @@ function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
   const newVault = [...sect.vault]
   for (let i = newVault.length - 1; i >= 0 && remaining > 0; i--) {
     const s = newVault[i]
-    if (s.item.type === 'consumable' && (s.item as any).recipeId === recipeId) {
+    if (s.item.type === 'consumable' && (s.item as Consumable).recipeId === recipeId) {
       if (s.quantity <= remaining) {
         remaining -= s.quantity
         newVault.splice(i, 1)
@@ -253,6 +291,8 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
 
 export const useAdventureStore = create<AdventureStore>((set, get) => ({
   activeRuns: {},
+  reports: [],
+  reportDetails: {},
   dungeons: DUNGEONS,
   completedDungeons: [],
   dispatches: [],
@@ -366,6 +406,94 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     emitEvent('adventure_start', `队伍进入秘境 ${dungeon.name}`)
 
     return run
+  },
+
+  runAutomation: (config) => {
+    const state = get()
+    const dungeon = findDungeon(config.dungeonId)
+    if (!dungeon) return null
+
+    const startedRun = state.startRun(
+      config.dungeonId,
+      config.teamCharacterIds,
+      config.supplyLevel ?? 'basic',
+      config.tacticalPreset ?? 'balanced'
+    )
+    if (!startedRun) return null
+
+    const { sect } = useSectStore.getState()
+    const baseTeamUnits = config.teamCharacterIds
+      .map((charId) => {
+        const character = sect.characters.find((c) => c.id === charId)
+        return character ? createCharacterCombatUnit(character, character.learnedTechniques) : null
+      })
+      .filter((unit): unit is CombatUnit => unit !== null)
+
+    if (baseTeamUnits.length !== config.teamCharacterIds.length) {
+      get().retreat(startedRun.id)
+      return null
+    }
+
+    const report = resolveAutomatedRun({
+      run: startedRun,
+      dungeon,
+      automationStrategy: config.automationStrategy,
+      baseTeamUnits,
+    })
+
+    const finalRun: DungeonRun = {
+      ...startedRun,
+      currentFloor: report.floorsCleared + 1,
+      memberStates: Object.fromEntries(
+        Object.entries(report.finalMemberStates).map(([id, state]) => [id, { ...state }])
+      ),
+      totalRewards: { ...report.rewards },
+      itemRewards: [...report.itemRewards],
+      status: 'active',
+    }
+
+    set((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [startedRun.id]: finalRun,
+      },
+    }))
+
+    const reportEventData = {
+      reportId: report.id,
+      dungeonId: report.dungeonId,
+      result: report.result,
+      floorsCleared: report.floorsCleared,
+    }
+
+    if (report.result === 'completed') {
+      get().completeRun(startedRun.id, reportEventData)
+    } else if (report.result === 'failed') {
+      get().failRun(startedRun.id, reportEventData)
+    } else {
+      get().retreat(startedRun.id)
+      emitEvent('adventure_fail', `秘境 ${dungeon.name} 撤退`, reportEventData)
+    }
+
+    const summary = summarizeReport(report)
+    set((s) => {
+      const nextReports = [summary, ...s.reports.filter((existing) => existing.id !== summary.id)].slice(
+        0,
+        REPORT_LIMIT
+      )
+      const nextDetails = { ...s.reportDetails, [report.id]: report }
+      const keepIds = new Set(nextReports.map((item) => item.id))
+      for (const id of Object.keys(nextDetails)) {
+        if (!keepIds.has(id)) delete nextDetails[id]
+      }
+
+      return {
+        reports: nextReports,
+        reportDetails: nextDetails,
+      }
+    })
+
+    return report
   },
 
   selectRoute: (runId, routeIndex) => {
@@ -754,13 +882,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     }
   },
 
-  completeRun: (runId) => {
+  completeRun: (runId, eventData = {}) => {
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`)
+    emitEvent('adventure_complete', `秘境 ${dungeonName} 通关`, eventData)
     unlockSectMilestone('firstDungeonClear')
 
     // Update stats: adventure completion + max floor
@@ -807,13 +935,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     })
   },
 
-  failRun: (runId) => {
+  failRun: (runId, eventData = {}) => {
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_fail', `秘境 ${dungeonName} 失败`)
+    emitEvent('adventure_fail', `秘境 ${dungeonName} 失败`, eventData)
 
     // Update stats: adventure failure
     useSectStore.setState((s) => ({
@@ -1064,6 +1192,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     return get().activeRuns[id]
   },
 
+  getReport: (id) => {
+    return get().reportDetails[id]
+  },
+
   getMaxSimultaneousRuns: () => {
     const level = getSectLevel()
     return getMaxSimultaneousRuns(level)
@@ -1072,6 +1204,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   reset: () =>
     set({
       activeRuns: {},
+      reports: [],
+      reportDetails: {},
       completedDungeons: [],
       dispatches: [],
     }),

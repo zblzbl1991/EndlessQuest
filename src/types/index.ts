@@ -43,6 +43,13 @@ export type {
 } from './sect'
 export type {
   EventType,
+  AutomationStrategy,
+  AdventureRunConfig,
+  AdventureReportResult,
+  AdventureReportStepType,
+  AdventureReportStep,
+  AdventureReport,
+  AdventureReportSummary,
   Enemy,
   EnemyAffix,
   TacticalPreset,

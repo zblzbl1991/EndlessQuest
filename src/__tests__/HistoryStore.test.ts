@@ -45,4 +45,26 @@ describe('HistoryStore', () => {
     const limited = await queryHistoryEntries({ limit: 3 })
     expect(limited).toHaveLength(3)
   })
+
+  it('should preserve structured adventure payloads for later detail lookup', async () => {
+    await addHistoryEntry({
+      type: 'adventure_complete',
+      timestamp: Date.now(),
+      summary: '秘境 灵草谷 通关',
+      data: {
+        reportId: 'report_1',
+        dungeonId: 'lingCaoValley',
+        result: 'completed',
+        floorsCleared: 5,
+      },
+    })
+
+    const [entry] = await queryHistoryEntries({ type: 'adventure_complete', limit: 1 })
+    expect(entry.data).toEqual({
+      reportId: 'report_1',
+      dungeonId: 'lingCaoValley',
+      result: 'completed',
+      floorsCleared: 5,
+    })
+  })
 })

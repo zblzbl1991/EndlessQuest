@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useEventLogStore } from '../stores/eventLogStore'
 import type { EventType } from '../stores/eventLogStore'
 import { useSectStore } from '../stores/sectStore'
@@ -38,8 +40,14 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export default function EventLogPage() {
+  const [filter, setFilter] = useState<'all' | 'adventure'>('all')
   const events = useEventLogStore((s) => s.events)
   const archiveMilestones = useSectStore((s) => s.sect.archiveMilestones)
+
+  const filteredEvents =
+    filter === 'adventure'
+      ? events.filter((event) => ['adventure_start', 'adventure_complete', 'adventure_fail'].includes(event.type))
+      : events
 
   if (events.length === 0 && archiveMilestones.length === 0) {
     return (
@@ -78,18 +86,43 @@ export default function EventLogPage() {
           </div>
         </section>
       )}
+
       <div className={styles.sectionHeader}>
         <div className={styles.archiveTitle}>近况流转</div>
-        <div className={styles.sectionMeta}>{events.length} 条事件</div>
+        <div className={styles.sectionMeta}>{filteredEvents.length} 条事件</div>
       </div>
+
+      <div className={styles.filterRow}>
+        <button
+          className={`${styles.filterBtn} ${filter === 'all' ? styles.filterBtnActive : ''}`}
+          onClick={() => setFilter('all')}
+        >
+          全部
+        </button>
+        <button
+          className={`${styles.filterBtn} ${filter === 'adventure' ? styles.filterBtnActive : ''}`}
+          onClick={() => setFilter('adventure')}
+        >
+          秘境明细
+        </button>
+      </div>
+
       <div className={styles.list}>
-        {events.map((evt) => (
-          <div key={evt.id} className={styles.entry}>
-            <span className={styles.time}>{formatRelativeTime(evt.timestamp)}</span>
-            <span className={`${styles.tag} ${getEventClass(evt.type)}`}>{EVENT_LABELS[evt.type] ?? evt.type}</span>
-            <span className={styles.message}>{evt.message}</span>
-          </div>
-        ))}
+        {filteredEvents.map((evt) => {
+          const reportId = typeof evt.data?.reportId === 'string' ? evt.data.reportId : null
+          return (
+            <div key={evt.id} className={styles.entry}>
+              <span className={styles.time}>{formatRelativeTime(evt.timestamp)}</span>
+              <span className={`${styles.tag} ${getEventClass(evt.type)}`}>{EVENT_LABELS[evt.type] ?? evt.type}</span>
+              <span className={styles.message}>{evt.message}</span>
+              {reportId && (
+                <Link className={styles.detailLink} to={`/adventure/report/${reportId}`}>
+                  查看明细
+                </Link>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

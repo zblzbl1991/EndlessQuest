@@ -16,6 +16,7 @@ const SectPage = lazy(() => import('./pages/SectPage'))
 const CharactersPage = lazy(() => import('./pages/CharactersPage'))
 const BuildingsPage = lazy(() => import('./pages/BuildingsPage'))
 const AdventurePage = lazy(() => import('./pages/AdventurePage'))
+const AdventureReportPage = lazy(() => import('./pages/AdventureReportPage'))
 const VaultPage = lazy(() => import('./pages/VaultPage'))
 const EventLogPage = lazy(() => import('./pages/EventLogPage'))
 
@@ -124,6 +125,7 @@ export default function App() {
               <Route path="/characters" element={<CharactersPage />} />
               <Route path="/buildings" element={<BuildingsPage />} />
               <Route path="/adventure" element={<AdventurePage />} />
+              <Route path="/adventure/report/:reportId" element={<AdventureReportPage />} />
               <Route path="/vault" element={<VaultPage />} />
               <Route path="/log" element={<EventLogPage />} />
             </Routes>

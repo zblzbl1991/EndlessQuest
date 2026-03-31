@@ -1,29 +1,21 @@
 import { useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
-import ActionAgenda from '../components/sect/ActionAgenda'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
+import { getSectCharacterStatusSummary } from '../systems/sect/SectInsightSystem'
 import styles from './SectPage.module.css'
 
 export default function SectPage() {
   const sect = useSectStore((s) => s.sect)
-  const activeRuns = useAdventureStore((s) => s.activeRuns)
+  const reports = useAdventureStore((s) => s.reports)
   const dungeons = useAdventureStore((s) => s.dungeons)
 
-  const runCount = Object.keys(activeRuns).length
-
-  const characterStats = useMemo(() => {
-    const cultivating = sect.characters.filter((c) => c.status === 'idle').length
-    const adventuring = sect.characters.filter((c) => c.status === 'adventuring' || c.status === 'patrolling').length
-    const resting = sect.characters.filter(
-      (c) => c.status === 'resting' || c.status === 'injured' || c.status === 'idle'
-    ).length
-    return { cultivating, adventuring, resting }
-  }, [sect.characters])
+  const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
 
   const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
   const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel : 0
@@ -63,9 +55,6 @@ export default function SectPage() {
         </div>
       </section>
 
-      {/* Action Agenda */}
-      <ActionAgenda />
-
       {/* Sect Path */}
       <SectPathPanel />
 
@@ -79,33 +68,33 @@ export default function SectPage() {
       <section className={styles.section}>
         <div className={styles.sectionTitle}>弟子概况</div>
         <div className={styles.statsRow}>
-          <span className={styles.statItem}>
-            <span className={styles.statCount}>{characterStats.cultivating}</span>
-            <span className={styles.statLabel}>修炼中</span>
-          </span>
-          <span className={styles.statItem}>
-            <span className={styles.statCount}>{characterStats.adventuring}</span>
-            <span className={styles.statLabel}>冒险中</span>
-          </span>
-          <span className={styles.statItem}>
-            <span className={styles.statCount}>{characterStats.resting}</span>
-            <span className={styles.statLabel}>休息</span>
-          </span>
+          {characterStats.map((item) => (
+            <span key={item.key} className={styles.statItem}>
+              <span className={styles.statCount}>{item.count}</span>
+              <span className={styles.statLabel}>{item.label}</span>
+            </span>
+          ))}
         </div>
       </section>
 
-      {/* Active Adventures */}
-      {runCount > 0 && (
+      {/* Recent Adventure */}
+      {reports.length > 0 && (
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>进行中的秘境 ({runCount})</div>
-          {Object.values(activeRuns).map((run) => {
-            const dungeon = dungeons.find((d) => d.id === run.dungeonId)
+          <div className={styles.sectionTitle}>最近探索</div>
+          {reports.slice(0, 3).map((report) => {
+            const dungeon = dungeons.find((item) => item.id === report.dungeonId)
             return (
-              <div key={run.id} className={styles.adventureItem}>
-                <span className={styles.adventureName}>{dungeon?.name ?? '未知秘境'}</span>
-                <span className={styles.adventureFloor}>
-                  第 {run.currentFloor} / {run.floors.length} 层
-                </span>
+              <div key={report.id} className={styles.adventureItem}>
+                <div>
+                  <span className={styles.adventureName}>{dungeon?.name ?? report.dungeonId}</span>
+                  <span className={styles.adventureFloor}>
+                    {report.result === 'completed' ? '通关' : report.result === 'retreated' ? '撤退' : '失败'} · 第{' '}
+                    {report.floorsCleared} 层
+                  </span>
+                </div>
+                <Link className={styles.adventureLink} to={`/adventure/report/${report.id}`}>
+                  查看明细
+                </Link>
               </div>
             )
           })}

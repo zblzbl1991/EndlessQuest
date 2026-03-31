@@ -6,6 +6,7 @@ export type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribu
 export type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
 export type BlessingId = 'stoneHarvest' | 'verdantBounty' | 'ironBody' | 'galeStride' | 'battleFocus'
 export type RelicId = 'jadeGourd' | 'merchantSeal' | 'warBanner'
+export type AutomationStrategy = 'steady' | 'combat' | 'profit'
 
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancient_cave'
 
@@ -58,6 +59,79 @@ export interface MemberState {
 export interface LogEntry {
   timestamp: number
   message: string
+}
+
+export interface AdventureRunConfig {
+  dungeonId: string
+  teamCharacterIds: string[]
+  supplyLevel: SupplyLevel
+  tacticalPreset: TacticalPreset
+  automationStrategy: AutomationStrategy
+}
+
+export type AdventureReportResult = 'completed' | 'retreated' | 'failed'
+
+export type AdventureReportStepType =
+  | 'run_started'
+  | 'floor_started'
+  | 'route_considered'
+  | 'route_selected'
+  | 'event_resolved'
+  | 'auto_choice_made'
+  | 'shop_decision'
+  | 'blessing_decision'
+  | 'pet_decision'
+  | 'reward_gained'
+  | 'member_state_changed'
+  | 'run_retreated'
+  | 'run_failed'
+  | 'run_completed'
+
+export interface AdventureReportStep {
+  id: string
+  type: AdventureReportStepType
+  timestamp: number
+  floor: number | null
+  summary: string
+  detail: string
+  decisionReason?: string
+  snapshot?: {
+    teamHp: Record<string, { currentHp: number; maxHp: number; status: MemberState['status'] }>
+    rewards: Resources
+    blessings: BlessingId[]
+    relics: RelicId[]
+    branchTags: string[]
+  }
+  meta?: Record<string, unknown>
+}
+
+export interface AdventureReport {
+  id: string
+  config: AdventureRunConfig
+  dungeonId: string
+  teamCharacterIds: string[]
+  startedAt: number
+  finishedAt: number
+  result: AdventureReportResult
+  floorsCleared: number
+  rewards: Resources
+  itemRewards: AnyItem[]
+  finalMemberStates: Record<string, MemberState>
+  steps: AdventureReportStep[]
+}
+
+export interface AdventureReportSummary {
+  id: string
+  dungeonId: string
+  teamCharacterIds: string[]
+  strategy: AutomationStrategy
+  tacticalPreset: TacticalPreset
+  startedAt: number
+  finishedAt: number
+  result: AdventureReportResult
+  floorsCleared: number
+  rewards: Resources
+  itemRewardCount: number
 }
 
 export type SupplyLevel = 'basic' | 'enhanced' | 'luxury'

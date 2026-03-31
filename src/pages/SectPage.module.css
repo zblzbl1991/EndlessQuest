@@ -95,8 +95,9 @@
 
 /* Character Stats */
 .statsRow {
-  display: flex;
-  gap: var(--space-lg);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
   background: var(--color-panel);
   border-radius: var(--radius-md);
   padding: var(--space-md);
@@ -139,8 +140,20 @@
 }
 
 .adventureFloor {
+  display: block;
   font-size: 12px;
   color: var(--color-text-tertiary);
+}
+
+.adventureLink {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.adventureLink:hover {
+  text-decoration: underline;
 }
 
 /* Character List */
@@ -153,6 +166,10 @@
 @media (min-width: 1024px) {
   .resourceGrid {
     grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+
+  .statsRow {
+    grid-template-columns: repeat(5, 1fr);
   }
 
   .characterList {

@@ -1,18 +1,10 @@
 .page {
   padding: var(--space-md);
-  padding-bottom: 80px;
-  max-width: 480px;
+  padding-bottom: 88px;
+  max-width: 760px;
   margin: 0 auto;
 }
 
-@media (min-width: 1024px) {
-  .page {
-    max-width: none;
-    padding-bottom: var(--space-lg);
-  }
-}
-
-/* Header */
 .header {
   margin-bottom: var(--space-lg);
   padding-bottom: var(--space-md);
@@ -20,31 +12,30 @@
 }
 
 .pageTitle {
+  margin: 0;
   font-family: var(--font-serif);
   font-size: 24px;
   font-weight: 700;
   color: var(--color-text);
-  margin: 0;
 }
 
 .summaryRow {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
   margin-bottom: var(--space-lg);
 }
 
 .summaryCard {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
   padding: var(--space-sm);
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(139, 69, 19, 0.06), rgba(139, 69, 19, 0.02));
-  border: 1px solid rgba(139, 69, 19, 0.1);
+  border: 1px solid rgba(139, 69, 19, 0.12);
+  background: linear-gradient(180deg, rgba(139, 69, 19, 0.08), rgba(139, 69, 19, 0.02));
 }
 
 .summaryLabel {
+  display: block;
+  margin-bottom: 4px;
   font-size: 11px;
   color: var(--color-text-tertiary);
 }
@@ -56,354 +47,215 @@
   color: var(--color-text);
 }
 
-/* Section */
 .section {
-  margin-bottom: var(--space-lg);
+  margin-bottom: var(--space-xl);
 }
 
 .sectionTitle {
+  margin-bottom: var(--space-sm);
+  padding-left: var(--space-xs);
+  border-left: 2px solid var(--color-accent);
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-sm);
-  padding-left: var(--space-xs);
-  border-left: 2px solid var(--color-accent);
 }
 
-/* Empty */
 .empty {
-  text-align: center;
-  color: var(--color-text-tertiary);
-  font-size: 13px;
   padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--color-text-tertiary);
+  text-align: center;
+  font-size: 13px;
 }
 
-/* Dungeon List */
-.dungeonList {
+.reportList,
+.dungeonList,
+.dispatchList {
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
 }
 
-.dungeonCard {
-  background: var(--color-panel);
-  border-radius: var(--radius-md);
+.reportCard,
+.dungeonCard,
+.dispatchCard {
   padding: var(--space-md);
-  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-panel);
+  border: 1px solid rgba(139, 69, 19, 0.1);
 }
 
-.dungeonLocked {
-  opacity: 0.5;
-  border-left-color: var(--color-text-tertiary);
-}
-
-.dungeonHeader {
+.reportHeader,
+.dungeonHeader,
+.dispatchCard {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--space-xs);
+  gap: var(--space-sm);
 }
 
+.reportName,
 .dungeonName {
   font-family: var(--font-serif);
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-text);
 }
 
+.reportMeta,
+.dungeonInfo,
+.dungeonHint,
+.reportStats {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.reportBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reportBadge,
 .lockBadge {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  background: var(--color-bg);
   padding: 2px 8px;
-  border-radius: var(--radius-sm);
+  border-radius: 999px;
+  background: rgba(139, 69, 19, 0.08);
+  color: var(--color-accent);
+  font-size: 11px;
 }
 
-.activeBadge {
-  background: rgba(239, 108, 0, 0.12);
-  color: #e65100;
-}
-
-.clearedBadge {
+.resultcompleted {
   background: rgba(46, 125, 50, 0.12);
   color: #2e7d32;
 }
 
-.dungeonInfo {
+.resultretreated {
+  background: rgba(239, 108, 0, 0.14);
+  color: #ef6c00;
+}
+
+.resultfailed {
+  background: rgba(198, 40, 40, 0.12);
+  color: #c62828;
+}
+
+.reportRewardLine {
   display: flex;
-  gap: var(--space-md);
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-sm);
-}
-
-.dungeonHint {
-  margin-bottom: var(--space-sm);
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  line-height: 1.5;
-}
-
-.startBtn {
-  width: 100%;
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.startBtn:hover {
-  opacity: 0.85;
-}
-
-/* Run List */
-.runList {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-
-/* Run Card */
-.runCard {
-  background: var(--color-panel);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
-  border-left: 3px solid var(--color-accent);
-}
-
-.runHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-sm);
-}
-
-.runDungeonName {
-  font-family: var(--font-serif);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.runFloor {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-}
-
-.runProgress {
-  margin-bottom: var(--space-md);
-}
-
-.runNotice {
-  margin: calc(var(--space-sm) * -1) 0 var(--space-md);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background: rgba(139, 69, 19, 0.08);
-  color: var(--color-accent);
-  font-size: 11px;
-  line-height: 1.5;
-}
-
-.rewardStrip {
-  display: flex;
-  align-items: baseline;
   justify-content: space-between;
   gap: var(--space-sm);
-  margin: calc(var(--space-sm) * -1) 0 var(--space-md);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.03);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(139, 69, 19, 0.08);
 }
 
 .rewardLabel {
   font-size: 11px;
   color: var(--color-text-tertiary);
-  flex-shrink: 0;
 }
 
 .rewardValues {
-  font-size: 11px;
-  color: var(--color-text-secondary);
   text-align: right;
-}
-
-.floorCountdown {
-  display: block;
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-  text-align: right;
-  margin-top: 2px;
-}
-
-/* Team Members */
-.runTeam {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-}
-
-.memberItem {
-  display: grid;
-  grid-template-columns: 60px 1fr 40px;
-  align-items: center;
-  gap: var(--space-xs);
-}
-
-.memberName {
   font-size: 12px;
   color: var(--color-text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.memberHpBar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+.detailLink {
+  display: inline-flex;
+  margin-top: var(--space-sm);
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.memberHpText {
-  font-size: 10px;
-  color: var(--color-text-tertiary);
-  white-space: nowrap;
+.detailLink:hover {
+  text-decoration: underline;
 }
 
-.memberStatus {
-  font-size: 10px;
-  text-align: right;
+.dungeonLocked {
+  opacity: 0.55;
 }
 
-.memberAlive {
-  color: var(--color-success);
-}
-
-.memberDead {
-  color: var(--color-danger);
-}
-
-.memberWounded {
-  color: var(--color-warning);
-}
-
-/* Event Log */
-.runLog {
-  margin-bottom: var(--space-md);
-}
-
-.logTitle {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-xs);
-  font-weight: 500;
-}
-
-.logList {
-  max-height: 100px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-sm);
-  background: var(--color-bg);
+.startBtn,
+.confirmBtn,
+.cancelBtn,
+.strategyOption,
+.teamCharItem {
+  border: none;
   border-radius: var(--radius-sm);
+  font: inherit;
 }
 
-.logEntry {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  font-family: var(--font-mono);
-  line-height: 1.4;
-}
-
-/* Run Actions */
-.runActions {
-  display: flex;
-  gap: var(--space-sm);
-}
-
-.advanceBtn {
-  flex: 1;
+.startBtn,
+.confirmBtn {
+  width: 100%;
+  margin-top: var(--space-sm);
   padding: var(--space-sm) var(--space-md);
   background: var(--color-accent);
   color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
 }
 
-.advanceBtn:hover {
-  opacity: 0.85;
-}
-
-.retreatBtn {
+.cancelBtn {
   padding: var(--space-sm) var(--space-md);
-  background: transparent;
-  color: var(--color-danger);
-  border: 1px solid var(--color-danger);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--color-text-secondary);
   cursor: pointer;
-  transition: opacity var(--transition-fast);
 }
 
-.retreatBtn:hover {
-  opacity: 0.8;
+.btnDisabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
-/* Overlay / Team Builder */
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: var(--space-md);
+  background: rgba(23, 18, 14, 0.42);
+  z-index: 20;
 }
 
 .teamBuilder {
-  background: var(--color-bg);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  width: 100%;
-  max-width: 480px;
-  max-height: 80vh;
-  overflow-y: auto;
+  width: min(560px, 100%);
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
   padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: #f8f1e4;
+  border: 1px solid rgba(139, 69, 19, 0.12);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
 }
 
 .teamBuilderHeader {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  gap: var(--space-sm);
   margin-bottom: var(--space-md);
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--color-border-light);
 }
 
-.teamBuilderTitle {
+.teamBuilderTitle,
+.dungeonTarget,
+.strategyTitle {
   font-family: var(--font-serif);
-  font-size: 16px;
-  font-weight: 700;
   color: var(--color-text);
 }
 
-.dungeonTarget {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+.teamBuilderTitle {
+  font-size: 18px;
+  font-weight: 700;
 }
 
-/* Team Character List */
+.dungeonTarget {
+  font-size: 13px;
+}
+
 .teamCharList {
   display: flex;
   flex-direction: column;
@@ -415,399 +267,102 @@
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-panel);
-  border-radius: var(--radius-sm);
+  width: 100%;
+  padding: var(--space-sm);
+  background: rgba(139, 69, 19, 0.04);
   cursor: pointer;
-  transition: background var(--transition-fast);
-  border: 1px solid transparent;
-}
-
-.teamCharItem:hover {
-  background: var(--color-panel-hover);
-}
-
-.teamCharItem:focus-visible {
-  outline: 2px solid rgba(139, 69, 19, 0.35);
-  outline-offset: 2px;
 }
 
 .teamCharSelected {
-  border-color: var(--color-accent);
-  background: var(--color-panel-hover);
+  background: rgba(139, 69, 19, 0.12);
 }
 
 .teamCharCheck {
-  width: 20px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--color-border);
-  border-radius: 3px;
-  font-size: 12px;
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(139, 69, 19, 0.08);
   color: var(--color-accent);
-  flex-shrink: 0;
-}
-
-.teamCharSelected .teamCharCheck {
-  background: var(--color-accent);
-  color: #fff;
-  border-color: var(--color-accent);
 }
 
 .teamCharInfo {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  flex: 1;
-  min-width: 0;
+  align-items: flex-start;
+  gap: 2px;
 }
 
 .teamCharName {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--color-text);
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.teamCharQuality {
-  font-size: 10px;
-  padding: 0 4px;
-  border-radius: 2px;
-  background: var(--color-bg);
-  color: var(--color-text-tertiary);
 }
 
 .teamCharRealm {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-/* Team Stats */
-.teamStats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-  padding: var(--space-sm);
-  background: var(--color-panel);
-  border-radius: var(--radius-sm);
-}
-
-.teamStatItem {
-  display: flex;
-  justify-content: space-between;
-  padding: 2px var(--space-xs);
-}
-
-.teamStatLabel {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-text-tertiary);
 }
 
-.teamStatValue {
-  font-size: 12px;
+.strategyPanel {
+  margin: var(--space-md) 0;
+}
+
+.strategyTitle {
+  margin-bottom: var(--space-xs);
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-text);
+}
+
+.strategyOptions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-xs);
+}
+
+.strategyOption {
+  padding: var(--space-sm);
+  background: rgba(139, 69, 19, 0.05);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.strategyOptionActive {
+  background: var(--color-accent);
+  color: #fff;
 }
 
 .teamBuilderHint {
-  margin: calc(var(--space-sm) * -1) 0 var(--space-md);
-  font-size: 11px;
-  line-height: 1.5;
+  margin-top: var(--space-md);
   color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
 }
 
-.teamBuilderMeta {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin: calc(var(--space-sm) * -1) 0 var(--space-xs);
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-}
-
-.teamConfirmHint {
-  margin-bottom: var(--space-md);
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  background: rgba(0, 0, 0, 0.03);
-  font-size: 11px;
-  line-height: 1.5;
-  color: var(--color-text-secondary);
-}
-
-/* Team Actions */
 .teamActions {
   display: flex;
+  justify-content: flex-end;
   gap: var(--space-sm);
+  margin-top: var(--space-lg);
 }
 
-.cancelBtn {
-  flex: 1;
-  padding: var(--space-sm) var(--space-md);
-  background: transparent;
-  color: var(--color-text-secondary);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.cancelBtn:hover {
-  opacity: 0.8;
-}
-
-.confirmBtn {
-  flex: 2;
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-fast);
-}
-
-.confirmBtn:hover {
-  opacity: 0.85;
-}
-
-.btnDisabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-@media (min-width: 1024px) {
-  .summaryRow {
-    max-width: 720px;
-  }
-
-  .dungeonList {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-sm);
-  }
-
-  .memberItem {
-    grid-template-columns: 100px 1fr 60px;
-  }
-
-  .logList {
-    max-height: 250px;
-  }
-}
-
-@media (max-width: 420px) {
+@media (max-width: 640px) {
   .summaryRow {
     grid-template-columns: 1fr;
   }
-}
 
-@media (min-width: 1024px) {
-  .overlay {
-    align-items: center;
-    justify-content: center;
+  .reportRewardLine,
+  .teamBuilderHeader,
+  .dispatchCard {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .teamBuilder {
-    max-width: 600px;
-    border-radius: var(--radius-lg);
-    max-height: 85vh;
+  .strategyOptions {
+    grid-template-columns: 1fr;
   }
-}
 
-/* Shop Panel */
-.shopPanel {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-xs);
-}
-
-.shopTitle {
-  font-family: var(--font-serif);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-accent);
-}
-
-.shopItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: var(--space-xs) 0;
-  border-bottom: 1px solid var(--color-border-light);
-}
-
-.shopItem:last-of-type {
-  border-bottom: none;
-}
-
-.shopItemInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.shopItemName {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.shopItemDesc {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-}
-
-.shopBuyBtn {
-  background: var(--color-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 4px 10px;
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.shopBuyBtn:hover:not(.btnDisabled) {
-  opacity: 0.85;
-}
-
-.shopBuyBtn:focus-visible,
-.blessingOption:focus-visible,
-.advanceBtn:focus-visible,
-.retreatBtn:focus-visible,
-.cancelBtn:focus-visible,
-.confirmBtn:focus-visible,
-.startBtn:focus-visible {
-  outline: 2px solid rgba(139, 69, 19, 0.35);
-  outline-offset: 2px;
-}
-
-.shopPriceStack {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  line-height: 1.1;
-}
-
-.shopPriceNow {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.shopPriceOld {
-  font-size: 10px;
-  opacity: 0.75;
-  text-decoration: line-through;
-}
-
-.blessingPanel {
-  background: rgba(184, 134, 11, 0.08);
-  border: 1px solid rgba(184, 134, 11, 0.16);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-md);
-}
-
-.blessingHint {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-.blessingOptions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.blessingOption {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-sm);
-  border: 1px solid rgba(184, 134, 11, 0.18);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 248, 220, 0.6);
-  text-align: left;
-  cursor: pointer;
-  transition:
-    opacity var(--transition-fast),
-    transform var(--transition-fast);
-}
-
-.blessingOption:hover {
-  opacity: 0.9;
-  transform: translateY(-1px);
-}
-
-.blessingName {
-  font-size: 13px;
-  font-weight: 600;
-  color: #8a5b00;
-}
-
-.blessingDesc {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-}
-
-/* Pet Capture Panel */
-.petCapturePanel {
-  background: var(--color-bg);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  margin-bottom: var(--space-xs);
-}
-
-.petCaptureTitle {
-  font-family: var(--font-serif);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.petCaptureRate {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.petCaptureActions {
-  display: flex;
-  gap: var(--space-xs);
-}
-
-.petCaptureActions .actionBtn {
-  flex: 1;
-  background: var(--color-accent);
-  color: #fff;
-  border: none;
-  border-radius: var(--radius-sm);
-  padding: 6px 8px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.petCaptureActions .cancelBtn {
-  flex: 1;
+  .teamActions {
+    flex-direction: column;
+  }
 }

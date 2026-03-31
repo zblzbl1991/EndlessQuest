@@ -1,0 +1,413 @@
+import type {
+  AdventureReport,
+  AdventureReportStep,
+  AdventureReportStepType,
+  AutomationStrategy,
+  BlessingId,
+  Dungeon,
+  DungeonEvent,
+  DungeonRun,
+  MemberState,
+  RelicId,
+  Resources,
+} from '../../types'
+import type { CombatUnit } from '../combat/CombatEngine'
+import { BLESSINGS } from '../../data/blessings'
+import { RELICS } from '../../data/relics'
+import type { EventResult } from './EventSystem'
+import { resolveEvent } from './EventSystem'
+import {
+  applyRunRecovery,
+  applyRunRewardModifiers,
+  getShopCostMultiplier,
+  pickBlessingOptions,
+  pickRelicReward,
+} from './RunBuildSystem'
+import {
+  pickAutomationBlessing,
+  pickAutomationRoute,
+  pickAutomationShopOffer,
+  shouldAttemptPetCapture,
+  shouldRetreat,
+  type AutomationContext,
+} from './AutoRunPolicy'
+
+interface PetCaptureOutcome {
+  attempted: boolean
+  success: boolean
+  petName?: string
+}
+
+export interface ResolveAutomatedRunInput {
+  run: DungeonRun
+  dungeon: Dungeon
+  automationStrategy: AutomationStrategy
+  baseTeamUnits: CombatUnit[]
+  now?: () => number
+  resolveEventFn?: (event: DungeonEvent, team: CombatUnit[], floorNumber: number) => EventResult
+  pickBlessingOptionsFn?: (ownedBlessings: BlessingId[]) => BlessingId[]
+  pickRelicRewardFn?: (ownedRelics: RelicId[]) => RelicId | null
+  petCaptureFn?: (context: { strategy: AutomationStrategy; floor: number; run: DungeonRun }) => PetCaptureOutcome
+}
+
+function cloneMemberStates(memberStates: Record<string, MemberState>): Record<string, MemberState> {
+  return Object.fromEntries(Object.entries(memberStates).map(([id, state]) => [id, { ...state }]))
+}
+
+function buildTeamUnits(run: DungeonRun, baseTeamUnits: CombatUnit[]): CombatUnit[] {
+  return baseTeamUnits
+    .filter((unit) => run.teamCharacterIds.includes(unit.id))
+    .map((unit) => {
+      const memberState = run.memberStates[unit.id]
+      return {
+        ...unit,
+        hp: memberState?.currentHp ?? unit.hp,
+        maxHp: memberState?.maxHp ?? unit.maxHp,
+        preset: run.tacticalPreset,
+      }
+    })
+    .filter((unit) => unit.hp > 0)
+}
+
+function buildContext(run: DungeonRun): AutomationContext {
+  const activeMembers = run.teamCharacterIds
+    .map((id) => run.memberStates[id])
+    .filter((state): state is MemberState => Boolean(state) && state.status !== 'dead')
+
+  if (activeMembers.length === 0) {
+    return {
+      averageHpRatio: 0,
+      lowestHpRatio: 0,
+      currentRewards: { ...run.totalRewards },
+      currentFloor: run.currentFloor,
+      totalFloors: run.floors.length,
+      blessings: [...run.blessings],
+      relics: [...run.relics],
+    }
+  }
+
+  const ratios = activeMembers.map((state) => state.currentHp / state.maxHp)
+  const averageHpRatio = ratios.reduce((sum, ratio) => sum + ratio, 0) / ratios.length
+
+  return {
+    averageHpRatio,
+    lowestHpRatio: Math.min(...ratios),
+    currentRewards: { ...run.totalRewards },
+    currentFloor: run.currentFloor,
+    totalFloors: run.floors.length,
+    blessings: [...run.blessings],
+    relics: [...run.relics],
+  }
+}
+
+function addRewards(target: Resources, reward: Partial<Resources>): void {
+  target.spiritStone += reward.spiritStone ?? 0
+  target.spiritEnergy += reward.spiritEnergy ?? 0
+  target.herb += reward.herb ?? 0
+  target.ore += reward.ore ?? 0
+}
+
+function nextStepIdFactory() {
+  let counter = 0
+  return () => `step_${++counter}`
+}
+
+export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureReport {
+  const now = input.now ?? Date.now
+  const resolveEventFn = input.resolveEventFn ?? resolveEvent
+  const pickBlessingOptionsFn = input.pickBlessingOptionsFn ?? ((owned) => pickBlessingOptions(owned))
+  const pickRelicRewardFn = input.pickRelicRewardFn ?? ((owned) => pickRelicReward(owned))
+  const petCaptureFn =
+    input.petCaptureFn ??
+    (() => ({
+      attempted: false,
+      success: false,
+    }))
+
+  const stepId = nextStepIdFactory()
+  const steps: AdventureReportStep[] = []
+  const startedAt = now()
+
+  const run: DungeonRun = {
+    ...input.run,
+    teamCharacterIds: [...input.run.teamCharacterIds],
+    floors: input.run.floors.map((floor) => ({
+      ...floor,
+      routes: floor.routes.map((route) => ({
+        ...route,
+        events: route.events.map((event) => ({ ...event })),
+        reward: { ...route.reward },
+      })),
+    })),
+    memberStates: cloneMemberStates(input.run.memberStates),
+    totalRewards: { ...input.run.totalRewards },
+    itemRewards: [...input.run.itemRewards],
+    eventLog: [...input.run.eventLog],
+    pendingShopOffers: [...(input.run.pendingShopOffers ?? [])],
+    blessings: [...(input.run.blessings ?? [])],
+    relics: [...(input.run.relics ?? [])],
+    branchTags: [...(input.run.branchTags ?? [])],
+    pendingBlessingOptions: [...(input.run.pendingBlessingOptions ?? [])],
+  }
+
+  const pushStep = (
+    type: AdventureReportStepType,
+    summary: string,
+    detail: string,
+    decisionReason?: string,
+    meta?: Record<string, unknown>
+  ) => {
+    steps.push({
+      id: stepId(),
+      type,
+      timestamp: now(),
+      floor: run.currentFloor <= run.floors.length ? run.currentFloor : run.floors.length,
+      summary,
+      detail,
+      decisionReason,
+      snapshot: {
+        teamHp: Object.fromEntries(
+          run.teamCharacterIds.map((id) => {
+            const state = run.memberStates[id]
+            return [id, { currentHp: state.currentHp, maxHp: state.maxHp, status: state.status }]
+          })
+        ),
+        rewards: { ...run.totalRewards },
+        blessings: [...run.blessings],
+        relics: [...run.relics],
+        branchTags: [...run.branchTags],
+      },
+      meta,
+    })
+  }
+
+  pushStep(
+    'run_started',
+    `开始探索 ${input.dungeon.name}`,
+    `以${input.automationStrategy}策略进入${input.dungeon.name}`
+  )
+
+  let result: AdventureReport['result'] = 'completed'
+
+  while (run.currentFloor <= run.floors.length) {
+    const floor = run.floors[run.currentFloor - 1]
+    if (!floor) break
+
+    pushStep('floor_started', `第 ${run.currentFloor} 层开始`, `队伍进入第 ${run.currentFloor} 层。`)
+
+    const currentContext = buildContext(run)
+    const routeIndex = pickAutomationRoute(input.automationStrategy, floor, currentContext)
+    const route = floor.routes[routeIndex] ?? floor.routes[0]
+
+    pushStep(
+      'route_considered',
+      '评估路线',
+      floor.routes
+        .map((candidate) => `${candidate.name}（${candidate.riskLevel}风险，灵石${candidate.reward.spiritStone}）`)
+        .join(' / ')
+    )
+
+    if (!run.branchTags.includes(route.riskLevel)) {
+      run.branchTags.push(route.riskLevel)
+    }
+
+    pushStep(
+      'route_selected',
+      `选择路线：${route.name}`,
+      route.description,
+      `${input.automationStrategy}策略下自动选择${route.riskLevel}风险路线`
+    )
+
+    for (const event of route.events) {
+      const teamUnits = buildTeamUnits(run, input.baseTeamUnits)
+      if (teamUnits.length === 0) {
+        result = 'failed'
+        pushStep('run_failed', '探索失败', '队伍已无可继续战斗的成员。')
+        break
+      }
+
+      const eventResult = resolveEventFn(event, teamUnits, run.currentFloor)
+      pushStep('event_resolved', `事件：${event.type}`, eventResult.message, undefined, {
+        success: eventResult.success,
+      })
+
+      let memberStateChanged = false
+      for (const charId of run.teamCharacterIds) {
+        const hpChange = eventResult.hpChanges[charId]
+        const memberState = run.memberStates[charId]
+        if (hpChange === undefined || !memberState || memberState.status === 'dead') continue
+
+        memberState.currentHp = Math.max(0, Math.min(memberState.maxHp, memberState.currentHp + hpChange))
+        memberState.status =
+          memberState.currentHp <= 0 ? 'dead' : memberState.currentHp < memberState.maxHp * 0.3 ? 'wounded' : 'alive'
+        memberStateChanged = true
+      }
+
+      if (memberStateChanged) {
+        pushStep('member_state_changed', '队伍状态变化', '事件结算后，队伍生命与状态已更新。')
+      }
+
+      const eventReward = applyRunRewardModifiers(
+        {
+          spiritStone: eventResult.reward.spiritStone,
+          spiritEnergy: 0,
+          herb: eventResult.reward.herb,
+          ore: eventResult.reward.ore,
+        },
+        run.blessings,
+        run.relics
+      )
+      addRewards(run.totalRewards, eventReward)
+      run.itemRewards.push(...eventResult.itemRewards)
+
+      if (
+        eventReward.spiritStone > 0 ||
+        eventReward.herb > 0 ||
+        eventReward.ore > 0 ||
+        eventResult.itemRewards.length > 0
+      ) {
+        pushStep(
+          'reward_gained',
+          '获得奖励',
+          `灵石 +${eventReward.spiritStone}，灵草 +${eventReward.herb}，灵矿 +${eventReward.ore}`
+        )
+      }
+
+      if (eventResult.shopOffers && eventResult.shopOffers.length > 0) {
+        const shopIndex = pickAutomationShopOffer(
+          input.automationStrategy,
+          eventResult.shopOffers,
+          buildContext(run),
+          getShopCostMultiplier(run.relics)
+        )
+
+        if (shopIndex !== null) {
+          const offer = eventResult.shopOffers[shopIndex]
+          const finalCost = Math.floor(offer.cost * getShopCostMultiplier(run.relics))
+          run.totalRewards.spiritStone -= finalCost
+
+          if (offer.effect === 'heal') {
+            for (const charId of run.teamCharacterIds) {
+              const memberState = run.memberStates[charId]
+              if (!memberState || memberState.status === 'dead') continue
+              const healAmount = Math.floor(memberState.maxHp * offer.value)
+              memberState.currentHp = Math.min(memberState.maxHp, memberState.currentHp + healAmount)
+              memberState.status = memberState.currentHp < memberState.maxHp * 0.3 ? 'wounded' : 'alive'
+            }
+          }
+
+          pushStep(
+            'shop_decision',
+            `购买游商物品：${offer.name}`,
+            offer.description,
+            `${input.automationStrategy}策略自动购买`
+          )
+        } else {
+          pushStep('shop_decision', '放弃游商交易', '当前策略判断无需购买游商物品。')
+        }
+      }
+
+      if (eventResult.petCaptureAvailable) {
+        const attempt = shouldAttemptPetCapture(input.automationStrategy, buildContext(run))
+        if (attempt) {
+          const petResult = petCaptureFn({ strategy: input.automationStrategy, floor: run.currentFloor, run })
+          pushStep(
+            'pet_decision',
+            petResult.success ? '尝试捕获灵兽成功' : '尝试捕获灵兽',
+            petResult.success ? `成功捕获 ${petResult.petName ?? '灵兽'}` : '尝试后未能捕获灵兽。',
+            `${input.automationStrategy}策略允许在当前状态下尝试捕获`
+          )
+        } else {
+          pushStep('pet_decision', '放弃捕获灵兽', '当前策略判断队伍状态不适合分心捕获。')
+        }
+      }
+
+      const allDead = run.teamCharacterIds.every((id) => run.memberStates[id]?.status === 'dead')
+      if (allDead) {
+        result = 'failed'
+        pushStep('run_failed', '探索失败', '本层战斗后队伍已全灭。')
+        break
+      }
+    }
+
+    if (result === 'failed') break
+
+    const routeReward = applyRunRewardModifiers(
+      { spiritStone: route.reward.spiritStone, spiritEnergy: 0, herb: route.reward.herb, ore: route.reward.ore },
+      run.blessings,
+      run.relics
+    )
+    addRewards(run.totalRewards, routeReward)
+    pushStep(
+      'reward_gained',
+      '结算层奖励',
+      `灵石 +${routeReward.spiritStone}，灵草 +${routeReward.herb}，灵矿 +${routeReward.ore}`
+    )
+
+    for (const charId of run.teamCharacterIds) {
+      const memberState = run.memberStates[charId]
+      if (!memberState || memberState.status === 'dead') continue
+      memberState.currentHp = applyRunRecovery(memberState.currentHp, memberState.maxHp, run.blessings, run.relics)
+      memberState.status = memberState.currentHp < memberState.maxHp * 0.3 ? 'wounded' : 'alive'
+    }
+
+    const nextFloor = run.currentFloor + 1
+    if (nextFloor <= run.floors.length && nextFloor % 2 === 1 && run.blessings.length < 4) {
+      const blessingOptions = pickBlessingOptionsFn(run.blessings)
+      if (blessingOptions.length > 0) {
+        const selectedBlessing = pickAutomationBlessing(input.automationStrategy, blessingOptions)
+        if (!run.blessings.includes(selectedBlessing)) {
+          run.blessings.push(selectedBlessing)
+        }
+        pushStep(
+          'blessing_decision',
+          `选择祝福：${BLESSINGS[selectedBlessing].name}`,
+          BLESSINGS[selectedBlessing].description,
+          `${input.automationStrategy}策略自动选择祝福`
+        )
+      }
+    }
+
+    run.currentFloor = nextFloor
+
+    if (run.currentFloor > run.floors.length) {
+      const relicReward = pickRelicRewardFn(run.relics)
+      if (relicReward && !run.relics.includes(relicReward)) {
+        run.relics.push(relicReward)
+        pushStep('auto_choice_made', `获得遗物：${RELICS[relicReward].name}`, RELICS[relicReward].description)
+      }
+      result = 'completed'
+      pushStep('run_completed', '探索完成', `${input.dungeon.name} 已完成结算。`)
+      break
+    }
+
+    if (shouldRetreat(input.automationStrategy, buildContext(run))) {
+      result = 'retreated'
+      pushStep('run_retreated', '主动撤退', `${input.automationStrategy}策略判断当前队伍状态需要回撤。`)
+      break
+    }
+  }
+
+  const finishedAt = now()
+
+  return {
+    id: `report_${run.id}`,
+    config: {
+      dungeonId: run.dungeonId,
+      teamCharacterIds: [...run.teamCharacterIds],
+      supplyLevel: run.supplyLevel,
+      tacticalPreset: run.tacticalPreset,
+      automationStrategy: input.automationStrategy,
+    },
+    dungeonId: run.dungeonId,
+    teamCharacterIds: [...run.teamCharacterIds],
+    startedAt,
+    finishedAt,
+    result,
+    floorsCleared: result === 'completed' ? run.floors.length : Math.max(0, run.currentFloor - 1),
+    rewards: { ...run.totalRewards },
+    itemRewards: [...run.itemRewards],
+    finalMemberStates: cloneMemberStates(run.memberStates),
+    steps,
+  }
+}

@@ -1,0 +1,133 @@
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--space-md);
+  padding-bottom: 88px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.pageTitle {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.subtitle {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.backLink {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.backLink:hover {
+  text-decoration: underline;
+}
+
+.summaryCard {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: var(--color-panel);
+  border: 1px solid rgba(139, 69, 19, 0.1);
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.summaryRow strong {
+  color: var(--color-text);
+}
+
+.sectionTitle {
+  margin-bottom: var(--space-sm);
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.timelineSection {
+  margin-bottom: var(--space-lg);
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.stepCard {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: rgba(139, 69, 19, 0.04);
+  border: 1px solid rgba(139, 69, 19, 0.08);
+}
+
+.stepHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 6px;
+}
+
+.stepSummary {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.stepFloor {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.stepDetail {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.stepReason {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-accent);
+}
+
+.empty {
+  padding: var(--space-lg);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .header,
+  .stepHeader,
+  .summaryRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

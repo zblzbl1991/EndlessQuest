@@ -20,12 +20,11 @@ interface AgendaItem {
 export default function ActionAgenda() {
   const navigate = useNavigate()
   const sect = useSectStore((s) => s.sect)
-  const activeRuns = useAdventureStore((s) => s.activeRuns)
+  const reports = useAdventureStore((s) => s.reports)
 
   const items = useMemo(() => {
     const result: AgendaItem[] = []
 
-    // 1. Breakthrough readiness
     for (const char of sect.characters) {
       const needed = getCultivationNeeded(char.realm, char.realmStage)
       if (needed === Infinity) continue
@@ -46,7 +45,6 @@ export default function ActionAgenda() {
       }
     }
 
-    // 2. Building upgrade available
     for (const bDef of BUILDING_DEFS) {
       const building = sect.buildings.find((b) => b.type === bDef.type)
       if (!building || !building.unlocked) continue
@@ -62,7 +60,6 @@ export default function ActionAgenda() {
       }
     }
 
-    // 3. Dungeon challenge available
     const idleChars = sect.characters.filter((c) => c.status === 'idle').length
     for (const dungeon of DUNGEONS) {
       const isUnlocked = sect.characters.some(
@@ -76,11 +73,10 @@ export default function ActionAgenda() {
           detail: `派遣 ${Math.min(idleChars, 5)} 名弟子探险`,
           link: '/adventure',
         })
-        break // Only show one dungeon entry
+        break
       }
     }
 
-    // 4. Injured characters
     for (const char of sect.characters) {
       if (char.status === 'injured') {
         result.push({
@@ -93,7 +89,6 @@ export default function ActionAgenda() {
       }
     }
 
-    // 5. Resource overflow
     const caps = calcResourceCaps(
       sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0,
       sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
@@ -115,21 +110,21 @@ export default function ActionAgenda() {
       }
     }
 
-    // 6. Active runs
-    const runs = Object.values(activeRuns)
-    for (const run of runs) {
-      const dungeon = DUNGEONS.find((d) => d.id === run.dungeonId)
+    for (const report of reports.slice(0, 1)) {
+      const dungeon = DUNGEONS.find((d) => d.id === report.dungeonId)
       result.push({
-        id: `run-${run.id}`,
+        id: `report-${report.id}`,
         priority: 6,
-        label: `队伍正在 ${dungeon?.name ?? '秘境'}`,
-        detail: `第 ${run.currentFloor} 层`,
-        link: '/adventure',
+        label: `最近完成 ${dungeon?.name ?? '秘境'}`,
+        detail: `${report.result === 'completed' ? '通关' : report.result === 'retreated' ? '撤退' : '失败'} · 第 ${
+          report.floorsCleared
+        } 层`,
+        link: `/adventure/report/${report.id}`,
       })
     }
 
     return result.sort((a, b) => a.priority - b.priority).slice(0, 3)
-  }, [sect, activeRuns])
+  }, [sect, reports])
 
   if (items.length === 0) return null
 
