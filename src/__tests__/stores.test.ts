@@ -1,6 +1,6 @@
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
-import type { Character, Equipment, Consumable, AnyItem, ItemStack } from '../types'
+import type { Character, Equipment, Consumable, ItemStack } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 
 // ---------------------------------------------------------------------------
@@ -474,7 +474,7 @@ describe('SectStore - Character Inventory', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, equippedGear: [...new Array(9).fill(null)] as any } : c
+          c.id === char.id ? { ...c, equippedGear: [...new Array(9).fill(null)] as Character['equippedGear'] } : c
         ),
       },
     }))
@@ -652,9 +652,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
         resources: { ...s.sect.resources, spiritStone: 5000 },
         vault: [],
       },
@@ -676,9 +674,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
         resources: { ...s.sect.resources, spiritStone: 1000 },
         vault: [],
       },
@@ -698,9 +694,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, realmStage: 3 as any, cultivation: 1000 } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
         resources: { ...s.sect.resources, spiritStone: 100 },
         vault: [],
       },
@@ -821,7 +815,6 @@ describe('SectStore - tickAll', () => {
 
   it('tickAll should consume spirit energy for cultivating characters', () => {
     getStore().addResource('spiritEnergy', 100)
-    const beforeEnergy = getStore().sect.resources.spiritEnergy
 
     const result = getStore().tickAll(10)
     expect(result.spiritConsumed).toBeGreaterThan(0)
@@ -1404,7 +1397,7 @@ describe('AdventureStore - advanceFloor', () => {
     const runId = run!.id
 
     const beforeFloor = getAdventureStore().activeRuns[runId]?.currentFloor
-    const result = getAdventureStore().advanceFloor(runId)
+    getAdventureStore().advanceFloor(runId)
 
     // Should succeed (unless combat killed the character)
     // The floor should have incremented (or run completed if last floor)
@@ -1648,7 +1641,7 @@ describe('tickAll with production queue', () => {
       },
     }))
 
-    const result = getStore().tickAll(20)
+    getStore().tickAll(20)
 
     const sect = getStore().sect
     expect(sect.vault.length).toBe(0) // nothing produced (no herbs)
@@ -1825,7 +1818,6 @@ describe('expedition supply', () => {
 
   it('luxury supply should give 1.5x reward multiplier', () => {
     const char = getStore().sect.characters[0]
-    const beforeStones = getStore().sect.resources.spiritStone
 
     // Add required vault items: 5 hp_potion + 1 breakthrough_pill
     const vaultItems: ItemStack[] = [

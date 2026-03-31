@@ -10,7 +10,6 @@ import {
   getAvailableQualities,
 } from '../systems/character/CharacterEngine'
 import type { CharacterQuality } from '../types/character'
-import type { Technique } from '../types/technique'
 import type { Equipment } from '../types/item'
 
 // --- Test helpers ---
@@ -28,19 +27,6 @@ function makeEquipment(overrides: Partial<Equipment['stats']> = {}): Equipment {
     refinementStats: [],
     setId: null,
     stats: { hp: 0, atk: 0, def: 0, spd: 0, crit: 0, critDmg: 0, ...overrides },
-  }
-}
-
-function makeTechnique(overrides: Partial<Technique> = {}): Technique {
-  return {
-    id: 'tech_1',
-    name: 'Test Technique',
-    description: 'A test technique',
-    tier: 'mortal',
-    element: 'neutral',
-    bonuses: [{ type: 'hp', value: 10 }],
-    requirements: { minRealm: 0, minComprehension: 0 },
-    ...overrides,
   }
 }
 

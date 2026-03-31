@@ -8,26 +8,15 @@ import type {
   CultivationStats,
 } from '../types/character'
 
-import type { Technique, TechniqueTier, TechniqueBonus } from '../types/technique'
+import type { Technique, TechniqueTier } from '../types/technique'
 
-import type { Element, SkillCategory, TechniqueType, ActiveSkill } from '../types/skill'
+import type { Element, ActiveSkill } from '../types/skill'
 
-import type {
-  ItemQuality,
-  EquipSlot,
-  ItemStats,
-  Item,
-  Equipment,
-  Consumable,
-  Material,
-  AnyItem,
-  TechniqueScroll,
-} from '../types/item'
+import type { Equipment, Consumable, Material, AnyItem, TechniqueScroll } from '../types/item'
 
 import type { BuildingType, ResourceType, Resources, Building, Sect } from '../types/sect'
 
 import type {
-  EventType,
   AutomationStrategy,
   AdventureRunConfig,
   AdventureReport,
@@ -36,8 +25,6 @@ import type {
   Enemy,
   EnemyAffix,
   TacticalPreset,
-  DungeonEvent,
-  RouteOption,
   DungeonFloor,
   Dungeon,
   DungeonRun,

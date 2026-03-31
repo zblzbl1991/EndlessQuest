@@ -243,7 +243,7 @@ export function createPlayerCombatUnit(player: {
   totalSpd?: number
   totalCrit?: number
   totalCritDmg?: number
-  skills?: any[]
+  skills?: ActiveSkill[]
   spiritPower?: number
   maxSpiritPower?: number
 }): CombatUnit {

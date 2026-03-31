@@ -78,14 +78,7 @@ export default function MarketPanel() {
     if (!shopState) {
       initShop()
     }
-  }, [])
-
-  // Auto-refresh daily items on new day
-  useEffect(() => {
-    if (shopState && refreshCount < marketBuff.dailyRefreshCount) {
-      // No auto-refresh needed here; refresh is manual
-    }
-  }, [shopState])
+  }, [initShop, shopState])
 
   const handleBuy = (index: number, isDaily: boolean) => {
     const result = buyFromShop(index, isDaily)

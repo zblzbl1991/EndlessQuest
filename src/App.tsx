@@ -21,11 +21,6 @@ const VaultPage = lazy(() => import('./pages/VaultPage'))
 const EventLogPage = lazy(() => import('./pages/EventLogPage'))
 
 export default function App() {
-  const startGame = useGameStore((s) => s.startGame)
-  const tickAll = useSectStore((s) => s.tickAll)
-  const tickAllIdle = useAdventureStore((s) => s.tickAllIdle)
-  const lastOnlineTime = useGameStore((s) => s.lastOnlineTime)
-
   const [isLoaded, setIsLoaded] = useState(false)
   const [offlineReport, setOfflineReport] = useState<OfflineReportData | null>(null)
   const loadingRef = useRef(false)
@@ -46,6 +41,8 @@ export default function App() {
   useEffect(() => {
     if (!isLoaded) return
 
+    const { startGame, lastOnlineTime } = useGameStore.getState()
+    const { tickAll } = useSectStore.getState()
     const cleanup = startAutoSave()
 
     startGame()
@@ -74,8 +71,8 @@ export default function App() {
     const engine = new IdleEngine((delta) => {
       const paused = useGameStore.getState().isPaused
       if (paused) return
-      tickAll(delta)
-      tickAllIdle(delta)
+      useSectStore.getState().tickAll(delta)
+      useAdventureStore.getState().tickAllIdle(delta)
     })
     engine.start()
 

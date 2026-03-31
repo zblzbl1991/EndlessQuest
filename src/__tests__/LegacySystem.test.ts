@@ -1,7 +1,8 @@
-import { getLegacyBonus, LEGACY_REWARD_TIERS } from '../data/legacy'
+import { getLegacyBonus } from '../data/legacy'
 import { canAscend, performAscension } from '../systems/sect/LegacySystem'
-import type { Sect, Building, Resources } from '../types/sect'
+import type { Sect, Building } from '../types/sect'
 import type { Character } from '../types/character'
+import type { Pet } from '../systems/pet/PetSystem'
 import { BUILDING_DEFS } from '../data/buildings'
 import { generateCharacter } from '../systems/character/CharacterEngine'
 
@@ -265,9 +266,33 @@ describe('performAscension', () => {
   })
 
   it('should reset vault and pets', () => {
+    const pet: Pet = {
+      id: 'pet1',
+      name: 'Test Pet',
+      quality: 'common',
+      element: 'fire',
+      level: 1,
+      talent: 50,
+      innateSkill: { id: 'claw', name: '利爪', multiplier: 1.2, element: 'neutral', description: '' },
+      equippedSkills: [null, null],
+      stats: { hp: 30, atk: 5, def: 3, spd: 4 },
+    }
     const sect = makeSect({
-      vault: [{ item: { id: 'test', type: 'consumable', name: 'test', quality: 'common' } as any, quantity: 1 }],
-      pets: [{ id: 'pet1', name: 'Test Pet', element: 'fire', level: 1, power: 10, assignedTo: null }] as any[],
+      vault: [
+        {
+          item: {
+            id: 'test',
+            type: 'consumable',
+            name: 'test',
+            quality: 'common',
+            description: '',
+            sellPrice: 1,
+            effect: { type: 'hp', value: 1 },
+          },
+          quantity: 1,
+        },
+      ],
+      pets: [pet],
     })
     const { newSect } = performAscension(sect)
     expect(newSect.vault).toEqual([])

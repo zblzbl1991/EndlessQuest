@@ -4,7 +4,6 @@ import {
   refineEquipment,
   calcEquipmentStats,
 } from '../systems/equipment/EquipmentEngine'
-import type { Equipment } from '../types/item'
 import { generateEquipment } from '../systems/item/ItemGenerator'
 
 describe('EquipmentEngine', () => {

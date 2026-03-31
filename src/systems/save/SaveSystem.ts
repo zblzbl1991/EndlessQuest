@@ -5,6 +5,7 @@ import { useAdventureStore } from '../../stores/adventureStore'
 import type { DispatchState } from '../../stores/adventureStore'
 import { useGameStore } from '../../stores/gameStore'
 import { useEventLogStore } from '../../stores/eventLogStore'
+import type { GameHistoryEntry } from './HistoryStore'
 import { getDB } from './db'
 import { migrateToItemStacks } from '../item/ItemStackUtils'
 
@@ -52,6 +53,40 @@ type SavedReportRecord = {
   id: string
   kind: 'report'
   report: AdventureReport
+}
+
+type SavedCharacter = Sect['characters'][number] & {
+  status?: string
+  assignedBuilding?: Sect['characters'][number]['assignedBuilding']
+  specialties?: Sect['characters'][number]['specialties']
+  cultivationPath?: Sect['characters'][number]['cultivationPath']
+  fateTags?: Sect['characters'][number]['fateTags']
+}
+
+const DEFAULT_LEGACY: Sect['legacy'] = {
+  ascensionCount: 0,
+  statBonus: 0,
+  unlockedTechniques: [],
+  unlockedDungeons: [],
+}
+
+const DEFAULT_STATS: SectStats = {
+  totalSpiritStoneEarned: 0,
+  totalSpiritStoneSpent: 0,
+  totalBattles: 0,
+  totalVictories: 0,
+  totalKills: 0,
+  maxFloorCleared: 0,
+  totalRecruits: 0,
+  totalBreakthroughAttempts: 0,
+  totalBreakthroughSuccesses: 0,
+  totalBuildingUpgrades: 0,
+  totalAdventureRuns: 0,
+  totalAdventureCompletions: 0,
+  totalAdventureFailures: 0,
+  totalPetCaptures: 0,
+  totalPlayTime: 0,
+  longestOfflineSeconds: 0,
 }
 
 // ---------------------------------------------------------------------------
@@ -170,7 +205,7 @@ export async function loadGame(): Promise<boolean> {
     if (!meta) return false
 
     // Read per-entity stores
-    const rawCharacters = (await db.getAll('characters')) as Array<Sect['characters'][number] & { status?: string }>
+    const rawCharacters = (await db.getAll('characters')) as SavedCharacter[]
     const buildings = (await db.getAll('buildings')) as Sect['buildings']
     const rawVault = await db.getAll('vault')
     const pets = (await db.getAll('pets')) as Sect['pets']
@@ -199,12 +234,12 @@ export async function loadGame(): Promise<boolean> {
     )
     const dispatchCharacterIds = new Set(dispatches.map((dispatch) => dispatch.characterId))
     const activeRunCharacterIds = new Set(advRecords.flatMap((rec) => ('run' in rec ? rec.run.teamCharacterIds : [])))
-    const unlockedBuildingTypes = new Set(
+    const unlockedBuildingTypes = new Set<string>(
       buildings.filter((building) => building.unlocked).map((building) => building.type)
     )
 
     const characters = migratedCharacters.map((c) => {
-      const rawAssignedBuilding = (c as any).assignedBuilding ?? null
+      const rawAssignedBuilding = c.assignedBuilding ?? null
       const hasValidTrainingAssignment =
         c.status === 'training' && rawAssignedBuilding !== null && unlockedBuildingTypes.has(rawAssignedBuilding)
 
@@ -221,10 +256,10 @@ export async function loadGame(): Promise<boolean> {
         ...c,
         status: normalizedStatus,
         backpack: migrateToItemStacks(c.backpack),
-        specialties: (c as any).specialties ?? [],
+        specialties: c.specialties ?? [],
         assignedBuilding: normalizedStatus === 'training' && hasValidTrainingAssignment ? rawAssignedBuilding : null,
-        cultivationPath: (c as any).cultivationPath ?? 'none',
-        fateTags: (c as any).fateTags ?? [],
+        cultivationPath: c.cultivationPath ?? 'none',
+        fateTags: c.fateTags ?? [],
       }
     })
 
@@ -247,30 +282,13 @@ export async function loadGame(): Promise<boolean> {
         itemsCrafted: [],
         taxIncome: 0,
       },
-      sectPath: (meta as any).sectPath ?? 'none',
-      activeRoute: (meta as any).activeRoute ?? null,
-      unlockedPathNodeIds: (meta as any).unlockedPathNodeIds ?? [],
-      pathUnlockedAt: (meta as any).pathUnlockedAt ?? null,
-      legacy: (meta as any).legacy ?? { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
-      archiveMilestones: (meta as any).archiveMilestones ?? [],
-      stats: (meta as any).stats ?? {
-        totalSpiritStoneEarned: 0,
-        totalSpiritStoneSpent: 0,
-        totalBattles: 0,
-        totalVictories: 0,
-        totalKills: 0,
-        maxFloorCleared: 0,
-        totalRecruits: 0,
-        totalBreakthroughAttempts: 0,
-        totalBreakthroughSuccesses: 0,
-        totalBuildingUpgrades: 0,
-        totalAdventureRuns: 0,
-        totalAdventureCompletions: 0,
-        totalAdventureFailures: 0,
-        totalPetCaptures: 0,
-        totalPlayTime: 0,
-        longestOfflineSeconds: 0,
-      },
+      sectPath: meta.sectPath ?? 'none',
+      activeRoute: meta.activeRoute ?? null,
+      unlockedPathNodeIds: meta.unlockedPathNodeIds ?? [],
+      pathUnlockedAt: meta.pathUnlockedAt ?? null,
+      legacy: meta.legacy ?? DEFAULT_LEGACY,
+      archiveMilestones: meta.archiveMilestones ?? [],
+      stats: meta.stats ?? DEFAULT_STATS,
     }
 
     useSectStore.setState({ sect })
@@ -281,12 +299,12 @@ export async function loadGame(): Promise<boolean> {
       if (!('run' in rec)) continue
       activeRuns[rec.id] = {
         ...rec.run,
-        pendingShopOffers: (rec.run as any).pendingShopOffers ?? [],
-        tacticalPreset: (rec.run as any).tacticalPreset ?? 'balanced',
-        blessings: (rec.run as any).blessings ?? [],
-        relics: (rec.run as any).relics ?? [],
-        branchTags: (rec.run as any).branchTags ?? [],
-        pendingBlessingOptions: (rec.run as any).pendingBlessingOptions ?? [],
+        pendingShopOffers: rec.run.pendingShopOffers ?? [],
+        tacticalPreset: rec.run.tacticalPreset ?? 'balanced',
+        blessings: rec.run.blessings ?? [],
+        relics: rec.run.relics ?? [],
+        branchTags: rec.run.branchTags ?? [],
+        pendingBlessingOptions: rec.run.pendingBlessingOptions ?? [],
       }
     }
     const reports = advRecords
@@ -313,12 +331,12 @@ export async function loadGame(): Promise<boolean> {
     })
 
     // Load event log from history store
-    const historyRecords = await db.getAll('history')
+    const historyRecords = (await db.getAll('history')) as GameHistoryEntry[]
     if (historyRecords.length > 0) {
-      const events = (historyRecords as any[])
-        .sort((a: any, b: any) => b.timestamp - a.timestamp)
+      const events = historyRecords
+        .sort((a, b) => b.timestamp - a.timestamp)
         .slice(0, 200)
-        .map((entry: any, index: number) => ({
+        .map((entry, index: number) => ({
           id: `hist_${entry.id ?? index}`,
           timestamp: entry.timestamp,
           type: entry.type,

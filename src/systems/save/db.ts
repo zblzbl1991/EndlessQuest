@@ -1,9 +1,30 @@
 import { openDB, type IDBPDatabase } from 'idb'
+import type { Sect } from '../../types'
 
 const DB_NAME = 'endlessquest_db'
 const DB_VERSION = 3
 
 let _db: IDBPDatabase | null = null
+
+type LegacyBlobSect = Pick<Sect, 'name' | 'level' | 'resources' | 'maxVaultSlots'> &
+  Partial<
+    Pick<
+      Sect,
+      | 'techniqueCodex'
+      | 'totalAdventureRuns'
+      | 'totalBreakthroughs'
+      | 'lastTransmissionTime'
+      | 'characters'
+      | 'buildings'
+      | 'vault'
+      | 'pets'
+    >
+  >
+
+interface LegacyBlobSaveRecord {
+  slot: number
+  sect?: LegacyBlobSect
+}
 
 export async function getDB(): Promise<IDBPDatabase> {
   if (_db) return _db
@@ -42,8 +63,8 @@ export async function getDB(): Promise<IDBPDatabase> {
       // v1→v2: migrate blob save to per-entity stores
       if (oldVersion < 2 && db.objectStoreNames.contains('save')) {
         const saveStore = transaction.objectStore('save')
-        saveStore.getAll().then(async (records: any[]) => {
-          const saveRecord = records.find((r: any) => r.slot === 1)
+        saveStore.getAll().then(async (records: LegacyBlobSaveRecord[]) => {
+          const saveRecord = records.find((record) => record.slot === 1)
           if (!saveRecord?.sect) return
 
           const sect = saveRecord.sect

@@ -1,12 +1,11 @@
 import {
   calcCultivationRate,
   calcSpiritCostPerSecond,
-  canCultivate,
   tick,
   canBreakthrough,
   breakthrough,
 } from '../systems/cultivation/CultivationEngine'
-import type { Character, FateTagId } from '../types/character'
+import type { Character } from '../types/character'
 import { FATE_TAGS, getFateTagById, calcFateTagFailureRateModifier } from '../data/fateTags'
 import { applyFateOnTribulation, applyFateOnBreakthrough } from '../systems/character/FateSystem'
 

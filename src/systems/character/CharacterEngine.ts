@@ -1,4 +1,4 @@
-import type { Character, CharacterQuality, BaseStats } from '../../types/character'
+import type { Character, CharacterQuality, BaseStats, CultivationStats } from '../../types/character'
 import type { Equipment } from '../../types/item'
 import type { Talent, TalentRarity } from '../../types/talent'
 import { ALL_TALENTS } from '../../data/talents'
@@ -60,6 +60,23 @@ const QUALITY_TALENT_CONFIG: Record<
     talentCount: { min: 1, max: 3, probabilities: [0.5, 0.3, 0.2] },
     rarityWeights: { common: 0.3, rare: 0.45, epic: 0.25 },
   },
+}
+
+const BASE_STAT_KEYS = ['hp', 'atk', 'def', 'spd', 'crit', 'critDmg'] as const satisfies ReadonlyArray<keyof BaseStats>
+const CULTIVATION_STAT_KEYS = [
+  'spiritPower',
+  'maxSpiritPower',
+  'comprehension',
+  'spiritualRoot',
+  'fortune',
+] as const satisfies ReadonlyArray<keyof CultivationStats>
+
+function isBaseStatKey(stat: string): stat is keyof BaseStats {
+  return BASE_STAT_KEYS.includes(stat as (typeof BASE_STAT_KEYS)[number])
+}
+
+function isCultivationStatKey(stat: string): stat is keyof CultivationStats {
+  return CULTIVATION_STAT_KEYS.includes(stat as (typeof CULTIVATION_STAT_KEYS)[number])
 }
 
 function rollTalents(quality: CharacterQuality): Talent[] {
@@ -299,10 +316,10 @@ export function generateCharacter(quality: CharacterQuality): Character {
   // Apply talent effects to stats
   for (const talent of talents) {
     for (const eff of talent.effect) {
-      if (eff.stat in baseStats) {
-        ;(baseStats as any)[eff.stat] += eff.value
-      } else if (eff.stat in cultivationStats) {
-        ;(cultivationStats as any)[eff.stat] += eff.value
+      if (isBaseStatKey(eff.stat)) {
+        baseStats[eff.stat] += eff.value
+      } else if (isCultivationStatKey(eff.stat)) {
+        cultivationStats[eff.stat] += eff.value
       }
     }
   }

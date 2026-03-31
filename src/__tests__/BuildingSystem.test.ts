@@ -102,7 +102,7 @@ describe('checkBuildingUnlock', () => {
 
   it('unknown building type should return not unlocked', () => {
     const buildings = createBuildings()
-    const result = checkBuildingUnlock('unknown' as any, buildings)
+    const result = checkBuildingUnlock('unknown' as Building['type'], buildings)
     expect(result.unlocked).toBe(false)
     expect(result.reason).toBe('未知建筑')
   })

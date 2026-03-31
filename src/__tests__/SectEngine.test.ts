@@ -6,8 +6,6 @@ import {
   getMaxSimultaneousRuns,
 } from '../systems/sect/SectEngine'
 import { getActiveRoute, calcBuildingRouteBonus } from '../systems/sect/SectRouteSystem'
-import { SECT_ROUTES } from '../data/sectRoutes'
-import type { SectRouteId } from '../data/sectRoutes'
 import { useSectStore } from '../stores/sectStore'
 
 describe('SectEngine', () => {

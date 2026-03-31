@@ -1,8 +1,8 @@
 import { generateFloor, generateDungeonRun } from '../systems/roguelike/MapGenerator'
 import { resolveEvent } from '../systems/roguelike/EventSystem'
 import { DUNGEONS } from '../data/events'
-import { BLESSINGS, type Blessing } from '../data/blessings'
-import { RELICS, type Relic } from '../data/relics'
+import { BLESSINGS } from '../data/blessings'
+import { RELICS } from '../data/relics'
 import { applyRunBuild, type RunBuild } from '../systems/roguelike/RunBuildSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 

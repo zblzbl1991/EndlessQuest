@@ -1,6 +1,5 @@
 import { simulateCombat } from '../systems/combat/CombatEngine'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
-import type { TacticPreset } from '../types/runBuild'
 
 function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; team: 'ally' | 'enemy' }): CombatUnit {
   return {
@@ -237,8 +236,6 @@ describe('CombatEngine', () => {
     ]
     const result = simulateCombat(allies, enemies)
     expect(result.victory).toBe(true)
-    // First hit should deal 0 damage (shield absorbs it), or less than normal
-    const firstAction = result.actions[0]
     // With 20 shield and ~15 damage, first hit may be fully absorbed (damage=0) or partially
     // But subsequent hits should deal damage once shield is broken
     const totalDamage = result.actions.filter((a) => a.actorId === 'p1').reduce((sum, a) => sum + a.damage, 0)

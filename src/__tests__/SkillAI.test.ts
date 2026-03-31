@@ -1,6 +1,5 @@
 import { selectAction } from '../systems/combat/SkillAI'
 import type { ActiveSkill } from '../types/skill'
-import type { TacticalPreset } from '../types/adventure'
 
 function makeSkill(overrides: Partial<ActiveSkill> & { id: string }): ActiveSkill {
   return {

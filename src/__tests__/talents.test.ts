@@ -1,5 +1,5 @@
 import { ALL_TALENTS, getTalentsByRarity, getTalentById } from '../data/talents'
-import type { Talent, TalentEffect, TalentRarity } from '../types/talent'
+import type { Talent } from '../types/talent'
 import { TALENT_RARITY_NAMES } from '../types/talent'
 
 describe('talent types', () => {

@@ -11,7 +11,6 @@ import {
   getPotionEffectMult,
   getForgeUnlockLevel,
   getAlchemyUnlockLevel,
-  getStudyUnlockLevel,
   getTargetedRecruitUnlockLevel,
   getMarketUnlockLevel,
 } from '../systems/economy/BuildingEffects'

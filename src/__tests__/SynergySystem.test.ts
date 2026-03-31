@@ -3,7 +3,7 @@ import { getActiveSynergies, getSynergyBonus, getMarketQualityCapBonus } from '.
 import type { Building } from '../types/sect'
 
 function makeBuilding(type: string, level: number): Building {
-  return { type: type as any, level, unlocked: true, productionQueue: { recipeId: null, progress: 0 } }
+  return { type: type as Building['type'], level, unlocked: true, productionQueue: { recipeId: null, progress: 0 } }
 }
 
 describe('getActiveSynergies', () => {
