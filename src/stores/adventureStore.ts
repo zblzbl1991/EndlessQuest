@@ -5,6 +5,7 @@ import type {
   DungeonFloor,
   Resources,
   AnyItem,
+  Consumable,
   BlessingId,
   TacticalPreset,
   AdventureRunConfig,
@@ -230,7 +231,7 @@ function unlockSectMilestone(id: 'firstDungeonClear'): void {
 function countVaultItemsByRecipeId(recipeId: string): number {
   const { sect } = useSectStore.getState()
   return sect.vault.reduce((sum, s) => {
-    if (s.item.type === 'consumable' && (s.item as any).recipeId === recipeId) {
+    if (s.item.type === 'consumable' && (s.item as Consumable).recipeId === recipeId) {
       return sum + s.quantity
     }
     return sum
@@ -244,7 +245,7 @@ function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
   const newVault = [...sect.vault]
   for (let i = newVault.length - 1; i >= 0 && remaining > 0; i--) {
     const s = newVault[i]
-    if (s.item.type === 'consumable' && (s.item as any).recipeId === recipeId) {
+    if (s.item.type === 'consumable' && (s.item as Consumable).recipeId === recipeId) {
       if (s.quantity <= remaining) {
         remaining -= s.quantity
         newVault.splice(i, 1)

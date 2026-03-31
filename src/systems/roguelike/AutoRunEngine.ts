@@ -50,10 +50,6 @@ export interface ResolveAutomatedRunInput {
   petCaptureFn?: (context: { strategy: AutomationStrategy; floor: number; run: DungeonRun }) => PetCaptureOutcome
 }
 
-function emptyResources(): Resources {
-  return { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
-}
-
 function cloneMemberStates(memberStates: Record<string, MemberState>): Record<string, MemberState> {
   return Object.fromEntries(Object.entries(memberStates).map(([id, state]) => [id, { ...state }]))
 }
