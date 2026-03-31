@@ -17,9 +17,19 @@
   color: #e65100;
 }
 
+.patrolling {
+  background: rgba(69, 90, 100, 0.12);
+  color: #455a64;
+}
+
 .resting {
   background: #e3f2fd;
   color: #1565c0;
+}
+
+.training {
+  background: rgba(93, 64, 55, 0.12);
+  color: #6d4c41;
 }
 
 .injured {

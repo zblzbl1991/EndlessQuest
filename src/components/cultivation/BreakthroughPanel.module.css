@@ -46,6 +46,36 @@
   font-weight: 600;
 }
 
+.failureWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.riskTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.riskLow {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.riskMid {
+  background: rgba(239, 108, 0, 0.12);
+  color: #ef6c00;
+}
+
+.riskHigh {
+  background: rgba(198, 40, 40, 0.12);
+  color: #b71c1c;
+}
+
 .majorReq {
   background: rgba(0, 0, 0, 0.03);
   border-radius: 4px;

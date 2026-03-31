@@ -41,6 +41,8 @@ export default function AdventurePage() {
 
   const dungeons = useAdventureStore((s) => s.dungeons)
   const activeRuns = useAdventureStore((s) => s.activeRuns)
+  const completedDungeons = useAdventureStore((s) => s.completedDungeons)
+  const getMaxSimultaneousRuns = useAdventureStore((s) => s.getMaxSimultaneousRuns)
   const sect = useSectStore((s) => s.sect)
 
   // Dispatch state
@@ -59,6 +61,7 @@ export default function AdventurePage() {
   const playerStage = maxRealmChar?.realmStage ?? 0
 
   const activeRunList = Object.values(activeRuns)
+  const maxRuns = getMaxSimultaneousRuns()
 
   // Characters available for team building (cultivating or resting, not adventuring)
   const availableCharacters = useMemo(() => {
@@ -70,6 +73,22 @@ export default function AdventurePage() {
       <div className={styles.header}>
         <h1 className={styles.pageTitle}>秘境</h1>
       </div>
+      <section className={styles.summaryRow}>
+        <div className={styles.summaryCard}>
+          <span className={styles.summaryLabel}>可出战弟子</span>
+          <span className={styles.summaryValue}>{availableCharacters.length}</span>
+        </div>
+        <div className={styles.summaryCard}>
+          <span className={styles.summaryLabel}>并行秘境</span>
+          <span className={styles.summaryValue}>
+            {activeRunList.length}/{maxRuns}
+          </span>
+        </div>
+        <div className={styles.summaryCard}>
+          <span className={styles.summaryLabel}>已留名秘境</span>
+          <span className={styles.summaryValue}>{completedDungeons.length}</span>
+        </div>
+      </section>
 
       {/* Team Builder Modal */}
       {buildingTeam && (
@@ -133,19 +152,43 @@ export default function AdventurePage() {
           {dungeons.map((dungeon) => {
             const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
             const unlockRealmName = getRealmName(dungeon.unlockRealm, dungeon.unlockStage as 0 | 1 | 2 | 3)
+            const activeRun = activeRunList.find((run) => run.dungeonId === dungeon.id)
+            const cleared = completedDungeons.includes(dungeon.id)
+            const runSlotsFull = activeRunList.length >= maxRuns
+            const noAvailableTeam = availableCharacters.length === 0
+            const launchDisabled = Boolean(activeRun) || runSlotsFull || noAvailableTeam
+            const launchLabel = activeRun ? '探索进行中' : cleared ? '再次探索' : '开始探索'
+            const launchHint = activeRun
+              ? '该秘境已有队伍在内探索'
+              : runSlotsFull
+                ? `当前并行席位已满（${activeRunList.length}/${maxRuns}）`
+                : noAvailableTeam
+                  ? '暂无可出战弟子'
+                  : '可直接组队出发'
             return (
               <div key={dungeon.id} className={`${styles.dungeonCard} ${!unlocked ? styles.dungeonLocked : ''}`}>
                 <div className={styles.dungeonHeader}>
                   <span className={styles.dungeonName}>{dungeon.name}</span>
-                  {!unlocked && <span className={styles.lockBadge}>{unlockRealmName}解锁</span>}
+                  {!unlocked ? (
+                    <span className={styles.lockBadge}>{unlockRealmName}解锁</span>
+                  ) : activeRun ? (
+                    <span className={`${styles.lockBadge} ${styles.activeBadge}`}>进行中</span>
+                  ) : cleared ? (
+                    <span className={`${styles.lockBadge} ${styles.clearedBadge}`}>已留名</span>
+                  ) : null}
                 </div>
                 <div className={styles.dungeonInfo}>
                   <span>层数: {dungeon.totalLayers}</span>
                   <span>推荐: {unlockRealmName}</span>
                 </div>
+                {unlocked && <div className={styles.dungeonHint}>{launchHint}</div>}
                 {unlocked && (
-                  <button className={styles.startBtn} onClick={() => setBuildingTeam(dungeon.id)}>
-                    开始探索
+                  <button
+                    className={`${styles.startBtn} ${launchDisabled ? styles.btnDisabled : ''}`}
+                    onClick={() => setBuildingTeam(dungeon.id)}
+                    disabled={launchDisabled}
+                  >
+                    {launchLabel}
                   </button>
                 )}
               </div>
@@ -232,6 +275,12 @@ function TeamBuilder({
                 key={char.id}
                 className={`${styles.teamCharItem} ${selected ? styles.teamCharSelected : ''}`}
                 onClick={() => toggleCharacter(char.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    toggleCharacter(char.id)
+                  }
+                }}
                 role="button"
                 tabIndex={0}
               >
@@ -272,6 +321,7 @@ function TeamBuilder({
         )}
 
         <TacticPresetPicker value={preset} onChange={setPreset} />
+        <div className={styles.teamBuilderHint}>默认会携带基础补给出发，途中获得的祝福与遗物会持续影响本次秘境。</div>
 
         {/* Actions */}
         <div className={styles.teamActions}>
@@ -318,8 +368,24 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
   const floorTimer = run.floorTimer ?? 0
   const FLOOR_TICK_SECONDS = 10
   const remainingSec = Math.max(0, Math.ceil(FLOOR_TICK_SECONDS - floorTimer))
+  const rewardSummary = [
+    run.totalRewards.spiritStone > 0 ? `${Math.floor(run.totalRewards.spiritStone)} 灵石` : null,
+    run.totalRewards.herb > 0 ? `${Math.floor(run.totalRewards.herb)} 灵草` : null,
+    run.totalRewards.ore > 0 ? `${Math.floor(run.totalRewards.ore)} 灵矿` : null,
+    run.itemRewards.length > 0 ? `${run.itemRewards.length} 件物品` : null,
+  ].filter(Boolean)
 
   const hasAlive = run.teamCharacterIds.some((cid) => run.memberStates[cid]?.status !== 'dead')
+  const hasPetOpportunity =
+    recentLogs.length > 0 && recentLogs[recentLogs.length - 1].message.includes('可捕获灵兽') && !showPetCapture
+  const actionLockedReason =
+    run.pendingBlessingOptions.length > 0
+      ? '先选择本层机缘祝福'
+      : run.pendingShopOffers && run.pendingShopOffers.length > 0
+        ? '游商仍在等待你的决定'
+        : showPetCapture || hasPetOpportunity
+          ? '灵兽踪迹未散，先决定是否捕获'
+          : null
 
   const handleAdvance = () => {
     advanceFloor(run.id)
@@ -343,6 +409,13 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
         <ProgressBar value={Math.min(run.currentFloor, totalFloors)} max={totalFloors} variant="ink" />
         {!isCompleted && <span className={styles.floorCountdown}>{remainingSec}秒后自动推进</span>}
       </div>
+      {actionLockedReason && <div className={styles.runNotice}>{actionLockedReason}</div>}
+      {rewardSummary.length > 0 && (
+        <div className={styles.rewardStrip}>
+          <span className={styles.rewardLabel}>累积战利</span>
+          <span className={styles.rewardValues}>{rewardSummary.join(' · ')}</span>
+        </div>
+      )}
 
       {/* Team members */}
       <div className={styles.runTeam}>
@@ -484,7 +557,7 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
         })()}
 
       {/* Check last log for pet capture trigger */}
-      {!showPetCapture && recentLogs.length > 0 && recentLogs[recentLogs.length - 1].message.includes('可捕获灵兽') && (
+      {!showPetCapture && hasPetOpportunity && (
         <button
           className={styles.actionBtn}
           onClick={() => setShowPetCapture(true)}
@@ -497,7 +570,7 @@ function ActiveRunCard({ run }: { run: DungeonRun }) {
       {/* Action buttons */}
       {!isCompleted && (
         <div className={styles.runActions}>
-          {hasAlive && (
+          {hasAlive && !actionLockedReason && (
             <button className={styles.advanceBtn} onClick={handleAdvance}>
               继续
             </button>

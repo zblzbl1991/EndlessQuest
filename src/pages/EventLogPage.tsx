@@ -55,7 +55,11 @@ export default function EventLogPage() {
       <h1 className={styles.pageTitle}>事件记录</h1>
       {archiveMilestones.length > 0 && (
         <section className={styles.archiveSection}>
-          <div className={styles.archiveTitle}>宗门档案</div>
+          <div className={styles.sectionHeader}>
+            <div className={styles.archiveTitle}>宗门档案</div>
+            <div className={styles.sectionMeta}>{archiveMilestones.length} 条里程碑</div>
+          </div>
+          <div className={styles.archiveLead}>这里记录宗门真正留下痕迹的时刻，后续轮回仍会保留。</div>
           <div className={styles.archiveList}>
             {[...archiveMilestones]
               .sort((a, b) => b.unlockedAt - a.unlockedAt)
@@ -74,6 +78,10 @@ export default function EventLogPage() {
           </div>
         </section>
       )}
+      <div className={styles.sectionHeader}>
+        <div className={styles.archiveTitle}>近况流转</div>
+        <div className={styles.sectionMeta}>{events.length} 条事件</div>
+      </div>
       <div className={styles.list}>
         {events.map((evt) => (
           <div key={evt.id} className={styles.entry}>

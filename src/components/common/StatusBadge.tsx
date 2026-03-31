@@ -4,7 +4,7 @@ import styles from './StatusBadge.module.css'
 const STATUS_LABELS: Record<CharacterStatus, string> = {
   idle: '修炼中',
   adventuring: '冒险中',
-  patrolling: '巡逻中',
+  patrolling: '派遣中',
   resting: '休息',
   injured: '受伤',
   training: '研习中',
@@ -13,10 +13,10 @@ const STATUS_LABELS: Record<CharacterStatus, string> = {
 const STATUS_STYLES: Record<CharacterStatus, string> = {
   idle: styles.cultivating,
   adventuring: styles.adventuring,
-  patrolling: styles.adventuring,
+  patrolling: styles.patrolling,
   resting: styles.resting,
   injured: styles.injured,
-  training: styles.cultivating,
+  training: styles.training,
 }
 
 interface StatusBadgeProps {

@@ -29,13 +29,28 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const ready = canBreakthrough(character)
   const hasTribulation = isMajor && shouldTriggerTribulation(character.realm, character.realmStage)
   const progress = Math.min(1, character.cultivation / needed)
+  const minorCost = !isMajor ? getMinorBreakthroughCost(character.realm, character.realmStage) : null
+  const hasMinorStones = minorCost !== null ? spiritStone >= minorCost : true
+  const riskLabel = failureRate < 0.12 ? '平稳' : failureRate < 0.3 ? '有险' : '凶险'
+  const riskClass = failureRate < 0.12 ? styles.riskLow : failureRate < 0.3 ? styles.riskMid : styles.riskHigh
 
   // Major realm requirements
   const cost = isMajor ? BREAKTHROUGH_COSTS[nextRealm] : null
   const hasStones = cost ? spiritStone >= cost.spiritStone : true
 
   // Hint text
-  let hint = character.status === 'idle' ? '修炼中' : character.status === 'resting' ? '休息中' : '冒险中'
+  let hint =
+    character.status === 'idle'
+      ? '修炼中'
+      : character.status === 'resting'
+        ? '休息中'
+        : character.status === 'training'
+          ? '研习中'
+          : character.status === 'patrolling'
+            ? '派遣中'
+            : character.status === 'injured'
+              ? '伤势未愈'
+              : '冒险中'
   let hintClass = ''
   if (ready) {
     if (isMajor && cost) {
@@ -50,8 +65,13 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         hintClass = styles.ready
       }
     } else {
-      hint = '修为已满，自动突破中...'
-      hintClass = styles.ready
+      if (!hasMinorStones && minorCost !== null) {
+        hint = `灵石不足（需要 ${minorCost.toLocaleString()}）`
+        hintClass = styles.hintBlocked
+      } else {
+        hint = '修为已满，自动突破中...'
+        hintClass = styles.ready
+      }
     }
   }
 
@@ -73,7 +93,10 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       </div>
       <div className={styles.requirement}>
         <span>突破失败率</span>
-        <span className={styles.failureRate}>{Math.round(failureRate * 100)}%</span>
+        <span className={styles.failureWrap}>
+          <span className={styles.failureRate}>{Math.round(failureRate * 100)}%</span>
+          <span className={`${styles.riskTag} ${riskClass}`}>{riskLabel}</span>
+        </span>
       </div>
       {hasTribulation && (
         <div className={styles.requirement}>
@@ -105,20 +128,15 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
           </div>
         </div>
       )}
-      {!isMajor &&
-        (() => {
-          const minorCost = getMinorBreakthroughCost(character.realm, character.realmStage)
-          const hasMinorStones = spiritStone >= minorCost
-          return (
-            <div className={styles.majorReq}>
-              <div className={styles.reqTitle}>突破需求</div>
-              <div className={`${styles.reqItem} ${hasMinorStones ? styles.reqMet : styles.reqUnmet}`}>
-                <span>灵石 ×{minorCost.toLocaleString()}</span>
-                <span>{hasMinorStones ? '✓' : '✗'}</span>
-              </div>
-            </div>
-          )
-        })()}
+      {!isMajor && minorCost !== null && (
+        <div className={styles.majorReq}>
+          <div className={styles.reqTitle}>突破需求</div>
+          <div className={`${styles.reqItem} ${hasMinorStones ? styles.reqMet : styles.reqUnmet}`}>
+            <span>灵石 ×{minorCost.toLocaleString()}</span>
+            <span>{hasMinorStones ? '✓' : '✗'}</span>
+          </div>
+        </div>
+      )}
       {hasTribulation && (
         <div className={styles.tribulationHint}>天劫成功有机会沉淀为命格，失败则可能留下劫痕与心魔。</div>
       )}
