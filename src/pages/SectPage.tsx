@@ -7,8 +7,21 @@ import CharacterCard from '../components/common/CharacterCard'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
-import { getSectCharacterStatusSummary } from '../systems/sect/SectInsightSystem'
 import styles from './SectPage.module.css'
+
+function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStore.getState>['sect']['characters']) {
+  return [
+    { key: 'cultivating', label: '修炼中', count: characters.filter((char) => char.status === 'idle').length },
+    { key: 'dispatching', label: '派遣中', count: characters.filter((char) => char.status === 'patrolling').length },
+    { key: 'adventuring', label: '秘境中', count: characters.filter((char) => char.status === 'adventuring').length },
+    { key: 'training', label: '研习中', count: characters.filter((char) => char.status === 'training').length },
+    {
+      key: 'recovering',
+      label: '恢复中',
+      count: characters.filter((char) => char.status === 'resting' || char.status === 'injured').length,
+    },
+  ]
+}
 
 export default function SectPage() {
   const sect = useSectStore((s) => s.sect)
