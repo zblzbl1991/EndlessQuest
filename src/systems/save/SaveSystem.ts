@@ -1,5 +1,5 @@
 import type { Sect, SectStats } from '../../types'
-import type { DungeonRun } from '../../types'
+import type { DungeonRun, AdventureReport } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
 import type { DispatchState } from '../../stores/adventureStore'
@@ -47,6 +47,12 @@ type SavedDispatchRecord = {
   dispatch: DispatchState
 }
 
+type SavedReportRecord = {
+  id: string
+  kind: 'report'
+  report: AdventureReport
+}
+
 // ---------------------------------------------------------------------------
 // saveGame — write sect data to per-entity stores
 // ---------------------------------------------------------------------------
@@ -54,7 +60,7 @@ type SavedDispatchRecord = {
 export async function saveGame(): Promise<void> {
   try {
     const sect = useSectStore.getState().sect
-    const { activeRuns, dispatches } = useAdventureStore.getState()
+    const { activeRuns, dispatches, reports, reportDetails } = useAdventureStore.getState()
     const db = await getDB()
     const storeNames = ['meta', 'characters', 'buildings', 'vault', 'pets', 'adventure'] as const
     const tx = db.transaction(storeNames, 'readwrite')
@@ -121,10 +127,20 @@ export async function saveGame(): Promise<void> {
         dispatch,
       })
     }
+    for (const summary of reports) {
+      const report = reportDetails[summary.id]
+      if (!report) continue
+      await advStore.put({
+        id: report.id,
+        kind: 'report',
+        report,
+      })
+    }
     const advKeys = await advStore.getAllKeys()
     const expectedAdventureKeys = new Set([
       ...Object.keys(activeRuns),
       ...dispatches.map((dispatch) => `dispatch_${dispatch.characterId}`),
+      ...reports.map((report) => report.id),
     ])
     for (const k of advKeys) {
       if (!expectedAdventureKeys.has(k as string)) await advStore.delete(k)
@@ -173,7 +189,9 @@ export async function loadGame(): Promise<boolean> {
       return c
     })
 
-    const advRecords = (await db.getAll('adventure')) as Array<SavedAdventureRunRecord | SavedDispatchRecord>
+    const advRecords = (await db.getAll('adventure')) as Array<
+      SavedAdventureRunRecord | SavedDispatchRecord | SavedReportRecord
+    >
     const dispatches: DispatchState[] = advRecords.flatMap((rec) =>
       rec.kind === 'dispatch' && 'dispatch' in rec ? [rec.dispatch] : []
     )
@@ -268,7 +286,28 @@ export async function loadGame(): Promise<boolean> {
         pendingBlessingOptions: (rec.run as any).pendingBlessingOptions ?? [],
       }
     }
-    useAdventureStore.setState({ activeRuns, dispatches })
+    const reports = advRecords
+      .flatMap((rec) => (rec.kind === 'report' && 'report' in rec ? [rec.report] : []))
+      .sort((a, b) => b.finishedAt - a.finishedAt)
+    const reportDetails = Object.fromEntries(reports.map((report) => [report.id, report]))
+    useAdventureStore.setState({
+      activeRuns,
+      dispatches,
+      reports: reports.map((report) => ({
+        id: report.id,
+        dungeonId: report.dungeonId,
+        teamCharacterIds: [...report.teamCharacterIds],
+        strategy: report.config.automationStrategy,
+        tacticalPreset: report.config.tacticalPreset,
+        startedAt: report.startedAt,
+        finishedAt: report.finishedAt,
+        result: report.result,
+        floorsCleared: report.floorsCleared,
+        rewards: { ...report.rewards },
+        itemRewardCount: report.itemRewards.length,
+      })),
+      reportDetails,
+    })
 
     // Load event log from history store
     const historyRecords = await db.getAll('history')
@@ -281,6 +320,7 @@ export async function loadGame(): Promise<boolean> {
           timestamp: entry.timestamp,
           type: entry.type,
           message: entry.summary,
+          data: entry.data ?? {},
         }))
       useEventLogStore.setState({ events })
     }

@@ -1,8 +1,10 @@
 import 'fake-indexeddb/auto'
 import { saveGame, loadGame, hasSaveData, clearSaveData } from '../systems/save/SaveSystem'
 import { _resetDB, getDB } from '../systems/save/db'
+import { addHistoryEntry } from '../systems/save/HistoryStore'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
+import { useEventLogStore } from '../stores/eventLogStore'
 import { useGameStore } from '../stores/gameStore'
 
 describe('SaveSystem (per-entity IndexedDB)', () => {
@@ -12,6 +14,7 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     localStorage.clear()
     useSectStore.getState().reset()
     useAdventureStore.getState().reset()
+    useEventLogStore.getState().reset()
     useGameStore.getState().reset()
   })
 
@@ -94,6 +97,77 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     expect(useAdventureStore.getState().activeRuns['test_run_1'].currentFloor).toBe(3)
   })
 
+  it('should preserve automation reports through save/load', async () => {
+    useAdventureStore.setState({
+      reports: [
+        {
+          id: 'report_1',
+          dungeonId: 'lingCaoValley',
+          teamCharacterIds: ['c1'],
+          strategy: 'steady',
+          tacticalPreset: 'balanced',
+          startedAt: 1,
+          finishedAt: 2,
+          result: 'completed',
+          floorsCleared: 5,
+          rewards: {
+            spiritStone: 120,
+            spiritEnergy: 0,
+            herb: 12,
+            ore: 0,
+          },
+          itemRewardCount: 0,
+        },
+      ],
+      reportDetails: {
+        report_1: {
+          id: 'report_1',
+          config: {
+            dungeonId: 'lingCaoValley',
+            teamCharacterIds: ['c1'],
+            supplyLevel: 'basic',
+            tacticalPreset: 'balanced',
+            automationStrategy: 'steady',
+          },
+          dungeonId: 'lingCaoValley',
+          teamCharacterIds: ['c1'],
+          startedAt: 1,
+          finishedAt: 2,
+          result: 'completed',
+          floorsCleared: 5,
+          rewards: {
+            spiritStone: 120,
+            spiritEnergy: 0,
+            herb: 12,
+            ore: 0,
+          },
+          itemRewards: [],
+          finalMemberStates: {
+            c1: { currentHp: 80, maxHp: 100, status: 'alive' },
+          },
+          steps: [
+            {
+              id: 'step_1',
+              type: 'run_started',
+              timestamp: 1,
+              floor: 1,
+              summary: '开始探索 灵草谷',
+              detail: '测试报告',
+            },
+          ],
+        },
+      },
+    })
+
+    await saveGame()
+    useAdventureStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+    expect(useAdventureStore.getState().reports[0]?.id).toBe('report_1')
+    expect(useAdventureStore.getState().getReport('report_1')?.result).toBe('completed')
+  })
+
   it('should preserve dispatches through save/load with patrolling character status', async () => {
     useGameStore.getState().startGame()
     const characterId = useSectStore.getState().sect.characters[0].id
@@ -149,6 +223,35 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     const loadedCharacter = useSectStore.getState().sect.characters.find((c) => c.id === character.id)
     expect(loadedCharacter?.status).toBe('idle')
     expect(useAdventureStore.getState().dispatches).toEqual([])
+  })
+
+  it('should restore adventure event payloads from history on load', async () => {
+    await saveGame()
+    await addHistoryEntry({
+      type: 'adventure_complete',
+      timestamp: Date.now(),
+      summary: '秘境 灵草谷 通关',
+      data: {
+        reportId: 'report_1',
+        dungeonId: 'lingCaoValley',
+        result: 'completed',
+        floorsCleared: 5,
+      },
+    })
+
+    useSectStore.getState().reset()
+    useAdventureStore.getState().reset()
+    useEventLogStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+    expect(useEventLogStore.getState().events[0]?.data).toEqual({
+      reportId: 'report_1',
+      dungeonId: 'lingCaoValley',
+      result: 'completed',
+      floorsCleared: 5,
+    })
   })
 
   it('should normalize adventuring status to idle when no active run includes the character', async () => {
