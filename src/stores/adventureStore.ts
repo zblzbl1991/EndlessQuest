@@ -902,7 +902,6 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         },
       },
     }))
-
     // 1. Deposit 100% of totalRewards
     depositResourcesToSect(run.totalRewards)
 

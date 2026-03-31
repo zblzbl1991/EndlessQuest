@@ -29,6 +29,8 @@ export interface CultivationStats {
   fortune: number
 }
 
+export type FateTagId = 'tribulation-scar' | 'heart-devil' | 'sudden-insight' | 'stable-dao-heart'
+
 export type SpecialtyType =
   | 'alchemy'
   | 'forging'

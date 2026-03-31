@@ -7,6 +7,8 @@ import { calcSectLevel } from '../systems/character/CharacterEngine'
 import { getActiveSynergies } from '../systems/economy/SynergySystem'
 import { SYNERGIES } from '../data/buildings'
 import { getAutoRecipesForBuilding, getAutoRecipeById } from '../data/recipes'
+import { SPECIALTY_BUILDING_MAP } from '../data/specialties'
+import { getRoleLabel } from '../systems/character/SpecialtySystem'
 import type { AutoRecipe } from '../data/recipes'
 import {
   getMaxCharacters,
@@ -102,6 +104,21 @@ function getTalentClass(rarity: Talent['rarity']): string {
 
 /** Building types that support auto-production queues. */
 const PROCESSING_BUILDINGS: BuildingType[] = ['alchemyFurnace', 'forge']
+
+/** Reverse map: building type → list of specialty role labels that benefit it. */
+const BUILDING_SPECIALTY_HINTS: Record<string, string> = (() => {
+  const map: Record<string, string[]> = {}
+  for (const [spec, building] of Object.entries(SPECIALTY_BUILDING_MAP)) {
+    if (!building) continue
+    if (!map[building]) map[building] = []
+    map[building].push(getRoleLabel(spec))
+  }
+  const result: Record<string, string> = {}
+  for (const [building, labels] of Object.entries(map)) {
+    result[building] = `适合: ${labels.join('、')}专长弟子`
+  }
+  return result
+})()
 
 function formatInputPerSec(recipe: AutoRecipe): string {
   const parts: string[] = []
@@ -243,10 +260,26 @@ function BuildingsTab() {
               </span>
             </div>
             <div className={styles.buildingDesc}>{def.description}</div>
+            {BUILDING_SPECIALTY_HINTS[def.type] && (
+              <div className={styles.buildingDesc}>{BUILDING_SPECIALTY_HINTS[def.type]}</div>
+            )}
             {(() => {
               const effectText = getBuildingEffectText(building)
               return effectText && <div className={styles.buildingEffect}>{effectText}</div>
             })()}
+            {def.type === 'mainHall' &&
+              isUnlocked &&
+              (() => {
+                const sectLevel = calcSectLevel(building.level)
+                const discipleCount = useSectStore.getState().sect.characters.length
+                const tax = calcTaxRate(sectLevel, discipleCount)
+                return <div className={styles.buildingEffect}>赋税收入: +{tax.toFixed(1)}/秒</div>
+              })()}
+            {!isUnlocked &&
+              (() => {
+                const unlockText = getBuildingUnlockText(building)
+                return unlockText && <div className={styles.buildingUnlockPreview}>{unlockText}</div>
+              })()}
             {def.type === 'mainHall' &&
               isUnlocked &&
               (() => {

@@ -1,6 +1,26 @@
 # Project: EndlessQuest
 
-仙侠放置 Roguelike Web 游戏。设计文档见 `docs/superpowers/specs/2026-03-24-endlessquest-design.md`。
+仙侠放置 Roguelike Web 游戏。
+
+## Architecture
+
+React 19 + TypeScript + Zustand + CSS Modules + Vitest + IndexedDB
+
+## Current Status
+
+Core Product Overhaul 已完成（2026-03-27 ~ 03-29），项目已具备完整的核心循环：
+
+- **宗门仪表盘**：行动导向的 SectPage，修行要务卡片引导优先级
+- **秘境构筑**：战术预设、祝福/遗珍系统、道途分支、局内 RunBuild
+- **弟子命运**：专长→角色推荐、命运标签（劫伤/心魔/顿悟/道心）
+- **宗门路线**：丹道/剑道/御兽三条路线，各含解锁节点
+- **宗门历史**：里程碑记录（首次招募/渡劫/boss 通关）
+
+详见 `docs/superpowers/specs/2026-03-30-core-product-overhaul-completion.md`。
+
+## Next Up
+
+角色成长深度设计（P2）：修炼路线、元素亲和、技能装备、宠物战斗集成、精炼系统、套装加成、天赋扩展、功法参悟度。详见 `docs/superpowers/specs/2026-03-29-character-progression-design.md`。
 
 ## Design Context
 
@@ -35,3 +55,10 @@
 - **调色板**：复用 theme.css 的 `--color-accent`(赭石)、`--color-text`(墨色)、`--color-quality-*`(品质色)、`--color-bg`(纸色) 等 token
 - **类别**：建筑(8)、境界(6)、角色状态(8)、品质(5)、装备槽位(9)、元素(5)、资源(4)、系统UI 等
 - **组件**：`<PixelIcon name="..." size={24} />` 统一入口，支持 variant 属性切换品质/元素配色
+
+## Design Docs
+
+- 完成总结：`docs/superpowers/specs/2026-03-30-core-product-overhaul-completion.md`
+- 下一步设计：`docs/superpowers/specs/2026-03-29-character-progression-design.md`
+- 已归档方案：`docs/superpowers/specs/2026-03-27-core-product-overhaul.md`
+- 已归档路线图：`docs/superpowers/plans/2026-03-27-core-product-overhaul-roadmap.md`

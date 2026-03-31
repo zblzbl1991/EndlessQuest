@@ -112,7 +112,7 @@ Each slice should ship in a playable state before starting the next.
 - Modify: `src/components/common/CharacterCard.tsx`
 - Test: `src/__tests__/stores.test.ts`
 
-- [ ] **Step 1: Write failing store tests for the intended status model**
+- [x] **Step 1: Write failing store tests for the intended status model**
 
 Add assertions covering:
 - `idle` means default auto-cultivation
@@ -120,12 +120,12 @@ Add assertions covering:
 - `patrolling` means dispatch mission
 - pages and filters do not reference removed `cultivating` or `secluded` states
 
-- [ ] **Step 2: Run the focused tests to verify the old assumptions fail**
+- [x] **Step 2: Run the focused tests to verify the old assumptions fail**
 
 Run: `npm test -- stores.test.ts`
 Expected: FAIL on outdated status assumptions
 
-- [ ] **Step 3: Update the character status type and sect/adventure transitions**
+- [x] **Step 3: Update the character status type and sect/adventure transitions**
 
 Ensure:
 - newly generated or recovered characters return to `idle`
@@ -133,36 +133,31 @@ Ensure:
 - building assignment uses `training`
 - adventure uses `adventuring`
 
-- [ ] **Step 4: Remove outdated page-level status branches**
+- [x] **Step 4: Remove outdated page-level status branches**
 
 Replace old filter logic and CTA logic in:
 - `src/pages/CharactersPage.tsx`
 - `src/pages/SectPage.tsx`
 - `src/pages/AdventurePage.tsx`
 
-- [ ] **Step 5: Update status badges and card summaries**
+- [x] **Step 5: Update status badges and card summaries**
 
 Show:
 - current action
 - short purpose label
 - quick progress when relevant
 
-- [ ] **Step 6: Re-run focused tests**
+- [x] **Step 6: Re-run focused tests**
 
 Run: `npm test -- stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Run broader regression tests**
+- [x] **Step 7: Run broader regression tests**
 
 Run: `npm test -- CultivationEngine.test.ts stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 8: Commit**
-
-```bash
-git add src/types/character.ts src/stores/sectStore.ts src/stores/adventureStore.ts src/pages/CharactersPage.tsx src/pages/SectPage.tsx src/pages/AdventurePage.tsx src/components/common/StatusBadge.tsx src/components/common/CharacterCard.tsx src/__tests__/stores.test.ts
-git commit -m "feat: unify character status model"
-```
+- [x] **Step 8: Commit** → `1d74a21` feat: merge cultivating/secluded into idle with auto-cultivation
 
 ---
 
@@ -176,26 +171,26 @@ git commit -m "feat: unify character status model"
 - Modify: `src/stores/sectStore.ts`
 - Test: `src/__tests__/stores.test.ts`
 
-- [ ] **Step 1: Write failing tests for dashboard priority summaries**
+- [x] **Step 1: Write failing tests for dashboard priority summaries**
 
 Cover store selectors/helpers that compute:
 - next breakthrough candidate
 - highest-value building upgrade candidate
 - next recommended dungeon candidate
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
 
 Run: `npm test -- stores.test.ts`
 Expected: FAIL because summary selectors do not exist
 
-- [ ] **Step 3: Add sect-level derived selectors/helpers**
+- [x] **Step 3: Add sect-level derived selectors/helpers**
 
 Implement small helpers in `src/stores/sectStore.ts` or a nearby system module for:
 - breakthrough readiness
 - upgrade value heuristic
 - recommended action copy
 
-- [ ] **Step 4: Build `ActionAgenda` component**
+- [x] **Step 4: Build `ActionAgenda` component**
 
 Render 2-3 priority cards with:
 - title
@@ -203,7 +198,7 @@ Render 2-3 priority cards with:
 - primary CTA label
 - readiness/blocked reason
 
-- [ ] **Step 5: Reorder SectPage information hierarchy**
+- [x] **Step 5: Reorder SectPage information hierarchy**
 
 Place:
 1. agenda
@@ -211,22 +206,17 @@ Place:
 3. resources
 4. key disciples or key teams
 
-- [ ] **Step 6: Re-run the focused tests**
+- [x] **Step 6: Re-run the focused tests**
 
 Run: `npm test -- stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Smoke test the page manually**
+- [x] **Step 7: Smoke test the page manually**
 
 Run: `npm run build`
 Expected: successful build
 
-- [ ] **Step 8: Commit**
-
-```bash
-git add src/components/sect/ActionAgenda.tsx src/components/sect/ActionAgenda.module.css src/pages/SectPage.tsx src/pages/SectPage.module.css src/stores/sectStore.ts src/__tests__/stores.test.ts
-git commit -m "feat: add sect action agenda dashboard"
-```
+- [x] **Step 8: Commit** → `56190fb` feat: add action agenda dashboard to SectPage
 
 ---
 
@@ -243,51 +233,46 @@ git commit -m "feat: add sect action agenda dashboard"
 - Test: `src/__tests__/CombatEngine.test.ts`
 - Test: `src/__tests__/RoguelikeEngine.test.ts`
 
-- [ ] **Step 1: Write failing combat tests for tactical behavior**
+- [x] **Step 1: Write failing combat tests for tactical behavior**
 
 Add cases for:
 - conserve-spirit preset delays expensive skills
 - burst preset spends spirit earlier
 - boss preset prioritizes single-target or finishing logic
 
-- [ ] **Step 2: Run the combat test file**
+- [x] **Step 2: Run the combat test file**
 
 Run: `npm test -- CombatEngine.test.ts`
 Expected: FAIL because presets do not exist
 
-- [ ] **Step 3: Define tactic preset types and persist selection in dungeon runs**
+- [x] **Step 3: Define tactic preset types and persist selection in dungeon runs**
 
 Extend `DungeonRun` with:
 - tactic preset id
 - optional notes or derived tags
 
-- [ ] **Step 4: Update the team builder flow**
+- [x] **Step 4: Update the team builder flow**
 
 Add a preset picker before confirming a run.
 
-- [ ] **Step 5: Teach `CombatEngine` to read preset intent**
+- [x] **Step 5: Teach `CombatEngine` to read preset intent**
 
 Change:
 - target selection
 - skill spending order
 - support/defense skill usage gates
 
-- [ ] **Step 6: Re-run focused tests**
+- [x] **Step 6: Re-run focused tests**
 
 Run: `npm test -- CombatEngine.test.ts RoguelikeEngine.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Build and quick sanity check**
+- [x] **Step 7: Build and quick sanity check**
 
 Run: `npm run build`
 Expected: successful build
 
-- [ ] **Step 8: Commit**
-
-```bash
-git add src/types/runBuild.ts src/components/adventure/TacticPresetPicker.tsx src/components/adventure/TacticPresetPicker.module.css src/types/adventure.ts src/stores/adventureStore.ts src/pages/AdventurePage.tsx src/systems/combat/CombatEngine.ts src/__tests__/CombatEngine.test.ts src/__tests__/RoguelikeEngine.test.ts
-git commit -m "feat: add tactical presets for adventure teams"
-```
+- [x] **Step 8: Commit** → `8ed6d3b` feat: add tactical presets for adventure teams
 
 ---
 
@@ -303,19 +288,19 @@ git commit -m "feat: add tactical presets for adventure teams"
 - Modify: `src/pages/AdventurePage.tsx`
 - Test: `src/__tests__/RoguelikeEngine.test.ts`
 
-- [ ] **Step 1: Write failing roguelike tests for blessing/relic rewards**
+- [x] **Step 1: Write failing roguelike tests for blessing/relic rewards**
 
 Cover:
 - a run can receive a blessing choice
 - selected blessing modifies a future event/combat outcome
 - relics persist inside the run
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
 
 Run: `npm test -- RoguelikeEngine.test.ts`
 Expected: FAIL because run-build modifiers are not modeled
 
-- [ ] **Step 3: Add blessing and relic definitions**
+- [x] **Step 3: Add blessing and relic definitions**
 
 Prefer a small launch pool:
 - 8-12 blessings
@@ -323,35 +308,30 @@ Prefer a small launch pool:
 
 Make them directional, not generic stat buffs.
 
-- [ ] **Step 4: Add run-build state to `DungeonRun`**
+- [x] **Step 4: Add run-build state to `DungeonRun`**
 
 Track:
 - chosen blessings
 - chosen relics
 - branch tags
 
-- [ ] **Step 5: Extend event resolution to offer or apply run-build changes**
+- [x] **Step 5: Extend event resolution to offer or apply run-build changes**
 
 Add branch outcomes for:
 - combat reward choice
 - risky event trade-offs
 - rare relic discovery
 
-- [ ] **Step 6: Render current build summary on AdventurePage**
+- [x] **Step 6: Render current build summary on AdventurePage**
 
 Show compact chips or cards for active build identity.
 
-- [ ] **Step 7: Re-run focused tests**
+- [x] **Step 7: Re-run focused tests**
 
 Run: `npm test -- RoguelikeEngine.test.ts`
 Expected: PASS
 
-- [ ] **Step 8: Commit**
-
-```bash
-git add src/data/blessings.ts src/data/relics.ts src/systems/roguelike/RunBuildSystem.ts src/types/adventure.ts src/systems/roguelike/EventSystem.ts src/stores/adventureStore.ts src/pages/AdventurePage.tsx src/__tests__/RoguelikeEngine.test.ts
-git commit -m "feat: add run build layer to adventure"
-```
+- [x] **Step 8: Commit** → `bc71890` feat: add run build layer to adventure
 
 ---
 
@@ -366,44 +346,39 @@ git commit -m "feat: add run build layer to adventure"
 - Modify: `src/pages/BuildingsPage.tsx`
 - Test: `src/__tests__/SpecialtySystem.test.ts`
 
-- [ ] **Step 1: Write failing tests for specialty-to-role recommendations**
+- [x] **Step 1: Write failing tests for specialty-to-role recommendations**
 
 Cases:
 - a disciple with alchemy specialty is recommended for alchemy building
 - a combat/fortune disciple is recommended for adventure
 - UI-facing helper returns a readable primary role string
 
-- [ ] **Step 2: Run the specialty test file**
+- [x] **Step 2: Run the specialty test file**
 
 Run: `npm test -- SpecialtySystem.test.ts`
 Expected: FAIL because recommendation helpers do not exist
 
-- [ ] **Step 3: Add role recommendation helpers**
+- [x] **Step 3: Add role recommendation helpers**
 
 Expose:
 - primary role
 - secondary role
 - best building or best combat fit
 
-- [ ] **Step 4: Surface role chips in character list and detail**
+- [x] **Step 4: Surface role chips in character list and detail**
 
 Show why a disciple is valuable, not just raw stats.
 
-- [ ] **Step 5: Surface assignment recommendations in buildings**
+- [x] **Step 5: Surface assignment recommendations in buildings**
 
 Buildings should hint which disciple fits best and why.
 
-- [ ] **Step 6: Re-run focused tests**
+- [x] **Step 6: Re-run focused tests**
 
 Run: `npm test -- SpecialtySystem.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
-
-```bash
-git add src/types/character.ts src/data/specialties.ts src/systems/character/SpecialtySystem.ts src/pages/CharactersPage.tsx src/components/common/CharacterCard.tsx src/pages/BuildingsPage.tsx src/__tests__/SpecialtySystem.test.ts
-git commit -m "feat: show disciple role and assignment value"
-```
+- [x] **Step 7: Commit** → `bf91a7f` feat: show disciple role and assignment value
 
 ---
 
@@ -421,19 +396,19 @@ git commit -m "feat: show disciple role and assignment value"
 - Test: `src/__tests__/CultivationEngine.test.ts`
 - Test: `src/__tests__/TribulationSystem.test.ts`
 
-- [ ] **Step 1: Write failing tests for fate application**
+- [x] **Step 1: Write failing tests for fate application**
 
 Cover:
 - failed tribulation can add a scar or injury-related fate tag
 - successful high-risk breakthrough can add insight or stability
 - tags persist on the character
 
-- [ ] **Step 2: Run the focused tests**
+- [x] **Step 2: Run the focused tests**
 
 Run: `npm test -- CultivationEngine.test.ts TribulationSystem.test.ts`
 Expected: FAIL because fate tags are not modeled
 
-- [ ] **Step 3: Add fate tag data and character field**
+- [x] **Step 3: Add fate tag data and character field**
 
 Start with a small set:
 - tribulation scar
@@ -441,28 +416,23 @@ Start with a small set:
 - sudden insight
 - stable dao-heart
 
-- [ ] **Step 4: Apply fate changes in breakthrough and tribulation flows**
+- [x] **Step 4: Apply fate changes in breakthrough and tribulation flows**
 
 Keep the first pass simple and deterministic where possible.
 
-- [ ] **Step 5: Surface risk and long-term consequences in the UI**
+- [x] **Step 5: Surface risk and long-term consequences in the UI**
 
 Breakthrough panel should preview:
 - failure consequence
 - current risk modifiers
 - active fate tags that matter
 
-- [ ] **Step 6: Re-run focused tests**
+- [x] **Step 6: Re-run focused tests**
 
 Run: `npm test -- CultivationEngine.test.ts TribulationSystem.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
-
-```bash
-git add src/data/fateTags.ts src/systems/character/FateSystem.ts src/types/character.ts src/systems/cultivation/CultivationEngine.ts src/systems/cultivation/TribulationSystem.ts src/stores/sectStore.ts src/components/cultivation/BreakthroughPanel.tsx src/pages/CharactersPage.tsx src/__tests__/CultivationEngine.test.ts src/__tests__/TribulationSystem.test.ts
-git commit -m "feat: add disciple fate tags for breakthrough outcomes"
-```
+- [x] **Step 7: Commit** → `8394568` feat: add disciple fate tags for breakthrough outcomes
 
 ---
 
@@ -478,47 +448,42 @@ git commit -m "feat: add disciple fate tags for breakthrough outcomes"
 - Modify: `src/pages/AdventurePage.tsx`
 - Test: `src/__tests__/SectEngine.test.ts`
 
-- [ ] **Step 1: Write failing tests for route activation and effects**
+- [x] **Step 1: Write failing tests for route activation and effects**
 
 Cover:
 - one route can be activated
 - route grants expected modifiers
 - route influences adventure preparation summaries
 
-- [ ] **Step 2: Run the sect-focused tests**
+- [x] **Step 2: Run the sect-focused tests**
 
 Run: `npm test -- SectEngine.test.ts stores.test.ts`
 Expected: FAIL because route state does not exist
 
-- [ ] **Step 3: Add sect route definitions**
+- [x] **Step 3: Add sect route definitions**
 
 Start with:
 - alchemy route
 - sword route
 - beast route
 
-- [ ] **Step 4: Persist active route and unlocked nodes**
+- [x] **Step 4: Persist active route and unlocked nodes**
 
 Use existing sect save flow.
 
-- [ ] **Step 5: Surface route identity in the UI**
+- [x] **Step 5: Surface route identity in the UI**
 
 Show:
 - active route
 - next unlock node
 - what it changes for the next run
 
-- [ ] **Step 6: Re-run focused tests**
+- [x] **Step 6: Re-run focused tests**
 
 Run: `npm test -- SectEngine.test.ts stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 7: Commit**
-
-```bash
-git add src/data/sectRoutes.ts src/systems/sect/SectRouteSystem.ts src/types/sect.ts src/stores/sectStore.ts src/pages/SectPage.tsx src/pages/BuildingsPage.tsx src/pages/AdventurePage.tsx src/__tests__/SectEngine.test.ts src/__tests__/stores.test.ts
-git commit -m "feat: add sect route progression"
-```
+- [x] **Step 7: Commit** → `9f143b4` feat: add sect route progression
 
 ---
 
@@ -532,53 +497,48 @@ git commit -m "feat: add sect route progression"
 - Create: `src/data/archiveMilestones.ts`
 - Test: `src/__tests__/stores.test.ts`
 
-- [ ] **Step 1: Write failing tests for historical milestone recording**
+- [x] **Step 1: Write failing tests for historical milestone recording**
 
 Cover:
 - first rare recruit
 - first major tribulation success
 - first boss clear
 
-- [ ] **Step 2: Run the focused test**
+- [x] **Step 2: Run the focused test**
 
 Run: `npm test -- stores.test.ts`
 Expected: FAIL because history fields are missing
 
-- [ ] **Step 3: Add sect history or archive fields**
+- [x] **Step 3: Add sect history or archive fields**
 
 Persist milestone entries in the main save payload.
 
-- [ ] **Step 4: Surface milestones in log/history UI**
+- [x] **Step 4: Surface milestones in log/history UI**
 
 Keep the first version text-forward and lightweight.
 
-- [ ] **Step 5: Re-run focused tests**
+- [x] **Step 5: Re-run focused tests**
 
 Run: `npm test -- stores.test.ts`
 Expected: PASS
 
-- [ ] **Step 6: Build check**
+- [x] **Step 6: Build check**
 
 Run: `npm run build`
 Expected: successful build
 
-- [ ] **Step 7: Commit**
-
-```bash
-git add src/types/sect.ts src/stores/sectStore.ts src/stores/eventLogStore.ts src/pages/EventLogPage.tsx src/data/archiveMilestones.ts src/__tests__/stores.test.ts
-git commit -m "feat: add sect history milestones"
-```
+- [x] **Step 7: Commit** → `4bdb944` feat: add sect history milestones for dungeon, tribulation, and boss clears
 
 ---
 
 ## Verification Checklist
 
-- [ ] `npm test -- stores.test.ts CultivationEngine.test.ts CombatEngine.test.ts RoguelikeEngine.test.ts SpecialtySystem.test.ts SectEngine.test.ts`
-- [ ] `npm run build`
+- [x] `npm test -- stores.test.ts CultivationEngine.test.ts CombatEngine.test.ts RoguelikeEngine.test.ts SpecialtySystem.test.ts SectEngine.test.ts`
+- [x] `npm run build`
 - [ ] Manual pass on desktop width
 - [ ] Manual pass on mobile width
-- [ ] Confirm save migration for any new fields
-- [ ] Confirm no page still references removed legacy status names
+- [x] Confirm save migration for any new fields
+- [x] Confirm no page still references removed legacy status names
 
 ---
 

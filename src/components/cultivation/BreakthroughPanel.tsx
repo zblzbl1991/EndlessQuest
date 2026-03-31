@@ -44,14 +44,14 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
     character.status === 'idle'
       ? '修炼中'
       : character.status === 'resting'
-        ? '恢复中'
+        ? '休息中'
         : character.status === 'training'
           ? '研习中'
           : character.status === 'patrolling'
             ? '派遣中'
             : character.status === 'injured'
-              ? '疗伤中'
-              : '秘境中'
+              ? '伤势未愈'
+              : '冒险中'
   let hintClass = ''
   if (ready) {
     if (isMajor && cost) {

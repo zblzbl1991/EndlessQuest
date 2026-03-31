@@ -20,7 +20,7 @@
 - Modify: `src/data/enemies.ts`
 - Test: `src/__tests__/loot.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/__tests__/loot.test.ts`:
 
@@ -98,12 +98,12 @@ describe('Enemy loot tables', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/loot.test.ts --pool=forks --testTimeout=30000`
 Expected: FAIL — `lootTable` and `dropsPerFight` do not exist on enemy templates
 
-- [ ] **Step 3: Add LootEntry type and data to enemies.ts**
+- [x] **Step 3: Add LootEntry type and data to enemies.ts**
 
 Add to `src/data/enemies.ts` at the top (after imports):
 
@@ -190,12 +190,12 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
 ]
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/loot.test.ts --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/data/enemies.ts src/__tests__/loot.test.ts
@@ -210,7 +210,7 @@ git commit -m "feat(loot): add LootEntry type and enemy loot tables"
 - Create: `src/systems/roguelike/LootSystem.ts`
 - Test: `src/__tests__/LootSystem.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/__tests__/LootSystem.test.ts`:
 
@@ -281,12 +281,12 @@ describe('generateLoot', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/LootSystem.test.ts --pool=forks --testTimeout=30000`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Implement LootSystem**
+- [x] **Step 3: Implement LootSystem**
 
 Create `src/systems/roguelike/LootSystem.ts`:
 
@@ -376,12 +376,12 @@ function weightedRandom(table: LootEntry[]): LootEntry | null {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/LootSystem.test.ts --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/roguelike/LootSystem.ts src/__tests__/LootSystem.test.ts
@@ -395,7 +395,7 @@ git commit -m "feat(loot): implement weighted random loot generation"
 **Files:**
 - Modify: `src/systems/roguelike/EventSystem.ts`
 
-- [ ] **Step 1: Update EventSystem to use LootSystem**
+- [x] **Step 1: Update EventSystem to use LootSystem**
 
 In `src/systems/roguelike/EventSystem.ts`:
 
@@ -539,12 +539,12 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
 import type { LootResult } from './LootSystem'
 ```
 
-- [ ] **Step 2: Run existing tests to verify no regressions**
+- [x] **Step 2: Run existing tests to verify no regressions**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS (existing tests should still work since EventSystem returns the same shape)
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/systems/roguelike/EventSystem.ts
@@ -559,7 +559,7 @@ git commit -m "feat(loot): integrate loot tables into combat and boss events"
 - Modify: `src/types/adventure.ts`
 - Modify: `src/data/events.ts`
 
-- [ ] **Step 1: Remove lootTable from Dungeon interface**
+- [x] **Step 1: Remove lootTable from Dungeon interface**
 
 In `src/types/adventure.ts`, find the `Dungeon` interface (line 34-42) and remove the `lootTable` field:
 
@@ -586,21 +586,21 @@ export interface Dungeon {
 }
 ```
 
-- [ ] **Step 2: Remove lootTable from dungeon data**
+- [x] **Step 2: Remove lootTable from dungeon data**
 
 In `src/data/events.ts`, remove `lootTable: []` from all 6 dungeon definitions.
 
-- [ ] **Step 3: Run TypeScript check**
+- [x] **Step 3: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 4: Run all tests**
+- [x] **Step 4: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/types/adventure.ts src/data/events.ts
@@ -615,7 +615,7 @@ git commit -m "refactor: remove unused Dungeon.lootTable field"
 - Create: `src/systems/cultivation/TribulationSystem.ts`
 - Test: `src/__tests__/TribulationSystem.test.ts`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `src/__tests__/TribulationSystem.test.ts`:
 
@@ -719,12 +719,12 @@ describe('resolveTribulation', () => {
 })
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npx vitest run src/__tests__/TribulationSystem.test.ts --pool=forks --testTimeout=30000`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: Implement TribulationSystem**
+- [x] **Step 3: Implement TribulationSystem**
 
 Create `src/systems/cultivation/TribulationSystem.ts`:
 
@@ -793,12 +793,12 @@ export function resolveTribulation(character: Character): TribulationResult {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npx vitest run src/__tests__/TribulationSystem.test.ts --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/cultivation/TribulationSystem.ts src/__tests__/TribulationSystem.test.ts
@@ -812,7 +812,7 @@ git commit -m "feat(tribulation): implement passive tribulation system"
 **Files:**
 - Modify: `src/stores/sectStore.ts`
 
-- [ ] **Step 1: Integrate tribulation into tickAll breakthrough logic**
+- [x] **Step 1: Integrate tribulation into tickAll breakthrough logic**
 
 In `src/stores/sectStore.ts`:
 
@@ -881,22 +881,22 @@ if (isMajor) {
 
 **Important:** Read the existing tickAll code carefully before editing. The exact variable names and structure may differ from the summary above. Match the existing pattern.
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 4: Run production build**
+- [x] **Step 4: Run production build**
 
 Run: `npm run build`
 Expected: Build succeeds
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/stores/sectStore.ts
@@ -910,7 +910,7 @@ git commit -m "feat(tribulation): integrate tribulation into tickAll breakthroug
 **Files:**
 - Modify: `src/components/cultivation/BreakthroughPanel.tsx`
 
-- [ ] **Step 1: Add tribulation display to BreakthroughPanel**
+- [x] **Step 1: Add tribulation display to BreakthroughPanel**
 
 In `src/components/cultivation/BreakthroughPanel.tsx`:
 
@@ -960,17 +960,17 @@ if (ready) {
 }
 ```
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run all tests**
+- [x] **Step 3: Run all tests**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/components/cultivation/BreakthroughPanel.tsx
@@ -981,22 +981,22 @@ git commit -m "feat(tribulation): show tribulation info in BreakthroughPanel"
 
 ### Task 8: 最终验证
 
-- [ ] **Step 1: Run full test suite**
+- [x] **Step 1: Run full test suite**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000`
 Expected: ALL PASS
 
-- [ ] **Step 2: Run TypeScript check**
+- [x] **Step 2: Run TypeScript check**
 
 Run: `npx tsc --noEmit`
 Expected: No errors
 
-- [ ] **Step 3: Run production build**
+- [x] **Step 3: Run production build**
 
 Run: `npm run build`
 Expected: Build succeeds
 
-- [ ] **Step 4: Verify test count increased**
+- [x] **Step 4: Verify test count increased**
 
 Run: `npx vitest run --pool=forks --testTimeout=30000 2>&1 | tail -5`
 Expected: Test count should be higher than before (new loot + tribulation tests added)

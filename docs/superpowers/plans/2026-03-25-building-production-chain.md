@@ -42,7 +42,7 @@
 **Files:**
 - Modify: `src/types/sect.ts`
 
-- [ ] **Step 1: 新增 ProductionQueue 和 ResourceCaps 接口**
+- [x] **Step 1: 新增 ProductionQueue 和 ResourceCaps 接口**
 
 在 `src/types/sect.ts` 的 `Resources` 接口之后、`Building` 接口之前添加：
 
@@ -61,7 +61,7 @@ export interface ResourceCaps {
 }
 ```
 
-- [ ] **Step 2: Building 接口新增 productionQueue 字段**
+- [x] **Step 2: Building 接口新增 productionQueue 字段**
 
 在 `Building` 接口中添加 `productionQueue`：
 
@@ -74,12 +74,12 @@ export interface Building {
 }
 ```
 
-- [ ] **Step 3: 运行类型检查**
+- [x] **Step 3: 运行类型检查**
 
 Run: `npx tsc --noEmit`
 Expected: errors in files that create Building objects without productionQueue（预期错误，Task 2/3 会修复）
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/types/sect.ts
@@ -94,7 +94,7 @@ git commit -m "feat(types): add ProductionQueue and ResourceCaps interfaces"
 - Create: `src/data/recipes.ts`
 - Create: `src/__tests__/recipes.test.ts`
 
-- [ ] **Step 1: 定义 AutoRecipe 接口和配方数据**
+- [x] **Step 1: 定义 AutoRecipe 接口和配方数据**
 
 创建 `src/data/recipes.ts`：
 
@@ -231,7 +231,7 @@ export function getAutoRecipesForBuilding(
 }
 ```
 
-- [ ] **Step 2: 写配方数据测试**
+- [x] **Step 2: 写配方数据测试**
 
 创建 `src/__tests__/recipes.test.ts`：
 
@@ -294,12 +294,12 @@ describe('getAutoRecipesForBuilding', () => {
 })
 ```
 
-- [ ] **Step 3: 运行测试**
+- [x] **Step 3: 运行测试**
 
 Run: `npx vitest run src/__tests__/recipes.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/data/recipes.ts src/__tests__/recipes.test.ts
@@ -315,7 +315,7 @@ git commit -m "feat(data): add auto-production recipe table with tests"
 - Modify: `src/data/buildings.ts` (upgradeCost, 新增 calcResourceCaps)
 - Modify: `src/__tests__/BuildingSystem.test.ts`
 
-- [ ] **Step 1: 修改 buildings.ts 升级成本为指数曲线**
+- [x] **Step 1: 修改 buildings.ts 升级成本为指数曲线**
 
 在 `src/data/buildings.ts` 中：
 
@@ -345,7 +345,7 @@ export function calcResourceCaps(spiritFieldLevel: number, spiritMineLevel: numb
 }
 ```
 
-- [ ] **Step 2: 修改 sectStore createInitialState 为每个 Building 加上 productionQueue**
+- [x] **Step 2: 修改 sectStore createInitialState 为每个 Building 加上 productionQueue**
 
 在 `src/stores/sectStore.ts` 的 `createInitialState()` 中，所有 building 对象添加：
 
@@ -355,24 +355,24 @@ productionQueue: { recipeId: null, progress: 0 }
 
 **同时修改** `src/__tests__/BuildingSystem.test.ts` 中的 `createBuildings()` 辅助函数，为每个 building 对象添加 `productionQueue: { recipeId: null, progress: 0 }`。否则所有现有测试会因为类型不匹配而编译失败。
 
-- [ ] **Step 3: 运行现有 BuildingSystem 测试**
+- [x] **Step 3: 运行现有 BuildingSystem 测试**
 
 Run: `npx vitest run src/__tests__/BuildingSystem.test.ts`
 Expected: 成本相关断言会 FAIL（因为成本公式改了）
 
-- [ ] **Step 4: 更新 BuildingSystem 测试以匹配新成本公式**
+- [x] **Step 4: 更新 BuildingSystem 测试以匹配新成本公式**
 
 修改 `src/__tests__/BuildingSystem.test.ts` 中涉及具体成本的断言：
 - `expect(result.cost.spiritStone).toBe(100)` → `expect(result.cost.spiritStone).toBeCloseTo(100)`（level 1 不变）
 - `expect(result.cost.spiritStone).toBe(160)` → `expect(result.cost.spiritStone).toBeCloseTo(Math.round(80 * Math.pow(3, 1.3)))`（spiritField lv=2，目标是 lv3 = 2+1=3）
 - `expect(result.cost.spiritStone).toBe(0)` → 保持 0（level 0 不变）
 
-- [ ] **Step 5: 运行测试**
+- [x] **Step 5: 运行测试**
 
 Run: `npx vitest run src/__tests__/BuildingSystem.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/data/buildings.ts src/stores/sectStore.ts src/__tests__/BuildingSystem.test.ts
@@ -387,7 +387,7 @@ git commit -m "feat(buildings): exponential upgrade cost + resource caps + produ
 - Create: `src/systems/building/ProductionSystem.ts`
 - Create: `src/__tests__/ProductionSystem.test.ts`
 
-- [ ] **Step 1: 写 ProductionSystem 失败测试**
+- [x] **Step 1: 写 ProductionSystem 失败测试**
 
 创建 `src/__tests__/ProductionSystem.test.ts`：
 
@@ -495,12 +495,12 @@ describe('canStartRecipe', () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run src/__tests__/ProductionSystem.test.ts`
 Expected: FAIL — module not found
 
-- [ ] **Step 3: 实现 ProductionSystem**
+- [x] **Step 3: 实现 ProductionSystem**
 
 创建 `src/systems/building/ProductionSystem.ts`：
 
@@ -630,12 +630,12 @@ export function canStartRecipe(recipeId: string, buildingLevel: number): boolean
 }
 ```
 
-- [ ] **Step 4: 运行测试**
+- [x] **Step 4: 运行测试**
 
 Run: `npx vitest run src/__tests__/ProductionSystem.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/building/ProductionSystem.ts src/__tests__/ProductionSystem.test.ts
@@ -650,7 +650,7 @@ git commit -m "feat(production): implement ProductionSystem with tick and offlin
 - Modify: `src/systems/economy/ResourceEngine.ts`
 - Modify: `src/__tests__/ResourceEngine.test.ts`
 
-- [ ] **Step 1: 写仓库上限失败测试**
+- [x] **Step 1: 写仓库上限失败测试**
 
 在 `src/__tests__/ResourceEngine.test.ts` 末尾添加：
 
@@ -680,12 +680,12 @@ describe('clampResources', () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run src/__tests__/ResourceEngine.test.ts`
 Expected: FAIL — clampResources not exported
 
-- [ ] **Step 3: 实现 clampResources**
+- [x] **Step 3: 实现 clampResources**
 
 在 `src/systems/economy/ResourceEngine.ts` 中添加：
 
@@ -705,12 +705,12 @@ export function clampResources(resources: Resources, caps: ResourceCaps): Resour
 }
 ```
 
-- [ ] **Step 4: 运行测试**
+- [x] **Step 4: 运行测试**
 
 Run: `npx vitest run src/__tests__/ResourceEngine.test.ts`
 Expected: ALL PASS（包括新增和原有测试）
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/economy/ResourceEngine.ts src/__tests__/ResourceEngine.test.ts
@@ -725,7 +725,7 @@ git commit -m "feat(economy): add clampResources for resource caps"
 - Modify: `src/systems/cultivation/CultivationEngine.ts`
 - Modify: `src/__tests__/CultivationEngine.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `src/__tests__/CultivationEngine.test.ts` 中添加测试，验证 technique 的 cultivationRate 加成被应用：
 
@@ -753,21 +753,21 @@ it('calcCultivationRate applies technique cultivationRate bonus', () => {
 })
 ```
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `npx vitest run src/__tests__/CultivationEngine.test.ts`
 Expected: FAIL（technique 参数未使用时两值相等）
 
-- [ ] **Step 3: 修复 tick() 传入 technique**
+- [x] **Step 3: 修复 tick() 传入 technique**
 
 在 `src/systems/cultivation/CultivationEngine.ts` 的 `tick()` 函数中，找到调用 `calcCultivationRate(character, null)` 的行，将 `null` 改为传入 technique 参数。需要同步修改 `tick` 函数签名以接收 technique。
 
-- [ ] **Step 4: 运行测试**
+- [x] **Step 4: 运行测试**
 
 Run: `npx vitest run src/__tests__/CultivationEngine.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/systems/cultivation/CultivationEngine.ts src/__tests__/CultivationEngine.test.ts
@@ -782,7 +782,7 @@ git commit -m "fix: pass technique to calcCultivationRate in tick()"
 - Modify: `src/systems/roguelike/EventSystem.ts`
 - Modify: `src/__tests__/RoguelikeEngine.test.ts`（如涉及）
 
-- [ ] **Step 1: 在 EventSystem 的 combat victory 和 boss victory 分支添加装备掉落**
+- [x] **Step 1: 在 EventSystem 的 combat victory 和 boss victory 分支添加装备掉落**
 
 在 `src/systems/roguelike/EventSystem.ts` 的 `resolveEvent()` 中：
 
@@ -807,12 +807,12 @@ if (Math.random() < 0.4) {
 }
 ```
 
-- [ ] **Step 2: 运行现有测试**
+- [x] **Step 2: 运行现有测试**
 
 Run: `npx vitest run src/__tests__/RoguelikeEngine.test.ts`
 Expected: PASS（原有测试不应被破坏，但掉落是随机的，测试需 mock 或接受概率）
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/systems/roguelike/EventSystem.ts
@@ -836,7 +836,7 @@ git commit -m "fix: add equipment drops to dungeon combat and boss victories"
 5. 最后用 `clampResources` 限制资源不超过上限
 6. 修复 `ProductionBonuses` bug（从功法/弟子计算实际加成传入 `calcResourceRates`）
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 在 `src/__tests__/stores.test.ts` 添加：
 
@@ -860,7 +860,7 @@ describe('tickAll with production queue', () => {
 })
 ```
 
-- [ ] **Step 2: 修改 tickAll 方法**
+- [x] **Step 2: 修改 tickAll 方法**
 
 在 `sectStore.ts` 的 `tickAll` 中：
 
@@ -937,7 +937,7 @@ tickAll: (deltaSec: number) => {
 }
 ```
 
-- [ ] **Step 3: 添加 produceItemFromRecipe 辅助函数**
+- [x] **Step 3: 添加 produceItemFromRecipe 辅助函数**
 
 在 `sectStore.ts` 或单独的 helper 中，根据配方 ID 和建筑等级生成对应物品。
 
@@ -967,12 +967,12 @@ function produceItemFromRecipe(recipe: AutoRecipe, buildingLevel: number): AnyIt
 }
 ```
 
-- [ ] **Step 4: 运行测试**
+- [x] **Step 4: 运行测试**
 
 Run: `npx vitest run src/__tests__/stores.test.ts`
 Expected: ALL PASS（新增 + 现有）
 
-- [ ] **Step 5: 新增 setProductionRecipe action**
+- [x] **Step 5: 新增 setProductionRecipe action**
 
 在 `sectStore.ts` 中新增 store action：
 
@@ -999,7 +999,7 @@ setProductionRecipe: (buildingType: BuildingType, recipeId: string | null) => {
 }
 ```
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/stores/sectStore.ts src/__tests__/stores.test.ts
@@ -1015,7 +1015,7 @@ git commit -m "feat(store): integrate production queue and resource caps into ti
 - Modify: `src/__tests__/stores.test.ts`
 - Modify: `src/data/realms.ts` (breakthroughExtra 解析)
 
-- [ ] **Step 1: 定义突破消耗映射**
+- [x] **Step 1: 定义突破消耗映射**
 
 在 `src/data/realms.ts` 或新的常量中定义：
 
@@ -1028,7 +1028,7 @@ export const BREAKTHROUGH_COSTS: Record<number, { pillId: string; spiritStone: n
 }
 ```
 
-- [ ] **Step 2: 写失败测试**
+- [x] **Step 2: 写失败测试**
 
 ```typescript
 describe('attemptBreakthrough costs', () => {
@@ -1046,7 +1046,7 @@ describe('attemptBreakthrough costs', () => {
 })
 ```
 
-- [ ] **Step 3: 修改 attemptBreakthrough**
+- [x] **Step 3: 修改 attemptBreakthrough**
 
 在 `sectStore.ts` 的 `attemptBreakthrough` 方法开头，检查并消耗突破丹 + 灵石：
 
@@ -1082,12 +1082,12 @@ if (cost) {
 // 本次仅实现消耗逻辑，渡劫战斗系统属于后续迭代。
 ```
 
-- [ ] **Step 4: 运行测试**
+- [x] **Step 4: 运行测试**
 
 Run: `npx vitest run src/__tests__/stores.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/stores/sectStore.ts src/data/realms.ts src/__tests__/stores.test.ts
@@ -1102,7 +1102,7 @@ git commit -m "feat: breakthrough consumes pill + spiritStone"
 - Modify: `src/stores/sectStore.ts` (新增 exchangeResources action)
 - Modify: `src/__tests__/stores.test.ts`
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```typescript
 describe('exchangeResources', () => {
@@ -1120,7 +1120,7 @@ describe('exchangeResources', () => {
 })
 ```
 
-- [ ] **Step 2: 实现 exchangeResources action**
+- [x] **Step 2: 实现 exchangeResources action**
 
 ```typescript
 exchangeResources: (from: ResourceType, to: ResourceType, amount: number) => {
@@ -1161,12 +1161,12 @@ exchangeResources: (from: ResourceType, to: ResourceType, amount: number) => {
 }
 ```
 
-- [ ] **Step 3: 运行测试**
+- [x] **Step 3: 运行测试**
 
 Run: `npx vitest run src/__tests__/stores.test.ts`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/sectStore.ts src/__tests__/stores.test.ts
@@ -1181,7 +1181,7 @@ git commit -m "feat(market): add resource exchange with loss formula"
 - Modify: `src/stores/adventureStore.ts` (startRun)
 - Modify: `src/__tests__/stores.test.ts` 或 adventureStore 测试
 
-- [ ] **Step 1: 定义补给等级和消耗**
+- [x] **Step 1: 定义补给等级和消耗**
 
 ```typescript
 const EXPEDITION_SUPPLIES = {
@@ -1194,19 +1194,19 @@ const EXPEDITION_SUPPLIES = {
 } as const
 ```
 
-- [ ] **Step 2: 修改 startRun 加入补给检查和消耗**
+- [x] **Step 2: 修改 startRun 加入补给检查和消耗**
 
 在 `adventureStore.ts` 的 `startRun` 中，新增 `supplyLevel` 参数：
 - 检查灵石 + vault 中是否有足够的丹药
 - 消耗灵石 + 从 vault 移除丹药
 - luxury 补给给予 1.5x 奖励倍率
 
-- [ ] **Step 3: 运行测试**
+- [x] **Step 3: 运行测试**
 
 Run: `npx vitest run`
 Expected: ALL PASS
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add src/stores/adventureStore.ts
@@ -1220,7 +1220,7 @@ git commit -m "feat(adventure): add expedition supply system"
 **Files:**
 - Modify: `src/pages/BuildingsPage.tsx`
 
-- [ ] **Step 1: 在丹炉和锻造坊的建筑卡片中新增生产队列 UI**
+- [x] **Step 1: 在丹炉和锻造坊的建筑卡片中新增生产队列 UI**
 
 对于加工层建筑（alchemyFurnace、forge），在现有升级按钮下方新增：
 
@@ -1230,7 +1230,7 @@ git commit -m "feat(adventure): add expedition supply system"
 2. **配方选择按钮**：点击弹出已解锁配方列表（底部抽屉）
 3. **手动炼制/锻造按钮**：保留现有功能
 
-- [ ] **Step 2: 新增配方选择底部抽屉组件**
+- [x] **Step 2: 新增配方选择底部抽屉组件**
 
 ```tsx
 // RecipeDrawer - 底部抽屉，显示已解锁配方列表
@@ -1238,7 +1238,7 @@ git commit -m "feat(adventure): add expedition supply system"
 // 选中后调用 store 的 setProductionRecipe action（已在 Task 8 中实现）
 ```
 
-- [ ] **Step 4: 浏览器验证**
+- [x] **Step 4: 浏览器验证**
 
 Run: `npm run dev`
 手动验证：
@@ -1247,7 +1247,7 @@ Run: `npm run dev`
 - 看到进度条开始推进
 - 灵草消耗中
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/pages/BuildingsPage.tsx src/stores/sectStore.ts
@@ -1262,7 +1262,7 @@ git commit -m "feat(ui): add production queue UI to processing buildings"
 - Modify: `src/stores/sectStore.ts` (离线 catch-up 逻辑)
 - Modify: `src/App.tsx`（如有离线结算入口）
 
-- [ ] **Step 1: 在离线 catch-up 中集成 calcOfflineProduction**
+- [x] **Step 1: 在离线 catch-up 中集成 calcOfflineProduction**
 
 **关键设计**：当前离线 catch-up 直接调用 `tickAll(offlineSeconds)`。但 `tickAll` 内部使用 `tickProductionQueue`（在线逐 tick 逻辑），而 spec 要求离线使用 `calcOfflineProduction`（净速率估算）。
 
@@ -1315,12 +1315,12 @@ for (const bType of processingTypes) {
 
 这样 `tickAll` 既能处理在线短间隔（< 60s），也能处理离线长间隔（> 60s），无需修改 `App.tsx` 的调用方式。
 
-- [ ] **Step 2: 测试离线结算**
+- [x] **Step 2: 测试离线结算**
 
 Run: `npx vitest run`
 Expected: ALL PASS
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add src/stores/sectStore.ts src/App.tsx
@@ -1333,22 +1333,22 @@ git commit -m "feat: integrate offline production estimation into catch-up logic
 
 **Files:** 无新文件
 
-- [ ] **Step 1: 运行全量测试**
+- [x] **Step 1: 运行全量测试**
 
 Run: `npx vitest run`
 Expected: ALL PASS（所有 18+ 测试文件）
 
-- [ ] **Step 2: 运行类型检查**
+- [x] **Step 2: 运行类型检查**
 
 Run: `npx tsc --noEmit`
 Expected: 0 errors
 
-- [ ] **Step 3: 运行构建**
+- [x] **Step 3: 运行构建**
 
 Run: `npm run build`
 Expected: Build 成功
 
-- [ ] **Step 4: Commit (如有修复)**
+- [x] **Step 4: Commit (如有修复)**
 
 ```bash
 git add -A

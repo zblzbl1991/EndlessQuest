@@ -4,6 +4,7 @@ export interface ArchiveMilestoneDef {
   id: ArchiveMilestoneId
   title: string
   description: string
+  icon?: string
 }
 
 export const ARCHIVE_MILESTONES: Record<ArchiveMilestoneId, ArchiveMilestoneDef> = {
