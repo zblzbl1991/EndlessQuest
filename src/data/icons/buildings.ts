@@ -1,6 +1,24 @@
 import type { PixelIconDef } from './types'
 
 export const buildingIcons: Record<string, PixelIconDef> = {
+  // ── Building Category (建筑总图标) ───────────────────────────────
+  building: {
+    grid: [
+      '....44......',
+      '...4444.....',
+      '..44..44....',
+      '.44....44...',
+      '4444444444..',
+      '4666666664..',
+      '466.66.664..',
+      '.66.66.66...',
+      '.66.66.66...',
+      '.66.66.66...',
+      '.1111111111.',
+      '.6666666666.',
+    ],
+  },
+
   // ── 1. mainHall (宗门大殿) ──
   // Temple with curved upturned eaves, pillars, base
   mainHall: {
@@ -77,6 +95,25 @@ export const buildingIcons: Record<string, PixelIconDef> = {
     ],
   },
 
+  // ── 4b. marketTrade (坊市摊) ──
+  // Semantic alias for market-related UI
+  marketTrade: {
+    grid: [
+      '4444444444..',
+      '4bbbbbbbb4..',
+      '4b6.66.6b4..',
+      '4b6.66.6b4..',
+      '4b.6666.b4..',
+      '4..6666..4..',
+      '..666666....',
+      '.66.66.66...',
+      '.66.66.66...',
+      '1.66.66.6.1.',
+      '.111111111..',
+      '............',
+    ],
+  },
+
   // ── 5. alchemyFurnace (丹炉) ──
   // Traditional cauldron with legs and smoke
   alchemyFurnace: {
@@ -99,6 +136,25 @@ export const buildingIcons: Record<string, PixelIconDef> = {
   // ── 6. forge (炼器坊) ──
   // Anvil with hammer and sparks
   forge: {
+    grid: [
+      '.....1......',
+      '....11......',
+      '...111......',
+      '..a.1a......',
+      '.aa.aa......',
+      '..a.a.......',
+      '.111111.....',
+      '.111111.....',
+      '..6666......',
+      '.666666.....',
+      '.666666.....',
+      '.111111.....',
+    ],
+  },
+
+  // ── 6b. forgeWorkshop (炼器坊) ──
+  // Semantic alias for forge-related UI
+  forgeWorkshop: {
     grid: [
       '.....1......',
       '....11......',

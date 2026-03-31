@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { TECHNIQUE_TIER_NAMES } from '../../types/technique'
+import { PixelIcon } from '../common/PixelIcon'
 import styles from './StudyPanel.module.css'
 
 export default function StudyPanel() {
@@ -34,7 +35,10 @@ export default function StudyPanel() {
   return (
     <div className={styles.buildingPanel}>
       <div className={styles.panelHeader}>
-        <span className={styles.panelTitle}>藏经阁 Lv{scriptureLevel}</span>
+        <span className={styles.panelTitle}>
+          <PixelIcon name="techniqueScroll" size={20} className={styles.panelIcon} aria-label="功法参悟" />
+          藏经阁 Lv{scriptureLevel}
+        </span>
         <span className={styles.resourceDisplay}>灵石 {sect.resources.spiritStone}</span>
       </div>
 

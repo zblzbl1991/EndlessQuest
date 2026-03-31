@@ -3,10 +3,10 @@ import styles from './StatusBadge.module.css'
 
 const STATUS_LABELS: Record<CharacterStatus, string> = {
   idle: '修炼中',
-  adventuring: '冒险中',
+  adventuring: '秘境中',
   patrolling: '派遣中',
-  resting: '休息',
-  injured: '受伤',
+  resting: '恢复中',
+  injured: '疗伤中',
   training: '研习中',
 }
 

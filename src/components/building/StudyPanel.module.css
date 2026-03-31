@@ -12,10 +12,17 @@
 }
 
 .panelTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.panelIcon {
+  opacity: 0.95;
 }
 
 .resourceDisplay {

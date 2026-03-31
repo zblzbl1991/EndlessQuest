@@ -21,6 +21,7 @@ import type { Character } from '../types/character'
 import type { Talent } from '../types/talent'
 import { TALENT_RARITY_NAMES } from '../types/talent'
 import ItemCard from '../components/inventory/ItemCard'
+import { PixelIcon } from '../components/common/PixelIcon'
 import AlchemyPanel from '../components/building/AlchemyPanel'
 import ForgePanel from '../components/building/ForgePanel'
 import StudyPanel from '../components/building/StudyPanel'
@@ -33,6 +34,28 @@ import styles from './BuildingsPage.module.css'
 // ---------------------------------------------------------------------------
 
 type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' | 'codex' | 'market'
+
+const TAB_ICON_NAMES: Record<TabKey, string> = {
+  buildings: 'building',
+  recruit: 'disciple',
+  vault: 'spiritMine',
+  alchemy: 'alchemyFurnace',
+  forge: 'forgeWorkshop',
+  study: 'scriptureHall',
+  codex: 'techniqueScroll',
+  market: 'marketTrade',
+}
+
+const BUILDING_ICON_NAMES: Partial<Record<BuildingType, string>> = {
+  mainHall: 'mainHall',
+  spiritField: 'spiritField',
+  spiritMine: 'spiritMine',
+  alchemyFurnace: 'alchemyFurnace',
+  scriptureHall: 'scriptureHall',
+  forge: 'forgeWorkshop',
+  market: 'marketTrade',
+  recruitmentPavilion: 'recruitmentPavilion',
+}
 
 const QUALITY_LABELS: Record<CharacterQuality, string> = {
   common: '凡品',
@@ -134,6 +157,7 @@ export default function BuildingsPage() {
             className={`${styles.tab} ${activeTab === t.key ? styles.tabActive : ''}`}
             onClick={() => setTab(t.key)}
           >
+            <PixelIcon name={TAB_ICON_NAMES[t.key]} size={18} className={styles.tabIcon} aria-label={t.label} />
             {t.label}
           </button>
         ))}
@@ -204,7 +228,15 @@ function BuildingsTab() {
         return (
           <div key={def.type} className={`${styles.buildingCard} ${!isUnlocked ? styles.buildingLocked : ''}`}>
             <div className={styles.buildingHeader}>
-              <span className={styles.buildingName}>{def.name}</span>
+              <span className={styles.buildingName}>
+                <PixelIcon
+                  name={BUILDING_ICON_NAMES[def.type] ?? 'building'}
+                  size={20}
+                  className={styles.buildingIcon}
+                  aria-label={def.name}
+                />
+                {def.name}
+              </span>
               <span className={styles.buildingLevel}>
                 Lv{building.level}
                 {isMaxLevel ? ' MAX' : ''}

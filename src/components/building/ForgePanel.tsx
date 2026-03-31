@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
 import { FORGE_RECIPES, canForge } from '../../systems/economy/ForgeSystem'
 import { getForgeBuff } from '../../systems/economy/BuildingEffects'
+import { PixelIcon } from '../common/PixelIcon'
 import styles from './ForgePanel.module.css'
 
 const QUALITY_LABELS: Record<string, string> = {
@@ -40,7 +41,10 @@ export default function ForgePanel() {
   return (
     <div className={styles.buildingPanel}>
       <div className={styles.panelHeader}>
-        <span className={styles.panelTitle}>炼器坊 Lv{forgeLevel}</span>
+        <span className={styles.panelTitle}>
+          <PixelIcon name="forgeWorkshop" size={20} className={styles.panelIcon} aria-label="炼器坊" />
+          炼器坊 Lv{forgeLevel}
+        </span>
         <span className={styles.resourceDisplay}>
           矿石 {sect.resources.ore} · 灵石 {sect.resources.spiritStone}
         </span>
@@ -56,7 +60,10 @@ export default function ForgePanel() {
         return (
           <div key={recipe.id} className={styles.recipeCard}>
             <div className={styles.recipeHeader}>
-              <span className={styles.recipeName}>{recipe.name}</span>
+              <span className={styles.recipeName}>
+                <PixelIcon name="typeEquipment" size={18} className={styles.recipeIcon} aria-label={recipe.name} />
+                {recipe.name}
+              </span>
               <span className={`${styles.recipeQuality} ${getQualityClass(recipe.quality)}`}>
                 {QUALITY_LABELS[recipe.quality] || recipe.quality}
               </span>

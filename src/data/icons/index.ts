@@ -1,6 +1,7 @@
 import { buildingIcons } from './buildings'
 import { characterIcons } from './characters'
 import { itemIcons } from './items'
+import { techniqueIcons } from './techniques'
 import { worldIcons } from './world'
 import { uiIcons } from './ui'
 import type { PixelIconDef } from './types'
@@ -14,6 +15,7 @@ export const pixelIcons: Record<string, PixelIconDef> = {
   ...buildingIcons,
   ...characterIcons,
   ...itemIcons,
+  ...techniqueIcons,
   ...worldIcons,
   ...uiIcons,
 }

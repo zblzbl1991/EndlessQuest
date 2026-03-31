@@ -8,6 +8,7 @@ import { calcEffectiveCultivationRate } from '../systems/cultivation/Cultivation
 import { getPathDef } from '../data/cultivationPaths'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
+import { PixelIcon } from '../components/common/PixelIcon'
 import CharacterCard from '../components/common/CharacterCard'
 import StatusBadge from '../components/common/StatusBadge'
 import ProgressBar from '../components/common/ProgressBar'
@@ -56,13 +57,15 @@ const TECHNIQUE_TIER_CLASS: Record<string, string> = {
 }
 
 type ViewMode = 'list' | 'grid'
-type FilterTab = 'all' | 'cultivating' | 'adventuring' | 'resting'
+type FilterTab = 'all' | 'cultivating' | 'dispatching' | 'adventuring' | 'training' | 'recovering'
 
-const FILTER_TABS: { key: FilterTab; label: string; match: (s: CharacterStatus) => boolean }[] = [
-  { key: 'all', label: '全部', match: () => true },
-  { key: 'cultivating', label: '修炼中', match: (s) => s === 'idle' },
-  { key: 'adventuring', label: '冒险中', match: (s) => s === 'adventuring' || s === 'patrolling' },
-  { key: 'resting', label: '休息', match: (s) => s === 'resting' || s === 'injured' },
+const FILTER_TABS: { key: FilterTab; label: string; icon: string; match: (s: CharacterStatus) => boolean }[] = [
+  { key: 'all', label: '全部', icon: 'disciple', match: () => true },
+  { key: 'cultivating', label: '修炼中', icon: 'cultivation', match: (s) => s === 'idle' },
+  { key: 'dispatching', label: '派遣中', icon: 'dispatch', match: (s) => s === 'patrolling' },
+  { key: 'adventuring', label: '秘境中', icon: 'adventure', match: (s) => s === 'adventuring' },
+  { key: 'training', label: '研习中', icon: 'technique', match: (s) => s === 'training' },
+  { key: 'recovering', label: '恢复中', icon: 'recovery', match: (s) => s === 'resting' || s === 'injured' },
 ]
 
 // ---------------------------------------------------------------------------
@@ -117,6 +120,7 @@ export default function CharactersPage() {
             className={`${styles.filterTab} ${filter === tab.key ? styles.filterActive : ''}`}
             onClick={() => setFilter(tab.key)}
           >
+            <PixelIcon name={tab.icon} size={18} className={styles.filterIcon} aria-label={tab.label} />
             {tab.label}
           </button>
         ))}

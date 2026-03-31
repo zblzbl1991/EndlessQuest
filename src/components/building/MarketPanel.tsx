@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useSectStore } from '../../stores/sectStore'
+import type { AnyItem, EquipSlot } from '../../types/item'
 import { getMarketBuff } from '../../systems/economy/BuildingEffects'
+import { PixelIcon } from '../common/PixelIcon'
 import styles from './MarketPanel.module.css'
 
 const QUALITY_LABELS: Record<string, string> = {
@@ -15,6 +17,48 @@ function getQualityClass(quality: string): string {
   if (quality === 'immortal') return styles.itemQualityImmortal
   if (quality === 'spirit') return styles.itemQualitySpirit
   return ''
+}
+
+function getEquipmentIconName(slot: EquipSlot): string {
+  switch (slot) {
+    case 'head':
+      return 'equipHead'
+    case 'armor':
+      return 'equipArmor'
+    case 'bracer':
+      return 'equipBracer'
+    case 'belt':
+      return 'equipBelt'
+    case 'boots':
+      return 'equipBoots'
+    case 'weapon':
+      return 'equipWeapon'
+    case 'talisman':
+      return 'equipTalisman'
+    case 'accessory1':
+    case 'accessory2':
+      return 'equipAccessory'
+    default:
+      return 'typeEquipment'
+  }
+}
+
+function getShopItemIconName(item: AnyItem): string {
+  if (item.type === 'equipment') {
+    return getEquipmentIconName(item.slot)
+  }
+
+  if (item.type === 'techniqueScroll') {
+    return 'techniqueScroll'
+  }
+
+  if (item.type === 'consumable') {
+    return item.name.includes('丹') ? 'elixir' : 'typeConsumable'
+  }
+
+  if (item.category === 'herb') return 'herb'
+  if (item.category === 'ore') return 'ore'
+  return 'typeMaterial'
 }
 
 export default function MarketPanel() {
@@ -76,7 +120,10 @@ export default function MarketPanel() {
   return (
     <div className={styles.buildingPanel}>
       <div className={styles.panelHeader}>
-        <span className={styles.panelTitle}>坊市 Lv{marketLevel}</span>
+        <span className={styles.panelTitle}>
+          <PixelIcon name="marketTrade" size={20} className={styles.panelIcon} aria-label="坊市" />
+          坊市 Lv{marketLevel}
+        </span>
         <span className={styles.resourceDisplay}>灵石 {sect.resources.spiritStone}</span>
       </div>
 
@@ -85,7 +132,15 @@ export default function MarketPanel() {
       {shopState.fixedItems.map((shopItem, idx) => (
         <div key={shopItem.id} className={styles.itemCard}>
           <div className={styles.itemHeader}>
-            <span className={styles.itemName}>{shopItem.item.name}</span>
+            <span className={styles.itemName}>
+              <PixelIcon
+                name={getShopItemIconName(shopItem.item)}
+                size={18}
+                className={styles.itemIcon}
+                aria-label={shopItem.item.name}
+              />
+              {shopItem.item.name}
+            </span>
             <span className={`${styles.itemQuality} ${getQualityClass(shopItem.item.quality)}`}>
               {QUALITY_LABELS[shopItem.item.quality] || shopItem.item.quality}
             </span>
@@ -118,7 +173,15 @@ export default function MarketPanel() {
       {shopState.dailyItems.map((shopItem, idx) => (
         <div key={`${shopItem.id}-${idx}`} className={styles.itemCard}>
           <div className={styles.itemHeader}>
-            <span className={styles.itemName}>{shopItem.item.name}</span>
+            <span className={styles.itemName}>
+              <PixelIcon
+                name={getShopItemIconName(shopItem.item)}
+                size={18}
+                className={styles.itemIcon}
+                aria-label={shopItem.item.name}
+              />
+              {shopItem.item.name}
+            </span>
             <span className={`${styles.itemQuality} ${getQualityClass(shopItem.item.quality)}`}>
               {QUALITY_LABELS[shopItem.item.quality] || shopItem.item.quality}
             </span>

@@ -5,7 +5,14 @@ import { calcResourceRates } from '../economy/ResourceEngine'
 import { getBuildingBonus } from '../character/SpecialtySystem'
 import { getSynergyBonus } from '../economy/SynergySystem'
 
-function calcCurrentSpiritRatio(sect: Sect): number {
+export interface CultivationEconomySnapshot {
+  cultivatingCount: number
+  spiritProductionPerSecond: number
+  totalSpiritDemandPerSecond: number
+  spiritRatio: number
+}
+
+export function getCultivationEconomySnapshot(sect: Sect): CultivationEconomySnapshot {
   const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
   const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
   const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
@@ -33,17 +40,29 @@ function calcCurrentSpiritRatio(sect: Sect): number {
   rates.spiritEnergy *= getSynergyBonus('spiritField', sect.buildings)
 
   const cultivatingCount = sect.characters.filter((c) => c.status === 'idle').length
-  if (cultivatingCount === 0) return 1
+  if (cultivatingCount === 0) {
+    return {
+      cultivatingCount,
+      spiritProductionPerSecond: rates.spiritEnergy,
+      totalSpiritDemandPerSecond: 0,
+      spiritRatio: 1,
+    }
+  }
 
   const spiritProduced = rates.spiritEnergy
   const spiritConsumed = cultivatingCount * calcSpiritCostPerSecond()
-  return Math.min(1, (sect.resources.spiritEnergy + spiritProduced) / spiritConsumed)
+  return {
+    cultivatingCount,
+    spiritProductionPerSecond: spiritProduced,
+    totalSpiritDemandPerSecond: spiritConsumed,
+    spiritRatio: Math.min(1, (sect.resources.spiritEnergy + spiritProduced) / spiritConsumed),
+  }
 }
 
 export function calcEffectiveCultivationRate(sect: Sect, character: Character): number {
   if (character.status !== 'idle') return 0
 
-  const spiritRatio = calcCurrentSpiritRatio(sect)
+  const { spiritRatio } = getCultivationEconomySnapshot(sect)
   const baseRate = calcCultivationRate(character, character.learnedTechniques)
   return baseRate * spiritRatio
 }

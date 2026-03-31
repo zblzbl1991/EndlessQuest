@@ -25,6 +25,10 @@
 
 .tab {
   flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
@@ -40,6 +44,10 @@
 .tabActive {
   color: var(--color-accent);
   border-bottom-color: var(--color-accent);
+}
+
+.tabIcon {
+  opacity: 0.92;
 }
 
 /* ===== Buildings Tab ===== */
@@ -70,10 +78,17 @@
 }
 
 .buildingName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
+}
+
+.buildingIcon {
+  opacity: 0.96;
 }
 
 .buildingLevel {

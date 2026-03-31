@@ -7,6 +7,7 @@ import { getPathName } from '../../data/cultivationPaths'
 import { getFateTagDef } from '../../data/fateTags'
 import { formatCultivationValue } from '../../utils/format'
 import { useSectStore } from '../../stores/sectStore'
+import { PixelIcon } from './PixelIcon'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
 import styles from './CharacterCard.module.css'
@@ -25,6 +26,15 @@ const QUALITY_NAMES: Record<CharacterQuality, string> = {
   immortal: '仙',
   divine: '神',
   chaos: '混沌',
+}
+
+const PATH_ICON_NAMES: Record<string, string> = {
+  sword: 'swordPath',
+  body: 'bodyPath',
+  alchemy: 'alchemyPath',
+  beast: 'beastPath',
+  formation: 'spellPath',
+  void: 'spellPath',
 }
 
 interface CharacterCardProps {
@@ -59,7 +69,15 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
       </div>
       <div className={styles.realm}>{realmName}</div>
       {character.cultivationPath !== 'none' && (
-        <span className={styles.pathTag}>{getPathName(character.cultivationPath)}</span>
+        <span className={styles.pathTag}>
+          <PixelIcon
+            name={PATH_ICON_NAMES[character.cultivationPath] ?? 'technique'}
+            size={16}
+            className={styles.pathIcon}
+            aria-label={getPathName(character.cultivationPath)}
+          />
+          {getPathName(character.cultivationPath)}
+        </span>
       )}
       {character.fateTags.length > 0 && (
         <div className={styles.fateTags}>
