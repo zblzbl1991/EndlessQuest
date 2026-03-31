@@ -1,5 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
 import { useAdventureStore } from '../stores/adventureStore'
+import { PixelIcon } from '../components/common/PixelIcon'
 import styles from './AdventureReportPage.module.css'
 
 const RESULT_LABELS = {
@@ -13,6 +14,57 @@ const STRATEGY_LABELS = {
   combat: '战斗',
   profit: '收益',
 } as const
+
+function getDungeonIconName(dungeonId: string): string {
+  switch (dungeonId) {
+    case 'lingCaoValley':
+      return 'dungeonValley'
+    case 'luoYunCave':
+      return 'dungeonCave'
+    case 'bloodDemonAbyss':
+      return 'dungeonAbyss'
+    case 'dragonBoneWasteland':
+      return 'dungeonWasteland'
+    case 'nineNetherPurgatory':
+      return 'dungeonPurgatory'
+    case 'heavenlyTribulationRealm':
+      return 'dungeonTribulation'
+    default:
+      return 'dungeonCave'
+  }
+}
+
+function getStepIconName(type: string): string {
+  switch (type) {
+    case 'run_started':
+    case 'floor_started':
+      return 'dungeonCave'
+    case 'route_considered':
+    case 'route_selected':
+    case 'auto_choice_made':
+      return 'eventRandom'
+    case 'event_resolved':
+      return 'eventCombat'
+    case 'shop_decision':
+      return 'eventShop'
+    case 'blessing_decision':
+      return 'techniqueScroll'
+    case 'pet_decision':
+      return 'beastTaming'
+    case 'reward_gained':
+      return 'spiritStone'
+    case 'member_state_changed':
+      return 'disciple'
+    case 'run_retreated':
+      return 'eventRest'
+    case 'run_failed':
+      return 'eventBoss'
+    case 'run_completed':
+      return 'eventAncientCave'
+    default:
+      return 'eventRandom'
+  }
+}
 
 export default function AdventureReportPage() {
   const { reportId } = useParams()
@@ -33,7 +85,15 @@ export default function AdventureReportPage() {
       <div className={styles.header}>
         <div>
           <h1 className={styles.pageTitle}>探索过程</h1>
-          <div className={styles.subtitle}>{dungeon?.name ?? report.dungeonId}</div>
+          <div className={styles.subtitle}>
+            <PixelIcon
+              name={getDungeonIconName(report.dungeonId)}
+              size={18}
+              className={styles.inlineIcon}
+              aria-label={dungeon?.name ?? report.dungeonId}
+            />
+            {dungeon?.name ?? report.dungeonId}
+          </div>
         </div>
         <Link className={styles.backLink} to="/adventure">
           返回秘境
@@ -42,19 +102,36 @@ export default function AdventureReportPage() {
 
       <section className={styles.summaryCard}>
         <div className={styles.summaryRow}>
-          <span>结果</span>
+          <span className={styles.summaryLabel}>
+            <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="结果" />
+            结果
+          </span>
           <strong>{RESULT_LABELS[report.result]}</strong>
         </div>
         <div className={styles.summaryRow}>
-          <span>策略</span>
+          <span className={styles.summaryLabel}>
+            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="策略" />
+            策略
+          </span>
           <strong>{STRATEGY_LABELS[report.config.automationStrategy]}</strong>
         </div>
         <div className={styles.summaryRow}>
-          <span>战术</span>
+          <span className={styles.summaryLabel}>
+            <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="战术" />
+            战术
+          </span>
           <strong>{report.config.tacticalPreset}</strong>
         </div>
         <div className={styles.summaryRow}>
-          <span>推进层数</span>
+          <span className={styles.summaryLabel}>
+            <PixelIcon
+              name={getDungeonIconName(report.dungeonId)}
+              size={16}
+              className={styles.inlineIcon}
+              aria-label="推进层数"
+            />
+            推进层数
+          </span>
           <strong>第 {report.floorsCleared} 层</strong>
         </div>
       </section>
@@ -65,7 +142,15 @@ export default function AdventureReportPage() {
           {report.steps.map((step) => (
             <article key={step.id} className={styles.stepCard}>
               <div className={styles.stepHeader}>
-                <span className={styles.stepSummary}>{step.summary}</span>
+                <span className={styles.stepSummary}>
+                  <PixelIcon
+                    name={getStepIconName(step.type)}
+                    size={16}
+                    className={styles.inlineIcon}
+                    aria-label={step.summary}
+                  />
+                  {step.summary}
+                </span>
                 {step.floor !== null && <span className={styles.stepFloor}>第 {step.floor} 层</span>}
               </div>
               <div className={styles.stepDetail}>{step.detail}</div>
@@ -78,15 +163,24 @@ export default function AdventureReportPage() {
       <section className={styles.summaryCard}>
         <div className={styles.sectionTitle}>结算</div>
         <div className={styles.summaryRow}>
-          <span>灵石</span>
+          <span className={styles.summaryLabel}>
+            <PixelIcon name="spiritStone" size={16} className={styles.inlineIcon} aria-label="灵石" />
+            灵石
+          </span>
           <strong>{report.rewards.spiritStone}</strong>
         </div>
         <div className={styles.summaryRow}>
-          <span>灵草</span>
+          <span className={styles.summaryLabel}>
+            <PixelIcon name="herb" size={16} className={styles.inlineIcon} aria-label="灵草" />
+            灵草
+          </span>
           <strong>{report.rewards.herb}</strong>
         </div>
         <div className={styles.summaryRow}>
-          <span>灵矿</span>
+          <span className={styles.summaryLabel}>
+            <PixelIcon name="ore" size={16} className={styles.inlineIcon} aria-label="灵矿" />
+            灵矿
+          </span>
           <strong>{report.rewards.ore}</strong>
         </div>
       </section>

@@ -4,9 +4,10 @@ import { QUALITY_NAMES, EQUIP_SLOT_NAMES } from '../data/items'
 import { getEffectiveStats } from '../systems/equipment/EquipmentEngine'
 import { getTechniqueById } from '../data/techniquesTable'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
+import { PixelIcon } from '../components/common/PixelIcon'
 import ItemCard from '../components/inventory/ItemCard'
 import styles from './VaultPage.module.css'
-import type { Equipment, TechniqueScroll } from '../types'
+import type { AnyItem, Equipment, TechniqueScroll } from '../types'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -18,6 +19,38 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'vault', label: '宗门仓库' },
   { key: 'backpack', label: '弟子背包' },
 ]
+
+function getVaultItemIconName(item: AnyItem): string {
+  if (item.type === 'equipment') {
+    switch (item.slot) {
+      case 'head':
+        return 'equipHead'
+      case 'armor':
+        return 'equipArmor'
+      case 'bracer':
+        return 'equipBracer'
+      case 'belt':
+        return 'equipBelt'
+      case 'boots':
+        return 'equipBoots'
+      case 'weapon':
+        return 'equipWeapon'
+      case 'talisman':
+        return 'equipTalisman'
+      case 'accessory1':
+      case 'accessory2':
+        return 'equipAccessory'
+      default:
+        return 'typeEquipment'
+    }
+  }
+
+  if (item.type === 'techniqueScroll') return 'techniqueScroll'
+  if (item.type === 'consumable') return item.name.includes('丹') ? 'elixir' : 'typeConsumable'
+  if (item.category === 'herb') return 'herb'
+  if (item.category === 'ore') return 'ore'
+  return 'typeMaterial'
+}
 
 // ---------------------------------------------------------------------------
 // VaultPage
@@ -40,6 +73,12 @@ export default function VaultPage() {
             className={`${styles.tab} ${tab === t.key ? styles.tabActive : ''}`}
             onClick={() => setTab(t.key)}
           >
+            <PixelIcon
+              name={t.key === 'vault' ? 'building' : 'disciple'}
+              size={18}
+              className={styles.tabIcon}
+              aria-label={t.label}
+            />
             {t.label}
           </button>
         ))}
@@ -112,7 +151,15 @@ function VaultTab() {
       {/* Item Detail / Actions */}
       {selectedItem && selectedIndex !== null && (
         <div className={styles.itemDetail}>
-          <div className={styles.detailName}>{selectedItem.name}</div>
+          <div className={styles.detailName}>
+            <PixelIcon
+              name={getVaultItemIconName(selectedItem)}
+              size={18}
+              className={styles.detailIcon}
+              aria-label={selectedItem.name}
+            />
+            {selectedItem.name}
+          </div>
           <div className={styles.detailQuality} style={{ color: `var(--color-quality-${selectedItem.quality})` }}>
             {QUALITY_NAMES[selectedItem.quality]}
           </div>
@@ -262,7 +309,15 @@ function BackpackTab() {
 
             {selectedItem && isThisChar && selIdx !== null && (
               <div className={styles.itemDetail}>
-                <div className={styles.detailName}>{selectedItem.name}</div>
+                <div className={styles.detailName}>
+                  <PixelIcon
+                    name={getVaultItemIconName(selectedItem)}
+                    size={18}
+                    className={styles.detailIcon}
+                    aria-label={selectedItem.name}
+                  />
+                  {selectedItem.name}
+                </div>
                 <div className={styles.detailQuality} style={{ color: `var(--color-quality-${selectedItem.quality})` }}>
                   {QUALITY_NAMES[selectedItem.quality]}
                 </div>

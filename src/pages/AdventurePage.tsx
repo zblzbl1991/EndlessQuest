@@ -5,6 +5,7 @@ import { useSectStore } from '../stores/sectStore'
 import { getRealmName } from '../data/realms'
 import type { CharacterQuality } from '../types/character'
 import type { AutomationStrategy, TacticalPreset } from '../types/adventure'
+import { PixelIcon } from '../components/common/PixelIcon'
 import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
 import styles from './AdventurePage.module.css'
 
@@ -19,6 +20,25 @@ const RESULT_LABELS = {
   retreated: '撤退',
   failed: '失败',
 } as const
+
+function getDungeonIconName(dungeonId: string): string {
+  switch (dungeonId) {
+    case 'lingCaoValley':
+      return 'dungeonValley'
+    case 'luoYunCave':
+      return 'dungeonCave'
+    case 'bloodDemonAbyss':
+      return 'dungeonAbyss'
+    case 'dragonBoneWasteland':
+      return 'dungeonWasteland'
+    case 'nineNetherPurgatory':
+      return 'dungeonPurgatory'
+    case 'heavenlyTribulationRealm':
+      return 'dungeonTribulation'
+    default:
+      return 'dungeonCave'
+  }
+}
 
 export default function AdventurePage() {
   const [buildingTeam, setBuildingTeam] = useState<string | null>(null)
@@ -55,14 +75,17 @@ export default function AdventurePage() {
 
       <section className={styles.summaryRow}>
         <div className={styles.summaryCard}>
+          <PixelIcon name="disciple" size={20} className={styles.summaryIcon} aria-label="可出战弟子" />
           <span className={styles.summaryLabel}>可出战弟子</span>
           <span className={styles.summaryValue}>{availableCharacters.length}</span>
         </div>
         <div className={styles.summaryCard}>
+          <PixelIcon name="eventCombat" size={20} className={styles.summaryIcon} aria-label="最近战报" />
           <span className={styles.summaryLabel}>最近战报</span>
           <span className={styles.summaryValue}>{reports.length}</span>
         </div>
         <div className={styles.summaryCard}>
+          <PixelIcon name="dungeonTribulation" size={20} className={styles.summaryIcon} aria-label="已留名秘境" />
           <span className={styles.summaryLabel}>已留名秘境</span>
           <span className={styles.summaryValue}>{completedDungeons.length}</span>
         </div>
@@ -95,8 +118,16 @@ export default function AdventurePage() {
               return (
                 <article key={report.id} className={styles.reportCard}>
                   <div className={styles.reportHeader}>
-                    <div>
-                      <div className={styles.reportName}>{dungeon?.name ?? report.dungeonId}</div>
+                    <div className={styles.reportTitleGroup}>
+                      <div className={styles.reportName}>
+                        <PixelIcon
+                          name={getDungeonIconName(report.dungeonId)}
+                          size={18}
+                          className={styles.inlineIcon}
+                          aria-label={dungeon?.name ?? report.dungeonId}
+                        />
+                        {dungeon?.name ?? report.dungeonId}
+                      </div>
                       <div className={styles.reportMeta}>队伍：{teamNames}</div>
                     </div>
                     <div className={styles.reportBadges}>
@@ -140,7 +171,10 @@ export default function AdventurePage() {
               const remaining = Math.max(0, dispatch.duration - dispatch.progress)
               return (
                 <div key={dispatch.characterId} className={styles.dispatchCard}>
-                  <span>{character?.name ?? dispatch.characterId}</span>
+                  <span className={styles.dispatchName}>
+                    <PixelIcon name="dispatch" size={18} className={styles.inlineIcon} aria-label="派遣任务" />
+                    {character?.name ?? dispatch.characterId}
+                  </span>
                   <span>{Math.ceil(remaining)} 秒后完成</span>
                 </div>
               )
@@ -161,7 +195,15 @@ export default function AdventurePage() {
             return (
               <div key={dungeon.id} className={`${styles.dungeonCard} ${!unlocked ? styles.dungeonLocked : ''}`}>
                 <div className={styles.dungeonHeader}>
-                  <span className={styles.dungeonName}>{dungeon.name}</span>
+                  <span className={styles.dungeonName}>
+                    <PixelIcon
+                      name={getDungeonIconName(dungeon.id)}
+                      size={18}
+                      className={styles.inlineIcon}
+                      aria-label={dungeon.name}
+                    />
+                    {dungeon.name}
+                  </span>
                   <span className={styles.lockBadge}>
                     {unlocked ? (cleared ? '已留名' : '可探索') : `${unlockRealmName}解锁`}
                   </span>

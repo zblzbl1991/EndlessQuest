@@ -38,10 +38,17 @@
 }
 
 .archiveTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 15px;
   font-weight: 700;
   color: var(--color-accent);
+}
+
+.inlineIcon {
+  opacity: 0.94;
 }
 
 .sectionHeader {
@@ -110,6 +117,9 @@
 }
 
 .archiveName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text);
@@ -148,6 +158,9 @@
 }
 
 .tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 11px;
   padding: 1px 6px;
   border-radius: var(--radius-xs);
@@ -155,6 +168,10 @@
   font-weight: 600;
   background: var(--color-border-light);
   color: var(--color-text-secondary);
+}
+
+.tagIcon {
+  opacity: 0.92;
 }
 
 .success {

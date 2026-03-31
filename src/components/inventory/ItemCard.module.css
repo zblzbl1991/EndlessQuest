@@ -22,12 +22,20 @@
 }
 
 .name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   font-weight: 500;
   color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.itemIcon {
+  opacity: 0.95;
+  flex-shrink: 0;
 }
 
 .slot {

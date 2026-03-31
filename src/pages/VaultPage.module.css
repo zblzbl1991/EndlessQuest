@@ -38,6 +38,10 @@
 }
 
 .tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   flex: 1;
   padding: var(--space-sm) var(--space-md);
   background: transparent;
@@ -48,6 +52,10 @@
   font-weight: 500;
   cursor: pointer;
   transition: all var(--transition-fast);
+}
+
+.tabIcon {
+  opacity: 0.92;
 }
 
 .tabActive {
@@ -99,11 +107,18 @@
 }
 
 .detailName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 15px;
   font-weight: 600;
   color: var(--color-text);
   margin-bottom: 2px;
+}
+
+.detailIcon {
+  opacity: 0.95;
 }
 
 .detailQuality {

@@ -141,10 +141,17 @@
 }
 
 .detailName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 20px;
   font-weight: 700;
   color: var(--color-text);
+}
+
+.inlineIcon {
+  opacity: 0.95;
 }
 
 .qualityBadge {
@@ -189,6 +196,9 @@
 }
 
 .pathName {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-weight: 600;
   color: var(--color-accent);
@@ -221,6 +231,9 @@
 }
 
 .sectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 14px;
   font-weight: 600;
@@ -563,6 +576,14 @@
   margin-bottom: var(--space-xs);
 }
 
+.dispatchName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
 /* Mission Selection Panel */
 
 .overlay {
@@ -617,6 +638,9 @@
 }
 
 .missionName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-weight: 600;
   font-size: 14px;
   font-family: var(--font-serif);

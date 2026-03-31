@@ -27,10 +27,16 @@
 }
 
 .summaryCard {
+  display: grid;
+  gap: 2px;
   padding: var(--space-sm);
   border-radius: var(--radius-md);
   border: 1px solid rgba(139, 69, 19, 0.12);
   background: linear-gradient(180deg, rgba(139, 69, 19, 0.08), rgba(139, 69, 19, 0.02));
+}
+
+.summaryIcon {
+  opacity: 0.92;
 }
 
 .summaryLabel {
@@ -98,10 +104,21 @@
 
 .reportName,
 .dungeonName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-serif);
   font-size: 15px;
   font-weight: 700;
   color: var(--color-text);
+}
+
+.reportTitleGroup {
+  min-width: 0;
+}
+
+.inlineIcon {
+  opacity: 0.95;
 }
 
 .reportMeta,
@@ -111,6 +128,14 @@
   margin-top: 4px;
   font-size: 12px;
   color: var(--color-text-secondary);
+}
+
+.dispatchName {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text);
+  font-weight: 600;
 }
 
 .reportBadges {

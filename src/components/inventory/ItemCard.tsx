@@ -1,6 +1,7 @@
 import type { AnyItem, Equipment } from '../../types/item'
 import { QUALITY_NAMES, EQUIP_SLOT_NAMES } from '../../data/items'
 import { getEffectiveStats } from '../../systems/equipment/EquipmentEngine'
+import { PixelIcon } from '../common/PixelIcon'
 import styles from './ItemCard.module.css'
 
 interface ItemCardProps {
@@ -17,6 +18,38 @@ const qualityClass: Record<string, string> = {
   chaos: styles.qualityChaos,
 }
 
+function getItemIconName(item: AnyItem): string {
+  if (item.type === 'equipment') {
+    switch (item.slot) {
+      case 'head':
+        return 'equipHead'
+      case 'armor':
+        return 'equipArmor'
+      case 'bracer':
+        return 'equipBracer'
+      case 'belt':
+        return 'equipBelt'
+      case 'boots':
+        return 'equipBoots'
+      case 'weapon':
+        return 'equipWeapon'
+      case 'talisman':
+        return 'equipTalisman'
+      case 'accessory1':
+      case 'accessory2':
+        return 'equipAccessory'
+      default:
+        return 'typeEquipment'
+    }
+  }
+
+  if (item.type === 'techniqueScroll') return 'techniqueScroll'
+  if (item.type === 'consumable') return item.name.includes('丹') ? 'elixir' : 'typeConsumable'
+  if (item.category === 'herb') return 'herb'
+  if (item.category === 'ore') return 'ore'
+  return 'typeMaterial'
+}
+
 export default function ItemCard({ item, selected, onClick }: ItemCardProps) {
   if (!item) return <div className={styles.empty} />
 
@@ -25,7 +58,10 @@ export default function ItemCard({ item, selected, onClick }: ItemCardProps) {
   return (
     <div className={`${styles.card} ${selected ? styles.selected : ''}`} onClick={onClick}>
       <span className={`${styles.qualityTag} ${qualityClass[item.quality] ?? ''}`}>{QUALITY_NAMES[item.quality]}</span>
-      <span className={styles.name}>{item.name}</span>
+      <span className={styles.name}>
+        <PixelIcon name={getItemIconName(item)} size={16} className={styles.itemIcon} aria-label={item.name} />
+        {item.name}
+      </span>
       {isEquipment && (
         <>
           <span className={styles.slot}>{EQUIP_SLOT_NAMES[(item as Equipment).slot] ?? (item as Equipment).slot}</span>

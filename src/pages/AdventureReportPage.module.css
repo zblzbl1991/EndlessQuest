@@ -23,9 +23,16 @@
 }
 
 .subtitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin-top: 4px;
   color: var(--color-text-secondary);
   font-size: 13px;
+}
+
+.inlineIcon {
+  opacity: 0.95;
 }
 
 .backLink {
@@ -54,6 +61,12 @@
   padding: 6px 0;
   font-size: 13px;
   color: var(--color-text-secondary);
+}
+
+.summaryLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .summaryRow strong {
@@ -93,6 +106,9 @@
 }
 
 .stepSummary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 14px;
   font-weight: 600;
   color: var(--color-text);

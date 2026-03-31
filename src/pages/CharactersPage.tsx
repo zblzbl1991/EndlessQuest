@@ -68,6 +68,42 @@ const FILTER_TABS: { key: FilterTab; label: string; icon: string; match: (s: Cha
   { key: 'recovering', label: '恢复中', icon: 'recovery', match: (s) => s === 'resting' || s === 'injured' },
 ]
 
+const DETAIL_SECTION_ICONS = {
+  base: 'disciple',
+  aptitude: 'cultivation',
+  cultivation: 'realmGoldenCore',
+  adventure: 'adventure',
+  dispatch: 'dispatch',
+  technique: 'techniqueScroll',
+  equipment: 'typeEquipment',
+} as const
+
+function getTechniqueIconName(name: string, element?: string): string {
+  if (name.includes('剑')) return 'swordManual'
+  if (name.includes('兽')) return 'beastTaming'
+  if (element === 'lightning') return 'thunderArt'
+  if (name.includes('体') || name.includes('金身')) return 'bodyPath'
+  if (name.includes('丹')) return 'alchemyPath'
+  return 'techniqueScroll'
+}
+
+function getMissionIconName(missionId: string): string {
+  switch (missionId) {
+    case 'gather_herbs':
+      return 'missionHerbs'
+    case 'mine_ores':
+      return 'missionOres'
+    case 'visit_market':
+      return 'missionMarket'
+    case 'seek_master':
+      return 'missionMaster'
+    case 'hunt_beasts':
+      return 'missionHunt'
+    default:
+      return 'dispatch'
+  }
+}
+
 // ---------------------------------------------------------------------------
 // CharactersPage
 // ---------------------------------------------------------------------------
@@ -184,7 +220,10 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
       {/* Header */}
       <div className={styles.detailHeader}>
         <div className={styles.detailNameRow}>
-          <span className={styles.detailName}>{character.name}</span>
+          <span className={styles.detailName}>
+            <PixelIcon name="disciple" size={18} className={styles.inlineIcon} aria-label={character.name} />
+            {character.name}
+          </span>
           <span className={styles.qualityBadge}>{QUALITY_NAMES_CHAR[character.quality]}</span>
         </div>
         <div className={styles.detailSubRow}>
@@ -198,7 +237,25 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
             return pathDef ? (
               <div className={styles.pathRow}>
                 <span className={styles.pathLabel}>修行:</span>
-                <span className={styles.pathName}>{pathDef.name}</span>
+                <span className={styles.pathName}>
+                  <PixelIcon
+                    name={
+                      character.cultivationPath === 'sword'
+                        ? 'swordPath'
+                        : character.cultivationPath === 'body'
+                          ? 'bodyPath'
+                          : character.cultivationPath === 'alchemy'
+                            ? 'alchemyPath'
+                            : character.cultivationPath === 'beast'
+                              ? 'beastPath'
+                              : 'spellPath'
+                    }
+                    size={16}
+                    className={styles.inlineIcon}
+                    aria-label={pathDef.name}
+                  />
+                  {pathDef.name}
+                </span>
                 <span className={styles.pathDesc}>{pathDef.description}</span>
               </div>
             ) : null
@@ -214,7 +271,10 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
       {/* Base Stats */}
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>基础属性</div>
+        <div className={styles.sectionTitle}>
+          <PixelIcon name={DETAIL_SECTION_ICONS.base} size={16} className={styles.inlineIcon} aria-label="基础属性" />
+          基础属性
+        </div>
         <div className={styles.statsGrid}>
           <div className={styles.statItem}>
             <span className={styles.statLabel}>气血</span>
@@ -245,7 +305,15 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
       {/* Cultivation Stats */}
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>修炼资质</div>
+        <div className={styles.sectionTitle}>
+          <PixelIcon
+            name={DETAIL_SECTION_ICONS.aptitude}
+            size={16}
+            className={styles.inlineIcon}
+            aria-label="修炼资质"
+          />
+          修炼资质
+        </div>
         <div className={styles.statsGrid}>
           <div className={styles.statItem}>
             <span className={styles.statLabel}>灵根</span>
@@ -268,7 +336,15 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
       {/* Cultivation / Breakthrough */}
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>修炼</div>
+        <div className={styles.sectionTitle}>
+          <PixelIcon
+            name={DETAIL_SECTION_ICONS.cultivation}
+            size={16}
+            className={styles.inlineIcon}
+            aria-label="修炼"
+          />
+          修炼
+        </div>
         <div className={styles.cultivationInfo}>
           <span>修炼速度: {effectiveCultivationSpeed.toFixed(1)}/s</span>
         </div>
@@ -290,7 +366,15 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
       {/* Adventure info */}
       {character.status === 'adventuring' && (
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>秘境</div>
+          <div className={styles.sectionTitle}>
+            <PixelIcon
+              name={DETAIL_SECTION_ICONS.adventure}
+              size={16}
+              className={styles.inlineIcon}
+              aria-label="秘境"
+            />
+            秘境
+          </div>
           <div className={styles.adventureInfo}>正在秘境中探索...</div>
         </section>
       )}
@@ -306,9 +390,25 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           const seconds = Math.floor(remaining % 60)
           return (
             <section className={styles.section}>
-              <div className={styles.sectionTitle}>派遣任务</div>
+              <div className={styles.sectionTitle}>
+                <PixelIcon
+                  name={DETAIL_SECTION_ICONS.dispatch}
+                  size={16}
+                  className={styles.inlineIcon}
+                  aria-label="派遣任务"
+                />
+                派遣任务
+              </div>
               <div className={styles.dispatchInfo}>
-                <span>{mission?.name ?? '未知任务'}</span>
+                <span className={styles.dispatchName}>
+                  <PixelIcon
+                    name={getMissionIconName(dispatch.missionId)}
+                    size={16}
+                    className={styles.inlineIcon}
+                    aria-label={mission?.name ?? '未知任务'}
+                  />
+                  {mission?.name ?? '未知任务'}
+                </span>
                 <span>
                   剩余: {minutes}:{seconds.toString().padStart(2, '0')}
                 </span>
@@ -333,7 +433,15 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                     setShowingMissions(false)
                   }}
                 >
-                  <div className={styles.missionName}>{mission.name}</div>
+                  <div className={styles.missionName}>
+                    <PixelIcon
+                      name={getMissionIconName(mission.id)}
+                      size={16}
+                      className={styles.inlineIcon}
+                      aria-label={mission.name}
+                    />
+                    {mission.name}
+                  </div>
                   <div className={styles.missionDesc}>{mission.description}</div>
                   <div className={styles.missionMeta}>
                     <span>{Math.floor(mission.duration / 60)}分钟</span>
@@ -363,7 +471,10 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
       {/* Technique */}
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>功法</div>
+        <div className={styles.sectionTitle}>
+          <PixelIcon name={DETAIL_SECTION_ICONS.technique} size={16} className={styles.inlineIcon} aria-label="功法" />
+          功法
+        </div>
         {character.learnedTechniques.length > 0 ? (
           <div className={styles.techniqueList}>
             {character.learnedTechniques.map((techId) => {
@@ -373,6 +484,12 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
               return (
                 <div key={techId} className={styles.techniquePanel}>
                   <div className={styles.techniqueName}>
+                    <PixelIcon
+                      name={getTechniqueIconName(tech.name, tech.element)}
+                      size={16}
+                      className={styles.inlineIcon}
+                      aria-label={tech.name}
+                    />
                     {tech.name}
                     <span className={`${styles.techniqueTier} ${tierClass}`}>{TECHNIQUE_TIER_NAMES[tech.tier]}</span>
                   </div>
@@ -395,7 +512,10 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
       {/* Equipment */}
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>装备</div>
+        <div className={styles.sectionTitle}>
+          <PixelIcon name={DETAIL_SECTION_ICONS.equipment} size={16} className={styles.inlineIcon} aria-label="装备" />
+          装备
+        </div>
         <EquipPanel
           characterId={characterId}
           onItemClick={() => {}}
