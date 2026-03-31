@@ -4,6 +4,22 @@ import type { CombatUnit } from '../combat/CombatEngine'
 const ALL_BLESSINGS: BlessingId[] = ['stoneHarvest', 'verdantBounty', 'ironBody', 'galeStride', 'battleFocus']
 const ALL_RELICS: RelicId[] = ['jadeGourd', 'merchantSeal', 'warBanner']
 
+export interface RunBuild {
+  blessings: Array<{ id: string; stacks?: number }>
+  relics: Array<{ id: string }>
+}
+
+const LEGACY_BLESSING_MULTIPLIERS: Record<string, Partial<Pick<CombatUnit, 'atk' | 'def' | 'spd'>>> = {
+  flame_heart: { atk: 1.2 },
+  iron_wall: { def: 1.2 },
+  wind_step: { spd: 1.15 },
+}
+
+const LEGACY_RELIC_MULTIPLIERS: Record<string, Partial<Pick<CombatUnit, 'atk' | 'def' | 'spd'>>> = {
+  jade_armor: { def: 1.25 },
+  mirror_shard: { atk: 1.1 },
+}
+
 export function pickBlessingOptions(
   ownedBlessings: BlessingId[],
   count = 3,
@@ -68,4 +84,35 @@ export function applyRunRecovery(currentHp: number, maxHp: number, blessings: Bl
 
 export function getShopCostMultiplier(relics: RelicId[]): number {
   return relics.includes('merchantSeal') ? 0.8 : 1
+}
+
+export function applyRunBuild(units: CombatUnit[], build: RunBuild): CombatUnit[] {
+  return units.map((unit) => {
+    let atk = unit.atk
+    let def = unit.def
+    let spd = unit.spd
+
+    for (const blessing of build.blessings) {
+      const mods = LEGACY_BLESSING_MULTIPLIERS[blessing.id]
+      if (!mods) continue
+      if (mods.atk) atk = Math.floor(atk * mods.atk)
+      if (mods.def) def = Math.floor(def * mods.def)
+      if (mods.spd) spd = Math.floor(spd * mods.spd)
+    }
+
+    for (const relic of build.relics) {
+      const mods = LEGACY_RELIC_MULTIPLIERS[relic.id]
+      if (!mods) continue
+      if (mods.atk) atk = Math.floor(atk * mods.atk)
+      if (mods.def) def = Math.floor(def * mods.def)
+      if (mods.spd) spd = Math.floor(spd * mods.spd)
+    }
+
+    return {
+      ...unit,
+      atk,
+      def,
+      spd,
+    }
+  })
 }

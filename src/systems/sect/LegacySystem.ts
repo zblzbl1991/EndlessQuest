@@ -93,6 +93,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     },
     // Reset sect path
     sectPath: 'none',
+    activeRoute: null,
     unlockedPathNodeIds: [],
     pathUnlockedAt: null,
     // Updated legacy

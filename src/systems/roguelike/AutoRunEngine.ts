@@ -12,8 +12,8 @@ import type {
   Resources,
 } from '../../types'
 import type { CombatUnit } from '../combat/CombatEngine'
-import { BLESSINGS } from '../../data/blessings'
-import { RELICS } from '../../data/relics'
+import { BLESSING_DEFS } from '../../data/blessings'
+import { RELIC_DEFS } from '../../data/relics'
 import type { EventResult } from './EventSystem'
 import { resolveEvent } from './EventSystem'
 import {
@@ -361,8 +361,8 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
         }
         pushStep(
           'blessing_decision',
-          `选择祝福：${BLESSINGS[selectedBlessing].name}`,
-          BLESSINGS[selectedBlessing].description,
+          `选择祝福：${BLESSING_DEFS[selectedBlessing].name}`,
+          BLESSING_DEFS[selectedBlessing].description,
           `${input.automationStrategy}策略自动选择祝福`
         )
       }
@@ -374,7 +374,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
       const relicReward = pickRelicRewardFn(run.relics)
       if (relicReward && !run.relics.includes(relicReward)) {
         run.relics.push(relicReward)
-        pushStep('auto_choice_made', `获得遗物：${RELICS[relicReward].name}`, RELICS[relicReward].description)
+        pushStep('auto_choice_made', `获得遗物：${RELIC_DEFS[relicReward].name}`, RELIC_DEFS[relicReward].description)
       }
       result = 'completed'
       pushStep('run_completed', '探索完成', `${input.dungeon.name} 已完成结算。`)

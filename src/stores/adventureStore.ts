@@ -35,8 +35,8 @@ import {
 } from '../systems/roguelike/RunBuildSystem'
 import { resolveAutomatedRun } from '../systems/roguelike/AutoRunEngine'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../data/archiveMilestones'
-import { BLESSINGS } from '../data/blessings'
-import { RELICS } from '../data/relics'
+import { BLESSING_DEFS } from '../data/blessings'
+import { RELIC_DEFS } from '../data/relics'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -662,7 +662,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         newRelics.push(relicReward)
         newLog.push({
           timestamp: Date.now(),
-          message: `获得遗物：${RELICS[relicReward].name}`,
+          message: `获得遗物：${RELIC_DEFS[relicReward].name}`,
         })
       }
 
@@ -727,7 +727,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!(run.pendingBlessingOptions ?? []).includes(blessingId)) return false
 
     const nextBlessings = run.blessings.includes(blessingId) ? run.blessings : [...run.blessings, blessingId]
-    const nextLog = [...run.eventLog, { timestamp: Date.now(), message: `获得祝福：${BLESSINGS[blessingId].name}` }]
+    const nextLog = [...run.eventLog, { timestamp: Date.now(), message: `获得祝福：${BLESSING_DEFS[blessingId].name}` }]
 
     set((s) => ({
       activeRuns: {

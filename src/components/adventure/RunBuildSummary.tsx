@@ -1,5 +1,5 @@
-import { BLESSINGS } from '../../data/blessings'
-import { RELICS } from '../../data/relics'
+import { BLESSING_DEFS } from '../../data/blessings'
+import { RELIC_DEFS } from '../../data/relics'
 import type { BlessingId, RelicId, TacticalPreset } from '../../types/adventure'
 import styles from './RunBuildSummary.module.css'
 
@@ -30,8 +30,8 @@ export default function RunBuildSummary({ tacticalPreset, blessings, relics, bra
         <div className={styles.tags}>
           {blessings.length > 0 ? (
             blessings.map((id) => (
-              <span key={id} className={styles.blessingTag} title={BLESSINGS[id].description}>
-                {BLESSINGS[id].name}
+              <span key={id} className={styles.blessingTag} title={BLESSING_DEFS[id].description}>
+                {BLESSING_DEFS[id].name}
               </span>
             ))
           ) : (
@@ -45,8 +45,8 @@ export default function RunBuildSummary({ tacticalPreset, blessings, relics, bra
         <div className={styles.tags}>
           {relics.length > 0 ? (
             relics.map((id) => (
-              <span key={id} className={styles.relicTag} title={RELICS[id].description}>
-                {RELICS[id].name}
+              <span key={id} className={styles.relicTag} title={RELIC_DEFS[id].description}>
+                {RELIC_DEFS[id].name}
               </span>
             ))
           ) : (

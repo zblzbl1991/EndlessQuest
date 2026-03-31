@@ -3,6 +3,8 @@ import type { SectStore } from './types'
 import type { SectPath } from '../../types/sect'
 import { SECT_PATHS } from '../../data/sectPaths'
 import { canUnlockNode, getPathNode } from '../../systems/sect/SectPathSystem'
+import { getActiveRoute } from '../../systems/sect/SectRouteSystem'
+import type { SectRouteId } from '../../data/sectRoutes'
 
 export const createSectPathSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   chooseSectPath: (path: SectPath) => {
@@ -52,5 +54,18 @@ export const createSectPathSlice: StateCreator<SectStore, [], [], Partial<SectSt
         pathUnlockedAt: null,
       },
     }))
+  },
+
+  setActiveRoute: (routeId: SectRouteId | null) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        activeRoute: routeId,
+      },
+    }))
+  },
+
+  getActiveRouteEffects: () => {
+    return getActiveRoute(get().sect.activeRoute)
   },
 })

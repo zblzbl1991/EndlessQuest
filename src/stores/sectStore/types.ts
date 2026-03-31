@@ -1,6 +1,7 @@
 import type { Character, CharacterTitle, CharacterQuality, CharacterStatus } from '../../types/character'
 import type { SectPath, BuildingType, Resources, ResourceType, Sect, AnyItem, ItemStack } from '../../types'
 import type { ShopState } from '../../systems/trade/TradeSystem'
+import type { SectRouteDef, SectRouteId } from '../../data/sectRoutes'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -87,6 +88,8 @@ export interface SectStore {
   chooseSectPath(path: SectPath): void
   unlockPathNode(nodeId: string): boolean
   resetSectPath(): void
+  setActiveRoute(routeId: SectRouteId | null): void
+  getActiveRouteEffects(): SectRouteDef | null
 
   // Legacy ascension
   performAscension(): void

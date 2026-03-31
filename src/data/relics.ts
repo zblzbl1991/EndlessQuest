@@ -6,7 +6,14 @@ export interface RelicDef {
   description: string
 }
 
-export const RELICS: Record<RelicId, RelicDef> = {
+export interface Relic {
+  id: string
+  name: string
+  description: string
+  rule: string
+}
+
+export const RELIC_DEFS: Record<RelicId, RelicDef> = {
   jadeGourd: {
     id: 'jadeGourd',
     name: '青玉葫芦',
@@ -23,3 +30,10 @@ export const RELICS: Record<RelicId, RelicDef> = {
     description: '战斗中攻击与防御额外提高 10%。',
   },
 }
+
+export const RELICS: Relic[] = [
+  { id: 'mirror_shard', name: '镜片', description: '强化暴击时机。', rule: 'crit-up' },
+  { id: 'jade_armor', name: '玉甲', description: '提高防御。', rule: 'def-up' },
+  { id: 'blood_vial', name: '血瓶', description: '提高续航。', rule: 'heal-up' },
+  { id: 'golden_scale', name: '金鳞', description: '提高奖励。', rule: 'loot-up' },
+]

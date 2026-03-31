@@ -83,6 +83,7 @@ export function createInitialState(): { sect: Sect } {
         taxIncome: 0,
       },
       sectPath: 'none' as const,
+      activeRoute: null,
       unlockedPathNodeIds: [],
       pathUnlockedAt: null,
       legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },

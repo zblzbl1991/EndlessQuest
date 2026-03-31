@@ -28,6 +28,7 @@ interface SaveMeta {
   totalBreakthroughs: number
   lastTransmissionTime: number
   sectPath: Sect['sectPath']
+  activeRoute: Sect['activeRoute']
   unlockedPathNodeIds: Sect['unlockedPathNodeIds']
   pathUnlockedAt: Sect['pathUnlockedAt']
   legacy: Sect['legacy']
@@ -79,6 +80,7 @@ export async function saveGame(): Promise<void> {
       totalBreakthroughs: sect.totalBreakthroughs,
       lastTransmissionTime: sect.lastTransmissionTime,
       sectPath: sect.sectPath,
+      activeRoute: sect.activeRoute,
       unlockedPathNodeIds: sect.unlockedPathNodeIds,
       pathUnlockedAt: sect.pathUnlockedAt,
       legacy: sect.legacy,
@@ -246,6 +248,7 @@ export async function loadGame(): Promise<boolean> {
         taxIncome: 0,
       },
       sectPath: (meta as any).sectPath ?? 'none',
+      activeRoute: (meta as any).activeRoute ?? null,
       unlockedPathNodeIds: (meta as any).unlockedPathNodeIds ?? [],
       pathUnlockedAt: (meta as any).pathUnlockedAt ?? null,
       legacy: (meta as any).legacy ?? { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },

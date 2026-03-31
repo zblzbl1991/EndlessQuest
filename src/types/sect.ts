@@ -1,6 +1,7 @@
 import type { Character } from './character'
 import type { ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
+import type { SectRouteId } from '../data/sectRoutes'
 
 export type SectPath = 'none' | 'pill' | 'sword' | 'beast'
 export type ArchiveMilestoneId = 'firstRareRecruit' | 'firstTribulationSuccess' | 'firstDungeonClear'
@@ -99,6 +100,7 @@ export interface Sect {
   techniqueCodex: string[] // 已解锁功法 ID 列表
   offlineAccumulator: OfflineAccumulator
   sectPath: SectPath
+  activeRoute: SectRouteId | null
   unlockedPathNodeIds: string[]
   pathUnlockedAt: number | null
   legacy: LegacyBonus

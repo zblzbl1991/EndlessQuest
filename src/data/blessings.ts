@@ -6,7 +6,14 @@ export interface BlessingDef {
   description: string
 }
 
-export const BLESSINGS: Record<BlessingId, BlessingDef> = {
+export interface Blessing {
+  id: string
+  name: string
+  description: string
+  effectType: 'atkBoost' | 'critBoost' | 'spiritRegen' | 'hpBoost' | 'defBoost' | 'healOnKill' | 'lootBonus'
+}
+
+export const BLESSING_DEFS: Record<BlessingId, BlessingDef> = {
   stoneHarvest: {
     id: 'stoneHarvest',
     name: '采石灵佑',
@@ -33,3 +40,14 @@ export const BLESSINGS: Record<BlessingId, BlessingDef> = {
     description: '战斗中攻击提高 15%。',
   },
 }
+
+export const BLESSINGS: Blessing[] = [
+  { id: 'flame_heart', name: '炎心', description: '提高攻击力。', effectType: 'atkBoost' },
+  { id: 'iron_wall', name: '铁壁', description: '提高防御力。', effectType: 'defBoost' },
+  { id: 'jade_pulse', name: '玉脉', description: '提高生命值。', effectType: 'hpBoost' },
+  { id: 'spirit_spring', name: '灵泉', description: '恢复灵力。', effectType: 'spiritRegen' },
+  { id: 'keen_eye', name: '锐目', description: '提高暴击。', effectType: 'critBoost' },
+  { id: 'reaper_mark', name: '猎杀号令', description: '击杀后恢复。', effectType: 'healOnKill' },
+  { id: 'golden_touch', name: '聚宝', description: '增加掉落。', effectType: 'lootBonus' },
+  { id: 'wind_step', name: '踏风', description: '进一步强化输出。', effectType: 'atkBoost' },
+]

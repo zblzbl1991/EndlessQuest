@@ -1,5 +1,6 @@
 import type { ActiveSkill } from '../../types/skill'
 import type { EnemyAffix, TacticalPreset } from '../../types/adventure'
+import type { TacticPreset } from '../../types/runBuild'
 import { getElementMultiplier } from '../../data/skills'
 import { selectAttackTarget, increaseAggro } from './TargetingSystem'
 import { selectAction } from './SkillAI'
@@ -73,10 +74,28 @@ function buildHpResult(originalUnits: CombatUnit[], combatUnits: CombatUnit[]): 
   })
 }
 
-export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): CombatResult {
+function normalizePreset(preset?: TacticalPreset | TacticPreset): TacticalPreset | undefined {
+  if (!preset) return undefined
+  if (preset === 'conserve') return 'conservative'
+  if (preset === 'boss') return 'bossCounter'
+  return preset
+}
+
+export function simulateCombat(
+  allies: CombatUnit[],
+  enemies: CombatUnit[],
+  preset?: TacticalPreset | TacticPreset
+): CombatResult {
+  const normalizedPreset = normalizePreset(preset)
   // Initialize all units with aggro and shield defaults
   const units: CombatUnit[] = [
-    ...allies.map((u) => ({ ...u, aggro: u.aggro ?? 0, shield: u.shield ?? 0, affixes: u.affixes ?? [] })),
+    ...allies.map((u) => ({
+      ...u,
+      preset: normalizedPreset ?? normalizePreset(u.preset) ?? 'balanced',
+      aggro: u.aggro ?? 0,
+      shield: u.shield ?? 0,
+      affixes: u.affixes ?? [],
+    })),
     ...enemies.map((u) => ({ ...u, aggro: u.aggro ?? 0, shield: u.shield ?? 0, affixes: u.affixes ?? [] })),
   ]
   const actions: CombatAction[] = []
@@ -120,7 +139,10 @@ export function simulateCombat(allies: CombatUnit[], enemies: CombatUnit[]): Com
       const enemyTeam = getEnemies(units, actor.team)
       if (enemyTeam.length === 0) break
 
-      const targetId = selectAttackTarget(enemyTeam.map((unit) => ({ ...unit, aggro: unit.aggro ?? 0 })))
+      const targetId =
+        actor.team === 'ally' && actor.preset === 'bossCounter'
+          ? enemyTeam.reduce((best, unit) => (unit.maxHp > best.maxHp ? unit : best)).id
+          : selectAttackTarget(enemyTeam.map((unit) => ({ ...unit, aggro: unit.aggro ?? 0 })))
       const target = enemyTeam.find((u) => u.id === targetId)
       if (!target) break
 
