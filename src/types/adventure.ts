@@ -1,5 +1,6 @@
 import type { AnyItem } from './item'
 import type { Resources } from './sect'
+import type { CharacterQuality, RealmStage } from './character'
 import type { ShopOffer } from '../systems/roguelike/EventSystem'
 import type { DiscipleMutationId } from '../data/discipleMutations'
 
@@ -120,6 +121,7 @@ export interface AdventureReport {
   rewards: Resources
   itemRewards: AnyItem[]
   finalMemberStates: Record<string, MemberState>
+  teamSnapshot: Record<string, { name: string; quality: CharacterQuality; realm: number; realmStage: RealmStage }>
   discipleMutations: Record<string, DiscipleMutationId[]>
   steps: AdventureReportStep[]
 }

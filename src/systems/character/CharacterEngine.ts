@@ -413,6 +413,7 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     assignedBuilding: null,
     cultivationPath: 'none',
     fateTags: [],
+    investedSpiritStone: getRecruitCost(quality),
   })
 }
 

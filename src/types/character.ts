@@ -71,4 +71,5 @@ export interface Character {
   assignedBuilding: string | null
   cultivationPath: CultivationPath
   fateTags: FateTag[]
+  investedSpiritStone: number
 }

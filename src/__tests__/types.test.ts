@@ -70,6 +70,7 @@ describe('Character types', () => {
       assignedBuilding: null,
       cultivationPath: 'none',
       fateTags: [],
+      investedSpiritStone: 100,
     }
     expect(char.baseStats.hp).toBe(100)
     expect(char.title).toBe('disciple')
@@ -78,6 +79,7 @@ describe('Character types', () => {
     expect(char.equippedGear).toHaveLength(9)
     expect(char.equippedSkills).toHaveLength(5)
     expect(char.maxBackpackSlots).toBe(20)
+    expect(char.investedSpiritStone).toBe(100)
   })
 
   it('should treat equippedSkills as a five-slot build surface', () => {
@@ -112,10 +114,12 @@ describe('Character types', () => {
       assignedBuilding: null,
       cultivationPath: 'none',
       fateTags: [],
+      investedSpiritStone: 500,
     }
 
     expect(char.equippedSkills).toHaveLength(5)
     expect(char.equippedSkills.filter(Boolean)).toHaveLength(0)
+    expect(char.investedSpiritStone).toBe(500)
   })
 
   it('should accept all CharacterTitle values', () => {
@@ -516,6 +520,7 @@ describe('Adventure types', () => {
         blessings: [],
         relics: [],
         branchTags: ['medium'],
+        discipleMutations: {},
       },
       meta: { routeId: 'route_2_1' },
     }
@@ -545,6 +550,9 @@ describe('Adventure types', () => {
       finalMemberStates: {
         char1: { currentHp: 80, maxHp: 100, status: 'alive' },
       },
+      teamSnapshot: {
+        char1: { name: '顾长风', quality: 'spirit', realm: 2, realmStage: 1 },
+      },
       discipleMutations: {
         char1: [],
       },
@@ -567,6 +575,7 @@ describe('Adventure types', () => {
 
     expect(summary.strategy).toBe('steady')
     expect(summary.result).toBe('completed')
+    expect(report.teamSnapshot.char1.name).toBe('顾长风')
   })
 
   it('Enemy should support optional affixes and skillIds', () => {
