@@ -1,15 +1,5 @@
 .container {
-  margin-bottom: var(--space-lg);
-}
-
-.title {
-  font-family: var(--font-serif);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-sm);
-  padding-left: var(--space-xs);
-  border-left: 2px solid var(--color-accent);
+  margin-bottom: 0;
 }
 
 .cards {
@@ -21,10 +11,10 @@
 .card {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   background: var(--color-panel);
   border: 1px solid var(--color-border-light);
-  border-left: 3px solid var(--color-accent);
+  border-left: 2px solid color-mix(in srgb, var(--color-accent) 45%, var(--color-border-light));
   border-radius: var(--radius-sm);
   padding: var(--space-sm) var(--space-md);
   cursor: pointer;
@@ -39,11 +29,17 @@
 
 .card:hover {
   background: var(--color-panel-hover);
-  border-color: var(--color-accent);
+  border-color: color-mix(in srgb, var(--color-accent) 55%, var(--color-border));
 }
 
 .card:active {
   background: var(--color-panel);
+}
+
+.cardCategory {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
 }
 
 .cardLabel {

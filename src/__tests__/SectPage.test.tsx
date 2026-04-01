@@ -11,15 +11,16 @@ describe('SectPage', () => {
     useAdventureStore.getState().reset()
   })
 
-  it('renders the action dashboard and the priority agenda on the sect homepage', () => {
+  it('renders a light overview instead of directive homepage guidance', () => {
     render(
       <MemoryRouter>
         <SectPage />
       </MemoryRouter>
     )
 
-    expect(screen.getByText('行动指引')).toBeInTheDocument()
-    expect(screen.getByText('行动优先级')).toBeInTheDocument()
+    expect(screen.getByText('宗门近况')).toBeInTheDocument()
+    expect(screen.queryByText('行动指引')).not.toBeInTheDocument()
+    expect(screen.queryByText('行动优先级')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
 

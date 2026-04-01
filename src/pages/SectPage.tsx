@@ -2,10 +2,6 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
-import { canBreakthrough } from '../systems/cultivation/CultivationEngine'
-import { getCultivationNeeded } from '../data/realms'
-import { canUpgradeBuilding } from '../systems/sect/BuildingSystem'
-import { BUILDING_DEFS } from '../data/buildings'
 import { PixelIcon } from '../components/common/PixelIcon'
 import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
@@ -78,28 +74,6 @@ export default function SectPage() {
   const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
   const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel : 0
 
-  const managementHint = useMemo(() => {
-    const breakthroughTarget = sect.characters.find((char) => {
-      const needed = getCultivationNeeded(char.realm, char.realmStage)
-      return needed !== Infinity && char.cultivation / needed > 0.9 && canBreakthrough(char)
-    })
-
-    if (breakthroughTarget) {
-      return `${breakthroughTarget.name} 已接近突破，先处理修行路线与突破资源。`
-    }
-
-    const upgradable = BUILDING_DEFS.find((def) => canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone).canUpgrade)
-    if (upgradable) {
-      return `${upgradable.name} 可升级，优先投入宗门资源，放大后续产出。`
-    }
-
-    if (sect.resources.spiritEnergy / Math.max(1, 500 + spiritFieldLevel * 300) > 0.8) {
-      return '灵气接近上限，先让弟子修炼或安排消耗。'
-    }
-
-    return '当前阶段适合继续积累资源与弟子强度，保持稳定推进。'
-  }, [sect.buildings, sect.characters, sect.resources.spiritEnergy, sect.resources.spiritStone, spiritFieldLevel])
-
   return (
     <div className={styles.page}>
       <div className={styles.header}>
@@ -138,23 +112,7 @@ export default function SectPage() {
       </section>
 
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>行动指引</div>
-        <div
-          style={{
-            background: 'var(--color-panel)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-md)',
-            color: 'var(--color-text-secondary)',
-            fontSize: '12px',
-            lineHeight: 1.7,
-          }}
-        >
-          {managementHint}
-        </div>
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>行动优先级</div>
+        <div className={styles.sectionTitle}>宗门近况</div>
         <ActionAgenda />
       </section>
 

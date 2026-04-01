@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createInitialState } from '../stores/sectStore/initial'
 import type { Character } from '../types/character'
 import { getSectCharacterStatusSummary } from '../systems/sect/SectInsightSystem'
+import { buildSectOverviewItems } from '../systems/sect/SectOverviewSystem'
 
 function cloneCharacter(base: Character, overrides: Partial<Character>): Character {
   const cloned = structuredClone(base)
@@ -33,5 +34,12 @@ describe('SectInsightSystem', () => {
       { key: 'training', label: '研习中', count: 1 },
       { key: 'recovering', label: '恢复中', count: 1 },
     ])
+  })
+
+  it('returns at most one management, one disciple, and one adventure change', () => {
+    const { sect } = createInitialState()
+    const items = buildSectOverviewItems(sect, [], [])
+
+    expect(items.map((item) => item.category)).toEqual(['management', 'disciple', 'adventure'])
   })
 })
