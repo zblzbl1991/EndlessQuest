@@ -2,12 +2,14 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
+import { useGameStore } from '../stores/gameStore'
 import { PixelIcon } from '../components/common/PixelIcon'
 import ResourceRate from '../components/common/ResourceRate'
 import ActionAgenda from '../components/sect/ActionAgenda'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
+import { clearSaveData } from '../systems/save/SaveSystem'
 import styles from './SectPage.module.css'
 
 function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStore.getState>['sect']['characters']) {
@@ -66,12 +68,26 @@ function getDungeonIconName(dungeonId: string): string {
 
 export default function SectPage() {
   const sect = useSectStore((s) => s.sect)
+  const resetSect = useSectStore((s) => s.reset)
   const reports = useAdventureStore((s) => s.reports)
   const dungeons = useAdventureStore((s) => s.dungeons)
+  const resetAdventure = useAdventureStore((s) => s.reset)
+  const resetGame = useGameStore((s) => s.reset)
 
   const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
   const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
   const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel : 0
+
+  const handleResetSect = async () => {
+    if (!window.confirm('确认重置当前宗门档案吗？此操作会清空当前进度。')) {
+      return
+    }
+
+    resetSect()
+    resetAdventure()
+    resetGame()
+    await clearSaveData()
+  }
 
   return (
     <div className={styles.page}>
@@ -80,7 +96,12 @@ export default function SectPage() {
           <div className={styles.headerEyebrow}>山门总览</div>
           <h1 className={styles.sectName}>{sect.name}</h1>
         </div>
-        <span className={styles.sectLevel}>宗门等级 {sect.level}</span>
+        <div className={styles.headerActions}>
+          <span className={styles.sectLevel}>宗门等级 {sect.level}</span>
+          <button type="button" className={styles.resetButton} onClick={handleResetSect}>
+            重置宗门
+          </button>
+        </div>
       </div>
 
       <section className={`${styles.section} ${styles.heroSection}`} data-testid="sect-hero">
