@@ -26,7 +26,7 @@ import { addItemQuantityToStacks } from '../../systems/item/ItemStackUtils'
 import { produceItemAsStack } from './initial'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
-import { resolveSuccessfulBreakthroughFates, resolveTribulationFailureFates } from '../../systems/character/FateSystem'
+import { resolveSuccessfulBreakthroughFates } from '../../systems/character/FateSystem'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
@@ -160,6 +160,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     let statBreakthroughAttempts = 0
     let statBreakthroughSuccesses = 0
     let unlockedFirstTribulationSuccess = false
+    const breakthroughDeaths: Character[] = []
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
       if (char.status === 'idle') {
@@ -233,36 +234,27 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
                       emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
                     }
                   } else {
-                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫虽过，但突破失败，修为散尽`)
+                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫虽过，却在突破中身死道消`)
                     accBreakthroughs.push({
                       characterName: updatedChar.name,
                       targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
                       success: false,
                     })
-                    updatedChar = { ...updatedChar, cultivation: 0 }
+                    breakthroughDeaths.push(updatedChar)
                   }
                 } else {
-                  updatedChar = {
-                    ...updatedChar,
-                    cultivation: 0,
-                    status: 'injured' as const,
-                    injuryTimer: tribResult.injuryTimer ?? 60,
-                    fateTags: resolveTribulationFailureFates(updatedChar.fateTags, tribResult.severe ?? false),
-                  }
-                  if (tribResult.severe && updatedChar.realmStage > 0) {
-                    updatedChar = {
-                      ...updatedChar,
-                      realmStage: (updatedChar.realmStage - 1) as Character['realmStage'],
-                    }
-                    emitEvent(
-                      'breakthrough_failure',
-                      `${updatedChar.name} 天劫重伤，境界跌落至 ${getRealmName(updatedChar.realm, updatedChar.realmStage)}`
-                    )
-                  } else if (tribResult.severe) {
-                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫重伤，修为尽失`)
-                  } else {
-                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫失败，修为尽失`)
-                  }
+                  emitEvent(
+                    'breakthrough_failure',
+                    tribResult.severe
+                      ? `${updatedChar.name} 未能渡过天劫，当场身死道消`
+                      : `${updatedChar.name} 渡劫失败，身死道消`
+                  )
+                  accBreakthroughs.push({
+                    characterName: updatedChar.name,
+                    targetRealm: getRealmName(updatedChar.realm + 1, 0),
+                    success: false,
+                  })
+                  breakthroughDeaths.push(updatedChar)
                 }
               } else {
                 // Non-tribulation path for realms without tribulationPower
@@ -300,13 +292,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
                     emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
                   }
                 } else {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
+                  emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，身死道消`)
                   accBreakthroughs.push({
                     characterName: updatedChar.name,
                     targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
                     success: false,
                   })
-                  updatedChar = { ...updatedChar, cultivation: 0 }
+                  breakthroughDeaths.push(updatedChar)
                 }
               }
             }
@@ -347,13 +339,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
                   emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${subCompName}`)
                 }
               } else {
-                emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，修为散尽`)
+                emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，身死道消`)
                 accBreakthroughs.push({
                   characterName: updatedChar.name,
                   targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
                   success: false,
                 })
-                updatedChar = { ...updatedChar, cultivation: 0 }
+                breakthroughDeaths.push(updatedChar)
               }
             }
           }
@@ -450,6 +442,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     set({
       sect: newSect,
     })
+
+    for (const character of breakthroughDeaths) {
+      get().sacrificeCharacter(character.id, { source: 'breakthrough', reason: '突破失败，身死道消' })
+    }
 
     return {
       spiritProduced,

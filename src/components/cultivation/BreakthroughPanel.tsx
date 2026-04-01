@@ -64,19 +64,16 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       } else if (needsPathChoice) {
         hint = '先定下修行路线，弟子才会跨入新的大境界。'
         hintClass = styles.hintFocus
-      } else if (hasTribulation) {
-        hint = '修为已满，即将引动天劫。'
-        hintClass = styles.ready
       } else {
-        hint = '修为已满，自动突破中。'
-        hintClass = styles.ready
+        hint = '成功则进阶，失败则身死道消，仅返还部分灵石。'
+        hintClass = styles.hintFocus
       }
     } else if (!hasMinorStones && minorCost !== null) {
       hint = `灵石不足，需要 ${minorCost.toLocaleString()}`
       hintClass = styles.hintBlocked
     } else {
-      hint = '修为已满，自动突破中。'
-      hintClass = styles.ready
+      hint = '成功则进阶，失败则身死道消，仅返还部分灵石。'
+      hintClass = styles.hintFocus
     }
   }
 
@@ -160,7 +157,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         </div>
       )}
       {hasTribulation && (
-        <div className={styles.tribulationHint}>天劫成功可能沉淀为命格，失败则可能留下劫痕与心魔。</div>
+        <div className={styles.tribulationHint}>此番将引动天劫。若能渡过，可再进一步；若败，则当场身死道消。</div>
       )}
       <div className={`${styles.hint} ${hintClass}`}>{hint}</div>
     </div>

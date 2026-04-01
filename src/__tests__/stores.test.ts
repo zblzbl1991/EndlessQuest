@@ -903,6 +903,22 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(getStore().sect.resources.spiritStone).toBe(950.5) // 1000 - 50 (minor cost) + 0.5 (tax)
   })
 
+  it('should remove a disciple when sub-level breakthrough fails', () => {
+    const char = getFirstCharacter()
+    setCharacterCultivation(char.id, 100)
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: 1000 },
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    getStore().tickAll(1)
+
+    expect(getStore().sect.characters.find((item) => item.id === char.id)).toBeUndefined()
+  })
+
   it('should skip minor breakthrough when spirit stones insufficient', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100) // realm 0, stage 0 needs 100 cultivation
@@ -1322,7 +1338,7 @@ describe('AdventureStore - retreat', () => {
     expect(Object.keys(getAdventureStore().activeRuns)).toHaveLength(0)
   })
 
-  it('should set dead characters to resting on retreat', () => {
+  it('should remove dead characters on retreat', () => {
     const char = getStore().sect.characters[0]
     const run = getAdventureStore().startRun('lingCaoValley', [char.id])
     expect(run).not.toBeNull()
@@ -1346,7 +1362,7 @@ describe('AdventureStore - retreat', () => {
     })
 
     getAdventureStore().retreat(runId)
-    expect(getStore().sect.characters[0].status).toBe('resting')
+    expect(getStore().sect.characters.find((item) => item.id === char.id)).toBeUndefined()
   })
 })
 
@@ -1459,7 +1475,7 @@ describe('AdventureStore - failRun', () => {
     expect(afterStones - beforeStones).toBe(200)
   })
 
-  it('should set ALL characters to resting on failRun (including alive ones)', () => {
+  it('should return surviving characters to idle on failRun', () => {
     const char = getStore().sect.characters[0]
     const run = getAdventureStore().startRun('lingCaoValley', [char.id])
     expect(run).not.toBeNull()
@@ -1467,7 +1483,7 @@ describe('AdventureStore - failRun', () => {
 
     // Character is alive but run fails
     getAdventureStore().failRun(runId)
-    expect(getStore().sect.characters[0].status).toBe('resting')
+    expect(getStore().sect.characters[0].status).toBe('idle')
   })
 
   it('should remove run from activeRuns on failRun', () => {
@@ -1524,7 +1540,8 @@ describe('AdventureStore - runAutomation', () => {
     expect(report).not.toBeNull()
     expect(getAdventureStore().reports[0]?.id).toBe(report!.id)
     expect(getAdventureStore().getReport(report!.id)?.id).toBe(report!.id)
-    expect(getStore().sect.characters[0].status).toMatch(/idle|resting/)
+    const resolvedCharacter = getStore().sect.characters.find((item) => item.id === char.id)
+    expect(resolvedCharacter?.status ?? 'removed').toMatch(/idle|removed/)
   })
 
   it('tickAllIdle should still progress dispatches after adventure automation was introduced', () => {

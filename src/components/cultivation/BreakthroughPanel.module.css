@@ -128,8 +128,8 @@
 .tribulationHint {
   font-size: 11px;
   line-height: 1.5;
-  color: var(--color-text-secondary);
-  background: rgba(0, 0, 0, 0.03);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
   border-radius: var(--radius-sm);
   padding: 6px var(--space-sm);
   margin-bottom: var(--space-sm);
@@ -155,8 +155,9 @@
 .hintFocus {
   font-size: 13px;
   font-weight: 500;
-  color: var(--color-accent);
-  background: rgba(95, 122, 141, 0.08);
+  color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-danger) 18%, transparent);
   border-radius: var(--radius-sm);
   padding: 6px var(--space-sm);
   margin-top: var(--space-sm);
