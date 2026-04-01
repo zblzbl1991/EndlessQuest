@@ -105,74 +105,64 @@ export default function AdventureReportPage() {
         </Link>
       </div>
 
-      <section className={styles.summaryCard}>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="结果" />
-            结果
-          </span>
-          <strong>{RESULT_LABELS[report.result]}</strong>
+      <section className={styles.highlightCard} data-testid="report-highlight">
+        <div className={styles.highlightEyebrow}>秘境余响</div>
+        <div className={styles.highlightTop}>
+          <div>
+            <div className={styles.resultBadge}>
+              <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="结果" />
+              {RESULT_LABELS[report.result]}
+            </div>
+            <h2 className={styles.highlightTitle}>此行已定，卷中可见成败因由。</h2>
+          </div>
+          <div className={styles.highlightMeta}>
+            <span>{getRunIntentDef(report.config.automationStrategy).label}</span>
+            <span>{report.config.tacticalPreset}</span>
+            <span>第 {report.floorsCleared} 层</span>
+          </div>
         </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="策略" />
-            策略
-          </span>
-          <strong>{getRunIntentDef(report.config.automationStrategy).label}</strong>
-        </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="战术" />
-            战术
-          </span>
-          <strong>{report.config.tacticalPreset}</strong>
-        </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="核心弟子" />
-            核心弟子
-          </span>
-          <strong>{insight?.coreName ?? '暂无'}</strong>
-        </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="关键 build" />
-            关键 build
-          </span>
-          <strong>{insight?.keyBuild ?? '暂无'}</strong>
-        </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="eventCombat" size={16} className={styles.inlineIcon} aria-label="转折点" />
-            转折点
-          </span>
-          <strong>{insight?.turningPoint ?? '暂无'}</strong>
-        </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="异变" />
-            异变
-          </span>
-          <strong>{insight?.mutationHighlights?.join(' · ') ?? '暂无异变'}</strong>
-        </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="成败原因" />
-            成败原因
-          </span>
+
+        <div className={styles.highlightCause}>
+          <span className={styles.highlightCauseLabel}>成败原因</span>
           <strong>{insight?.cause ?? '暂无'}</strong>
         </div>
-        <div className={styles.summaryRow}>
-          <span className={styles.summaryLabel}>
-            <PixelIcon
-              name={getDungeonIconName(report.dungeonId)}
-              size={16}
-              className={styles.inlineIcon}
-              aria-label="推进层数"
-            />
-            推进层数
-          </span>
-          <strong>第 {report.floorsCleared} 层</strong>
+
+        <div className={styles.highlightGrid}>
+          <div className={styles.highlightPanel}>
+            <div className={styles.highlightPanelTitle}>关键角色</div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="核心弟子" />
+                核心弟子
+              </span>
+              <strong>{insight?.coreName ?? '暂无'}</strong>
+            </div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="eventCombat" size={16} className={styles.inlineIcon} aria-label="转折点" />
+                转折点
+              </span>
+              <strong>{insight?.turningPoint ?? '暂无'}</strong>
+            </div>
+          </div>
+
+          <div className={styles.highlightPanel}>
+            <div className={styles.highlightPanelTitle}>构筑余势</div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="关键 build" />
+                关键 build
+              </span>
+              <strong>{insight?.keyBuild ?? '暂无'}</strong>
+            </div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="异变" />
+                异变
+              </span>
+              <strong>{insight?.mutationHighlights?.join(' · ') ?? '暂无异变'}</strong>
+            </div>
+          </div>
         </div>
       </section>
 

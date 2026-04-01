@@ -153,6 +153,7 @@ describe('Adventure report pages', () => {
     )
 
     expect(screen.getByText('探索过程')).toBeInTheDocument()
+    expect(screen.getByTestId('report-highlight')).toBeInTheDocument()
     expect(screen.getByText('测试弟子')).toBeInTheDocument()
     expect(screen.getByText('选择祝福：战斗专注')).toBeInTheDocument()
     expect(screen.getByText('获得遗物：战旗')).toBeInTheDocument()
