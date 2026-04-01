@@ -29,6 +29,10 @@
   min-height: 44px;
 }
 
+.navIcon {
+  opacity: 0.9;
+}
+
 .navItem:hover {
   color: var(--color-text-secondary);
 }

@@ -1,25 +1,19 @@
 import { NavLink } from 'react-router-dom'
+import { primaryNavigation } from '../../data/navigation'
+import { PixelIcon } from './PixelIcon'
 import styles from './BottomNav.module.css'
-
-const tabs = [
-  { to: '/', label: '宗门' },
-  { to: '/characters', label: '弟子' },
-  { to: '/buildings', label: '建筑' },
-  { to: '/adventure', label: '秘境' },
-  { to: '/vault', label: '仓库' },
-  { to: '/log', label: '记录' },
-]
 
 export default function BottomNav() {
   return (
-    <nav className={styles.nav}>
-      {tabs.map((tab) => (
+    <nav className={styles.nav} aria-label="底部导航">
+      {primaryNavigation.map((tab) => (
         <NavLink
           key={tab.to}
           to={tab.to}
           end={tab.to === '/'}
           className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
         >
+          <PixelIcon name={tab.icon} size={18} className={styles.navIcon} aria-label={tab.label} />
           <span>{tab.label}</span>
         </NavLink>
       ))}
