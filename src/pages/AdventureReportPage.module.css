@@ -153,9 +153,10 @@
 .summaryCard {
   margin-bottom: var(--space-lg);
   padding: var(--space-md);
-  border-radius: var(--radius-md);
-  background: var(--color-panel);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.66);
   border: 1px solid rgba(139, 69, 19, 0.1);
+  box-shadow: 0 10px 24px rgba(94, 66, 40, 0.04);
 }
 
 .summaryRow {
@@ -178,15 +179,22 @@
 }
 
 .sectionTitle {
-  margin-bottom: var(--space-sm);
+  margin-bottom: var(--space-md);
   font-family: var(--font-serif);
   font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  padding-left: var(--space-sm);
+  border-left: 3px solid rgba(139, 69, 19, 0.72);
 }
 
 .timelineSection {
   margin-bottom: var(--space-lg);
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(139, 69, 19, 0.08);
+  box-shadow: 0 10px 24px rgba(94, 66, 40, 0.04);
 }
 
 .timeline {
