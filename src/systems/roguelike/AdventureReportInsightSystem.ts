@@ -16,6 +16,10 @@ function getLastStepOfTypes(report: AdventureReport, types: AdventureReportStep[
   return null
 }
 
+function getDiscipleName(report: AdventureReport, nameMap: Map<string, string>, charId: string): string {
+  return report.teamSnapshot?.[charId]?.name ?? nameMap.get(charId) ?? charId
+}
+
 export function buildAdventureReportInsight(
   report: AdventureReport,
   nameMap: Map<string, string>
@@ -29,7 +33,7 @@ export function buildAdventureReportInsight(
       if (!state) return null
       return {
         id,
-        name: nameMap.get(id) ?? id,
+        name: getDiscipleName(report, nameMap, id),
         ratio: state.maxHp > 0 ? state.currentHp / state.maxHp : 0,
         state,
       }
@@ -52,7 +56,7 @@ export function buildAdventureReportInsight(
   ])
   const mutationHighlights = Object.entries(discipleMutations)
     .flatMap(([charId, mutationIds]) => {
-      const discipleName = nameMap.get(charId) ?? charId
+      const discipleName = getDiscipleName(report, nameMap, charId)
       return mutationIds.map((mutationId) => `${discipleName} · ${getDiscipleMutationDef(mutationId).name}`)
     })
     .slice(0, 3)

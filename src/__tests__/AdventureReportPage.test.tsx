@@ -59,6 +59,9 @@ function seedReport() {
         finalMemberStates: {
           c1: { currentHp: 80, maxHp: 100, status: 'alive' },
         },
+        teamSnapshot: {
+          c1: { name: '测试弟子', quality: 'common', realm: 0, realmStage: 0 },
+        },
         discipleMutations: {
           c1: ['sword_intent', 'lucky_omen'],
         },
@@ -165,5 +168,48 @@ describe('Adventure report pages', () => {
       }).length
     ).toBeGreaterThan(0)
     expect(screen.getByText('队伍保持血线并成功清图。')).toBeInTheDocument()
+  })
+
+  it('keeps report names readable even after the disciple is removed from the live roster', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: [],
+      },
+    }))
+
+    render(
+      <MemoryRouter initialEntries={['/adventure/report/report_1']}>
+        <Routes>
+          <Route path="/adventure/report/:reportId" element={<AdventureReportPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('测试弟子')).toBeInTheDocument()
+  })
+
+  it('removes dead disciples from the sect roster when an adventure resolves', () => {
+    const character = useSectStore.getState().sect.characters[0]
+    const run = useAdventureStore.getState().startRun('lingCaoValley', [character.id], 'basic')
+
+    expect(run).not.toBeNull()
+
+    useAdventureStore.setState((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [run!.id]: {
+          ...s.activeRuns[run!.id],
+          memberStates: {
+            ...s.activeRuns[run!.id].memberStates,
+            [character.id]: { currentHp: 0, maxHp: 100, status: 'dead' },
+          },
+        },
+      },
+    }))
+
+    useAdventureStore.getState().completeRun(run!.id)
+
+    expect(useSectStore.getState().sect.characters.find((item) => item.id === character.id)).toBeUndefined()
   })
 })

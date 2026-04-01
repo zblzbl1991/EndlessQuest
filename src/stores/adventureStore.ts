@@ -218,6 +218,21 @@ function depositFractionResourcesToSect(resources: Resources, fraction: number):
   }
 }
 
+function settleRunMembers(run: DungeonRun): void {
+  const sectStore = useSectStore.getState()
+
+  for (const charId of run.teamCharacterIds) {
+    const memberState = run.memberStates[charId]
+    if (!memberState) continue
+
+    if (memberState.status === 'dead') {
+      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '秘境战死' })
+    } else {
+      sectStore.setCharacterStatus(charId, 'idle')
+    }
+  }
+}
+
 /** Deposit item rewards into sectStore vault */
 function depositItemsToVault(items: AnyItem[]): void {
   const sectStore = useSectStore.getState()
@@ -832,19 +847,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(run.itemRewards)
 
-    // 3. Set member character statuses: alive -> idle, wounded/dead -> resting
-    const sectStore = useSectStore.getState()
-    for (const charId of run.teamCharacterIds) {
-      const memberState = run.memberStates[charId]
-      if (!memberState) continue
-
-      if (memberState.status === 'alive' || memberState.status === 'wounded') {
-        sectStore.setCharacterStatus(charId, 'idle')
-      } else {
-        // Dead characters go to resting with 60s recovery
-        setCharacterResting(charId, 60)
-      }
-    }
+    // 3. Survivors return to idle; dead disciples are removed with partial refund
+    settleRunMembers(run)
 
     // 4. Remove run
     set((s) => {
@@ -949,18 +953,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(run.itemRewards)
 
-    // 3. Set character statuses: alive/wounded -> idle, dead -> resting
-    const sectStore = useSectStore.getState()
-    for (const charId of run.teamCharacterIds) {
-      const memberState = run.memberStates[charId]
-      if (!memberState) continue
-
-      if (memberState.status === 'alive' || memberState.status === 'wounded') {
-        sectStore.setCharacterStatus(charId, 'idle')
-      } else {
-        setCharacterResting(charId, 60)
-      }
-    }
+    // 3. Survivors return to idle; dead disciples are removed with partial refund
+    settleRunMembers(run)
 
     // 4. Add to completed dungeons
     set((s) => {
@@ -1000,10 +994,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(run.itemRewards)
 
-    // 3. Set ALL characters to resting (barely escaped)
-    for (const charId of run.teamCharacterIds) {
-      setCharacterResting(charId, 60)
-    }
+    // 3. Survivors return to idle; dead disciples are removed with partial refund
+    settleRunMembers(run)
 
     // 4. Remove run
     set((s) => {

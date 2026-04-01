@@ -70,10 +70,15 @@ export default function AdventureReportPage() {
   const dungeon = useAdventureStore((s) => s.dungeons.find((item) => item.id === report?.dungeonId))
   const characters = useSectStore((s) => s.sect.characters)
 
-  const characterNameMap = useMemo(
-    () => new Map(characters.map((character) => [character.id, character.name])),
-    [characters]
-  )
+  const characterNameMap = useMemo(() => {
+    const map = new Map(characters.map((character) => [character.id, character.name]))
+    if (report?.teamSnapshot) {
+      for (const [charId, snapshot] of Object.entries(report.teamSnapshot)) {
+        if (!map.has(charId)) map.set(charId, snapshot.name)
+      }
+    }
+    return map
+  }, [characters, report])
   const insight = report ? buildAdventureReportInsight(report, characterNameMap) : null
 
   if (!report) {

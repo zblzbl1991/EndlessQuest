@@ -147,7 +147,9 @@ export default function AdventurePage() {
               const dungeon = dungeons.find((item) => item.id === report.dungeonId)
               const detail = reportDetails[report.id]
               const insight = detail ? buildAdventureReportInsight(detail, characterNameMap) : null
-              const teamNames = report.teamCharacterIds.map((id) => characterNameMap.get(id) ?? id).join('、')
+              const teamNames = report.teamCharacterIds
+                .map((id) => detail?.teamSnapshot?.[id]?.name ?? characterNameMap.get(id) ?? id)
+                .join('、')
               const rewardBits = [
                 report.rewards.spiritStone > 0 ? `${report.rewards.spiritStone} 灵石` : null,
                 report.rewards.herb > 0 ? `${report.rewards.herb} 灵草` : null,

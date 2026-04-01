@@ -61,6 +61,27 @@ function cloneMemberStates(memberStates: Record<string, MemberState>): Record<st
   return Object.fromEntries(Object.entries(memberStates).map(([id, state]) => [id, { ...state }]))
 }
 
+function buildTeamSnapshot(run: DungeonRun, baseTeamUnits: CombatUnit[]): AdventureReport['teamSnapshot'] {
+  const liveCharacters = useSectStore.getState().sect.characters
+
+  return Object.fromEntries(
+    run.teamCharacterIds.map((charId) => {
+      const character = liveCharacters.find((item) => item.id === charId)
+      const unit = baseTeamUnits.find((item) => item.id === charId)
+
+      return [
+        charId,
+        {
+          name: character?.name ?? unit?.name ?? charId,
+          quality: character?.quality ?? 'common',
+          realm: character?.realm ?? 0,
+          realmStage: character?.realmStage ?? 0,
+        },
+      ]
+    })
+  )
+}
+
 function buildTeamUnits(
   run: DungeonRun,
   baseTeamUnits: CombatUnit[],
@@ -215,6 +236,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
   const discipleMutations: Record<string, DiscipleMutationId[]> = Object.fromEntries(
     input.run.teamCharacterIds.map((charId) => [charId, []])
   )
+  const teamSnapshot = buildTeamSnapshot(input.run, input.baseTeamUnits)
 
   const run: DungeonRun = {
     ...input.run,
@@ -520,6 +542,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
     rewards: { ...run.totalRewards },
     itemRewards: [...run.itemRewards],
     finalMemberStates: cloneMemberStates(run.memberStates),
+    teamSnapshot,
     discipleMutations: Object.fromEntries(
       Object.entries(discipleMutations).map(([charId, mutationIds]) => [charId, [...mutationIds]])
     ),

@@ -93,8 +93,7 @@ const dungeon: Dungeon = {
 }
 
 function successfulEvent(type: DungeonEvent['type'], hpDelta = -10): EventResult {
-  const mutationTrigger =
-    type === 'combat' || type === 'boss' ? 'battle' : type === 'random' ? 'insight' : undefined
+  const mutationTrigger = type === 'combat' || type === 'boss' ? 'battle' : type === 'random' ? 'insight' : undefined
 
   return {
     type,
@@ -133,6 +132,7 @@ describe('AutoRunEngine', () => {
 
     expect(report.result).toBe('completed')
     expect(report.floorsCleared).toBe(2)
+    expect(report.teamSnapshot.char_1.name).toBe('柳清风')
     expect(report.discipleMutations.char_1.length).toBeGreaterThan(0)
     expect(report.steps[0]?.type).toBe('run_started')
     expect(report.steps.some((step) => step.type === 'route_selected')).toBe(true)
@@ -166,6 +166,7 @@ describe('AutoRunEngine', () => {
     })
 
     expect(report.result).toBe('retreated')
+    expect(report.teamSnapshot.char_1.name).toBe('柳清风')
     expect(report.steps.some((step) => step.type === 'run_retreated')).toBe(true)
     expect(report.discipleMutations.char_1.length).toBeGreaterThan(0)
     expect(report.floorsCleared).toBe(1)

@@ -22,6 +22,9 @@ const report: AdventureReport = {
   finalMemberStates: {
     c1: { currentHp: 22, maxHp: 100, status: 'wounded' },
   },
+  teamSnapshot: {
+    c1: { name: '李清风', quality: 'spirit', realm: 1, realmStage: 2 },
+  },
   discipleMutations: {
     c1: ['sword_intent'],
   },
@@ -55,7 +58,7 @@ const report: AdventureReport = {
 
 describe('AdventureReportInsightSystem', () => {
   it('extracts core disciple, key build, turning point, and cause', () => {
-    const insight = buildAdventureReportInsight(report, new Map([['c1', '李清风']]))
+    const insight = buildAdventureReportInsight(report, new Map())
 
     expect(insight.coreName).toBe('李清风')
     expect(insight.keyBuild).toContain('战意凝神')
@@ -74,5 +77,12 @@ describe('AdventureReportInsightSystem', () => {
     expect(insight.coreName).toBe('李清风')
     expect(insight.mutationHighlights).toEqual([])
     expect(insight.turningPoint).toContain('主动撤退')
+  })
+
+  it('prefers report team snapshots when the live roster no longer has the disciple', () => {
+    const insight = buildAdventureReportInsight(report, new Map())
+
+    expect(insight.coreName).toBe('李清风')
+    expect(insight.mutationHighlights[0]).toContain('李清风')
   })
 })
