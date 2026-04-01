@@ -62,6 +62,12 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
   const specialtySummary = character.specialties
     .slice(0, 2)
     .map((specialty) => `${getRoleLabel(specialty.type)} Lv.${specialty.level}`)
+  const cultivationDirection =
+    character.cultivationPath !== 'none'
+      ? `${getPathName(character.cultivationPath)} · ${primaryRole ? getRoleLabel(primaryRole) : '待定'}`
+      : primaryRole
+        ? `未定路线 · ${getRoleLabel(primaryRole)}`
+        : '修行路线尚未定下'
 
   return (
     <div
@@ -86,11 +92,19 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           {getPathName(character.cultivationPath)}
         </span>
       )}
+      <div className={styles.infoStrip}>
+        <span className={styles.infoLabel}>修行去向</span>
+        <span className={styles.infoValue}>{cultivationDirection}</span>
+      </div>
       {character.specialties.length > 0 && (
         <div className={styles.identityTags}>
           {primaryRole && <span className={styles.roleTag}>擅长 {getRoleLabel(primaryRole)}</span>}
         </div>
       )}
+      <div className={styles.infoStrip}>
+        <span className={styles.infoLabel}>弟子判断</span>
+        <span className={styles.infoValue}>留守、出战与承险倾向如下</span>
+      </div>
       <div className={styles.dispositionRow}>
         <span className={`${styles.dispositionTag} ${styles[`band${disposition.management.band}`]}`}>
           留守·{disposition.management.label}

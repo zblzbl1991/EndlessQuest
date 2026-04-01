@@ -136,6 +136,24 @@
   opacity: 0.95;
 }
 
+.infoStrip {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+}
+
+.infoLabel {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+}
+
+.infoValue {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
 .identityTags {
   display: flex;
   flex-wrap: wrap;

@@ -184,6 +184,28 @@
   min-width: 0;
 }
 
+.panelLeadCard {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(139, 69, 19, 0.1);
+  background: rgba(255, 248, 238, 0.62);
+}
+
+.panelLeadTitle {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.panelLeadText {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 /* ===== Buildings Tab ===== */
 
 .buildingsGrid {
