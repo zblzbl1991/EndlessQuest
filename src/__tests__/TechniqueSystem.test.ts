@@ -35,6 +35,21 @@ describe('tryComprehendOnBreakthrough', () => {
     expect(result).not.toBeNull()
   })
 
+  it('should let sudden insight push the breakthrough comprehension chance higher', () => {
+    const result = tryComprehendOnBreakthrough(
+      {
+        learnedTechniques: ['qingxin'],
+        realm: 1,
+        cultivationStats: { comprehension: 30 },
+        fateTags: ['suddenInsight'],
+      },
+      codex,
+      false,
+      () => 0.16
+    )
+    expect(result).not.toBeNull()
+  })
+
   it('should return null when all codex techniques already learned', () => {
     const result = tryComprehendOnBreakthrough(
       { learnedTechniques: codex, realm: 4, cultivationStats: { comprehension: 30 } },

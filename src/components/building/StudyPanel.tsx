@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
+import { getObservedBuildingEcology, observeBuildingLevel } from '../../data/buildings'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { TECHNIQUE_TIER_NAMES } from '../../types/technique'
 import { PixelIcon } from '../common/PixelIcon'
@@ -11,6 +12,9 @@ export default function StudyPanel() {
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
 
   const scriptureLevel = sect.buildings.find((b) => b.type === 'scriptureHall')?.level ?? 0
+  observeBuildingLevel('scriptureHall', scriptureLevel)
+  const ecology = getObservedBuildingEcology('scriptureHall')
+
   const cost = 100 * sect.level
   const canAfford = sect.resources.spiritStone >= cost
 
@@ -43,9 +47,20 @@ export default function StudyPanel() {
       </div>
 
       <div className={styles.studyInfo}>
-        <div className={styles.studyDesc}>参悟功法，随机解锁一部功法至宗门功法图鉴。</div>
+        <div className={styles.studyDesc}>参悟功法，随机解锁一部宗门功法图鉴。</div>
         <div className={styles.studyCost}>费用: {cost} 灵石</div>
         <div className={styles.studyNote}>功法最高品质: {maxTierName}（根据弟子最高境界决定）</div>
+        {ecology && (
+          <div className={styles.studyNote} style={{ marginTop: 4 }}>
+            生态偏置: {ecology.recruitmentBias}
+            <br />
+            build 倾向: {ecology.buildBias}
+            <br />
+            可能成型: {ecology.specialtyBias.join('、')}
+            <br />
+            可能功法: {ecology.techniqueBias.join('、')}
+          </div>
+        )}
       </div>
 
       <button

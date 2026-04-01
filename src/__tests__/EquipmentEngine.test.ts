@@ -3,8 +3,59 @@ import {
   attemptEnhance,
   refineEquipment,
   calcEquipmentStats,
+  getEquipmentRecommendationForCharacter,
+  getEquipmentTendency,
 } from '../systems/equipment/EquipmentEngine'
 import { generateEquipment } from '../systems/item/ItemGenerator'
+import type { Character } from '../types/character'
+import type { Equipment } from '../types/item'
+
+function makeCharacter(overrides: Partial<Character> = {}): Character {
+  return {
+    id: 'char_test',
+    name: 'Test Disciple',
+    title: 'disciple',
+    quality: 'common',
+    realm: 2,
+    realmStage: 0,
+    cultivation: 0,
+    baseStats: { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 },
+    cultivationStats: { spiritPower: 40, maxSpiritPower: 40, comprehension: 12, spiritualRoot: 12, fortune: 8 },
+    learnedTechniques: ['qingxin'],
+    equippedGear: [],
+    equippedSkills: [],
+    backpack: [],
+    maxBackpackSlots: 20,
+    petIds: [],
+    talents: [],
+    status: 'idle',
+    injuryTimer: 0,
+    createdAt: 0,
+    totalCultivation: 0,
+    specialties: [],
+    assignedBuilding: null,
+    cultivationPath: 'none',
+    fateTags: [],
+    ...overrides,
+  }
+}
+
+function makeEquipment(overrides: Partial<Equipment> = {}): Equipment {
+  return {
+    id: 'eq_test',
+    name: 'Test Weapon',
+    quality: 'spirit',
+    type: 'equipment',
+    slot: 'weapon',
+    description: 'Test item',
+    sellPrice: 100,
+    enhanceLevel: 0,
+    refinementStats: [],
+    setId: null,
+    stats: { hp: 0, atk: 20, def: 0, spd: 2, crit: 0.05, critDmg: 0.15 },
+    ...overrides,
+  }
+}
 
 describe('EquipmentEngine', () => {
   it('should return base stats at +0', () => {
@@ -77,5 +128,42 @@ describe('EquipmentEngine', () => {
     const total = calcEquipmentStats(equippedGear, items, getById)
     expect(total.hp).toBe(getEffectiveStats(armor).hp)
     expect(total.atk).toBe(getEffectiveStats(weapon).atk)
+  })
+
+  it('should recommend path-aligned gear', () => {
+    const character = makeCharacter({ cultivationPath: 'sword', specialties: [{ type: 'combat', level: 2 }] })
+    const weapon = makeEquipment({ slot: 'weapon' })
+
+    const rec = getEquipmentRecommendationForCharacter(character, weapon)
+
+    expect(rec.status).toBe('recommended')
+    expect(rec.label).toBe('推荐')
+    expect(rec.direction).toContain('输出')
+  })
+
+  it('should mark mismatched defensive gear as not recommended when it leans offense', () => {
+    const character = makeCharacter({ cultivationPath: 'body', specialties: [] })
+    const mismatchedArmor = makeEquipment({
+      slot: 'armor',
+      stats: { hp: 0, atk: 30, def: 0, spd: 0, crit: 0.08, critDmg: 0.2 },
+    })
+
+    const rec = getEquipmentRecommendationForCharacter(character, mismatchedArmor)
+
+    expect(rec.status).toBe('notRecommended')
+    expect(rec.label).toBe('不推荐')
+    expect(rec.reasons.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('should summarize general equipment tendency', () => {
+    const item = makeEquipment({
+      slot: 'boots',
+      stats: { hp: 0, atk: 0, def: 0, spd: 18, crit: 0, critDmg: 0 },
+    })
+
+    const rec = getEquipmentTendency(item)
+
+    expect(rec.direction).toContain('速度')
+    expect(rec.label).toBeDefined()
   })
 })

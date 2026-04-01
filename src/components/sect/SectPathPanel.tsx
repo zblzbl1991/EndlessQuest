@@ -1,14 +1,39 @@
 import { useSectStore } from '../../stores/sectStore'
 import { SECT_PATHS, canUnlockSectPath, getNextNode } from '../../data/sectPaths'
+import { SECT_ROUTES, type SectRouteId } from '../../data/sectRoutes'
 import { canUnlockNode } from '../../systems/sect/SectPathSystem'
 import type { SectPath } from '../../types/sect'
 import styles from './SectPathPanel.module.css'
+
+const BUILDING_NAME_MAP = {
+  alchemyFurnace: '丹炉',
+  forge: '炼器坊',
+  spiritField: '灵田',
+  spiritMine: '灵矿',
+  mainHall: '大殿',
+  market: '坊市',
+  scriptureHall: '藏经阁',
+  recruitmentPavilion: '聚仙台',
+} as const
+
+const ROUTE_IDS: SectRouteId[] = ['alchemy', 'sword', 'beast']
+
+function formatRouteBonus(routeId: SectRouteId): string {
+  const route = SECT_ROUTES[routeId]
+  const entries = Object.entries(route.buildingBonus)
+  if (entries.length === 0) return route.adventureModifier
+
+  return entries
+    .map(([buildingType, value]) => `${BUILDING_NAME_MAP[buildingType as keyof typeof BUILDING_NAME_MAP]} x${value.toFixed(2)}`)
+    .join(' / ')
+}
 
 export default function SectPathPanel() {
   const sect = useSectStore((s) => s.sect)
   const chooseSectPath = useSectStore((s) => s.chooseSectPath)
   const unlockPathNode = useSectStore((s) => s.unlockPathNode)
   const resetSectPath = useSectStore((s) => s.resetSectPath)
+  const setActiveRoute = useSectStore((s) => s.setActiveRoute)
 
   const canUnlock = canUnlockSectPath(sect.level, sect.characters.length)
   const pathDef = sect.sectPath !== 'none' ? SECT_PATHS[sect.sectPath] : null
@@ -110,6 +135,32 @@ export default function SectPathPanel() {
               </div>
             )
           })}
+        </div>
+
+        <div className={styles.routeSection}>
+          <div className={styles.routeTitle}>当前宗门路线</div>
+          <div className={styles.routeCards}>
+            {ROUTE_IDS.map((routeId) => {
+              const route = SECT_ROUTES[routeId]
+              const isActive = sect.activeRoute === routeId
+
+              return (
+                <button
+                  key={routeId}
+                  type="button"
+                  className={`${styles.routeCard} ${isActive ? styles.routeCardActive : ''}`}
+                  onClick={() => setActiveRoute(isActive ? null : routeId)}
+                >
+                  <div className={styles.routeCardHeader}>
+                    <span className={styles.routeName}>{route.name}</span>
+                    <span className={styles.routeStatus}>{isActive ? '生效中' : '切换'}</span>
+                  </div>
+                  <div className={styles.routeDesc}>{route.adventureModifier}</div>
+                  <div className={styles.routeBonus}>{formatRouteBonus(routeId)}</div>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>

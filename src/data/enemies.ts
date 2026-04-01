@@ -4,8 +4,9 @@ import type { Character } from '../types/character'
 import { TECHNIQUE_TIER_ORDER } from '../types/technique'
 import { getTechniqueById } from './techniquesTable'
 import type { ActiveSkill } from '../types/skill'
-import { getActiveSkillById } from './activeSkills'
+import { buildCharacterSkillLoadout, getActiveSkillById } from './activeSkills'
 import { rollAffixes } from './affixes'
+import { applyPathStatBonuses } from '../systems/character/CultivationPathSystem'
 
 export type LootType = 'spiritStone' | 'herb' | 'ore' | 'equipment' | 'consumable' | 'petCapture'
 
@@ -191,19 +192,24 @@ export function createCharacterCombatUnit(character: Character, learnedTechnique
     }
   }
 
-  const skills = resolveSkills(character.equippedSkills)
+  const totalStats = applyPathStatBonuses({ hp, atk, def, spd, crit, critDmg }, character.cultivationPath)
+  const resolvedLoadout =
+    character.equippedSkills.length > 0 && character.equippedSkills.some((skillId) => skillId !== null)
+      ? character.equippedSkills
+      : buildCharacterSkillLoadout(character)
+  const skills = resolveSkills(resolvedLoadout)
 
   return {
     id: character.id,
     name: character.name,
     team: 'ally',
-    hp,
-    maxHp: hp,
-    atk,
-    def,
-    spd,
-    crit,
-    critDmg,
+    hp: totalStats.hp,
+    maxHp: totalStats.hp,
+    atk: totalStats.atk,
+    def: totalStats.def,
+    spd: totalStats.spd,
+    crit: totalStats.crit,
+    critDmg: totalStats.critDmg,
     element,
     spiritPower: character.cultivationStats.spiritPower,
     maxSpiritPower: character.cultivationStats.maxSpiritPower,

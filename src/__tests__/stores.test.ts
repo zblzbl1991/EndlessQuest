@@ -187,6 +187,33 @@ describe('SectStore - Character Management', () => {
     getStore().setCharacterStatus('nonexistent', 'injured')
     expect(getFirstCharacter().status).toBe('idle')
   })
+
+  it('new disciples should start without a cultivation path', () => {
+    expect(getFirstCharacter().cultivationPath).toBe('none')
+  })
+
+  it('chooseCultivationPath should set a path at the first major breakthrough node', () => {
+    const char = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3 } : c)),
+      },
+    }))
+
+    const result = getStore().chooseCultivationPath(char.id, 'sword')
+
+    expect(result).toBe(true)
+    expect(getStore().sect.characters[0].cultivationPath).toBe('sword')
+  })
+
+  it('chooseCultivationPath should reject early selection', () => {
+    const char = getFirstCharacter()
+    const result = getStore().chooseCultivationPath(char.id, 'body')
+
+    expect(result).toBe(false)
+    expect(getStore().sect.characters[0].cultivationPath).toBe('none')
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -235,6 +262,114 @@ describe('SectStore - Building Management', () => {
     const sf = getStore().sect.buildings.find((b) => b.type === 'spiritField')
     expect(sf?.unlocked).toBe(true)
     expect(sf?.level).toBe(1)
+  })
+
+  it('autoAssignToBuilding should fill matching idle disciples without moving manual assignments', () => {
+    const base = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) => (b.type === 'spiritField' ? { ...b, unlocked: true, level: 1 } : b)),
+        characters: [
+          {
+            ...base,
+            id: 'spec_idle',
+            name: 'Spec Idle',
+            specialties: [{ type: 'herbalism', level: 3 }],
+            status: 'idle',
+            assignedBuilding: null,
+          },
+          {
+            ...base,
+            id: 'spec_manual',
+            name: 'Spec Manual',
+            specialties: [{ type: 'alchemy', level: 3 }],
+            status: 'training',
+            assignedBuilding: 'forge',
+          },
+          {
+            ...base,
+            id: 'spec_other',
+            name: 'Spec Other',
+            specialties: [{ type: 'combat', level: 3 }],
+            status: 'idle',
+            assignedBuilding: null,
+          },
+        ],
+      },
+    }))
+
+    const result = getStore().autoAssignToBuilding('spiritField')
+
+    expect(result.success).toBe(true)
+    expect(result.assigned).toBe(1)
+
+    const idle = getStore().sect.characters.find((c) => c.id === 'spec_idle')
+    const manual = getStore().sect.characters.find((c) => c.id === 'spec_manual')
+    const other = getStore().sect.characters.find((c) => c.id === 'spec_other')
+
+    expect(idle?.status).toBe('training')
+    expect(idle?.assignedBuilding).toBe('spiritField')
+    expect(manual?.status).toBe('training')
+    expect(manual?.assignedBuilding).toBe('forge')
+    expect(other?.status).toBe('idle')
+    expect(other?.assignedBuilding).toBeNull()
+  })
+
+  it('autoOptimizeBuildingAssignments should fill multiple building lanes in one pass', () => {
+    const base = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'spiritField' || b.type === 'alchemyFurnace'
+            ? { ...b, unlocked: true, level: 1 }
+            : b
+        ),
+        characters: [
+          {
+            ...base,
+            id: 'herbalist',
+            name: 'Herbalist',
+            specialties: [{ type: 'herbalism', level: 3 }],
+            status: 'idle',
+            assignedBuilding: null,
+          },
+          {
+            ...base,
+            id: 'alchemist',
+            name: 'Alchemist',
+            specialties: [{ type: 'alchemy', level: 3 }],
+            status: 'idle',
+            assignedBuilding: null,
+          },
+          {
+            ...base,
+            id: 'manual',
+            name: 'Manual',
+            specialties: [{ type: 'forging', level: 3 }],
+            status: 'training',
+            assignedBuilding: 'forge',
+          },
+        ],
+      },
+    }))
+
+    const result = getStore().autoOptimizeBuildingAssignments()
+
+    expect(result.success).toBe(true)
+    expect(result.assigned).toBe(2)
+
+    const herbalist = getStore().sect.characters.find((c) => c.id === 'herbalist')
+    const alchemist = getStore().sect.characters.find((c) => c.id === 'alchemist')
+    const manual = getStore().sect.characters.find((c) => c.id === 'manual')
+
+    expect(herbalist?.status).toBe('training')
+    expect(herbalist?.assignedBuilding).toBe('spiritField')
+    expect(alchemist?.status).toBe('training')
+    expect(alchemist?.assignedBuilding).toBe('alchemyFurnace')
+    expect(manual?.status).toBe('training')
+    expect(manual?.assignedBuilding).toBe('forge')
   })
 })
 
@@ -658,6 +793,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       },
     }))
 
+    expect(getStore().chooseCultivationPath(char.id, 'sword')).toBe(true)
+
     vi.spyOn(Math, 'random').mockReturnValue(0.99)
     getStore().tickAll(1)
 
@@ -667,6 +804,26 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     // spiritStone deducted (3000 for realm 1 breakthrough)
     expect(getStore().sect.resources.spiritStone).toBeLessThan(5000)
     expect(getStore().sect.resources.spiritStone).toBeGreaterThanOrEqual(5000 - 3000)
+  })
+
+  it('should pause the first major breakthrough until a cultivation path is chosen', () => {
+    const char = getFirstCharacter()
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
+        resources: { ...s.sect.resources, spiritStone: 5000, spiritEnergy: 1000 },
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
+
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(0)
+    expect(updated.realmStage).toBe(3)
+    expect(updated.cultivationPath).toBe('none')
+    expect(getStore().sect.resources.spiritStone).toBe(5000.5)
   })
 
   it('should skip breakthrough when spiritStone is insufficient', () => {
@@ -1362,6 +1519,43 @@ describe('AdventureStore - runAutomation', () => {
 
     expect(getAdventureStore().dispatches[0]?.progress).toBeGreaterThan(0)
   })
+
+  it('should apply active route bonuses to route reward settlement', () => {
+    const char = getStore().sect.characters[0]
+    getStore().setActiveRoute('alchemy')
+
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id], 'basic', 'balanced')
+    expect(run).not.toBeNull()
+
+    useAdventureStore.setState((s) => ({
+      activeRuns: {
+        ...s.activeRuns,
+        [run!.id]: {
+          ...s.activeRuns[run!.id]!,
+          floors: [
+            {
+              floor: 1,
+              isBossFloor: false,
+              routes: [
+                {
+                  id: 'route_test',
+                  name: '测试路线',
+                  description: '只结算路线奖励',
+                  riskLevel: 'low',
+                  events: [],
+                  reward: { spiritStone: 100, herb: 10, ore: 0 },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    }))
+
+    expect(getAdventureStore().selectRoute(run!.id, 0)).toBe(true)
+    expect(getStore().sect.resources.spiritStone).toBe(555)
+    expect(getStore().sect.resources.herb).toBe(11)
+  })
 })
 
 describe('AdventureStore - reset', () => {
@@ -1626,6 +1820,25 @@ describe('tickAll with production queue', () => {
     expect(sect.vault.length).toBe(1)
     expect(sect.vault[0].item.type).toBe('consumable')
     expect(sect.resources.herb).toBeLessThan(100) // herbs consumed
+  })
+
+  it('should let active alchemy route speed up alchemy production', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        activeRoute: 'alchemy',
+        buildings: s.sect.buildings.map((b) =>
+          b.type === 'alchemyFurnace'
+            ? { ...b, unlocked: true, level: 1, productionQueue: { recipeId: 'hp_potion', progress: 0 } }
+            : b
+        ),
+        resources: { ...s.sect.resources, herb: 100 },
+      },
+    }))
+
+    getStore().tickAll(18)
+
+    expect(getStore().sect.vault.length).toBe(1)
   })
 
   it('should pause production when resources insufficient', () => {

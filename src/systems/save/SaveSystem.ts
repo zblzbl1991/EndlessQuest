@@ -8,6 +8,7 @@ import { useEventLogStore } from '../../stores/eventLogStore'
 import type { GameHistoryEntry } from './HistoryStore'
 import { getDB } from './db'
 import { migrateToItemStacks } from '../item/ItemStackUtils'
+import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 
 const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
@@ -252,7 +253,7 @@ export async function loadGame(): Promise<boolean> {
         normalizedStatus = 'idle'
       }
 
-      return {
+      return syncCharacterSkillLoadout({
         ...c,
         status: normalizedStatus,
         backpack: migrateToItemStacks(c.backpack),
@@ -260,7 +261,7 @@ export async function loadGame(): Promise<boolean> {
         assignedBuilding: normalizedStatus === 'training' && hasValidTrainingAssignment ? rawAssignedBuilding : null,
         cultivationPath: c.cultivationPath ?? 'none',
         fateTags: c.fateTags ?? [],
-      }
+      })
     })
 
     const sect: Sect = {

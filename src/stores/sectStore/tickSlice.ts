@@ -25,8 +25,11 @@ import { getSynergyBonus } from '../../systems/economy/SynergySystem'
 import { addItemQuantityToStacks } from '../../systems/item/ItemStackUtils'
 import { produceItemAsStack } from './initial'
 import { getTechniqueById } from '../../data/techniquesTable'
+import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { resolveSuccessfulBreakthroughFates, resolveTribulationFailureFates } from '../../systems/character/FateSystem'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
+import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
+import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 
 export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   tickAll: (deltaSec: number) => {
@@ -69,6 +72,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     rates.ore *= getSynergyBonus('spiritMine', sect.buildings)
     rates.spiritEnergy *= getSynergyBonus('spiritField', sect.buildings)
     rates.herb *= getSynergyBonus('spiritField', sect.buildings)
+    rates.spiritStone *= calcBuildingRouteBonus(sect.activeRoute, 'spiritMine')
+    rates.ore *= calcBuildingRouteBonus(sect.activeRoute, 'spiritMine')
+    rates.spiritEnergy *= calcBuildingRouteBonus(sect.activeRoute, 'spiritField')
+    rates.herb *= calcBuildingRouteBonus(sect.activeRoute, 'spiritField')
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
@@ -86,9 +93,15 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     for (const bType of processingTypes) {
       const building = newBuildings.find((b) => b.type === bType)
       if (!building || !building.unlocked || building.level === 0 || !building.productionQueue.recipeId) continue
+      const routeSpeedBonus = calcBuildingRouteBonus(sect.activeRoute, bType)
       const vaultFreeSlots = sect.maxVaultSlots - newVault.length
       if (deltaSec >= USE_OFFLINE_THRESHOLD) {
-        const offlineResult = calcOfflineProduction(building.productionQueue, sect.resources, deltaSec, vaultFreeSlots)
+        const offlineResult = calcOfflineProduction(
+          building.productionQueue,
+          sect.resources,
+          deltaSec * routeSpeedBonus,
+          vaultFreeSlots
+        )
         totalConsumed.spiritStone += offlineResult.consumed.spiritStone
         totalConsumed.spiritEnergy += offlineResult.consumed.spiritEnergy
         totalConsumed.herb += offlineResult.consumed.herb
@@ -105,7 +118,12 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         }
       } else {
         const vaultFull = newVault.length >= sect.maxVaultSlots
-        const result = tickProductionQueue(building.productionQueue, sect.resources, deltaSec, vaultFull)
+        const result = tickProductionQueue(
+          building.productionQueue,
+          sect.resources,
+          deltaSec * routeSpeedBonus,
+          vaultFull
+        )
         totalConsumed.spiritStone += result.consumed.spiritStone
         totalConsumed.spiritEnergy += result.consumed.spiritEnergy
         totalConsumed.herb += result.consumed.herb
@@ -145,6 +163,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
       if (char.status === 'idle') {
+        if (needsCultivationPathChoice(char) && canBreakthrough(char)) {
+          return char
+        }
+
         const effectiveSpirit = 2 * spiritRatio * deltaSec
         const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
         const gained = result.cultivationGained
@@ -160,6 +182,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
         // Auto-breakthrough check
         if (canBreakthrough(updatedChar)) {
+          if (needsCultivationPathChoice(updatedChar)) {
+            return updatedChar
+          }
+
           // Check if this is a major realm breakthrough (max stage -> new realm)
           const currentRealm = REALMS[updatedChar.realm]
           const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
@@ -333,7 +359,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           }
         }
 
-        return updatedChar
+        return syncCharacterSkillLoadout(updatedChar)
       }
 
       // Branch 2: non-idle characters (training/adventuring/patrolling/injured/resting)

@@ -21,6 +21,28 @@
   opacity: 0.95;
 }
 
+.summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: var(--space-sm);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border-light);
+}
+
+.summaryLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.summaryValue {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
 .slots {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -28,9 +50,6 @@
 }
 
 .slot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   padding: 6px 8px;
   border-radius: var(--radius-sm);
   background: var(--color-bg);
@@ -41,6 +60,12 @@
 
 .slot:hover {
   background: var(--color-bg-paper);
+}
+
+.slotBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .slotName {
@@ -54,6 +79,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  justify-content: space-between;
 }
 
 .slotItem {
@@ -73,4 +99,59 @@
   font-size: 10px;
   color: var(--color-danger);
   padding: 2px 4px;
+}
+
+.slotMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.fitBadge,
+.emptyBadge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fitBadge {
+  color: var(--color-text);
+}
+
+.recommendGood {
+  background: rgba(155, 119, 52, 0.18);
+  color: var(--color-accent);
+}
+
+.recommendNeutral {
+  background: rgba(120, 120, 120, 0.14);
+  color: var(--color-text-secondary);
+}
+
+.recommendBad {
+  background: rgba(110, 110, 110, 0.12);
+  color: var(--color-text-tertiary);
+}
+
+.emptyBadge {
+  background: rgba(155, 119, 52, 0.12);
+  color: var(--color-accent);
+}
+
+.slotHint {
+  color: var(--color-text-tertiary);
+}
+
+.slotReason {
+  color: var(--color-text-secondary);
+  line-height: 1.4;
+}
+
+.slotFocus {
+  color: var(--color-text-tertiary);
+  font-size: 10px;
 }

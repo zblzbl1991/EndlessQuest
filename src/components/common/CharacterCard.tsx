@@ -5,6 +5,7 @@ import { getTechniqueById } from '../../data/techniquesTable'
 import { calcEffectiveCultivationRate } from '../../systems/cultivation/CultivationDisplay'
 import { getPathName } from '../../data/cultivationPaths'
 import { getFateTagDef } from '../../data/fateTags'
+import { getPrimaryRole, getRecommendedAssignment, getRoleLabel } from '../../systems/character/SpecialtySystem'
 import { formatCultivationValue } from '../../utils/format'
 import { useSectStore } from '../../stores/sectStore'
 import { PixelIcon } from './PixelIcon'
@@ -37,6 +38,15 @@ const PATH_ICON_NAMES: Record<string, string> = {
   void: 'spellPath',
 }
 
+const ASSIGNMENT_NAMES: Record<string, string> = {
+  adventure: '探险',
+  alchemyFurnace: '丹炉',
+  forge: '炼器坊',
+  spiritMine: '灵石矿',
+  spiritField: '灵田',
+  scriptureHall: '藏经阁',
+}
+
 interface CharacterCardProps {
   character: Character
   onClick?: () => void
@@ -55,6 +65,11 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
   const realmName = getRealmName(character.realm, character.realmStage)
   const needed = getCultivationNeeded(character.realm, character.realmStage)
   const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
+  const primaryRole = getPrimaryRole(character)
+  const recommendedAssignment = getRecommendedAssignment(character)
+  const specialtySummary = character.specialties
+    .slice(0, 2)
+    .map((specialty) => `${getRoleLabel(specialty.type)} Lv.${specialty.level}`)
 
   return (
     <div
@@ -79,6 +94,15 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           {getPathName(character.cultivationPath)}
         </span>
       )}
+      {character.specialties.length > 0 && (
+        <div className={styles.identityTags}>
+          {primaryRole && <span className={styles.roleTag}>擅长 {getRoleLabel(primaryRole)}</span>}
+          {recommendedAssignment && (
+            <span className={styles.assignmentTag}>宜任 {ASSIGNMENT_NAMES[recommendedAssignment] ?? recommendedAssignment}</span>
+          )}
+        </div>
+      )}
+      {specialtySummary.length > 0 && <div className={styles.specialtySummary}>{specialtySummary.join(' / ')}</div>}
       {character.fateTags.length > 0 && (
         <div className={styles.fateTags}>
           {character.fateTags.map((tag) => {

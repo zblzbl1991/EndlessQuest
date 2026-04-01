@@ -68,6 +68,11 @@
   color: var(--color-accent);
 }
 
+.routeTag {
+  background: rgba(42, 93, 84, 0.12);
+  color: #2a5d54;
+}
+
 .empty {
   font-size: 11px;
   color: var(--color-text-tertiary);

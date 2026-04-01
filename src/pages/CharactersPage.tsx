@@ -5,8 +5,10 @@ import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getAvailableMissions, DISPATCH_MISSIONS } from '../data/missions'
 import { getActiveSkillById } from '../data/activeSkills'
+import { getFateTagDef } from '../data/fateTags'
 import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
 import { getPathDef } from '../data/cultivationPaths'
+import { getPrimaryRole, getRecommendedAssignment, getRoleLabel } from '../systems/character/SpecialtySystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
 import { PixelIcon } from '../components/common/PixelIcon'
@@ -17,6 +19,12 @@ import BreakthroughPanel from '../components/cultivation/BreakthroughPanel'
 import EquipPanel from '../components/inventory/EquipPanel'
 import ItemCard from '../components/inventory/ItemCard'
 import { formatCultivationValue } from '../utils/format'
+import {
+  buildCharacterSkillLoadout,
+  getCombatStyleProfile,
+  MAX_CHARACTER_SKILL_SLOTS,
+  syncCharacterSkillLoadout,
+} from '../data/activeSkills'
 import styles from './CharactersPage.module.css'
 
 // ---------------------------------------------------------------------------
@@ -55,6 +63,15 @@ const TECHNIQUE_TIER_CLASS: Record<string, string> = {
   immortal: styles.tierImmortal,
   divine: styles.tierDivine,
   chaos: styles.tierChaos,
+}
+
+const ASSIGNMENT_NAMES: Record<string, string> = {
+  adventure: '探险',
+  alchemyFurnace: '丹炉',
+  forge: '炼器坊',
+  spiritMine: '灵石矿',
+  spiritField: '灵田',
+  scriptureHall: '藏经阁',
 }
 
 type ViewMode = 'list' | 'grid'
@@ -210,6 +227,29 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
   // Cultivation speed
   const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
+  const primaryRole = getPrimaryRole(character)
+  const recommendedAssignment = getRecommendedAssignment(character)
+  const recommendedAssignmentName = recommendedAssignment
+    ? ASSIGNMENT_NAMES[recommendedAssignment] ?? recommendedAssignment
+    : null
+  const combatStyle = getCombatStyleProfile(character)
+  const recommendedLoadout = buildCharacterSkillLoadout(character)
+  const skillFrame = syncCharacterSkillLoadout(character)
+  const buildStyle = { label: combatStyle.styleName, description: combatStyle.summary }
+  const activeSkillIds = (skillFrame.equippedSkills ?? recommendedLoadout).filter(
+    (skillId): skillId is string => Boolean(skillId)
+  )
+  const activeSkills = activeSkillIds
+    .map((skillId) => getActiveSkillById(skillId))
+    .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill))
+  const buildSourceTags = [
+    character.cultivationPath !== 'none' ? `修行路线: ${getPathDef(character.cultivationPath)?.name ?? '未定'}` : '修行路线: 未定',
+    `风格画像: ${combatStyle.styleName}`,
+    primaryRole ? `专长: ${getRoleLabel(primaryRole)}` : '专长: 待补强',
+    `功法: ${character.learnedTechniques.length} 门`,
+    `建议 loadout: ${recommendedLoadout.filter(Boolean).length}/${MAX_CHARACTER_SKILL_SLOTS}`,
+    character.fateTags.length > 0 ? `命格: ${character.fateTags.length} 条` : '命格: 基础',
+  ]
 
   function formatBonusValue(type: string, value: number): string {
     if (type === 'crit' || type === 'critDmg' || type === 'cultivationRate') {
@@ -273,6 +313,37 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
               </div>
             ) : null
           })()}
+        {character.specialties.length > 0 && (
+          <div className={styles.identityBlock}>
+            <span className={styles.pathLabel}>专长:</span>
+            <div className={styles.identityTags}>
+              {character.specialties.map((specialty, index) => (
+                <span key={`${specialty.type}-${index}`} className={styles.identityTag}>
+                  {getRoleLabel(specialty.type)} Lv.{specialty.level}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+        {(primaryRole || recommendedAssignmentName) && (
+          <div className={styles.identityMeta}>
+            {primaryRole && <span>主定位：{getRoleLabel(primaryRole)}</span>}
+            {recommendedAssignmentName && <span>推荐去向：{recommendedAssignmentName}</span>}
+          </div>
+        )}
+        {character.fateTags.length > 0 && (
+          <div className={styles.fateTagsList}>
+            {character.fateTags.map((tag) => {
+              const def = getFateTagDef(tag)
+              return (
+                <div key={tag} className={styles.fateTag}>
+                  <span className={styles.fateTagName}>{def.name}</span>
+                  <span className={styles.fateTagDesc}>{def.description}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
         <div className={styles.detailProgress}>
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <span className={styles.progressText}>
@@ -611,42 +682,58 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
       {/* Skills */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>
-          <PixelIcon name="technique" size={16} className={styles.inlineIcon} aria-label="技能" />
-          技能
+          <PixelIcon name="technique" size={16} className={styles.inlineIcon} aria-label="战斗风格" />
+          战斗风格
         </div>
-        <div className={styles.skillsGrid}>
-          {character.equippedSkills.map((skillId, idx) => (
-            <div key={idx} className={styles.skillSlot}>
-              {skillId ? (
-                <span className={styles.skillName}>
-                  <PixelIcon
-                    name={getSkillIconName(skillId)}
-                    size={14}
-                    className={styles.inlineIcon}
-                    aria-label={skillId}
-                  />
-                  {getActiveSkillById(skillId)?.name ?? skillId}
-                </span>
-              ) : (
-                <span className={styles.skillEmpty}>
-                  <PixelIcon name="technique" size={14} className={styles.inlineIcon} aria-label="空技能槽" />
-                  {idx < 4 ? `技能${idx + 1}` : '绝技'}
-                </span>
-              )}
+        <div className={styles.buildSummary}>
+          <div className={styles.buildStyleCard}>
+            <div className={styles.buildStyleHeader}>
+              <span className={styles.buildStyleLabel}>{buildStyle.label}</span>
+              <span className={styles.buildStyleCount}>
+                主动技 {activeSkills.length}/{MAX_CHARACTER_SKILL_SLOTS} · 功法 {character.learnedTechniques.length} 门
+              </span>
             </div>
-          ))}
-          {/* Show empty slots if equippedSkills is short */}
-          {Array.from({ length: Math.max(0, 5 - character.equippedSkills.length) }, (_, i) => {
-            const actualIdx = character.equippedSkills.length + i
-            return (
-              <div key={`empty-${actualIdx}`} className={styles.skillSlot}>
-                <span className={styles.skillEmpty}>
-                  <PixelIcon name="technique" size={14} className={styles.inlineIcon} aria-label="空技能槽" />
-                  {actualIdx < 4 ? `技能${actualIdx + 1}` : '绝技'}
+            <div className={styles.buildStyleDesc}>{buildStyle.description}</div>
+          </div>
+
+          <div className={styles.buildSourceCard}>
+            <div className={styles.buildSourceTitle}>成型来源</div>
+            <div className={styles.buildSourceTags}>
+              {buildSourceTags.map((tag) => (
+                <span key={tag} className={styles.buildSourceTag}>
+                  {tag}
                 </span>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.buildSkillCard}>
+            <div className={styles.buildSkillTitle}>当前主动技</div>
+            {activeSkills.length > 0 ? (
+              <div className={styles.buildSkillList}>
+                {activeSkills.map((skill) => (
+                  <div key={skill.id} className={styles.buildSkillItem}>
+                    <span className={styles.buildSkillName}>
+                      <PixelIcon
+                        name={getSkillIconName(skill.id)}
+                        size={14}
+                        className={styles.inlineIcon}
+                        aria-label={skill.name}
+                      />
+                      {skill.name}
+                    </span>
+                    <span className={styles.buildSkillMeta}>
+                      {skill.category} · {skill.spiritCost} 灵力 · CD {skill.cooldown}
+                    </span>
+                  </div>
+                ))}
               </div>
-            )
-          })}
+            ) : (
+              <div className={styles.noSkillState}>
+                当前尚未固化主动技，战斗风格将主要由功法、命格与突破结果驱动。
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </div>

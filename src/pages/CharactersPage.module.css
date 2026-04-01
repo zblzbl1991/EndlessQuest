@@ -209,6 +209,37 @@
   color: var(--color-text-secondary);
 }
 
+.identityBlock {
+  margin-bottom: var(--space-sm);
+}
+
+.identityTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.identityTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #2e7d32;
+  background: rgba(76, 175, 80, 0.08);
+  font-weight: 600;
+}
+
+.identityMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
 .detailProgress {
   display: flex;
   align-items: center;
@@ -523,6 +554,110 @@
 }
 
 /* Skills */
+.buildSummary {
+  display: grid;
+  gap: var(--space-sm);
+}
+
+.buildStyleCard,
+.buildSourceCard,
+.buildSkillCard {
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+}
+
+.buildStyleHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 6px;
+}
+
+.buildStyleLabel {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.buildStyleCount {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.buildStyleDesc {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.buildSourceTitle,
+.buildSkillTitle {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+
+.buildSourceTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.buildSourceTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--color-accent);
+  background: rgba(184, 116, 52, 0.08);
+  border: 1px solid rgba(184, 116, 52, 0.16);
+}
+
+.buildSkillList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.buildSkillItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.buildSkillName {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.buildSkillMeta {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.noSkillState {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px dashed var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
 .skillsGrid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr 1fr;

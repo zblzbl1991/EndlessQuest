@@ -1,4 +1,10 @@
+import { useMemo } from 'react'
 import { useSectStore } from '../../stores/sectStore'
+import { canBreakthrough } from '../../systems/cultivation/CultivationEngine'
+import { getCultivationNeeded } from '../../data/realms'
+import { canUpgradeBuilding } from '../../systems/sect/BuildingSystem'
+import { BUILDING_DEFS, calcResourceCaps } from '../../data/buildings'
+import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { calcResourceRates } from '../../systems/economy/ResourceEngine'
 import { PixelIcon } from '../common/PixelIcon'
 import styles from './StatsPanel.module.css'
@@ -7,24 +13,57 @@ export default function StatsPanel() {
   const sect = useSectStore((s) => s.sect)
   const { stats } = sect
 
-  // Calculate current spirit stone rate
   const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
   const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
   const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
   const rates = calcResourceRates({ spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel })
   const spiritStonePerSec = rates.spiritStone
 
-  // Derived values
   const winRate = stats.totalBattles > 0 ? ((stats.totalVictories / stats.totalBattles) * 100).toFixed(1) : '0.0'
   const breakthroughFails = stats.totalBreakthroughAttempts - stats.totalBreakthroughSuccesses
-
-  // Format play time
   const totalMinutes = Math.floor(stats.totalPlayTime / 60)
   const playHours = Math.floor(totalMinutes / 60)
   const playMinutes = totalMinutes % 60
-
-  // Longest offline in minutes
   const longestOfflineMin = Math.floor(stats.longestOfflineSeconds / 60)
+
+  const focusRows = useMemo(() => {
+    const breakthroughCandidates = sect.characters.filter((char) => {
+      const needed = getCultivationNeeded(char.realm, char.realmStage)
+      return needed !== Infinity && char.cultivation / needed > 0.9 && canBreakthrough(char)
+    })
+
+    const pathChoices = breakthroughCandidates.filter(needsCultivationPathChoice)
+    const nextUpgrade = BUILDING_DEFS.find((def) => canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone).canUpgrade)
+    const caps = calcResourceCaps(
+      sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0,
+      sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
+    )
+    const overflowTarget = [
+      { name: '灵气', value: sect.resources.spiritEnergy, cap: caps.spiritEnergy },
+      { name: '灵草', value: sect.resources.herb, cap: caps.herb },
+      { name: '矿材', value: sect.resources.ore, cap: caps.ore },
+    ].find((item) => item.cap > 0 && item.value / item.cap > 0.8)
+
+    return [
+      {
+        label: '修行',
+        value:
+          pathChoices.length > 0
+            ? `${pathChoices[0].name} 先定路线`
+            : breakthroughCandidates.length > 0
+              ? `${breakthroughCandidates.length} 名弟子可突破`
+              : '暂无临界弟子',
+      },
+      {
+        label: '建设',
+        value: nextUpgrade ? `${nextUpgrade.name} 可升级` : '建筑稳定',
+      },
+      {
+        label: '资源',
+        value: overflowTarget ? `${overflowTarget.name} 需要消耗` : '流转正常',
+      },
+    ]
+  }, [sect])
 
   return (
     <div className={styles.container}>
@@ -33,7 +72,18 @@ export default function StatsPanel() {
         宗门统计
       </div>
 
-      {/* Resources */}
+      <div className={styles.category}>
+        <div className={styles.categoryLabel}>
+          <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="当前重点" />
+          当前重点
+        </div>
+        <div className={styles.statRows}>
+          {focusRows.map((row) => (
+            <StatRow key={row.label} label={row.label} value={row.value} />
+          ))}
+        </div>
+      </div>
+
       <div className={styles.category}>
         <div className={styles.categoryLabel}>
           <PixelIcon name="spiritStone" size={16} className={styles.inlineIcon} aria-label="资源" />
@@ -46,7 +96,6 @@ export default function StatsPanel() {
         </div>
       </div>
 
-      {/* Combat */}
       <div className={styles.category}>
         <div className={styles.categoryLabel}>
           <PixelIcon name="eventCombat" size={16} className={styles.inlineIcon} aria-label="战斗" />
@@ -60,7 +109,6 @@ export default function StatsPanel() {
         </div>
       </div>
 
-      {/* Disciples */}
       <div className={styles.category}>
         <div className={styles.categoryLabel}>
           <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="弟子" />
@@ -75,7 +123,6 @@ export default function StatsPanel() {
         </div>
       </div>
 
-      {/* Buildings */}
       <div className={styles.category}>
         <div className={styles.categoryLabel}>
           <PixelIcon name="building" size={16} className={styles.inlineIcon} aria-label="建筑" />
@@ -86,7 +133,6 @@ export default function StatsPanel() {
         </div>
       </div>
 
-      {/* Adventure */}
       <div className={styles.category}>
         <div className={styles.categoryLabel}>
           <PixelIcon name="dungeonCave" size={16} className={styles.inlineIcon} aria-label="秘境" />
@@ -99,7 +145,6 @@ export default function StatsPanel() {
         </div>
       </div>
 
-      {/* Pets */}
       <div className={styles.category}>
         <div className={styles.categoryLabel}>
           <PixelIcon name="beastPath" size={16} className={styles.inlineIcon} aria-label="灵宠" />
@@ -110,7 +155,6 @@ export default function StatsPanel() {
         </div>
       </div>
 
-      {/* Time */}
       <div className={styles.category}>
         <div className={styles.categoryLabel}>
           <PixelIcon name="eventRest" size={16} className={styles.inlineIcon} aria-label="时间" />

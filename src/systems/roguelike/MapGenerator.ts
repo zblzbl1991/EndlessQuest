@@ -1,4 +1,5 @@
 import type { Dungeon, DungeonEvent, RouteOption, DungeonFloor } from '../../types/adventure'
+import { getRouteArchetypeName } from './AutoRunPolicy'
 
 // Re-export for backward compatibility
 export type { RouteOption as RouteNode, DungeonFloor }
@@ -65,10 +66,7 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
       events.push({ type, id: `${type}_${floorNumber}_${i}_${e}` })
     }
 
-    routes.push({
-      id: `route_${floorNumber}_${i}`,
-      name: ROUTE_NAMES[i % ROUTE_NAMES.length],
-      description: ROUTE_DESCS[riskLevel],
+    const routePrototype: Pick<RouteOption, 'riskLevel' | 'events' | 'reward'> = {
       riskLevel,
       events,
       reward: {
@@ -76,6 +74,16 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
         herb: Math.floor(5 * floorNumber * rewardMult),
         ore: Math.floor(3 * floorNumber * rewardMult),
       },
+    }
+    const archetypeName = getRouteArchetypeName(routePrototype)
+
+    routes.push({
+      id: `route_${floorNumber}_${i}`,
+      name: ROUTE_NAMES[i % ROUTE_NAMES.length],
+      description: `${archetypeName} · ${ROUTE_DESCS[riskLevel]}`,
+      riskLevel,
+      events,
+      reward: routePrototype.reward,
     })
   }
 

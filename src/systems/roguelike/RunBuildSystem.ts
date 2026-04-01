@@ -1,5 +1,7 @@
 import type { BlessingId, RelicId, Resources } from '../../types'
 import type { CombatUnit } from '../combat/CombatEngine'
+import type { DiscipleMutationId } from '../../data/discipleMutations'
+import { getDiscipleMutationDef } from '../../data/discipleMutations'
 
 const ALL_BLESSINGS: BlessingId[] = ['stoneHarvest', 'verdantBounty', 'ironBody', 'galeStride', 'battleFocus']
 const ALL_RELICS: RelicId[] = ['jadeGourd', 'merchantSeal', 'warBanner']
@@ -8,6 +10,8 @@ export interface RunBuild {
   blessings: Array<{ id: string; stacks?: number }>
   relics: Array<{ id: string }>
 }
+
+export type MutationMap = Record<string, DiscipleMutationId[]>
 
 const LEGACY_BLESSING_MULTIPLIERS: Record<string, Partial<Pick<CombatUnit, 'atk' | 'def' | 'spd'>>> = {
   flame_heart: { atk: 1.2 },
@@ -55,6 +59,26 @@ export function applyRunRewardModifiers(reward: Resources, blessings: BlessingId
   }
 }
 
+export function applyMutationRewardModifiers(reward: Resources, mutationIds: DiscipleMutationId[]): Resources {
+  let spiritStoneMult = 1
+  let herbMult = 1
+  let oreMult = 1
+
+  for (const mutationId of mutationIds) {
+    const mutation = getDiscipleMutationDef(mutationId)
+    spiritStoneMult += mutation.reward.spiritStone ?? 0
+    herbMult += mutation.reward.herb ?? 0
+    oreMult += mutation.reward.ore ?? 0
+  }
+
+  return {
+    ...reward,
+    spiritStone: Math.floor(reward.spiritStone * spiritStoneMult),
+    herb: Math.floor(reward.herb * herbMult),
+    ore: Math.floor(reward.ore * oreMult),
+  }
+}
+
 export function applyRunCombatModifiers(unit: CombatUnit, blessings: BlessingId[], relics: RelicId[]): CombatUnit {
   let atkMult = 1
   let defMult = 1
@@ -65,6 +89,26 @@ export function applyRunCombatModifiers(unit: CombatUnit, blessings: BlessingId[
   if (relics.includes('warBanner')) {
     atkMult *= 1.1
     defMult *= 1.1
+  }
+
+  return {
+    ...unit,
+    atk: Math.floor(unit.atk * atkMult),
+    def: Math.floor(unit.def * defMult),
+    spd: Math.floor(unit.spd * spdMult),
+  }
+}
+
+export function applyMutationCombatModifiers(unit: CombatUnit, mutationIds: DiscipleMutationId[]): CombatUnit {
+  let atkMult = 1
+  let defMult = 1
+  let spdMult = 1
+
+  for (const mutationId of mutationIds) {
+    const mutation = getDiscipleMutationDef(mutationId)
+    atkMult += mutation.combat.atk ?? 0
+    defMult += mutation.combat.def ?? 0
+    spdMult += mutation.combat.spd ?? 0
   }
 
   return {

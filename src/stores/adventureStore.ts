@@ -37,6 +37,11 @@ import { resolveAutomatedRun } from '../systems/roguelike/AutoRunEngine'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../data/archiveMilestones'
 import { BLESSING_DEFS } from '../data/blessings'
 import { RELIC_DEFS } from '../data/relics'
+import {
+  calcAdventureRouteCombatBonus,
+  calcAdventureRouteRewardBonus,
+  calcPetCaptureRouteBonus,
+} from '../systems/sect/SectRouteSystem'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -162,6 +167,27 @@ function summarizeReport(report: AdventureReport): AdventureReportSummary {
   }
 }
 
+function applyRouteRewardModifiers(reward: Resources): Resources {
+  const routeId = useSectStore.getState().sect.activeRoute
+
+  return {
+    spiritStone: Math.floor(reward.spiritStone * calcAdventureRouteRewardBonus(routeId, 'spiritStone')),
+    spiritEnergy: Math.floor(reward.spiritEnergy * calcAdventureRouteRewardBonus(routeId, 'spiritEnergy')),
+    herb: Math.floor(reward.herb * calcAdventureRouteRewardBonus(routeId, 'herb')),
+    ore: Math.floor(reward.ore * calcAdventureRouteRewardBonus(routeId, 'ore')),
+  }
+}
+
+function applyRouteCombatModifiers(unit: CombatUnit): CombatUnit {
+  const routeBonus = calcAdventureRouteCombatBonus(useSectStore.getState().sect.activeRoute)
+  return {
+    ...unit,
+    atk: Math.floor(unit.atk * routeBonus.atk),
+    def: Math.floor(unit.def * routeBonus.def),
+    spd: Math.floor(unit.spd * routeBonus.spd),
+  }
+}
+
 /** Deposit resources into sectStore via addResource */
 function depositResourcesToSect(resources: Resources): void {
   const sectStore = useSectStore.getState()
@@ -274,7 +300,7 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
     if (!character) continue
 
     const unit = createCharacterCombatUnit(character, character.learnedTechniques)
-    const tunedUnit = applyRunCombatModifiers(unit, run.blessings ?? [], run.relics ?? [])
+    const tunedUnit = applyRouteCombatModifiers(applyRunCombatModifiers(unit, run.blessings ?? [], run.relics ?? []))
     // Override HP with current member state HP (not max)
     tunedUnit.hp = memberState.currentHp
     tunedUnit.maxHp = memberState.maxHp
@@ -425,7 +451,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const baseTeamUnits = config.teamCharacterIds
       .map((charId) => {
         const character = sect.characters.find((c) => c.id === charId)
-        return character ? createCharacterCombatUnit(character, character.learnedTechniques) : null
+        return character ? applyRouteCombatModifiers(createCharacterCombatUnit(character, character.learnedTechniques)) : null
       })
       .filter((unit): unit is CombatUnit => unit !== null)
 
@@ -434,12 +460,16 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       return null
     }
 
-    const report = resolveAutomatedRun({
+    const rawReport = resolveAutomatedRun({
       run: startedRun,
       dungeon,
       automationStrategy: config.automationStrategy,
       baseTeamUnits,
     })
+    const report: AdventureReport = {
+      ...rawReport,
+      rewards: applyRouteRewardModifiers(rawReport.rewards),
+    }
 
     const finalRun: DungeonRun = {
       ...startedRun,
@@ -527,7 +557,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       : [...run.branchTags, route.riskLevel]
 
     const addScaledReward = (reward: Resources) => {
-      const modified = applyRunRewardModifiers(reward, newBlessings, newRelics)
+      const modified = applyRouteRewardModifiers(applyRunRewardModifiers(reward, newBlessings, newRelics))
       newRewards.spiritStone += Math.floor(modified.spiritStone * (run.rewardMultiplier ?? 1))
       newRewards.spiritEnergy += Math.floor(modified.spiritEnergy * (run.rewardMultiplier ?? 1))
       newRewards.herb += Math.floor(modified.herb * (run.rewardMultiplier ?? 1))
@@ -1144,7 +1174,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const qualityIndex = floor < 3 ? 0 : floor < 6 ? 1 : floor < 9 ? 2 : 3
     const quality = qualityTable[qualityIndex]
 
-    const success = tryCapturePet(fortune, quality)
+    const routeCaptureBonus = calcPetCaptureRouteBonus(sect.activeRoute)
+    const adjustedFortune = fortune + Math.round(routeCaptureBonus / 0.02)
+    const success = tryCapturePet(adjustedFortune, quality)
     if (success) {
       const pet = generatePet(quality)
       useSectStore.getState().addPet(pet)

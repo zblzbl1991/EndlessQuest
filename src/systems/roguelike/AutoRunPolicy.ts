@@ -11,10 +11,26 @@ export interface AutomationContext {
   relics: RelicId[]
 }
 
+export type RouteArchetype = 'stable' | 'combat' | 'profit' | 'mutation'
+
 const RISK_SCORE: Record<'low' | 'medium' | 'high', number> = {
   low: 0,
   medium: 1,
   high: 2,
+}
+
+const ROUTE_ARCHETYPE_LABELS: Record<RouteArchetype, string> = {
+  stable: 'stable',
+  combat: 'combat',
+  profit: 'profit',
+  mutation: 'mutation',
+}
+
+const ROUTE_ARCHETYPE_NAMES: Record<RouteArchetype, string> = {
+  stable: 'stable route',
+  combat: 'combat route',
+  profit: 'profit route',
+  mutation: 'mutation route',
 }
 
 const BLESSING_WEIGHTS: Record<AutomationStrategy, Record<BlessingId, number>> = {
@@ -45,6 +61,27 @@ function scoreRouteReward(reward: DungeonFloor['routes'][number]['reward']): num
   return reward.spiritStone + reward.herb * 6 + reward.ore * 8
 }
 
+export function getRouteArchetype(route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>): RouteArchetype {
+  const combatEvents = route.events.filter((event) => event.type === 'combat' || event.type === 'boss').length
+  const restEvents = route.events.filter((event) => event.type === 'rest').length
+  const specialEvents = route.events.filter((event) => event.type === 'ancient_cave').length
+  const rewardScore = scoreRouteReward(route.reward)
+  const rewardDense = rewardScore >= 150
+
+  if (specialEvents > 0) return 'mutation'
+  if (combatEvents >= 2 && combatEvents >= restEvents + 1) return 'combat'
+  if (route.riskLevel === 'high' && rewardDense) return 'profit'
+  return route.riskLevel === 'low' ? 'stable' : 'profit'
+}
+
+export function getRouteArchetypeLabel(route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>): string {
+  return ROUTE_ARCHETYPE_LABELS[getRouteArchetype(route)]
+}
+
+export function getRouteArchetypeName(route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>): string {
+  return ROUTE_ARCHETYPE_NAMES[getRouteArchetype(route)]
+}
+
 export function pickAutomationRoute(
   strategy: AutomationStrategy,
   floor: DungeonFloor,
@@ -57,11 +94,29 @@ export function pickAutomationRoute(
     const rewardScore = scoreRouteReward(route.reward)
     const riskPenalty = RISK_SCORE[route.riskLevel] * 45
     const dangerMultiplier = context.averageHpRatio < 0.45 || context.lowestHpRatio < 0.25 ? 1.8 : 1
+    const archetype = getRouteArchetype(route)
 
     let score = rewardScore
-    if (strategy === 'steady') score -= riskPenalty * dangerMultiplier
-    if (strategy === 'combat') score += route.events.length * 20 - riskPenalty * 0.6
-    if (strategy === 'profit') score += rewardScore * 0.35 - riskPenalty * 0.35
+    if (strategy === 'steady') {
+      score -= riskPenalty * dangerMultiplier
+      if (archetype === 'stable') score += 40
+      if (archetype === 'combat') score += 4
+      if (archetype === 'profit') score -= 14
+      if (archetype === 'mutation') score -= 22
+    }
+    if (strategy === 'combat') {
+      score += route.events.length * 20 - riskPenalty * 0.6
+      if (archetype === 'combat') score += 120
+      if (archetype === 'mutation') score += 32
+      if (archetype === 'profit') score -= 30
+      if (archetype === 'stable') score -= 10
+    }
+    if (strategy === 'profit') {
+      score += rewardScore * 0.35 - riskPenalty * 0.35
+      if (archetype === 'profit') score += 50
+      if (archetype === 'mutation') score += 16
+      if (archetype === 'stable') score -= 8
+    }
 
     if (score > bestScore) {
       bestIndex = index

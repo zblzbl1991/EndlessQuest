@@ -11,30 +11,28 @@ describe('SectPage', () => {
     useAdventureStore.getState().reset()
   })
 
-  it('does not render action agenda or cultivation diagnosis on the sect homepage', () => {
+  it('renders the action dashboard and the priority agenda on the sect homepage', () => {
     render(
       <MemoryRouter>
         <SectPage />
       </MemoryRouter>
     )
 
-    expect(screen.queryByText('修行要务')).not.toBeInTheDocument()
-    expect(screen.queryByText('宗门诊脉')).not.toBeInTheDocument()
-    expect(screen.getByText('资源总览')).toBeInTheDocument()
+    expect(screen.getByText('行动指引')).toBeInTheDocument()
+    expect(screen.getByText('行动优先级')).toBeInTheDocument()
+    expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
 
-  it('renders the split status summary labels for disciples', () => {
+  it('renders the focus summary from StatsPanel', () => {
     render(
       <MemoryRouter>
         <SectPage />
       </MemoryRouter>
     )
 
-    expect(screen.getAllByText('修炼中').length).toBeGreaterThan(0)
-    expect(screen.getByText('派遣中')).toBeInTheDocument()
-    expect(screen.getByText('秘境中')).toBeInTheDocument()
-    expect(screen.getByText('研习中')).toBeInTheDocument()
-    expect(screen.getByText('恢复中')).toBeInTheDocument()
+    expect(screen.getByText('当前重点')).toBeInTheDocument()
+    expect(screen.getByText('建设')).toBeInTheDocument()
+    expect(screen.getByText('流转正常')).toBeInTheDocument()
   })
 
   it('renders recent adventure summaries instead of live run progress when reports exist', () => {
@@ -62,8 +60,8 @@ describe('SectPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('最近探索')).toBeInTheDocument()
+    expect(screen.getByText('最近探险')).toBeInTheDocument()
     expect(screen.queryByText(/进行中的秘境/)).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '查看明细' })).toHaveAttribute('href', '/adventure/report/report_1')
+    expect(screen.getByRole('link', { name: '查看详情' })).toHaveAttribute('href', '/adventure/report/report_1')
   })
 })

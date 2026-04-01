@@ -6,7 +6,14 @@ import {
   breakthrough,
 } from '../systems/cultivation/CultivationEngine'
 import type { Character } from '../types/character'
-import { FATE_TAGS, getFateTagById, calcFateTagFailureRateModifier } from '../data/fateTags'
+import {
+  FATE_TAGS,
+  getFateTagById,
+  calcFateTagFailureRateModifier,
+  calcFateTagCultivationRateModifier,
+  calcFateTagInsightChanceModifier,
+  calcFateTagTribulationModifier,
+} from '../data/fateTags'
 import { applyFateOnTribulation, applyFateOnBreakthrough } from '../systems/character/FateSystem'
 
 function createCharacter(overrides?: Partial<Character>): Character {
@@ -39,6 +46,7 @@ function createCharacter(overrides?: Partial<Character>): Character {
     totalCultivation: 0,
     specialties: [],
     assignedBuilding: null,
+    cultivationPath: 'none',
     fateTags: [],
     ...overrides,
   }
@@ -75,6 +83,14 @@ describe('CultivationEngine', () => {
       const rate = calcCultivationRate(character, ['leiyu'])
       const baseRate = 5 * 1.0 * 0.9 // spiritualRoot=10 (+0%), realm 1 (0.9x)
       expect(rate).toBe(baseRate * 1.1) // +10% from cultivationRate bonus
+    })
+
+    it('should apply fate-based cultivation modifiers', () => {
+      const insight = createCharacter({ fateTags: ['suddenInsight'] })
+      const scar = createCharacter({ fateTags: ['tribulationScar'] })
+
+      expect(calcCultivationRate(insight, [])).toBeGreaterThan(calcCultivationRate(createCharacter(), []))
+      expect(calcCultivationRate(scar, [])).toBeLessThan(calcCultivationRate(createCharacter(), []))
     })
   })
 
@@ -280,7 +296,24 @@ describe('FateSystem - fate tag application', () => {
     it('should sum multiple tag modifiers', () => {
       const single = calcFateTagFailureRateModifier(['tribulation-scar'])
       const both = calcFateTagFailureRateModifier(['tribulation-scar', 'heart-devil'])
-      expect(both).toBe(single * 2)
+      expect(both).toBeCloseTo(single + 0.08, 5)
+    })
+  })
+
+  describe('fate modifier helpers', () => {
+    it('should expose cultivation modifiers for fate tags', () => {
+      expect(calcFateTagCultivationRateModifier(['sudden-insight'])).toBeGreaterThan(0)
+      expect(calcFateTagCultivationRateModifier(['tribulation-scar'])).toBeLessThan(0)
+    })
+
+    it('should expose tribulation modifiers for fate tags', () => {
+      expect(calcFateTagTribulationModifier(['stable-dao-heart'])).toBeLessThan(0)
+      expect(calcFateTagTribulationModifier(['heart-devil'])).toBeGreaterThan(0)
+    })
+
+    it('should expose breakthrough insight modifiers for fate tags', () => {
+      expect(calcFateTagInsightChanceModifier(['sudden-insight'])).toBeGreaterThan(0)
+      expect(calcFateTagInsightChanceModifier([])).toBe(0)
     })
   })
 

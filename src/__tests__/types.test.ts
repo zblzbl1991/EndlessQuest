@@ -68,6 +68,7 @@ describe('Character types', () => {
       totalCultivation: 0,
       specialties: [],
       assignedBuilding: null,
+      cultivationPath: 'none',
       fateTags: [],
     }
     expect(char.baseStats.hp).toBe(100)
@@ -77,6 +78,44 @@ describe('Character types', () => {
     expect(char.equippedGear).toHaveLength(9)
     expect(char.equippedSkills).toHaveLength(5)
     expect(char.maxBackpackSlots).toBe(20)
+  })
+
+  it('should treat equippedSkills as a five-slot build surface', () => {
+    const char: Character = {
+      id: 'build-1',
+      name: '试炼弟子',
+      title: 'disciple',
+      quality: 'spirit',
+      realm: 0,
+      realmStage: 0,
+      cultivation: 0,
+      baseStats: { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 },
+      cultivationStats: {
+        spiritPower: 50,
+        maxSpiritPower: 50,
+        comprehension: 10,
+        spiritualRoot: 10,
+        fortune: 5,
+      },
+      learnedTechniques: [],
+      equippedGear: [null, null, null, null, null, null, null, null, null],
+      equippedSkills: [null, null, null, null, null],
+      backpack: [],
+      maxBackpackSlots: 20,
+      petIds: [],
+      talents: [],
+      status: 'idle',
+      injuryTimer: 0,
+      createdAt: Date.now(),
+      totalCultivation: 0,
+      specialties: [],
+      assignedBuilding: null,
+      cultivationPath: 'none',
+      fateTags: [],
+    }
+
+    expect(char.equippedSkills).toHaveLength(5)
+    expect(char.equippedSkills.filter(Boolean)).toHaveLength(0)
   })
 
   it('should accept all CharacterTitle values', () => {
@@ -505,6 +544,9 @@ describe('Adventure types', () => {
       itemRewards: [],
       finalMemberStates: {
         char1: { currentHp: 80, maxHp: 100, status: 'alive' },
+      },
+      discipleMutations: {
+        char1: [],
       },
       steps: [],
     }

@@ -9,6 +9,7 @@ import {
   isQualityUnlocked,
   getAvailableQualities,
 } from '../systems/character/CharacterEngine'
+import { observeBuildingLevel, resetObservedBuildingLevels } from '../data/buildings'
 import type { CharacterQuality } from '../types/character'
 import type { Equipment } from '../types/item'
 
@@ -33,13 +34,17 @@ function makeEquipment(overrides: Partial<Equipment['stats']> = {}): Equipment {
 // --- Tests ---
 
 describe('CharacterEngine', () => {
+  beforeEach(() => {
+    resetObservedBuildingLevels()
+  })
+
   describe('generateCharacter', () => {
     it('should generate common character with correct quality', () => {
       const c = generateCharacter('common')
       expect(c.quality).toBe('common')
       // Base stats vary ±20% around base values; rare talents can boost cultivation stats.
       expect(c.baseStats.hp).toBeGreaterThanOrEqual(80)
-      expect(c.baseStats.hp).toBeLessThanOrEqual(120)
+      expect(c.baseStats.hp).toBeLessThanOrEqual(150)
       expect(c.cultivationStats.spiritualRoot).toBeGreaterThanOrEqual(8)
       expect(c.cultivationStats.spiritualRoot).toBeLessThanOrEqual(17)
       expect(c.cultivationStats.comprehension).toBeGreaterThanOrEqual(8)
@@ -81,9 +86,38 @@ describe('CharacterEngine', () => {
       const c = generateCharacter('common')
       expect(c.backpack).toEqual([])
       expect(c.equippedGear).toEqual([])
-      expect(c.equippedSkills).toEqual([])
+      expect(c.equippedSkills).toHaveLength(5)
+      expect(c.equippedSkills[0]).toBe('sword_qi')
       expect(c.learnedTechniques).toEqual(['qingxin'])
       expect(c.petIds).toEqual([])
+    })
+
+    it('should start without a cultivation path before the breakthrough choice', () => {
+      const c = generateCharacter('divine')
+      expect(c.cultivationPath).toBe('none')
+    })
+
+    it('should roll specialties based on character quality', () => {
+      const common = generateCharacter('common')
+      const immortal = generateCharacter('immortal')
+      const divine = generateCharacter('divine')
+
+      expect(common.specialties).toEqual([])
+      expect(immortal.specialties).toHaveLength(1)
+      expect(divine.specialties.length).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should bias recruits toward building ecology when buildings are upgraded', () => {
+      observeBuildingLevel('forge', 4)
+      observeBuildingLevel('alchemyFurnace', 3)
+      observeBuildingLevel('scriptureHall', 3)
+
+      const c = generateCharacter('divine')
+
+      expect(c.learnedTechniques).toEqual(expect.arrayContaining(['qingxin', 'lieyan', 'fentian']))
+      expect(c.specialties.some((spec) => spec.type === 'combat')).toBe(true)
+      expect(c.specialties.some((spec) => spec.type === 'alchemy')).toBe(true)
+      expect(c.specialties.some((spec) => spec.type === 'comprehension')).toBe(true)
     })
 
     it('should have status idle', () => {
@@ -152,7 +186,16 @@ describe('CharacterEngine', () => {
       expect(result.atk).toBe(c.baseStats.atk)
       expect(result.def).toBe(c.baseStats.def)
       expect(result.spd).toBe(c.baseStats.spd)
-      expect(result.crit).toBe(c.baseStats.crit)
+      expect(result.crit).toBeCloseTo(c.baseStats.crit, 3)
+    })
+
+    it('should apply cultivation path bonuses to total stats', () => {
+      const c = generateCharacter('common')
+      c.cultivationPath = 'sword'
+      const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
+
+      expect(result.atk).toBe(Math.floor((c.baseStats.atk + 2) * 1.2))
+      expect(result.spd).toBe(Math.floor((c.baseStats.spd + 1) * 1.1))
     })
   })
 

@@ -1,6 +1,12 @@
-import { useState, useMemo, useCallback } from 'react'
+﻿import { useState, useMemo, useCallback } from 'react'
 import { useSectStore } from '../stores/sectStore'
-import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
+import {
+  BUILDING_DEFS,
+  getBuildingEffectText,
+  getBuildingUnlockText,
+  getObservedBuildingEcology,
+  observeBuildingLevel,
+} from '../data/buildings'
 import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
 import { calcTaxRate } from '../systems/economy/ResourceEngine'
 import { calcSectLevel } from '../systems/character/CharacterEngine'
@@ -8,7 +14,7 @@ import { getActiveSynergies } from '../systems/economy/SynergySystem'
 import { SYNERGIES } from '../data/buildings'
 import { getAutoRecipesForBuilding, getAutoRecipeById } from '../data/recipes'
 import { SPECIALTY_BUILDING_MAP } from '../data/specialties'
-import { getRoleLabel } from '../systems/character/SpecialtySystem'
+import { getRecommendedAssignment, getRoleLabel } from '../systems/character/SpecialtySystem'
 import type { AutoRecipe } from '../data/recipes'
 import {
   getMaxCharacters,
@@ -120,6 +126,16 @@ const BUILDING_SPECIALTY_HINTS: Record<string, string> = (() => {
   return result
 })()
 
+const AUTO_ASSIGNABLE_BUILDINGS = new Set(
+  Object.values(SPECIALTY_BUILDING_MAP).filter((building): building is string => !!building)
+)
+
+const EPOCH_CULTIVATION_BUILDINGS: BuildingType[] = ['alchemyFurnace', 'forge', 'scriptureHall', 'recruitmentPavilion']
+
+function getRecommendedIdleCount(buildingType: string, characters: Character[]): number {
+  return characters.filter((character) => character.status === 'idle' && getRecommendedAssignment(character) === buildingType).length
+}
+
 function formatInputPerSec(recipe: AutoRecipe): string {
   const parts: string[] = []
   if (recipe.inputPerSec.herb) parts.push(`${recipe.inputPerSec.herb}/秒灵草`)
@@ -133,6 +149,14 @@ function formatProductionTime(seconds: number): string {
   const min = Math.floor(seconds / 60)
   const sec = seconds % 60
   return sec > 0 ? `${min}分${sec}秒` : `${min}分钟`
+}
+
+function getEcologyText(buildingType: BuildingType, level: number): string | null {
+  if (level <= 0) return null
+  observeBuildingLevel(buildingType, level)
+  const ecology = getObservedBuildingEcology(buildingType)
+  if (!ecology) return null
+  return `招募偏置: ${ecology.recruitmentBias} · build 倾向: ${ecology.buildBias} · 专长: ${ecology.specialtyBias.join('、')} · 功法: ${ecology.techniqueBias.join('、')}`
 }
 
 // ---------------------------------------------------------------------------
@@ -200,6 +224,8 @@ function BuildingsTab() {
   const sect = useSectStore((s) => s.sect)
   const tryUpgradeBuilding = useSectStore((s) => s.tryUpgradeBuilding)
   const setProductionRecipe = useSectStore((s) => s.setProductionRecipe)
+  const autoAssignToBuilding = useSectStore((s) => s.autoAssignToBuilding)
+  const autoOptimizeBuildingAssignments = useSectStore((s) => s.autoOptimizeBuildingAssignments)
   const activeSynergies = getActiveSynergies(sect.buildings)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
   const [drawerBuilding, setDrawerBuilding] = useState<string | null>(null)
@@ -222,8 +248,68 @@ function BuildingsTab() {
     [setProductionRecipe]
   )
 
+  const handleAutoAssign = (buildingType: string) => {
+    const result = autoAssignToBuilding(buildingType)
+    setMessage({ success: result.success, text: result.success ? `Auto-assigned ${result.assigned} disciples` : result.reason })
+    setTimeout(() => setMessage(null), 2000)
+  }
+
+  const handleAutoOptimize = () => {
+    const result = autoOptimizeBuildingAssignments()
+    setMessage({ success: result.success, text: result.success ? `Optimized ${result.assigned} disciple assignments` : result.reason })
+    setTimeout(() => setMessage(null), 2000)
+  }
+
+  const autoAssignableCount = sect.buildings.reduce((count, building) => {
+    if (!building.unlocked || building.level <= 0) return count
+    if (!AUTO_ASSIGNABLE_BUILDINGS.has(building.type)) return count
+    return count + getRecommendedIdleCount(building.type, sect.characters)
+  }, 0)
+  const ecologyRows = sect.buildings
+    .filter((building) => EPOCH_CULTIVATION_BUILDINGS.includes(building.type) && building.level > 0)
+    .map((building) => ({
+      type: building.type,
+      name: BUILDING_DEFS.find((def) => def.type === building.type)?.name ?? building.type,
+      level: building.level,
+      text: getEcologyText(building.type, building.level),
+    }))
+    .filter((item) => item.text)
+
   return (
     <div className={styles.buildingsGrid}>
+      {ecologyRows.length > 0 && (
+        <section className={styles.synergySection}>
+          <div className={styles.sectionTitle}>宗门生态</div>
+          <div className={styles.synergyList}>
+            {ecologyRows.map((row) => (
+              <div key={row.type} className={styles.synergyCard}>
+                <div className={styles.synergyName}>
+                  {row.name} Lv{row.level}
+                </div>
+                <div className={styles.synergyDesc}>{row.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {autoAssignableCount > 0 && (
+        <section className={styles.synergySection}>
+          <div className={styles.sectionTitle}>派驻优化</div>
+          <div className={styles.synergyList}>
+            <div className={styles.synergyCard}>
+              <div className={styles.synergyName}>自动派驻推荐弟子</div>
+              <div className={styles.synergyDesc}>
+                优先填充空位，只会安排闲置弟子，不会覆盖你已经手工派驻的人员。
+              </div>
+              <button className={`${styles.upgradeBtn} ${styles.upgradeReady}`} onClick={handleAutoOptimize}>
+                一键优化派驻 ({autoAssignableCount} 人可派)
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {BUILDING_DEFS.map((def) => {
         const building = sect.buildings.find((b) => b.type === def.type)
         if (!building) return null
@@ -241,6 +327,8 @@ function BuildingsTab() {
         const progressPercent = activeRecipe
           ? Math.min((building.productionQueue.progress / activeRecipe.productionTime) * 100, 100)
           : 0
+        const recommendedIdleCount = isUnlocked ? getRecommendedIdleCount(def.type, sect.characters) : 0
+        const canAutoAssign = isUnlocked && AUTO_ASSIGNABLE_BUILDINGS.has(def.type) && recommendedIdleCount > 0
 
         return (
           <div key={def.type} className={`${styles.buildingCard} ${!isUnlocked ? styles.buildingLocked : ''}`}>
@@ -262,6 +350,9 @@ function BuildingsTab() {
             <div className={styles.buildingDesc}>{def.description}</div>
             {BUILDING_SPECIALTY_HINTS[def.type] && (
               <div className={styles.buildingDesc}>{BUILDING_SPECIALTY_HINTS[def.type]}</div>
+            )}
+            {isUnlocked && AUTO_ASSIGNABLE_BUILDINGS.has(def.type) && (
+              <div className={styles.buildingEffect}>推荐派驻: {recommendedIdleCount} / 3</div>
             )}
             {(() => {
               const effectText = getBuildingEffectText(building)
@@ -351,6 +442,14 @@ function BuildingsTab() {
                   </div>
                 )
               })()}
+            {canAutoAssign && (
+              <button
+                className={`${styles.upgradeBtn} ${styles.upgradeReady}`}
+                onClick={() => handleAutoAssign(def.type)}
+              >
+                自动派驻推荐弟子 ({recommendedIdleCount})
+              </button>
+            )}
           </div>
         )
       })}
@@ -420,6 +519,15 @@ function RecruitTab() {
 
   const recruitmentPavilionLevel = sect.buildings.find((b) => b.type === 'recruitmentPavilion')?.level ?? 0
   const hasTargetedRecruit = recruitmentPavilionLevel >= 3
+  const ecologyRows = sect.buildings
+    .filter((building) => EPOCH_CULTIVATION_BUILDINGS.includes(building.type) && building.level > 0)
+    .map((building) => ({
+      type: building.type,
+      name: BUILDING_DEFS.find((def) => def.type === building.type)?.name ?? building.type,
+      level: building.level,
+      text: getEcologyText(building.type, building.level),
+    }))
+    .filter((item) => item.text)
 
   // Targeted recruit qualities: spirit, immortal, divine (minimum)
   const targetedOptions: CharacterQuality[] = ['spirit', 'immortal', 'divine']
@@ -461,6 +569,22 @@ function RecruitTab() {
         </span>
         <span className={styles.recruitSpiritStones}>灵石: {sect.resources.spiritStone}</span>
       </div>
+
+      {ecologyRows.length > 0 && (
+        <section className={styles.synergySection}>
+          <div className={styles.sectionTitle}>宗门生态</div>
+          <div className={styles.synergyList}>
+            {ecologyRows.map((row) => (
+              <div key={row.type} className={styles.synergyCard}>
+                <div className={styles.synergyName}>
+                  {row.name} Lv{row.level}
+                </div>
+                <div className={styles.synergyDesc}>{row.text}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className={styles.qualitySelect}>
         {(['common', 'spirit', 'immortal', 'divine'] as CharacterQuality[]).map((quality) => {

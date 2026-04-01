@@ -2,6 +2,7 @@ import type { Character } from '../../types/character'
 import type { Technique, TechniqueTier } from '../../types/technique'
 import { TECHNIQUE_TIER_ORDER } from '../../types/technique'
 import { TECHNIQUES } from '../../data/techniquesTable'
+import { calcFateTagInsightChanceModifier } from '../../data/fateTags'
 
 /**
  * Check if a character meets the requirements to learn a technique.
@@ -25,12 +26,15 @@ const REALM_TIER_CEILING: TechniqueTier[] = ['mortal', 'spirit', 'immortal', 'di
  * for a technique to be a candidate.
  */
 export function tryComprehendOnBreakthrough(
-  character: { learnedTechniques: string[]; realm: number; cultivationStats: { comprehension: number } },
+  character: { learnedTechniques: string[]; realm: number; cultivationStats: { comprehension: number }; fateTags?: Character['fateTags'] },
   techniqueCodex: string[],
   isMajor: boolean,
   randomFn: () => number = Math.random
 ): string | null {
-  const chance = isMajor ? 0.4 : 0.15
+  const chance = Math.min(
+    0.95,
+    Math.max(0, (isMajor ? 0.4 : 0.15) + calcFateTagInsightChanceModifier(character.fateTags ?? []))
+  )
   if (randomFn() >= chance) return null
 
   const maxTier = REALM_TIER_CEILING[Math.min(character.realm, 4)]

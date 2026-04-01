@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { AutomationContext } from '../systems/roguelike/AutoRunPolicy'
 import {
+  getRouteArchetype,
   pickAutomationBlessing,
   pickAutomationRoute,
   shouldAttemptPetCapture,
@@ -14,19 +15,35 @@ const floor: DungeonFloor = {
   routes: [
     {
       id: 'safe',
-      name: '山径',
-      description: '低风险路线',
+      name: 'Safe Path',
+      description: 'low risk route',
       riskLevel: 'low',
-      events: [{ type: 'combat' }],
+      events: [{ type: 'rest' }, { type: 'combat' }],
       reward: { spiritStone: 60, herb: 6, ore: 1 },
     },
     {
       id: 'rich',
-      name: '药圃',
-      description: '高收益路线',
+      name: 'Rich Path',
+      description: 'high value route',
       riskLevel: 'high',
       events: [{ type: 'combat' }],
       reward: { spiritStone: 120, herb: 18, ore: 3 },
+    },
+    {
+      id: 'battle',
+      name: 'Battle Path',
+      description: 'combat heavy route',
+      riskLevel: 'medium',
+      events: [{ type: 'combat' }, { type: 'combat' }, { type: 'rest' }],
+      reward: { spiritStone: 90, herb: 8, ore: 2 },
+    },
+    {
+      id: 'mutate',
+      name: 'Mutation Path',
+      description: 'special event route',
+      riskLevel: 'high',
+      events: [{ type: 'ancient_cave' }, { type: 'combat' }],
+      reward: { spiritStone: 80, herb: 10, ore: 1 },
     },
   ],
 }
@@ -53,6 +70,18 @@ describe('AutoRunPolicy', () => {
   it('profit prefers the highest-value route when the team is stable', () => {
     const routeIndex = pickAutomationRoute('profit', floor, makeContext({ averageHpRatio: 0.95, lowestHpRatio: 0.9 }))
     expect(routeIndex).toBe(1)
+  })
+
+  it('classifies routes into readable build archetypes', () => {
+    expect(getRouteArchetype(floor.routes[0])).toBe('stable')
+    expect(getRouteArchetype(floor.routes[2])).toBe('combat')
+    expect(getRouteArchetype(floor.routes[1])).toBe('profit')
+    expect(getRouteArchetype(floor.routes[3])).toBe('mutation')
+  })
+
+  it('combat prefers combat-oriented routes when it can afford the risk', () => {
+    const routeIndex = pickAutomationRoute('combat', floor, makeContext({ averageHpRatio: 0.9, lowestHpRatio: 0.88 }))
+    expect(routeIndex).toBe(2)
   })
 
   it('combat favors battle blessings while profit favors resource blessings', () => {

@@ -6,7 +6,9 @@ import {
 } from '../../systems/cultivation/CultivationEngine'
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
-import type { RealmStage } from '../../types/character'
+import { CULTIVATION_PATHS } from '../../data/cultivationPaths'
+import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
+import type { CultivationPath, RealmStage } from '../../types/character'
 import { getFateTagDef } from '../../data/fateTags'
 import { formatCultivationValue } from '../../utils/format'
 import styles from './BreakthroughPanel.module.css'
@@ -18,6 +20,7 @@ interface BreakthroughPanelProps {
 export default function BreakthroughPanel({ characterId }: BreakthroughPanelProps) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const spiritStone = useSectStore((s) => s.sect.resources.spiritStone)
+  const chooseCultivationPath = useSectStore((s) => s.chooseCultivationPath)
 
   if (!character) return null
 
@@ -34,45 +37,46 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const hasMinorStones = minorCost !== null ? spiritStone >= minorCost : true
   const riskLabel = failureRate < 0.12 ? '平稳' : failureRate < 0.3 ? '有险' : '凶险'
   const riskClass = failureRate < 0.12 ? styles.riskLow : failureRate < 0.3 ? styles.riskMid : styles.riskHigh
+  const needsPathChoice = needsCultivationPathChoice(character)
 
-  // Major realm requirements
   const cost = isMajor ? BREAKTHROUGH_COSTS[nextRealm] : null
   const hasStones = cost ? spiritStone >= cost.spiritStone : true
 
-  // Hint text
   let hint =
     character.status === 'idle'
       ? '修炼中'
       : character.status === 'resting'
         ? '休息中'
         : character.status === 'training'
-          ? '研习中'
+          ? '驻守中'
           : character.status === 'patrolling'
             ? '派遣中'
             : character.status === 'injured'
               ? '伤势未愈'
-              : '冒险中'
+              : '探险中'
   let hintClass = ''
+
   if (ready) {
     if (isMajor && cost) {
       if (!hasStones) {
-        hint = `灵石不足（需要 ${cost.spiritStone.toLocaleString()}）`
+        hint = `灵石不足，需要 ${cost.spiritStone.toLocaleString()}`
         hintClass = styles.hintBlocked
+      } else if (needsPathChoice) {
+        hint = '先定下修行路线，弟子才会跨入新的大境界。'
+        hintClass = styles.hintFocus
       } else if (hasTribulation) {
-        hint = '修为已满，突破将触发天劫...'
+        hint = '修为已满，即将引动天劫。'
         hintClass = styles.ready
       } else {
-        hint = '修为已满，自动突破中...'
+        hint = '修为已满，自动突破中。'
         hintClass = styles.ready
       }
+    } else if (!hasMinorStones && minorCost !== null) {
+      hint = `灵石不足，需要 ${minorCost.toLocaleString()}`
+      hintClass = styles.hintBlocked
     } else {
-      if (!hasMinorStones && minorCost !== null) {
-        hint = `灵石不足（需要 ${minorCost.toLocaleString()}）`
-        hintClass = styles.hintBlocked
-      } else {
-        hint = '修为已满，自动突破中...'
-        hintClass = styles.ready
-      }
+      hint = '修为已满，自动突破中。'
+      hintClass = styles.ready
     }
   }
 
@@ -102,7 +106,24 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       {hasTribulation && (
         <div className={styles.requirement}>
           <span>天劫</span>
-          <span className={styles.failureRate}>将触发天劫</span>
+          <span className={styles.failureRate}>将会触发</span>
+        </div>
+      )}
+      {needsPathChoice && (
+        <div className={styles.pathChoiceSection}>
+          <div className={styles.reqTitle}>筑基前抉择</div>
+          <div className={styles.pathChoiceList}>
+            {Object.values(CULTIVATION_PATHS).map((path) => (
+              <button
+                key={path.id}
+                className={styles.pathChoiceCard}
+                onClick={() => chooseCultivationPath(character.id, path.id as Exclude<CultivationPath, 'none'>)}
+              >
+                <span className={styles.pathChoiceName}>{path.name}</span>
+                <span className={styles.pathChoiceDesc}>{path.description}</span>
+              </button>
+            ))}
+          </div>
         </div>
       )}
       {character.fateTags.length > 0 && (
@@ -124,8 +145,8 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         <div className={styles.majorReq}>
           <div className={styles.reqTitle}>突破需求</div>
           <div className={`${styles.reqItem} ${hasStones ? styles.reqMet : styles.reqUnmet}`}>
-            <span>灵石 ×{cost.spiritStone.toLocaleString()}</span>
-            <span>{hasStones ? '✓' : '✗'}</span>
+            <span>灵石 x{cost.spiritStone.toLocaleString()}</span>
+            <span>{hasStones ? '已备' : '未足'}</span>
           </div>
         </div>
       )}
@@ -133,13 +154,13 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         <div className={styles.majorReq}>
           <div className={styles.reqTitle}>突破需求</div>
           <div className={`${styles.reqItem} ${hasMinorStones ? styles.reqMet : styles.reqUnmet}`}>
-            <span>灵石 ×{minorCost.toLocaleString()}</span>
-            <span>{hasMinorStones ? '✓' : '✗'}</span>
+            <span>灵石 x{minorCost.toLocaleString()}</span>
+            <span>{hasMinorStones ? '已备' : '未足'}</span>
           </div>
         </div>
       )}
       {hasTribulation && (
-        <div className={styles.tribulationHint}>天劫成功有机会沉淀为命格，失败则可能留下劫痕与心魔。</div>
+        <div className={styles.tribulationHint}>天劫成功可能沉淀为命格，失败则可能留下劫痕与心魔。</div>
       )}
       <div className={`${styles.hint} ${hintClass}`}>{hint}</div>
     </div>

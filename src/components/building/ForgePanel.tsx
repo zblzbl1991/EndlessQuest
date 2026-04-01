@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
+import { getObservedBuildingEcology, observeBuildingLevel } from '../../data/buildings'
 import { FORGE_RECIPES, canForge } from '../../systems/economy/ForgeSystem'
 import { getForgeBuff } from '../../systems/economy/BuildingEffects'
 import { PixelIcon } from '../common/PixelIcon'
@@ -25,13 +26,15 @@ export default function ForgePanel() {
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
 
   const forgeLevel = sect.buildings.find((b) => b.type === 'forge')?.level ?? 0
+  observeBuildingLevel('forge', forgeLevel)
+  const ecology = getObservedBuildingEcology('forge')
   const forgeBuff = getForgeBuff(forgeLevel)
   const availableRecipes = FORGE_RECIPES.filter((r) => r.minForgeLevel <= forgeLevel)
 
   const handleForge = (recipeId: string) => {
     const result = forgeEquipment(recipeId)
     if (result.success) {
-      setMessage({ success: true, text: '锻造成功，装备已存入仓库' })
+      setMessage({ success: true, text: '锻造成功，装备已存入仓库。' })
     } else {
       setMessage({ success: false, text: result.reason })
     }
@@ -49,6 +52,18 @@ export default function ForgePanel() {
           矿石 {sect.resources.ore} · 灵石 {sect.resources.spiritStone}
         </span>
       </div>
+
+      {ecology && (
+        <div className={styles.recipeDesc} style={{ marginBottom: 12 }}>
+          生态偏置: {ecology.recruitmentBias}
+          <br />
+          build 倾向: {ecology.buildBias}
+          <br />
+          可能成型: {ecology.specialtyBias.join('、')}
+          <br />
+          可能功法: {ecology.techniqueBias.join('、')}
+        </div>
+      )}
 
       {availableRecipes.map((recipe) => {
         const affordable = canForge(
@@ -73,7 +88,7 @@ export default function ForgePanel() {
               <span className={styles.costItem}>灵石 {recipe.cost.spiritStone}</span>
             </div>
             <div className={styles.successRate}>
-              成功率: {Math.round(effectiveRate * 100)}%
+              成功率 {Math.round(effectiveRate * 100)}%
               {forgeBuff.successBonus > 0 && (
                 <span className={styles.successRateWithBuff}>
                   {' '}

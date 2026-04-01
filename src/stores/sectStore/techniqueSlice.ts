@@ -8,6 +8,7 @@ import {
 import { FORGE_RECIPES, canForge, forgeEquipment as forgeEquipmentSystem } from '../../systems/economy/ForgeSystem'
 import { getForgeBuff } from '../../systems/economy/BuildingEffects'
 import { getTechniqueById, TECHNIQUES } from '../../data/techniquesTable'
+import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { TECHNIQUE_TIER_ORDER } from '../../types/technique'
 import { emitEvent } from '../eventLogStore'
 
@@ -38,12 +39,12 @@ export const createTechniqueSlice: StateCreator<SectStore, [], [], Partial<SectS
           : [...s.sect.techniqueCodex, techniqueId],
         characters: s.sect.characters.map((c) =>
           c.id === characterId
-            ? {
+            ? syncCharacterSkillLoadout({
                 ...c,
                 learnedTechniques: c.learnedTechniques.includes(techniqueId)
                   ? c.learnedTechniques
                   : [...c.learnedTechniques, techniqueId],
-              }
+              })
             : c
         ),
       },

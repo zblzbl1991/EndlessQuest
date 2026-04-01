@@ -2,9 +2,14 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
+import { canBreakthrough } from '../systems/cultivation/CultivationEngine'
+import { getCultivationNeeded } from '../data/realms'
+import { canUpgradeBuilding } from '../systems/sect/BuildingSystem'
+import { BUILDING_DEFS } from '../data/buildings'
 import { PixelIcon } from '../components/common/PixelIcon'
 import ResourceRate from '../components/common/ResourceRate'
 import CharacterCard from '../components/common/CharacterCard'
+import ActionAgenda from '../components/sect/ActionAgenda'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
@@ -70,19 +75,38 @@ export default function SectPage() {
   const dungeons = useAdventureStore((s) => s.dungeons)
 
   const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
-
   const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
   const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel : 0
 
+  const managementHint = useMemo(() => {
+    const breakthroughTarget = sect.characters.find((char) => {
+      const needed = getCultivationNeeded(char.realm, char.realmStage)
+      return needed !== Infinity && char.cultivation / needed > 0.9 && canBreakthrough(char)
+    })
+
+    if (breakthroughTarget) {
+      return `${breakthroughTarget.name} 已接近突破，先处理修行路线与突破资源。`
+    }
+
+    const upgradable = BUILDING_DEFS.find((def) => canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone).canUpgrade)
+    if (upgradable) {
+      return `${upgradable.name} 可升级，优先投入宗门资源，放大后续产出。`
+    }
+
+    if (sect.resources.spiritEnergy / Math.max(1, 500 + spiritFieldLevel * 300) > 0.8) {
+      return '灵气接近上限，先让弟子修炼或安排消耗。'
+    }
+
+    return '当前阶段适合继续积累资源与弟子强度，保持稳定推进。'
+  }, [sect.buildings, sect.characters, sect.resources.spiritEnergy, sect.resources.spiritStone, spiritFieldLevel])
+
   return (
     <div className={styles.page}>
-      {/* Sect Header */}
       <div className={styles.header}>
         <h1 className={styles.sectName}>{sect.name}</h1>
         <span className={styles.sectLevel}>宗门等级 {sect.level}</span>
       </div>
 
-      {/* Resource Overview */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>资源总览</div>
         <div className={styles.resourceGrid}>
@@ -102,8 +126,8 @@ export default function SectPage() {
             <span className={styles.resourceValue}>{Math.floor(sect.resources.herb).toLocaleString()}</span>
           </div>
           <div className={styles.resourceCard}>
-            <PixelIcon name="ore" size={18} className={styles.inlineIcon} aria-label="矿石" />
-            <span className={styles.resourceLabel}>矿石</span>
+            <PixelIcon name="ore" size={18} className={styles.inlineIcon} aria-label="矿材" />
+            <span className={styles.resourceLabel}>矿材</span>
             <span className={styles.resourceValue}>{Math.floor(sect.resources.ore).toLocaleString()}</span>
           </div>
         </div>
@@ -113,16 +137,31 @@ export default function SectPage() {
         </div>
       </section>
 
-      {/* Sect Path */}
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>行动指引</div>
+        <div
+          style={{
+            background: 'var(--color-panel)',
+            borderRadius: 'var(--radius-md)',
+            padding: 'var(--space-md)',
+            color: 'var(--color-text-secondary)',
+            fontSize: '12px',
+            lineHeight: 1.7,
+          }}
+        >
+          {managementHint}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>行动优先级</div>
+        <ActionAgenda />
+      </section>
+
       <SectPathPanel />
-
-      {/* Legacy Ascension */}
       <LegacyPanel />
-
-      {/* Statistics */}
       <StatsPanel />
 
-      {/* Character Stats */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>弟子概况</div>
         <div className={styles.statsRow}>
@@ -136,10 +175,9 @@ export default function SectPage() {
         </div>
       </section>
 
-      {/* Recent Adventure */}
       {reports.length > 0 && (
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>最近探索</div>
+          <div className={styles.sectionTitle}>最近探险</div>
           {reports.slice(0, 3).map((report) => {
             const dungeon = dungeons.find((item) => item.id === report.dungeonId)
             return (
@@ -155,12 +193,12 @@ export default function SectPage() {
                     {dungeon?.name ?? report.dungeonId}
                   </span>
                   <span className={styles.adventureFloor}>
-                    {report.result === 'completed' ? '通关' : report.result === 'retreated' ? '撤退' : '失败'} · 第{' '}
+                    {report.result === 'completed' ? '通关' : report.result === 'retreated' ? '撤退' : '失败'} · 第
                     {report.floorsCleared} 层
                   </span>
                 </div>
                 <Link className={styles.adventureLink} to={`/adventure/report/${report.id}`}>
-                  查看明细
+                  查看详情
                 </Link>
               </div>
             )
@@ -168,7 +206,6 @@ export default function SectPage() {
         </section>
       )}
 
-      {/* Character List (compact) */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>弟子列表</div>
         <div className={styles.characterList}>

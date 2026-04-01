@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import {
+  applyMutationCombatModifiers,
+  applyMutationRewardModifiers,
   applyRunCombatModifiers,
   applyRunRecovery,
   applyRunRewardModifiers,
@@ -65,6 +67,13 @@ describe('RunBuildSystem', () => {
     expect(unit.def).toBeGreaterThan(10)
   })
 
+  it('should apply disciple mutation combat bonuses', () => {
+    const unit = applyMutationCombatModifiers(makeUnit(), ['sword_intent', 'jade_skin'])
+
+    expect(unit.atk).toBeGreaterThan(20)
+    expect(unit.def).toBeGreaterThan(10)
+  })
+
   it('should heal after each floor when recovery effects are active', () => {
     const healed = applyRunRecovery(40, 100, ['ironBody'], ['jadeGourd'])
     expect(healed).toBeGreaterThan(40)
@@ -80,5 +89,15 @@ describe('RunBuildSystem', () => {
   it('should pick a relic reward that excludes already owned relics', () => {
     const relic = pickRelicReward(['warBanner'], () => 0.1)
     expect(relic).not.toBe('warBanner')
+  })
+
+  it('should apply disciple mutation reward bonuses', () => {
+    const reward = applyMutationRewardModifiers(
+      { spiritStone: 100, spiritEnergy: 0, herb: 20, ore: 10 },
+      ['lucky_omen', 'elixir_veins']
+    )
+
+    expect(reward.spiritStone).toBeGreaterThan(100)
+    expect(reward.herb).toBeGreaterThan(20)
   })
 })

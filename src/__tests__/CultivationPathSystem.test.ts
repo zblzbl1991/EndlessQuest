@@ -1,5 +1,5 @@
 import { rollCultivationPath, getPathDef, getPathStatBonus, getPathName } from '../data/cultivationPaths'
-import { applyPathStatBonuses } from '../systems/character/CultivationPathSystem'
+import { applyPathStatBonuses, needsCultivationPathChoice } from '../systems/character/CultivationPathSystem'
 import type { BaseStats } from '../types/character'
 
 describe('CultivationPathSystem', () => {
@@ -127,8 +127,23 @@ describe('CultivationPathSystem', () => {
 
     it('should boost crit and critDmg for void path', () => {
       const result = applyPathStatBonuses(baseStats, 'void')
-      expect(result.crit).toBe(Math.floor(5 * 1.15)) // 5
+      expect(result.crit).toBe(5.75)
       expect(result.critDmg).toBe(150 * 1.3) // 195
+    })
+  })
+
+  describe('needsCultivationPathChoice', () => {
+    it('should require a path choice at the first major breakthrough node', () => {
+      expect(needsCultivationPathChoice({ cultivationPath: 'none', realm: 0, realmStage: 3 })).toBe(true)
+    })
+
+    it('should not require a path choice after a path is selected', () => {
+      expect(needsCultivationPathChoice({ cultivationPath: 'sword', realm: 0, realmStage: 3 })).toBe(false)
+    })
+
+    it('should not require a path choice outside the first major breakthrough', () => {
+      expect(needsCultivationPathChoice({ cultivationPath: 'none', realm: 0, realmStage: 2 })).toBe(false)
+      expect(needsCultivationPathChoice({ cultivationPath: 'none', realm: 1, realmStage: 3 })).toBe(false)
     })
   })
 })

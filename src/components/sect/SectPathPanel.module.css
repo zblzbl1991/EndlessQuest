@@ -242,10 +242,91 @@
   color: var(--color-danger);
 }
 
+.routeSection {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.routeTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.routeCards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.routeCard {
+  width: 100%;
+  text-align: left;
+  background: var(--color-bg-paper);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.routeCard:hover {
+  border-color: var(--color-accent);
+  background: var(--color-panel-hover);
+}
+
+.routeCardActive {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-paper));
+}
+
+.routeCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 4px;
+}
+
+.routeName {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.routeStatus {
+  font-size: 11px;
+  color: var(--color-accent);
+}
+
+.routeDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.routeBonus {
+  margin-top: 4px;
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
 @media (min-width: 1024px) {
   .pathCards {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     gap: var(--space-md);
+  }
+
+  .routeCards {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-sm);
   }
 }

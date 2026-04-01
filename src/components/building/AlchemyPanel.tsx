@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
+import { getObservedBuildingEcology, observeBuildingLevel } from '../../data/buildings'
 import { ALCHEMY_RECIPES, canCraft } from '../../systems/economy/AlchemySystem'
 import styles from './AlchemyPanel.module.css'
 
@@ -21,12 +22,14 @@ export default function AlchemyPanel() {
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
 
   const furnaceLevel = sect.buildings.find((b) => b.type === 'alchemyFurnace')?.level ?? 0
+  observeBuildingLevel('alchemyFurnace', furnaceLevel)
+  const ecology = getObservedBuildingEcology('alchemyFurnace')
   const availableRecipes = ALCHEMY_RECIPES.filter((r) => r.minFurnaceLevel <= furnaceLevel)
 
   const handleCraft = (recipeId: string) => {
     const result = craftPotion(recipeId)
     if (result.success) {
-      setMessage({ success: true, text: '炼制成功，丹药已存入仓库' })
+      setMessage({ success: true, text: '炼制成功，丹药已存入仓库。' })
     } else {
       setMessage({ success: false, text: result.reason })
     }
@@ -41,6 +44,18 @@ export default function AlchemyPanel() {
           灵草 {sect.resources.herb} · 灵石 {sect.resources.spiritStone}
         </span>
       </div>
+
+      {ecology && (
+        <div className={styles.recipeDesc} style={{ marginBottom: 12 }}>
+          生态偏置: {ecology.recruitmentBias}
+          <br />
+          build 倾向: {ecology.buildBias}
+          <br />
+          可能成型: {ecology.specialtyBias.join('、')}
+          <br />
+          可能功法: {ecology.techniqueBias.join('、')}
+        </div>
+      )}
 
       {availableRecipes.map((recipe) => {
         const affordable = canCraft(

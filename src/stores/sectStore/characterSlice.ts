@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
-import type { CharacterQuality } from '../../types/character'
+import type { CharacterQuality, CultivationPath } from '../../types/character'
 import {
   generateCharacter,
   getMaxCharacters,
@@ -10,6 +10,9 @@ import {
 import { getRecruitCostMult } from '../../systems/economy/BuildingEffects'
 import { emitEvent } from '../eventLogStore'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
+import { getPathName } from '../../data/cultivationPaths'
+import { syncCharacterSkillLoadout } from '../../data/activeSkills'
+import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 
 export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   addCharacter: (quality: CharacterQuality) => {
@@ -115,6 +118,30 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
         ),
       },
     }))
+  },
+
+  chooseCultivationPath: (id: string, path: Exclude<CultivationPath, 'none'>) => {
+    let changed = false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) => {
+          if (c.id !== id || !needsCultivationPathChoice(c)) return c
+          changed = true
+          return syncCharacterSkillLoadout({ ...c, cultivationPath: path })
+        }),
+      },
+    }))
+
+    if (changed) {
+      const character = get().sect.characters.find((c) => c.id === id)
+      if (character) {
+        emitEvent('milestone', `${character.name} 定下修行方向：${getPathName(path)}`)
+      }
+    }
+
+    return changed
   },
 
   targetedRecruit: (minQuality: CharacterQuality) => {

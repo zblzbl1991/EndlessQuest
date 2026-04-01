@@ -1,4 +1,5 @@
 import type { BuildingType, Building, ResourceCaps } from '../types/sect'
+import type { SpecialtyType } from '../types/character'
 import { getMarketBuff, getAlchemyBuff, getForgeBuff, getRecruitBuff } from '../systems/economy/BuildingEffects'
 
 export interface BuildingDef {
@@ -8,6 +9,112 @@ export interface BuildingDef {
   maxLevel: number
   upgradeCost: (level: number) => { spiritStone: number }
   unlockCondition: string
+}
+
+export interface BuildingEcologyProfile {
+  recruitmentBias: string
+  buildBias: string
+  specialtyBias: string[]
+  techniqueBias: string[]
+}
+
+const OBSERVED_BUILDING_LEVELS: Partial<Record<BuildingType, number>> = {}
+
+function clampObservedLevel(level: number): number {
+  return Math.max(0, Math.floor(level))
+}
+
+export function observeBuildingLevel(type: BuildingType, level: number): void {
+  OBSERVED_BUILDING_LEVELS[type] = clampObservedLevel(level)
+}
+
+export function getObservedBuildingLevel(type: BuildingType): number {
+  return OBSERVED_BUILDING_LEVELS[type] ?? 0
+}
+
+export function resetObservedBuildingLevels(): void {
+  for (const key of Object.keys(OBSERVED_BUILDING_LEVELS)) {
+    delete OBSERVED_BUILDING_LEVELS[key as BuildingType]
+  }
+}
+
+function makeEcologyProfile(
+  recruitmentBias: string,
+  buildBias: string,
+  specialtyBias: SpecialtyType[],
+  techniqueBias: string[]
+): BuildingEcologyProfile {
+  return { recruitmentBias, buildBias, specialtyBias, techniqueBias }
+}
+
+export function getBuildingEcologyProfile(type: BuildingType, level: number): BuildingEcologyProfile | null {
+  if (level <= 0) return null
+
+  switch (type) {
+    case 'alchemyFurnace':
+      return makeEcologyProfile(
+        level >= 3 ? '更容易出现丹道、治疗与辅助取向弟子' : '开始偏向炼丹与后勤型弟子',
+        '续战、恢复、稳定增益',
+        level >= 3 ? ['alchemy', 'herbalism', 'comprehension'] : ['alchemy', 'herbalism'],
+        level >= 3 ? ['xuanbing', 'jiuzhuan', 'taishang'] : ['qingxin']
+      )
+    case 'forge':
+      return makeEcologyProfile(
+        level >= 3 ? '更容易出现锻造、战斗与爆发取向弟子' : '开始偏向锻造与战斗型弟子',
+        '爆发、攻坚、装备协同',
+        level >= 3 ? ['forging', 'combat', 'leadership'] : ['forging', 'combat'],
+        level >= 3 ? ['lieyan', 'fentian', 'wanjianguizong'] : ['lieyan']
+      )
+    case 'scriptureHall':
+      return makeEcologyProfile(
+        level >= 3 ? '更容易出现悟性、领悟与控场取向弟子' : '开始偏向悟性与技能成型弟子',
+        '学习、顿悟、技能连携',
+        level >= 3 ? ['comprehension', 'leadership', 'fortune'] : ['comprehension', 'leadership'],
+        level >= 3 ? ['qingxin', 'jiuzhuan', 'taishang'] : ['qingxin']
+      )
+    case 'spiritField':
+      return makeEcologyProfile(
+        level >= 3 ? '更容易出现稳健、续航与资源型弟子' : '开始偏向资源与稳守型弟子',
+        '续航、耐久、资源循环',
+        level >= 3 ? ['herbalism', 'leadership', 'fortune'] : ['herbalism'],
+        level >= 3 ? ['houtu', 'xuanbing'] : ['houtu']
+      )
+    case 'spiritMine':
+      return makeEcologyProfile(
+        level >= 3 ? '更容易出现挖掘、体魄与攻守兼备弟子' : '开始偏向矿脉与体修型弟子',
+        '攻守均衡、稳定成长',
+        level >= 3 ? ['mining', 'combat', 'forging'] : ['mining', 'combat'],
+        level >= 3 ? ['bumiejinshen', 'jiuzhuan'] : ['bumiejinshen']
+      )
+    case 'market':
+      return makeEcologyProfile(
+        level >= 3 ? '更容易出现机缘、经营与灵活应变弟子' : '开始偏向坊市与机缘型弟子',
+        '资源调度、收益转化、临场应变',
+        level >= 3 ? ['fortune', 'leadership'] : ['fortune'],
+        level >= 3 ? ['jiuzhuan', 'qingxin'] : ['qingxin']
+      )
+    case 'recruitmentPavilion':
+      return makeEcologyProfile(
+        level >= 3 ? '招募池更容易出现高质量、低杂质弟子' : '招募效率提升，杂质开始减少',
+        '更高基础质量、更多可塑性',
+        ['fortune', 'leadership', 'comprehension'],
+        level >= 3 ? ['taishang', 'wanjianguizong', 'houtu'] : ['qingxin']
+      )
+    case 'mainHall':
+      return makeEcologyProfile(
+        level >= 3 ? '宗门整体更容易诞生均衡型弟子' : '宗门气象开始稳定',
+        '全局均衡，少偏科',
+        ['leadership', 'fortune'],
+        ['qingxin']
+      )
+    default:
+      return null
+  }
+}
+
+export function getObservedBuildingEcology(type: BuildingType): BuildingEcologyProfile | null {
+  const level = getObservedBuildingLevel(type)
+  return getBuildingEcologyProfile(type, level)
 }
 
 export const BUILDING_DEFS: BuildingDef[] = [
@@ -121,6 +228,7 @@ export function calcResourceCaps(spiritFieldLevel: number, spiritMineLevel: numb
 
 export function getBuildingEffectText(building: Building): string {
   if (!building.unlocked || building.level === 0) return ''
+  observeBuildingLevel(building.type, building.level)
 
   switch (building.type) {
     case 'mainHall':

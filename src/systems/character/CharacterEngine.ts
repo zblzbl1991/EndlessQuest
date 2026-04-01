@@ -2,8 +2,11 @@ import type { Character, CharacterQuality, BaseStats, CultivationStats } from '.
 import type { Equipment } from '../../types/item'
 import type { Talent, TalentRarity } from '../../types/talent'
 import { ALL_TALENTS } from '../../data/talents'
+import { syncCharacterSkillLoadout } from '../../data/activeSkills'
+import { getObservedBuildingLevel } from '../../data/buildings'
 import { getTechniqueById } from '../../data/techniquesTable'
-import { rollCultivationPath } from '../../data/cultivationPaths'
+import { rollSpecialties } from './SpecialtySystem'
+import { applyPathStatBonuses } from './CultivationPathSystem'
 
 // ---------------------------------------------------------------------------
 // Quality stat table
@@ -77,6 +80,85 @@ function isBaseStatKey(stat: string): stat is keyof BaseStats {
 
 function isCultivationStatKey(stat: string): stat is keyof CultivationStats {
   return CULTIVATION_STAT_KEYS.includes(stat as (typeof CULTIVATION_STAT_KEYS)[number])
+}
+
+function mergeSpecialtyLevels(
+  base: Character['specialties'],
+  type: Character['specialties'][number]['type'],
+  level: 1 | 2 | 3
+): Character['specialties'] {
+  const next = [...base]
+  const existing = next.find((spec) => spec.type === type)
+  if (!existing) {
+    next.push({ type, level })
+    return next
+  }
+  if (level > existing.level) {
+    existing.level = level
+  }
+  return next
+}
+
+function getEcologyBonusTechniques(): string[] {
+  const bonus: string[] = []
+  const ecologyOrder: Array<{ type: Parameters<typeof getObservedBuildingLevel>[0]; minLevel: number; techniques: string[] }> = [
+    { type: 'forge', minLevel: 3, techniques: ['lieyan', 'fentian'] },
+    { type: 'alchemyFurnace', minLevel: 3, techniques: ['xuanbing', 'jiuzhuan'] },
+    { type: 'scriptureHall', minLevel: 3, techniques: ['taishang', 'qingxin'] },
+    { type: 'spiritField', minLevel: 4, techniques: ['houtu'] },
+    { type: 'spiritMine', minLevel: 4, techniques: ['bumiejinshen'] },
+    { type: 'recruitmentPavilion', minLevel: 3, techniques: ['wanjianguizong'] },
+  ]
+
+  for (const entry of ecologyOrder) {
+    const observed = getObservedBuildingLevel(entry.type)
+    if (observed < entry.minLevel) continue
+    for (const techniqueId of entry.techniques) {
+      if (!bonus.includes(techniqueId)) bonus.push(techniqueId)
+    }
+  }
+
+  return bonus.slice(0, 2)
+}
+
+function applyBuildingEcologyToSpecialties(
+  specialties: Character['specialties'],
+  ecologyLevel: number
+): Character['specialties'] {
+  let next = [...specialties]
+  if (ecologyLevel >= 3) next = mergeSpecialtyLevels(next, 'comprehension', 2)
+  if (ecologyLevel >= 4) next = mergeSpecialtyLevels(next, 'leadership', 1)
+  return next
+}
+
+function applyBuildingEcologyBiases(
+  specialties: Character['specialties']
+): { specialties: Character['specialties']; learnedTechniques: string[] } {
+  const observed = {
+    forge: getObservedBuildingLevel('forge'),
+    alchemyFurnace: getObservedBuildingLevel('alchemyFurnace'),
+    scriptureHall: getObservedBuildingLevel('scriptureHall'),
+    spiritField: getObservedBuildingLevel('spiritField'),
+    spiritMine: getObservedBuildingLevel('spiritMine'),
+    recruitmentPavilion: getObservedBuildingLevel('recruitmentPavilion'),
+  }
+
+  let nextSpecialties = [...specialties]
+  if (observed.forge >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'combat', 2)
+  if (observed.alchemyFurnace >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'alchemy', 2)
+  if (observed.scriptureHall >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'comprehension', 2)
+  if (observed.spiritField >= 4) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'herbalism', 2)
+  if (observed.spiritMine >= 4) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'mining', 2)
+  if (observed.recruitmentPavilion >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'leadership', 2)
+
+  const bonusTechniques = getEcologyBonusTechniques()
+
+  if (observed.forge >= 3) nextSpecialties = applyBuildingEcologyToSpecialties(nextSpecialties, observed.forge)
+
+  return {
+    specialties: nextSpecialties,
+    learnedTechniques: bonusTechniques,
+  }
 }
 
 function rollTalents(quality: CharacterQuality): Talent[] {
@@ -329,7 +411,11 @@ export function generateCharacter(quality: CharacterQuality): Character {
     quality = 'chaos'
   }
 
-  return {
+  const ecologyBias = applyBuildingEcologyBiases(rollSpecialties(quality))
+  const learnedTechniques = ['qingxin', ...ecologyBias.learnedTechniques]
+  const specialties = applyBuildingEcologyToSpecialties(ecologyBias.specialties, getObservedBuildingLevel('scriptureHall'))
+
+  return syncCharacterSkillLoadout({
     id: 'char_' + Date.now() + '_' + ++_idCounter,
     name: generateName(),
     title: 'disciple',
@@ -339,7 +425,7 @@ export function generateCharacter(quality: CharacterQuality): Character {
     cultivation: 0,
     baseStats,
     cultivationStats,
-    learnedTechniques: ['qingxin'],
+    learnedTechniques: Array.from(new Set(learnedTechniques)),
     equippedGear: [],
     equippedSkills: [],
     backpack: [],
@@ -350,11 +436,11 @@ export function generateCharacter(quality: CharacterQuality): Character {
     injuryTimer: 0,
     createdAt: Date.now(),
     totalCultivation: 0,
-    specialties: [],
+    specialties,
     assignedBuilding: null,
-    cultivationPath: rollCultivationPath(quality),
+    cultivationPath: 'none',
     fateTags: [],
-  }
+  })
 }
 
 /**
@@ -393,15 +479,17 @@ export function calcCharacterTotalStats(
     }
   }
 
-  // 4. Round to avoid floating-point artifacts
-  total.hp = Math.round(total.hp * 100) / 100
-  total.atk = Math.round(total.atk * 100) / 100
-  total.def = Math.round(total.def * 100) / 100
-  total.spd = Math.round(total.spd * 100) / 100
-  total.crit = Math.round(total.crit * 1000) / 1000
-  total.critDmg = Math.round(total.critDmg * 100) / 100
+  const withPathBonuses = applyPathStatBonuses(total, character.cultivationPath)
 
-  return total
+  // 4. Round to avoid floating-point artifacts
+  withPathBonuses.hp = Math.round(withPathBonuses.hp * 100) / 100
+  withPathBonuses.atk = Math.round(withPathBonuses.atk * 100) / 100
+  withPathBonuses.def = Math.round(withPathBonuses.def * 100) / 100
+  withPathBonuses.spd = Math.round(withPathBonuses.spd * 100) / 100
+  withPathBonuses.crit = Math.round(withPathBonuses.crit * 1000) / 1000
+  withPathBonuses.critDmg = Math.round(withPathBonuses.critDmg * 100) / 100
+
+  return withPathBonuses
 }
 
 /**

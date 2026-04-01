@@ -152,6 +152,61 @@
   margin-top: var(--space-sm);
 }
 
+.hintFocus {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-accent);
+  background: rgba(139, 69, 19, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 6px var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.pathChoiceSection {
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.pathChoiceList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.pathChoiceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  text-align: left;
+  background: var(--color-panel);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.pathChoiceCard:hover {
+  border-color: var(--color-accent);
+  background: var(--color-panel-hover);
+}
+
+.pathChoiceName {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.pathChoiceDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
 .fateTags {
   margin-top: var(--space-sm);
   padding-top: var(--space-sm);

@@ -5,7 +5,13 @@ import {
   getMaxCharacters,
   getMaxSimultaneousRuns,
 } from '../systems/sect/SectEngine'
-import { getActiveRoute, calcBuildingRouteBonus } from '../systems/sect/SectRouteSystem'
+import {
+  getActiveRoute,
+  calcBuildingRouteBonus,
+  calcAdventureRouteRewardBonus,
+  calcAdventureRouteCombatBonus,
+  calcPetCaptureRouteBonus,
+} from '../systems/sect/SectRouteSystem'
 import { useSectStore } from '../stores/sectStore'
 
 describe('SectEngine', () => {
@@ -150,6 +156,28 @@ describe('SectRouteSystem', () => {
 
     it('should return 1 for beast route on spiritField (no bonus value)', () => {
       expect(calcBuildingRouteBonus('beast', 'spiritField')).toBe(1)
+    })
+  })
+
+  describe('live route modifiers', () => {
+    it('should apply reward bonuses to matching resources', () => {
+      expect(calcAdventureRouteRewardBonus('alchemy', 'herb')).toBe(1.15)
+      expect(calcAdventureRouteRewardBonus('sword', 'ore')).toBe(1.1)
+      expect(calcAdventureRouteRewardBonus('beast', 'spiritEnergy')).toBe(1.1)
+      expect(calcAdventureRouteRewardBonus('alchemy', 'ore')).toBe(1)
+    })
+
+    it('should expose route-specific combat profiles', () => {
+      expect(calcAdventureRouteCombatBonus('alchemy').def).toBeGreaterThan(1)
+      expect(calcAdventureRouteCombatBonus('sword').atk).toBeGreaterThan(1)
+      expect(calcAdventureRouteCombatBonus('beast').spd).toBeGreaterThan(1)
+      expect(calcAdventureRouteCombatBonus(null)).toEqual({ atk: 1, def: 1, spd: 1 })
+    })
+
+    it('should grant beast route the strongest pet capture bias', () => {
+      expect(calcPetCaptureRouteBonus('beast')).toBeGreaterThan(calcPetCaptureRouteBonus('alchemy'))
+      expect(calcPetCaptureRouteBonus('beast')).toBeGreaterThan(calcPetCaptureRouteBonus('sword'))
+      expect(calcPetCaptureRouteBonus(null)).toBe(0)
     })
   })
 })

@@ -123,6 +123,7 @@ function makeCharacter(specialties: Specialty[]): Character {
     totalCultivation: 0,
     specialties,
     assignedBuilding: null,
+    cultivationPath: 'none',
     fateTags: [],
   }
 }

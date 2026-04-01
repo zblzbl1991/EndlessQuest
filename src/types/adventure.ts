@@ -1,6 +1,7 @@
 import type { AnyItem } from './item'
 import type { Resources } from './sect'
 import type { ShopOffer } from '../systems/roguelike/EventSystem'
+import type { DiscipleMutationId } from '../data/discipleMutations'
 
 export type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribulationBane'
 export type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
@@ -101,6 +102,7 @@ export interface AdventureReportStep {
     blessings: BlessingId[]
     relics: RelicId[]
     branchTags: string[]
+    discipleMutations: Record<string, DiscipleMutationId[]>
   }
   meta?: Record<string, unknown>
 }
@@ -117,6 +119,7 @@ export interface AdventureReport {
   rewards: Resources
   itemRewards: AnyItem[]
   finalMemberStates: Record<string, MemberState>
+  discipleMutations: Record<string, DiscipleMutationId[]>
   steps: AdventureReportStep[]
 }
 

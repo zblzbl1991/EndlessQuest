@@ -1,5 +1,6 @@
 import type { Character } from '../../types/character'
 import { REALMS } from '../../data/realms'
+import { calcFateTagTribulationModifier } from '../../data/fateTags'
 
 export interface TribulationResult {
   success: boolean
@@ -45,7 +46,8 @@ export function resolveTribulation(character: Character): TribulationResult {
       stageMultiplier = currentRealmData.tribulationStages[character.realmStage] ?? 1.0
     }
   }
-  const finalFailRate = Math.min(0.95, failRate * stageMultiplier)
+  const fateModifier = calcFateTagTribulationModifier(character.fateTags)
+  const finalFailRate = Math.min(0.95, Math.max(0, failRate * stageMultiplier + fateModifier))
 
   if (Math.random() >= finalFailRate) {
     return { success: true }

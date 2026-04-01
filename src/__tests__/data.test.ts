@@ -1,4 +1,10 @@
 import { TECHNIQUES, getTechniqueById } from '../data/techniquesTable'
+import {
+  buildCharacterSkillLoadout,
+  getCombatStyleProfile,
+  MAX_CHARACTER_SKILL_SLOTS,
+  syncCharacterSkillLoadout,
+} from '../data/activeSkills'
 import { ELEMENT_NAMES, COUNTER_MAP, getElementMultiplier } from '../data/skills'
 import { createCharacterCombatUnit, createCombatUnitFromEnemy } from '../data/enemies'
 import { QUALITY_COLORS } from '../data/items'
@@ -183,14 +189,16 @@ describe('Enemies data', () => {
       totalCultivation: 0,
       specialties: [],
       assignedBuilding: null,
+      cultivationPath: 'none',
       fateTags: [],
       ...overrides,
     }
   }
 
-  it('should create combat unit from character with no technique', () => {
+  it('should create combat unit from character with auto skill loadout', () => {
     const char = makeTestCharacter()
     const unit = createCharacterCombatUnit(char, [])
+    const synced = syncCharacterSkillLoadout(char)
     expect(unit.id).toBe('test_char_1')
     expect(unit.name).toBe('测试角色')
     expect(unit.team).toBe('ally')
@@ -199,7 +207,8 @@ describe('Enemies data', () => {
     expect(unit.element).toBe('neutral')
     expect(unit.spiritPower).toBe(50)
     expect(unit.maxSpiritPower).toBe(50)
-    expect(unit.skills).toHaveLength(0)
+    expect(unit.skills).toHaveLength(synced.equippedSkills.filter(Boolean).length)
+    expect(unit.skills[0]?.id).toBe(synced.equippedSkills[0])
   })
 
   it('should apply technique bonuses to baseStats', () => {
@@ -239,6 +248,38 @@ describe('Enemies data', () => {
     expect(unit.skills).toHaveLength(2)
     expect(unit.skills[0].id).toBe('sword_qi')
     expect(unit.skills[1].id).toBe('fire_palm')
+  })
+
+  it('should build a coherent automatic skill loadout from combat style profile', () => {
+    const char = makeTestCharacter({
+      cultivationPath: 'sword',
+      learnedTechniques: ['qingxin', 'lieyan'],
+      specialties: [{ type: 'combat', level: 1 }],
+    })
+
+    const profile = getCombatStyleProfile(char)
+    const loadout = buildCharacterSkillLoadout(char)
+    const synced = syncCharacterSkillLoadout(char)
+
+    expect(profile.styleId).toBe('sword-burst')
+    expect(profile.styleName).toContain('剑')
+    expect(loadout).toHaveLength(MAX_CHARACTER_SKILL_SLOTS)
+    expect(loadout[0]).toBe('sword_qi')
+    expect(synced.equippedSkills).toHaveLength(MAX_CHARACTER_SKILL_SLOTS)
+    expect(synced.equippedSkills[0]).toBe('sword_qi')
+  })
+
+  it('should keep empty skill slots compatible with learned-technique builds', () => {
+    const char = makeTestCharacter({
+      learnedTechniques: ['qingxin', 'fentian'],
+      equippedSkills: [null, null, null, null, null],
+    })
+    const unit = createCharacterCombatUnit(char, ['qingxin', 'fentian'])
+    const synced = syncCharacterSkillLoadout(char)
+    expect(unit.skills).toHaveLength(synced.equippedSkills.filter(Boolean).length)
+    expect(unit.skills[0]?.id).toBe(synced.equippedSkills[0])
+    expect(unit.element).toBe('fire')
+    expect(unit.atk).toBe(29)
   })
 
   it('should use cultivationStats spiritPower/maxSpiritPower', () => {

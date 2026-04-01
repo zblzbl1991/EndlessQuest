@@ -145,6 +145,9 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
           finalMemberStates: {
             c1: { currentHp: 80, maxHp: 100, status: 'alive' },
           },
+          discipleMutations: {
+            c1: [],
+          },
           steps: [
             {
               id: 'step_1',

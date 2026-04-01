@@ -37,6 +37,7 @@ export interface EventResult {
   techniqueReward?: { techniqueId: string }
   shopOffers?: ShopOffer[]
   petCaptureAvailable?: boolean
+  mutationTrigger?: 'battle' | 'insight' | 'rest'
 }
 
 function getNonBossTemplates() {
@@ -159,6 +160,7 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
           message: hasPetCapture ? `击败了 ${enemyTemplate.name}，发现可捕获灵兽！` : `击败了 ${enemyTemplate.name}`,
           hpChanges,
           petCaptureAvailable: hasPetCapture || undefined,
+          mutationTrigger: 'battle',
         }
       } else {
         return {
@@ -184,6 +186,7 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
           itemRewards: [],
           message: '发现了一处宝箱！',
           hpChanges: {},
+          mutationTrigger: 'insight',
         }
       } else if (roll < 0.8) {
         // Heal all alive team members
@@ -200,6 +203,7 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
           itemRewards: [],
           message: '路边休息，恢复了少量生命',
           hpChanges,
+          mutationTrigger: 'rest',
         }
       } else {
         // Damage all alive team members
@@ -248,6 +252,7 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
         itemRewards: [],
         message: '休息恢复了生命',
         hpChanges,
+        mutationTrigger: 'rest',
       }
     }
     case 'boss': {
@@ -308,6 +313,7 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
             : `击败了 BOSS: ${bossTemplate.name}！`,
           hpChanges,
           petCaptureAvailable: hasPetCapture || undefined,
+          mutationTrigger: 'battle',
         }
       } else {
         return {
@@ -332,6 +338,7 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
         message: `古修洞府中发现功法铭文：${techniqueName}`,
         hpChanges: {},
         techniqueReward: { techniqueId },
+        mutationTrigger: 'insight',
       }
     }
     default:

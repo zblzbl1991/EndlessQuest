@@ -93,6 +93,9 @@ const dungeon: Dungeon = {
 }
 
 function successfulEvent(type: DungeonEvent['type'], hpDelta = -10): EventResult {
+  const mutationTrigger =
+    type === 'combat' || type === 'boss' ? 'battle' : type === 'random' ? 'insight' : undefined
+
   return {
     type,
     success: true,
@@ -100,6 +103,7 @@ function successfulEvent(type: DungeonEvent['type'], hpDelta = -10): EventResult
     itemRewards: [],
     message: `${type} resolved`,
     hpChanges: { char_1: hpDelta },
+    mutationTrigger,
   }
 }
 
@@ -110,6 +114,13 @@ describe('AutoRunEngine', () => {
       dungeon,
       automationStrategy: 'steady',
       baseTeamUnits: [makeUnit()],
+      teamMutationProfiles: {
+        char_1: {
+          cultivationPath: 'sword',
+          specialties: [{ type: 'combat' }],
+          fateTags: ['suddenInsight'],
+        },
+      },
       now: (() => {
         let tick = 1_000
         return () => ++tick
@@ -122,8 +133,10 @@ describe('AutoRunEngine', () => {
 
     expect(report.result).toBe('completed')
     expect(report.floorsCleared).toBe(2)
+    expect(report.discipleMutations.char_1.length).toBeGreaterThan(0)
     expect(report.steps[0]?.type).toBe('run_started')
     expect(report.steps.some((step) => step.type === 'route_selected')).toBe(true)
+    expect(report.steps.some((step) => step.type === 'auto_choice_made')).toBe(true)
     expect(report.steps.at(-1)?.type).toBe('run_completed')
     expect(report.finishedAt).toBeGreaterThanOrEqual(report.startedAt)
     expect(report.rewards.spiritStone).toBeGreaterThan(0)
@@ -135,6 +148,13 @@ describe('AutoRunEngine', () => {
       dungeon,
       automationStrategy: 'steady',
       baseTeamUnits: [makeUnit()],
+      teamMutationProfiles: {
+        char_1: {
+          cultivationPath: 'body',
+          specialties: [{ type: 'leadership' }],
+          fateTags: ['stableDaoHeart'],
+        },
+      },
       now: (() => {
         let tick = 2_000
         return () => ++tick
@@ -147,6 +167,7 @@ describe('AutoRunEngine', () => {
 
     expect(report.result).toBe('retreated')
     expect(report.steps.some((step) => step.type === 'run_retreated')).toBe(true)
+    expect(report.discipleMutations.char_1.length).toBeGreaterThan(0)
     expect(report.floorsCleared).toBe(1)
     expect(report.finalMemberStates.char_1.currentHp).toBe(15)
   })

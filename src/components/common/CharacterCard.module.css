@@ -136,6 +136,39 @@
   opacity: 0.95;
 }
 
+.identityTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+
+.roleTag,
+.assignmentTag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.roleTag {
+  background: rgba(76, 175, 80, 0.1);
+  color: #2e7d32;
+}
+
+.assignmentTag {
+  background: rgba(93, 64, 55, 0.1);
+  color: #6d4c41;
+}
+
+.specialtySummary {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-bottom: 2px;
+}
+
 .fateTags {
   display: flex;
   flex-wrap: wrap;

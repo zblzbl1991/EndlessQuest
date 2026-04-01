@@ -1,7 +1,13 @@
 import { useState, useMemo } from 'react'
+import type { CSSProperties } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { QUALITY_NAMES, EQUIP_SLOT_NAMES } from '../data/items'
-import { getEffectiveStats } from '../systems/equipment/EquipmentEngine'
+import {
+  getEffectiveStats,
+  getEquipmentRecommendationForCharacter,
+  getEquipmentTendency,
+  type EquipmentRecommendation,
+} from '../systems/equipment/EquipmentEngine'
 import { getTechniqueById } from '../data/techniquesTable'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import { PixelIcon } from '../components/common/PixelIcon'
@@ -50,6 +56,30 @@ function getVaultItemIconName(item: AnyItem): string {
   if (item.category === 'herb') return 'herb'
   if (item.category === 'ore') return 'ore'
   return 'typeMaterial'
+}
+
+function RecommendationBlock({ rec }: { rec: EquipmentRecommendation | null }) {
+  if (!rec) return null
+
+  const badgeStyle: CSSProperties =
+    rec.status === 'recommended'
+      ? { background: 'rgba(155, 119, 52, 0.18)', color: 'var(--color-accent)' }
+      : rec.status === 'notRecommended'
+        ? { background: 'rgba(110, 110, 110, 0.12)', color: 'var(--color-text-tertiary)' }
+        : { background: 'rgba(120, 120, 120, 0.14)', color: 'var(--color-text-secondary)' }
+
+  return (
+    <div style={{ display: 'grid', gap: 4, marginTop: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--color-bg-paper)', border: '1px solid var(--color-border-light)' }}>
+      <div style={{ display: 'inline-flex', alignItems: 'center', width: 'fit-content', borderRadius: 999, padding: '2px 8px', fontSize: 10, fontWeight: 700, ...badgeStyle }}>
+        {rec.label}
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--color-accent)', fontWeight: 600 }}>{rec.direction}</div>
+      <div style={{ fontSize: 11, color: 'var(--color-text-secondary)', lineHeight: 1.5 }}>{rec.summary}</div>
+      <div style={{ fontSize: 10, color: 'var(--color-text-tertiary)', lineHeight: 1.4 }}>
+        {rec.reasons.length > 0 ? rec.reasons.join(' · ') : '通用过渡件'}
+      </div>
+    </div>
+  )
 }
 
 // ---------------------------------------------------------------------------
@@ -168,7 +198,10 @@ function VaultTab() {
 
           {/* Equipment stats */}
           {selectedItem.type === 'equipment' && (
-            <div className={styles.detailStats}>{formatEquipStats(selectedItem as Equipment)}</div>
+            <>
+              <div className={styles.detailStats}>{formatEquipStats(selectedItem as Equipment)}</div>
+              <RecommendationBlock rec={getEquipmentTendency(selectedItem as Equipment)} />
+            </>
           )}
 
           {/* Technique scroll info */}
@@ -322,6 +355,12 @@ function BackpackTab() {
                   {QUALITY_NAMES[selectedItem.quality]}
                 </div>
                 <div className={styles.detailPrice}>售价: {selectedItem.sellPrice} 灵石</div>
+
+                {selectedItem.type === 'equipment' && (
+                  <RecommendationBlock
+                    rec={getEquipmentRecommendationForCharacter(char, selectedItem as Equipment)}
+                  />
+                )}
 
                 <div className={styles.detailActions}>
                   {selectedItem.type === 'equipment' && (

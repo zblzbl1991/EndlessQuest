@@ -26,6 +26,7 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     totalCultivation: 0,
     specialties: [],
     assignedBuilding: null,
+    cultivationPath: 'none',
     fateTags: [],
     ...overrides,
   }

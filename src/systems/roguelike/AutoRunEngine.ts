@@ -12,11 +12,16 @@ import type {
   Resources,
 } from '../../types'
 import type { CombatUnit } from '../combat/CombatEngine'
+import { useSectStore } from '../../stores/sectStore'
 import { BLESSING_DEFS } from '../../data/blessings'
 import { RELIC_DEFS } from '../../data/relics'
+import type { DiscipleMutationId, MutationCharacterProfile } from '../../data/discipleMutations'
+import { getDiscipleMutationDef, pickDiscipleMutation } from '../../data/discipleMutations'
 import type { EventResult } from './EventSystem'
 import { resolveEvent } from './EventSystem'
 import {
+  applyMutationCombatModifiers,
+  applyMutationRewardModifiers,
   applyRunRecovery,
   applyRunRewardModifiers,
   getShopCostMultiplier,
@@ -48,25 +53,92 @@ export interface ResolveAutomatedRunInput {
   pickBlessingOptionsFn?: (ownedBlessings: BlessingId[]) => BlessingId[]
   pickRelicRewardFn?: (ownedRelics: RelicId[]) => RelicId | null
   petCaptureFn?: (context: { strategy: AutomationStrategy; floor: number; run: DungeonRun }) => PetCaptureOutcome
+  teamMutationProfiles?: Record<string, MutationCharacterProfile>
 }
 
 function cloneMemberStates(memberStates: Record<string, MemberState>): Record<string, MemberState> {
   return Object.fromEntries(Object.entries(memberStates).map(([id, state]) => [id, { ...state }]))
 }
 
-function buildTeamUnits(run: DungeonRun, baseTeamUnits: CombatUnit[]): CombatUnit[] {
+function buildTeamUnits(
+  run: DungeonRun,
+  baseTeamUnits: CombatUnit[],
+  discipleMutations: Record<string, DiscipleMutationId[]>
+): CombatUnit[] {
   return baseTeamUnits
     .filter((unit) => run.teamCharacterIds.includes(unit.id))
     .map((unit) => {
       const memberState = run.memberStates[unit.id]
+      const withMutation = applyMutationCombatModifiers(unit, discipleMutations[unit.id] ?? [])
       return {
-        ...unit,
+        ...withMutation,
         hp: memberState?.currentHp ?? unit.hp,
         maxHp: memberState?.maxHp ?? unit.maxHp,
         preset: run.tacticalPreset,
       }
     })
     .filter((unit) => unit.hp > 0)
+}
+
+function collectTeamMutationProfiles(
+  run: DungeonRun,
+  provided: Record<string, MutationCharacterProfile> = {}
+): Record<string, MutationCharacterProfile> {
+  const fallbackCharacters = useSectStore.getState().sect.characters
+  return Object.fromEntries(
+    run.teamCharacterIds.flatMap((charId) => {
+      const providedProfile = provided[charId]
+      if (providedProfile) return [[charId, providedProfile]]
+
+      const character = fallbackCharacters.find((item) => item.id === charId)
+      if (!character) return []
+
+      return [
+        [
+          charId,
+          {
+            cultivationPath: character.cultivationPath,
+            specialties: character.specialties.map((specialty) => ({ type: specialty.type })),
+            fateTags: [...character.fateTags],
+          },
+        ],
+      ]
+    })
+  )
+}
+
+function collectAliveMutationIds(
+  run: DungeonRun,
+  discipleMutations: Record<string, DiscipleMutationId[]>
+): DiscipleMutationId[] {
+  return run.teamCharacterIds.flatMap((charId) =>
+    run.memberStates[charId]?.status === 'dead' ? [] : (discipleMutations[charId] ?? [])
+  )
+}
+
+function maybeGrantMutation(
+  run: DungeonRun,
+  discipleMutations: Record<string, DiscipleMutationId[]>,
+  teamMutationProfiles: Record<string, MutationCharacterProfile>,
+  rng: () => number = Math.random
+): { targetId: string; mutationId: DiscipleMutationId } | null {
+  const candidates = run.teamCharacterIds
+    .filter((charId) => run.memberStates[charId]?.status !== 'dead')
+    .sort((a, b) => (discipleMutations[a]?.length ?? 0) - (discipleMutations[b]?.length ?? 0))
+
+  for (const charId of candidates) {
+    const profile = teamMutationProfiles[charId]
+    if (!profile) continue
+    const owned = discipleMutations[charId] ?? []
+    if (owned.length >= 2) continue
+
+    const mutationId = pickDiscipleMutation(profile, owned, rng)
+    if (!mutationId) continue
+
+    return { targetId: charId, mutationId }
+  }
+
+  return null
 }
 
 function buildContext(run: DungeonRun): AutomationContext {
@@ -127,6 +199,10 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
   const stepId = nextStepIdFactory()
   const steps: AdventureReportStep[] = []
   const startedAt = now()
+  const teamMutationProfiles = collectTeamMutationProfiles(input.run, input.teamMutationProfiles)
+  const discipleMutations: Record<string, DiscipleMutationId[]> = Object.fromEntries(
+    input.run.teamCharacterIds.map((charId) => [charId, []])
+  )
 
   const run: DungeonRun = {
     ...input.run,
@@ -176,6 +252,9 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
         blessings: [...run.blessings],
         relics: [...run.relics],
         branchTags: [...run.branchTags],
+        discipleMutations: Object.fromEntries(
+          Object.entries(discipleMutations).map(([charId, mutationIds]) => [charId, [...mutationIds]])
+        ),
       },
       meta,
     })
@@ -219,7 +298,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
     )
 
     for (const event of route.events) {
-      const teamUnits = buildTeamUnits(run, input.baseTeamUnits)
+      const teamUnits = buildTeamUnits(run, input.baseTeamUnits, discipleMutations)
       if (teamUnits.length === 0) {
         result = 'failed'
         pushStep('run_failed', '探索失败', '队伍已无可继续战斗的成员。')
@@ -247,15 +326,18 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
         pushStep('member_state_changed', '队伍状态变化', '事件结算后，队伍生命与状态已更新。')
       }
 
-      const eventReward = applyRunRewardModifiers(
-        {
-          spiritStone: eventResult.reward.spiritStone,
-          spiritEnergy: 0,
-          herb: eventResult.reward.herb,
-          ore: eventResult.reward.ore,
-        },
-        run.blessings,
-        run.relics
+      const eventReward = applyMutationRewardModifiers(
+        applyRunRewardModifiers(
+          {
+            spiritStone: eventResult.reward.spiritStone,
+            spiritEnergy: 0,
+            herb: eventResult.reward.herb,
+            ore: eventResult.reward.ore,
+          },
+          run.blessings,
+          run.relics
+        ),
+        collectAliveMutationIds(run, discipleMutations)
       )
       addRewards(run.totalRewards, eventReward)
       run.itemRewards.push(...eventResult.itemRewards)
@@ -322,6 +404,21 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
         }
       }
 
+      if (eventResult.mutationTrigger) {
+        const granted = maybeGrantMutation(run, discipleMutations, teamMutationProfiles)
+        if (granted) {
+          discipleMutations[granted.targetId] = [...(discipleMutations[granted.targetId] ?? []), granted.mutationId]
+          const mutationDef = getDiscipleMutationDef(granted.mutationId)
+          pushStep(
+            'auto_choice_made',
+            `弟子异变：${mutationDef.name}`,
+            mutationDef.summary,
+            `本次${eventResult.mutationTrigger}触发了更贴合该弟子 build 的局内异变`,
+            { targetId: granted.targetId, mutationId: granted.mutationId }
+          )
+        }
+      }
+
       const allDead = run.teamCharacterIds.every((id) => run.memberStates[id]?.status === 'dead')
       if (allDead) {
         result = 'failed'
@@ -332,10 +429,13 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
 
     if (result === 'failed') break
 
-    const routeReward = applyRunRewardModifiers(
-      { spiritStone: route.reward.spiritStone, spiritEnergy: 0, herb: route.reward.herb, ore: route.reward.ore },
-      run.blessings,
-      run.relics
+    const routeReward = applyMutationRewardModifiers(
+      applyRunRewardModifiers(
+        { spiritStone: route.reward.spiritStone, spiritEnergy: 0, herb: route.reward.herb, ore: route.reward.ore },
+        run.blessings,
+        run.relics
+      ),
+      collectAliveMutationIds(run, discipleMutations)
     )
     addRewards(run.totalRewards, routeReward)
     pushStep(
@@ -408,6 +508,9 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
     rewards: { ...run.totalRewards },
     itemRewards: [...run.itemRewards],
     finalMemberStates: cloneMemberStates(run.memberStates),
+    discipleMutations: Object.fromEntries(
+      Object.entries(discipleMutations).map(([charId, mutationIds]) => [charId, [...mutationIds]])
+    ),
     steps,
   }
 }
