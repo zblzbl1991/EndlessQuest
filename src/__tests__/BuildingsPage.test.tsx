@@ -20,12 +20,17 @@ describe('BuildingsPage', () => {
   it('does not show sect ecology blocks or ecology bias copy', () => {
     render(<BuildingsPage />)
 
+    expect(screen.getByTestId('buildings-hero')).toBeInTheDocument()
+    expect(screen.getByText('宗门营造')).toBeInTheDocument()
+    expect(screen.getByText('当前营造重点')).toBeInTheDocument()
     expect(screen.queryByText('宗门生态')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('招收'))
+    expect(screen.getByTestId('building-subpanel')).toBeInTheDocument()
     expect(screen.queryByText('宗门生态')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('炼丹'))
+    expect(screen.getByTestId('building-subpanel')).toBeInTheDocument()
     expect(screen.queryByText(/生态偏置/)).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('锻造'))

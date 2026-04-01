@@ -67,6 +67,17 @@ const QUALITY_LABELS: Record<CharacterQuality, string> = {
   chaos: '混沌',
 }
 
+const TAB_LEADS: Record<TabKey, string> = {
+  buildings: '先看宗门营造整体走向，再决定这一笔资源投向何处。',
+  recruit: '来者何人、值不值得留，先看资质与缘分，再决定是否招收入门。',
+  vault: '仓中之物先理清去向，再决定卖、留，还是转予弟子。',
+  alchemy: '丹炉不必喧哗，先看存料与配方，再定这一炉的用途。',
+  forge: '锻造重在节奏，先看材料与成品方向，再落下这一锤。',
+  study: '参悟不催人，先辨当前修行缺口，再决定要读哪一卷。',
+  codex: '先看宗门已留存的见闻，再决定接下来补哪一门传承。',
+  market: '坊市重在取舍，先看手中所需，再决定这一趟换回什么。',
+}
+
 /** Base combat stats before variance -- used for stat coloring comparison. */
 const BASE_COMBAT_STATS = { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 }
 
@@ -174,10 +185,73 @@ export default function BuildingsPage() {
 
   // Derived: clamp tab to an available option
   const activeTab = availableTabs.some((t) => t.key === tab) ? tab : 'buildings'
+  const unlockedBuildings = sect.buildings.filter((building) => building.unlocked && building.level > 0)
+  const buildFocus =
+    [...unlockedBuildings]
+      .sort((left, right) => {
+        if (right.level !== left.level) return right.level - left.level
+        return left.type === 'mainHall' ? 1 : -1
+      })
+      .map((building) => BUILDING_DEFS.find((def) => def.type === building.type)?.name ?? building.type)[0] ?? '主殿'
+  const autoAssignableCount = sect.buildings.reduce((count, building) => {
+    if (!building.unlocked || building.level <= 0) return count
+    if (!AUTO_ASSIGNABLE_BUILDINGS.has(building.type)) return count
+    return count + getRecommendedIdleCount(building.type, sect.characters)
+  }, 0)
+  const activeSynergyCount = getActiveSynergies(sect.buildings).length
+  const activeTabMeta = availableTabs.find((item) => item.key === activeTab)
+
+  const content =
+    activeTab === 'buildings' ? (
+      <BuildingsTab />
+    ) : activeTab === 'recruit' ? (
+      <RecruitTab />
+    ) : activeTab === 'vault' ? (
+      <VaultTab />
+    ) : activeTab === 'alchemy' ? (
+      <AlchemyPanel />
+    ) : activeTab === 'forge' ? (
+      <ForgePanel />
+    ) : activeTab === 'study' ? (
+      <StudyPanel />
+    ) : activeTab === 'codex' ? (
+      <CodexPanel />
+    ) : (
+      <MarketPanel />
+    )
 
   return (
     <div className={styles.page}>
-      <div className={styles.tabs}>
+      <section className={styles.hero} data-testid="buildings-hero">
+        <div className={styles.heroMain}>
+          <span className={styles.pageEyebrow}>营造卷</span>
+          <h1 className={styles.pageTitle}>宗门营造</h1>
+          <p className={styles.pageLead}>先看宗门正在生长的方向，再决定今日是扩建、招收，还是炼制储备。</p>
+        </div>
+        <div className={styles.heroFocusCard}>
+          <span className={styles.heroFocusLabel}>当前营造重点</span>
+          <span className={styles.heroFocusValue}>{buildFocus}</span>
+          <span className={styles.heroFocusMeta}>
+            已启用 {unlockedBuildings.length} 处建筑，现有 {activeSynergyCount} 组建筑协同。
+          </span>
+        </div>
+        <div className={styles.summaryRow}>
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>卷内分栏</span>
+            <span className={styles.summaryValue}>{availableTabs.length}</span>
+          </div>
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>可自动派驻</span>
+            <span className={styles.summaryValue}>{autoAssignableCount}</span>
+          </div>
+          <div className={styles.summaryCard}>
+            <span className={styles.summaryLabel}>当前所阅</span>
+            <span className={styles.summaryValue}>{activeTabMeta?.label}</span>
+          </div>
+        </div>
+      </section>
+
+      <div className={styles.tabs} data-testid="building-tab-rail">
         {availableTabs.map((t) => (
           <button
             key={t.key}
@@ -185,19 +259,23 @@ export default function BuildingsPage() {
             onClick={() => setTab(t.key)}
           >
             <PixelIcon name={TAB_ICON_NAMES[t.key]} size={18} className={styles.tabIcon} aria-label={t.label} />
-            {t.label}
+            <span className={styles.tabLabel}>{t.label}</span>
           </button>
         ))}
       </div>
 
-      {activeTab === 'buildings' && <BuildingsTab />}
-      {activeTab === 'recruit' && <RecruitTab />}
-      {activeTab === 'vault' && <VaultTab />}
-      {activeTab === 'alchemy' && <AlchemyPanel />}
-      {activeTab === 'forge' && <ForgePanel />}
-      {activeTab === 'study' && <StudyPanel />}
-      {activeTab === 'codex' && <CodexPanel />}
-      {activeTab === 'market' && <MarketPanel />}
+      {activeTab === 'buildings' ? (
+        content
+      ) : (
+        <section className={styles.subpanel} data-testid="building-subpanel">
+          <div className={styles.subpanelHeader}>
+            <span className={styles.subpanelEyebrow}>卷内一栏</span>
+            <div className={styles.subpanelTitle}>{activeTabMeta?.label}</div>
+            <p className={styles.subpanelLead}>{TAB_LEADS[activeTab]}</p>
+          </div>
+          <div className={styles.subpanelBody}>{content}</div>
+        </section>
+      )}
     </div>
   )
 }
