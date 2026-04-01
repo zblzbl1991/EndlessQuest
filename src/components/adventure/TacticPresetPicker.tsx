@@ -15,12 +15,13 @@ const PRESET_OPTIONS: Array<{
 interface TacticPresetPickerProps {
   value: TacticalPreset
   onChange: (preset: TacticalPreset) => void
+  title?: string
 }
 
-export default function TacticPresetPicker({ value, onChange }: TacticPresetPickerProps) {
+export default function TacticPresetPicker({ value, onChange, title = '战术预设' }: TacticPresetPickerProps) {
   return (
     <div className={styles.panel}>
-      <div className={styles.title}>战术预设</div>
+      <div className={styles.title}>{title}</div>
       <div className={styles.options}>
         {PRESET_OPTIONS.map((option) => (
           <button

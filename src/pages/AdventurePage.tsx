@@ -82,28 +82,50 @@ export default function AdventurePage() {
     () => new Map(sect.characters.map((char) => [char.id, char.name])),
     [sect.characters]
   )
+  const latestReport = reports[0] ?? null
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.pageTitle}>秘境</h1>
-      </div>
+      <section className={styles.hero} data-testid="adventure-hero">
+        <div className={styles.heroHeader}>
+          <div className={styles.header}>
+            <span className={styles.pageEyebrow}>山门之前</span>
+            <h1 className={styles.pageTitle}>秘境</h1>
+            <p className={styles.pageLead}>
+              {latestReport
+                ? `上一场${getRunIntentDef(latestReport.strategy).label}已留痕，如今可再定一局心意。`
+                : '秘境不会催你动作，只把去处与回响摆在眼前。'}
+            </p>
+          </div>
+          <div className={styles.heroFocus}>
+            <span className={styles.heroFocusLabel}>门前风向</span>
+            <span className={styles.heroFocusValue}>
+              {availableCharacters.length > 0 ? `${availableCharacters.length} 名弟子可出发` : '暂无可出发弟子'}
+            </span>
+            <span className={styles.heroFocusMeta}>
+              {latestReport
+                ? `最近一局${RESULT_LABELS[latestReport.result]}，推进至第 ${latestReport.floorsCleared} 层。`
+                : '最近尚无探索留痕，可先择一处秘境试路。'}
+            </span>
+          </div>
+        </div>
 
-      <section className={styles.summaryRow}>
-        <div className={styles.summaryCard}>
-          <PixelIcon name="disciple" size={20} className={styles.summaryIcon} aria-label="可出战弟子" />
-          <span className={styles.summaryLabel}>可出战弟子</span>
-          <span className={styles.summaryValue}>{availableCharacters.length}</span>
-        </div>
-        <div className={styles.summaryCard}>
-          <PixelIcon name="eventCombat" size={20} className={styles.summaryIcon} aria-label="最近战报" />
-          <span className={styles.summaryLabel}>最近战报</span>
-          <span className={styles.summaryValue}>{reports.length}</span>
-        </div>
-        <div className={styles.summaryCard}>
-          <PixelIcon name="dungeonTribulation" size={20} className={styles.summaryIcon} aria-label="已留名秘境" />
-          <span className={styles.summaryLabel}>已留名秘境</span>
-          <span className={styles.summaryValue}>{completedDungeons.length}</span>
+        <div className={styles.summaryRow}>
+          <div className={styles.summaryCard}>
+            <PixelIcon name="disciple" size={20} className={styles.summaryIcon} aria-label="可出战弟子" />
+            <span className={styles.summaryLabel}>可出战弟子</span>
+            <span className={styles.summaryValue}>{availableCharacters.length}</span>
+          </div>
+          <div className={styles.summaryCard}>
+            <PixelIcon name="eventCombat" size={20} className={styles.summaryIcon} aria-label="最近战报" />
+            <span className={styles.summaryLabel}>最近战报</span>
+            <span className={styles.summaryValue}>{reports.length}</span>
+          </div>
+          <div className={styles.summaryCard}>
+            <PixelIcon name="dungeonTribulation" size={20} className={styles.summaryIcon} aria-label="已留名秘境" />
+            <span className={styles.summaryLabel}>已留名秘境</span>
+            <span className={styles.summaryValue}>{completedDungeons.length}</span>
+          </div>
         </div>
       </section>
 
@@ -229,7 +251,7 @@ export default function AdventurePage() {
       </section>
 
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>秘境列表</div>
+        <div className={styles.sectionTitle}>待启程秘境</div>
         <div className={styles.dungeonList}>
           {dungeons.map((dungeon) => {
             const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
@@ -323,32 +345,23 @@ function TeamBuilder({
     <div className={styles.overlay}>
       <div className={styles.teamBuilder}>
         <div className={styles.teamBuilderHeader}>
-          <span className={styles.teamBuilderTitle}>配置托管队伍</span>
+          <div className={styles.teamBuilderLead}>
+            <span className={styles.teamBuilderTitle}>启程前定意</span>
+            <span className={styles.teamBuilderHintLine}>托管会即时结算整次秘境，并保留完整战报供你复盘。</span>
+          </div>
           <span className={styles.dungeonTarget}>{dungeon?.name ?? dungeonId}</span>
         </div>
 
-        <div className={styles.teamCharList}>
-          {availableCharacters.map((char) => {
-            const selected = selectedIds.includes(char.id)
-            return (
-              <button
-                key={char.id}
-                type="button"
-                className={`${styles.teamCharItem} ${selected ? styles.teamCharSelected : ''}`}
-                onClick={() => toggleCharacter(char.id)}
-              >
-                <span className={styles.teamCharCheck}>{selected ? '✓' : ''}</span>
-                <span className={styles.teamCharInfo}>
-                  <span className={styles.teamCharName}>{char.name}</span>
-                  <span className={styles.teamCharRealm}>{getRealmName(char.realm, char.realmStage)}</span>
-                </span>
-              </button>
-            )
-          })}
+        <div className={styles.teamBuilderSection}>
+          <div className={styles.sectionLabel}>目标秘境</div>
+          <div className={styles.targetCard}>
+            <span className={styles.targetName}>{dungeon?.name ?? dungeonId}</span>
+            <span className={styles.targetMeta}>先定去处，再决定这局是守、是争，还是寻机。</span>
+          </div>
         </div>
 
-        <div className={styles.strategyPanel}>
-          <div className={styles.strategyTitle}>托管策略</div>
+        <div className={styles.teamBuilderSection}>
+          <div className={styles.sectionLabel}>本局意图</div>
           <div className={styles.strategyOptions}>
             {RUN_INTENT_IDS.map((option) => (
               <button
@@ -357,15 +370,40 @@ function TeamBuilder({
                 className={`${styles.strategyOption} ${strategy === option ? styles.strategyOptionActive : ''}`}
                 onClick={() => setStrategy(option)}
               >
-                {getRunIntentDef(option).label}
+                <span className={styles.strategyName}>{getRunIntentDef(option).label}</span>
+                <span className={styles.strategyDesc}>{getRunIntentDef(option).shortDescription}</span>
               </button>
             ))}
           </div>
         </div>
 
-        <TacticPresetPicker value={preset} onChange={setPreset} />
+        <div className={styles.teamBuilderSection}>
+          <TacticPresetPicker value={preset} onChange={setPreset} title="战术" />
+        </div>
 
-        <div className={styles.teamBuilderHint}>托管会即时结算整次秘境，并保留完整战报供你复盘。</div>
+        <div className={styles.teamBuilderSection}>
+          <div className={styles.sectionLabel}>出战弟子</div>
+          <div className={styles.teamCharList}>
+            {availableCharacters.map((char) => {
+              const selected = selectedIds.includes(char.id)
+              return (
+                <button
+                  key={char.id}
+                  type="button"
+                  className={`${styles.teamCharItem} ${selected ? styles.teamCharSelected : ''}`}
+                  onClick={() => toggleCharacter(char.id)}
+                >
+                  <span className={styles.teamCharCheck}>{selected ? '✓' : ''}</span>
+                  <span className={styles.teamCharInfo}>
+                    <span className={styles.teamCharName}>{char.name}</span>
+                    <span className={styles.teamCharRealm}>{getRealmName(char.realm, char.realmStage)}</span>
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          <div className={styles.teamBuilderHint}>已选 {selectedIds.length} / 5 名，可随心保守、冲层或寻机。</div>
+        </div>
 
         <div className={styles.teamActions}>
           <button className={styles.cancelBtn} onClick={onClose}>
