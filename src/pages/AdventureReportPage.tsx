@@ -3,9 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { PixelIcon } from '../components/common/PixelIcon'
-import { getDiscipleMutationDef } from '../data/discipleMutations'
 import { getRunIntentDef } from '../data/runIntents'
-import type { AdventureReport, AdventureReportStep } from '../types'
+import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import styles from './AdventureReportPage.module.css'
 
 const RESULT_LABELS = {
@@ -65,74 +64,6 @@ function getStepIconName(type: string): string {
   }
 }
 
-function getLastStepOfTypes(report: AdventureReport, types: AdventureReportStep['type'][]) {
-  for (let i = report.steps.length - 1; i >= 0; i--) {
-    if (types.includes(report.steps[i].type)) return report.steps[i]
-  }
-  return null
-}
-
-function getReportInsight(report: AdventureReport, nameMap: Map<string, string>) {
-  const members = report.teamCharacterIds
-    .map((id) => {
-      const state = report.finalMemberStates[id]
-      if (!state) return null
-      return {
-        id,
-        name: nameMap.get(id) ?? id,
-        ratio: state.maxHp > 0 ? state.currentHp / state.maxHp : 0,
-        state,
-      }
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null)
-
-  const coreMember =
-    members.sort((a, b) => {
-      if (b.ratio !== a.ratio) return b.ratio - a.ratio
-      return b.state.currentHp - a.state.currentHp
-    })[0] ?? null
-
-  const blessingStep = getLastStepOfTypes(report, ['blessing_decision'])
-  const relicStep = getLastStepOfTypes(report, ['auto_choice_made'])
-  const turningStep = getLastStepOfTypes(report, [
-    'member_state_changed',
-    'run_retreated',
-    'run_failed',
-    'run_completed',
-  ])
-  const mutationHighlights = Object.entries(report.discipleMutations)
-    .flatMap(([charId, mutationIds]) => {
-      const discipleName = nameMap.get(charId) ?? charId
-      return mutationIds.map((mutationId) => `${discipleName} · ${getDiscipleMutationDef(mutationId).name}`)
-    })
-    .slice(0, 3)
-
-  const keyBuild = [blessingStep?.summary, relicStep?.summary].filter(Boolean).join(' / ')
-
-  let cause = '鏆傛棤鏄庣‘鍘熷洜'
-  if (report.result === 'completed') {
-    cause =
-      turningStep?.type === 'run_completed'
-        ? '璺嚎涓庤祫婧愰€夋嫨淇濇寔浜嗙ǔ瀹氭帹杩?'
-        : '鑷姩鍖栫瓥鐣ラ『鍒╁畬鎴愪簡娓呭浘'
-  } else if (report.result === 'retreated') {
-    cause = turningStep?.type === 'run_retreated' ? turningStep.detail : '闃熶紞琛€绾垮帇鍔涜Е鍙戜簡鎾ら€€'
-  } else if (turningStep?.type === 'run_failed') {
-    cause = turningStep.detail
-  } else {
-    cause = '闃熶紞鍦ㄦ帹杩涗腑澶卞幓缁х画鎴樻枟鑳藉姏'
-  }
-
-  return {
-    coreMember,
-    keyBuild: keyBuild || '鏆傛棤鍏抽敭绁濈鎴栭仐鐝?',
-    mutationHighlights,
-    turningPoint:
-      turningStep?.summary ?? (report.result === 'completed' ? '绋冲畾鎺ㄨ繘鍒扮粓灞€' : '鏈嚭鐜版槑纭浆鎶樼偣'),
-    cause,
-  }
-}
-
 export default function AdventureReportPage() {
   const { reportId } = useParams()
   const report = useAdventureStore((s) => (reportId ? s.getReport(reportId) : undefined))
@@ -143,7 +74,7 @@ export default function AdventureReportPage() {
     () => new Map(characters.map((character) => [character.id, character.name])),
     [characters]
   )
-  const insight = report ? getReportInsight(report, characterNameMap) : null
+  const insight = report ? buildAdventureReportInsight(report, characterNameMap) : null
 
   if (!report) {
     return (
@@ -201,7 +132,7 @@ export default function AdventureReportPage() {
             <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="鏍稿績寮熷瓙" />
             鏍稿績寮熷瓙
           </span>
-          <strong>{insight?.coreMember?.name ?? '鏆傛棤'}</strong>
+          <strong>{insight?.coreName ?? '鏆傛棤'}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>

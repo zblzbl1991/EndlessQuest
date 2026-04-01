@@ -3,10 +3,10 @@ import { Link } from 'react-router-dom'
 import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { getRealmName } from '../data/realms'
-import { getDiscipleMutationDef } from '../data/discipleMutations'
 import { getRunIntentDef } from '../data/runIntents'
+import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import type { CharacterQuality } from '../types/character'
-import type { AdventureReport, AdventureReportSummary } from '../types'
+import type { AdventureReport } from '../types'
 import type { AutomationStrategy, TacticalPreset } from '../types/adventure'
 import { PixelIcon } from '../components/common/PixelIcon'
 import RunBuildSummary from '../components/adventure/RunBuildSummary'
@@ -54,57 +54,6 @@ function extractRouteDirections(detail: AdventureReport | undefined): string[] {
   }
 
   return [...new Set(labels)]
-}
-
-function getReportInsight(
-  report: AdventureReportSummary | undefined,
-  detail: AdventureReport | undefined,
-  characterNameMap: Map<string, string>
-) {
-  if (!report) return null
-
-  const source = detail ?? null
-  const teamIds = report.teamCharacterIds
-  const aliveMembers = teamIds
-    .map((id) => {
-      const state = source?.finalMemberStates[id]
-      if (!state) return null
-      return {
-        id,
-        name: characterNameMap.get(id) ?? id,
-        ratio: state.maxHp > 0 ? state.currentHp / state.maxHp : 0,
-        state,
-      }
-    })
-    .filter((item): item is NonNullable<typeof item> => item !== null)
-
-  const coreMember =
-    aliveMembers.sort((a, b) => {
-      if (b.ratio !== a.ratio) return b.ratio - a.ratio
-      return b.state.currentHp - a.state.currentHp
-    })[0] ?? null
-
-  const lastBlessing = [...(source?.steps ?? [])].reverse().find((step) => step.type === 'blessing_decision')
-  const lastRelic = [...(source?.steps ?? [])].reverse().find((step) => step.type === 'auto_choice_made')
-  const turningPoint = [...(source?.steps ?? [])]
-    .reverse()
-    .find((step) => ['member_state_changed', 'run_retreated', 'run_failed', 'run_completed'].includes(step.type))
-
-  const mutationHighlights = source
-    ? Object.entries(source.discipleMutations)
-        .flatMap(([charId, mutationIds]) => {
-          const discipleName = characterNameMap.get(charId) ?? charId
-          return mutationIds.map((mutationId) => `${discipleName} · ${getDiscipleMutationDef(mutationId).name}`)
-        })
-        .slice(0, 2)
-    : []
-
-  return {
-    coreName: coreMember?.name ?? '鏆傛棤',
-    keyBuild: [lastBlessing?.summary, lastRelic?.summary].filter(Boolean).join(' / ') || '鏆傛棤鍏抽敭 build',
-    turningPoint: turningPoint?.summary ?? (report.result === 'completed' ? '绋冲畾鎺ㄨ繘鍒扮粓灞€' : '鏆傛棤'),
-    mutationHighlights,
-  }
 }
 
 export default function AdventurePage() {
@@ -175,7 +124,7 @@ export default function AdventurePage() {
             {reports.map((report) => {
               const dungeon = dungeons.find((item) => item.id === report.dungeonId)
               const detail = reportDetails[report.id]
-              const insight = getReportInsight(report, detail, characterNameMap)
+              const insight = detail ? buildAdventureReportInsight(detail, characterNameMap) : null
               const teamNames = report.teamCharacterIds.map((id) => characterNameMap.get(id) ?? id).join('銆?')
               const rewardBits = [
                 report.rewards.spiritStone > 0 ? `${report.rewards.spiritStone} 鐏电煶` : null,
@@ -226,7 +175,9 @@ export default function AdventurePage() {
 
                   <div className={styles.reportRewardLine}>
                     <span className={styles.rewardLabel}>杞姌鐐?</span>
-                    <span className={styles.rewardValues}>{insight?.turningPoint ?? '鏆傛棤'}</span>
+                    <span className={styles.rewardValues}>
+                      {insight?.turningPoint ?? (report.result === 'completed' ? '绋冲畾鎺ㄨ繘鍒扮粓灞€' : '鏆傛棤')}
+                    </span>
                   </div>
 
                   <div className={styles.reportRewardLine}>
