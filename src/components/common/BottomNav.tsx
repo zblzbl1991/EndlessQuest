@@ -13,8 +13,14 @@ export default function BottomNav() {
           end={tab.to === '/'}
           className={({ isActive }) => `${styles.navItem} ${isActive ? styles.active : ''}`}
         >
-          <PixelIcon name={tab.icon} size={18} className={styles.navIcon} aria-label={tab.label} />
-          <span>{tab.label}</span>
+          {({ isActive }) => (
+            <>
+              <span className={styles.iconFrame} data-testid={isActive ? 'mobile-nav-active' : undefined}>
+                <PixelIcon name={tab.icon} size={18} className={styles.navIcon} aria-label={tab.label} />
+              </span>
+              <span className={styles.navLabel}>{tab.label}</span>
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

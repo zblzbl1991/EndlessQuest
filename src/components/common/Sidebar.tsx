@@ -10,10 +10,21 @@ export default function Sidebar() {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.sidebarHeader}>
-        <div className={styles.sectName}>{sect.name}</div>
-        <div className={styles.resourceItem}>
-          <span className={styles.resourceLabel}>灵石</span>
-          <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritStone).toLocaleString()}</span>
+        <div className={styles.sealRow}>
+          <div className={styles.seal} data-testid="shell-seal" aria-hidden="true">
+            山门
+          </div>
+          <div className={styles.sectMeta}>
+            <div className={styles.sectEyebrow}>宗门卷轴</div>
+            <div className={styles.sectName}>{sect.name}</div>
+          </div>
+        </div>
+        <div className={styles.resourceCard}>
+          <div className={styles.resourceItem}>
+            <span className={styles.resourceLabel}>灵石</span>
+            <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritStone).toLocaleString()}</span>
+          </div>
+          <div className={styles.resourceHint}>门中香火稳，诸务可理</div>
         </div>
       </div>
       <nav className={styles.navList} aria-label="侧边导航">

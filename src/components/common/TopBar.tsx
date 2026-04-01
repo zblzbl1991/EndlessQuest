@@ -16,7 +16,13 @@ export default function TopBar() {
 
   return (
     <header className={styles.topBar}>
-      <div className={styles.title}>{sect.name}</div>
+      <div className={styles.titleGroup} data-testid="shell-title">
+        <div className={styles.eyebrow}>山门卷轴</div>
+        <div className={styles.titleRow}>
+          <div className={styles.title}>{sect.name}</div>
+          <span className={styles.sectLevel}>宗门第 {sect.level} 阶</span>
+        </div>
+      </div>
       <div className={styles.resources}>
         <ResourceItem label="灵石" value={r.spiritStone} />
         <ResourceItem label="灵气" value={r.spiritEnergy} />

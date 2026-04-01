@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Sidebar from '../components/common/Sidebar'
 import BottomNav from '../components/common/BottomNav'
+import TopBar from '../components/common/TopBar'
 import { useSectStore } from '../stores/sectStore'
 
 describe('Navigation shell', () => {
@@ -14,6 +15,7 @@ describe('Navigation shell', () => {
     render(
       <MemoryRouter>
         <Sidebar />
+        <TopBar />
         <BottomNav />
       </MemoryRouter>
     )
@@ -34,5 +36,9 @@ describe('Navigation shell', () => {
     expect(screen.queryByText('⚔')).not.toBeInTheDocument()
     expect(screen.queryByText('📦')).not.toBeInTheDocument()
     expect(screen.queryByText('📜')).not.toBeInTheDocument()
+
+    expect(screen.getByTestId('shell-seal')).toBeInTheDocument()
+    expect(screen.getByTestId('shell-title')).toBeInTheDocument()
+    expect(screen.getByTestId('mobile-nav-active')).toBeInTheDocument()
   })
 })

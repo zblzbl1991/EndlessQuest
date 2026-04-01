@@ -2,10 +2,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-sm) var(--space-md);
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--color-border-light);
+  gap: var(--space-md);
+  padding: 10px var(--space-md) 12px;
+  background: linear-gradient(180deg, rgba(255, 251, 243, 0.96), rgba(247, 239, 226, 0.9));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(139, 69, 19, 0.1);
   position: sticky;
   top: 0;
   z-index: 50;
@@ -17,12 +18,13 @@
   .topBar {
     max-width: 480px;
     margin: 0 auto;
+    border-radius: 0 0 18px 18px;
   }
 }
 
 @media (min-width: 1024px) {
   .topBar {
-    padding-left: var(--sidebar-width);
+    padding-left: calc(var(--sidebar-width) + var(--space-md));
   }
 
   .topBar .resources {
@@ -30,28 +32,57 @@
   }
 }
 
+.titleGroup {
+  min-width: 0;
+}
+
+.eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--color-text-tertiary);
+  margin-bottom: 2px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+}
+
 .title {
   font-family: var(--font-serif);
-  font-size: 16px;
+  font-size: 18px;
   color: var(--color-accent);
   font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 50%;
+  max-width: 100%;
+}
+
+.sectLevel {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
 }
 
 .resources {
   display: flex;
-  gap: var(--space-md);
-  font-size: 12px;
+  gap: var(--space-sm);
+  font-size: 11px;
   color: var(--color-text-secondary);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .resourceItem {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(139, 69, 19, 0.08);
 }
 
 .resourceLabel {
