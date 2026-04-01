@@ -39,8 +39,12 @@ export default function OfflineReportModal({ report, onClose }: OfflineReportMod
   return (
     <div className={s.overlay} onClick={onClose}>
       <div className={s.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={s.title}>离线修炼报告</div>
-        <div className={s.duration}>离开时长：{formatDuration(report.offlineSeconds)}</div>
+        <div className={s.highlight} data-testid="offline-highlight">
+          <div className={s.eyebrow}>离峰归来</div>
+          <div className={s.title}>离线修炼报告</div>
+          <div className={s.duration}>离开时长：{formatDuration(report.offlineSeconds)}</div>
+          <div className={s.highlightHint}>静修之间，宗门诸务仍在运转，所得已整理成卷。</div>
+        </div>
 
         {hasResources && (
           <div className={s.section}>
