@@ -166,6 +166,26 @@ describe('SectStore - Character Management', () => {
     expect(getStore().sect.characters).toHaveLength(1)
   })
 
+  it('sacrificeCharacter should remove a disciple and refund only part of invested spirit stones', () => {
+    const target = getFirstCharacter()
+
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: 0 },
+        characters: s.sect.characters.map((item) =>
+          item.id === target.id ? { ...item, investedSpiritStone: 250 } : item
+        ),
+      },
+    }))
+
+    const removed = getStore().sacrificeCharacter(target.id, { source: 'adventure', reason: '秘境战死' })
+
+    expect(removed).toBe(true)
+    expect(useSectStore.getState().sect.characters.find((item) => item.id === target.id)).toBeUndefined()
+    expect(useSectStore.getState().sect.resources.spiritStone).toBe(75)
+  })
+
   it('promoteCharacter should change title', () => {
     const char = getFirstCharacter()
     getStore().promoteCharacter(char.id, 'seniorDisciple')
@@ -322,9 +342,7 @@ describe('SectStore - Building Management', () => {
       sect: {
         ...s.sect,
         buildings: s.sect.buildings.map((b) =>
-          b.type === 'spiritField' || b.type === 'alchemyFurnace'
-            ? { ...b, unlocked: true, level: 1 }
-            : b
+          b.type === 'spiritField' || b.type === 'alchemyFurnace' ? { ...b, unlocked: true, level: 1 } : b
         ),
         characters: [
           {

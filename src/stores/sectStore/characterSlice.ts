@@ -7,6 +7,7 @@ import {
   getRecruitCost,
   isQualityUnlocked,
 } from '../../systems/character/CharacterEngine'
+import { calcDiscipleDeathRefund } from '../../systems/character/DiscipleSacrificeSystem'
 import { getRecruitCostMult } from '../../systems/economy/BuildingEffects'
 import { emitEvent } from '../eventLogStore'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
@@ -96,6 +97,33 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
         characters: s.sect.characters.filter((c) => c.id !== id),
       },
     }))
+  },
+
+  sacrificeCharacter: (id, context) => {
+    const target = get().sect.characters.find((item) => item.id === id)
+    if (!target) return false
+
+    const refund = calcDiscipleDeathRefund(target)
+    const eventType = context.source === 'breakthrough' ? 'breakthrough_failure' : 'adventure_fail'
+
+    emitEvent(eventType, `${target.name}${context.reason}，返还灵石 ${refund}`, {
+      characterId: target.id,
+      source: context.source,
+      refund,
+    })
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.filter((item) => item.id !== id),
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone + refund,
+        },
+      },
+    }))
+
+    return true
   },
 
   promoteCharacter: (id: string, newTitle) => {

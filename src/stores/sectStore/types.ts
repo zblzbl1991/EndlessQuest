@@ -1,7 +1,18 @@
-import type { Character, CharacterTitle, CharacterQuality, CharacterStatus, CultivationPath } from '../../types/character'
+import type {
+  Character,
+  CharacterTitle,
+  CharacterQuality,
+  CharacterStatus,
+  CultivationPath,
+} from '../../types/character'
 import type { SectPath, BuildingType, Resources, ResourceType, Sect, AnyItem, ItemStack } from '../../types'
 import type { ShopState } from '../../systems/trade/TradeSystem'
 import type { SectRouteDef, SectRouteId } from '../../data/sectRoutes'
+
+export interface CharacterSacrificeContext {
+  source: 'adventure' | 'breakthrough'
+  reason: string
+}
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -20,6 +31,7 @@ export interface SectStore {
   addCharacter(quality: CharacterQuality): Character | null
   canRecruit(quality: CharacterQuality): { allowed: boolean; reason: string }
   removeCharacter(id: string): void
+  sacrificeCharacter(id: string, context: CharacterSacrificeContext): boolean
   promoteCharacter(id: string, newTitle: CharacterTitle): void
   setCharacterStatus(id: string, status: CharacterStatus, opts?: { injuryTimer?: number }): void
   chooseCultivationPath(id: string, path: Exclude<CultivationPath, 'none'>): boolean
@@ -32,9 +44,7 @@ export interface SectStore {
   upgradeBuilding(type: BuildingType): boolean
   tryUpgradeBuilding(type: BuildingType): { success: boolean; reason: string }
   setProductionRecipe(buildingType: BuildingType, recipeId: string | null): void
-  autoAssignToBuilding(
-    buildingType: string
-  ): { success: boolean; assigned: number; reason: string }
+  autoAssignToBuilding(buildingType: string): { success: boolean; assigned: number; reason: string }
   autoOptimizeBuildingAssignments(): { success: boolean; assigned: number; reason: string }
 
   // Item transfer
