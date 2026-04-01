@@ -92,4 +92,36 @@ describe('CharactersPage', () => {
 
     expect(getCultivationHeaderText()).toMatch(/^[1-9]\d*(\.\d)? \/ 100/)
   })
+
+  it('shows disciple value tags in detail view without directive assignment copy', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((character, index) =>
+          index === 0
+            ? {
+                ...character,
+                specialties: [
+                  { type: 'alchemy', level: 3 },
+                  { type: 'comprehension', level: 2 },
+                ],
+                cultivationPath: 'alchemy',
+                fateTags: ['stableDaoHeart'],
+              }
+            : character
+        ),
+      },
+    }))
+
+    const character = useSectStore.getState().sect.characters[0]
+
+    render(<CharactersPage />)
+
+    fireEvent.click(screen.getByText(character.name))
+
+    expect(screen.getByText('留守价值')).toBeInTheDocument()
+    expect(screen.getByText('出战价值')).toBeInTheDocument()
+    expect(screen.getByText('承险能力')).toBeInTheDocument()
+    expect(screen.queryByText('推荐去向')).not.toBeInTheDocument()
+  })
 })

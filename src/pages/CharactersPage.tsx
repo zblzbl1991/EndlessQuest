@@ -8,7 +8,8 @@ import { getActiveSkillById } from '../data/activeSkills'
 import { getFateTagDef } from '../data/fateTags'
 import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
 import { getPathDef } from '../data/cultivationPaths'
-import { getPrimaryRole, getRecommendedAssignment, getRoleLabel } from '../systems/character/SpecialtySystem'
+import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySystem'
+import { getCharacterDisposition } from '../systems/character/CharacterDispositionSystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
 import { PixelIcon } from '../components/common/PixelIcon'
@@ -63,15 +64,6 @@ const TECHNIQUE_TIER_CLASS: Record<string, string> = {
   immortal: styles.tierImmortal,
   divine: styles.tierDivine,
   chaos: styles.tierChaos,
-}
-
-const ASSIGNMENT_NAMES: Record<string, string> = {
-  adventure: '探险',
-  alchemyFurnace: '丹炉',
-  forge: '炼器坊',
-  spiritMine: '灵石矿',
-  spiritField: '灵田',
-  scriptureHall: '藏经阁',
 }
 
 type ViewMode = 'list' | 'grid'
@@ -228,22 +220,21 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
   // Cultivation speed
   const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
   const primaryRole = getPrimaryRole(character)
-  const recommendedAssignment = getRecommendedAssignment(character)
-  const recommendedAssignmentName = recommendedAssignment
-    ? ASSIGNMENT_NAMES[recommendedAssignment] ?? recommendedAssignment
-    : null
+  const disposition = getCharacterDisposition(character)
   const combatStyle = getCombatStyleProfile(character)
   const recommendedLoadout = buildCharacterSkillLoadout(character)
   const skillFrame = syncCharacterSkillLoadout(character)
   const buildStyle = { label: combatStyle.styleName, description: combatStyle.summary }
-  const activeSkillIds = (skillFrame.equippedSkills ?? recommendedLoadout).filter(
-    (skillId): skillId is string => Boolean(skillId)
+  const activeSkillIds = (skillFrame.equippedSkills ?? recommendedLoadout).filter((skillId): skillId is string =>
+    Boolean(skillId)
   )
   const activeSkills = activeSkillIds
     .map((skillId) => getActiveSkillById(skillId))
     .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill))
   const buildSourceTags = [
-    character.cultivationPath !== 'none' ? `修行路线: ${getPathDef(character.cultivationPath)?.name ?? '未定'}` : '修行路线: 未定',
+    character.cultivationPath !== 'none'
+      ? `修行路线: ${getPathDef(character.cultivationPath)?.name ?? '未定'}`
+      : '修行路线: 未定',
     `风格画像: ${combatStyle.styleName}`,
     primaryRole ? `专长: ${getRoleLabel(primaryRole)}` : '专长: 待补强',
     `功法: ${character.learnedTechniques.length} 门`,
@@ -325,12 +316,18 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
             </div>
           </div>
         )}
-        {(primaryRole || recommendedAssignmentName) && (
-          <div className={styles.identityMeta}>
-            {primaryRole && <span>主定位：{getRoleLabel(primaryRole)}</span>}
-            {recommendedAssignmentName && <span>推荐去向：{recommendedAssignmentName}</span>}
-          </div>
+        {primaryRole && (
+          <div className={styles.identityMeta}>{primaryRole && <span>主定位：{getRoleLabel(primaryRole)}</span>}</div>
         )}
+        <div className={styles.readoutGrid}>
+          {[disposition.management, disposition.adventure, disposition.risk].map((facet) => (
+            <div key={facet.key} className={`${styles.readoutCard} ${styles[`readout${facet.band}`]}`}>
+              <span className={styles.readoutLabel}>{facet.title}</span>
+              <span className={styles.readoutValue}>{facet.label}</span>
+              <span className={styles.readoutDesc}>{facet.description}</span>
+            </div>
+          ))}
+        </div>
         {character.fateTags.length > 0 && (
           <div className={styles.fateTagsList}>
             {character.fateTags.map((tag) => {
@@ -729,9 +726,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                 ))}
               </div>
             ) : (
-              <div className={styles.noSkillState}>
-                当前尚未固化主动技，战斗风格将主要由功法、命格与突破结果驱动。
-              </div>
+              <div className={styles.noSkillState}>当前尚未固化主动技，战斗风格将主要由功法、命格与突破结果驱动。</div>
             )}
           </div>
         </div>

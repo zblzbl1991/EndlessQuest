@@ -143,8 +143,7 @@
   margin: 4px 0 2px;
 }
 
-.roleTag,
-.assignmentTag {
+.roleTag {
   display: inline-flex;
   align-items: center;
   font-size: 10px;
@@ -158,9 +157,35 @@
   color: #2e7d32;
 }
 
-.assignmentTag {
-  background: rgba(93, 64, 55, 0.1);
-  color: #6d4c41;
+.dispositionRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: 4px 0 2px;
+}
+
+.dispositionTag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+
+.bandhigh {
+  background: rgba(184, 116, 52, 0.12);
+  color: var(--color-accent);
+}
+
+.bandmid {
+  background: rgba(76, 175, 80, 0.1);
+  color: #2e7d32;
+}
+
+.bandlow {
+  background: rgba(93, 64, 55, 0.08);
+  color: var(--color-text-tertiary);
 }
 
 .specialtySummary {

@@ -240,6 +240,55 @@
   margin-bottom: var(--space-sm);
 }
 
+.readoutGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.readoutCard {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.readouthigh {
+  background: rgba(184, 116, 52, 0.08);
+  border-color: rgba(184, 116, 52, 0.16);
+}
+
+.readoutmid {
+  background: rgba(76, 175, 80, 0.07);
+  border-color: rgba(76, 175, 80, 0.16);
+}
+
+.readoutlow {
+  background: rgba(93, 64, 55, 0.06);
+  border-color: rgba(93, 64, 55, 0.12);
+}
+
+.readoutLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.readoutValue {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.readoutDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
 .detailProgress {
   display: flex;
   align-items: center;
@@ -693,6 +742,10 @@
 
 @media (min-width: 1024px) {
   .gridView {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+
+  .readoutGrid {
     grid-template-columns: 1fr 1fr 1fr;
   }
 
