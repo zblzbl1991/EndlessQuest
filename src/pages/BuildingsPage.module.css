@@ -1,8 +1,8 @@
 /* BuildingsPage.module.css */
 
 .page {
-  padding: var(--space-md);
-  padding-bottom: 80px;
+  padding: 12px;
+  padding-bottom: 76px;
   max-width: 480px;
   margin: 0 auto;
 }
@@ -10,8 +10,8 @@
 .hero {
   display: grid;
   gap: var(--space-md);
-  margin-bottom: var(--space-lg);
-  padding: var(--space-lg);
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
   border-radius: var(--radius-xl);
   background:
     radial-gradient(circle at right top, rgba(133, 164, 182, 0.16), transparent 34%),
@@ -34,7 +34,7 @@
 .pageTitle {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -42,14 +42,14 @@
 .pageLead {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.8;
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .heroFocusCard {
   display: grid;
   gap: 4px;
-  padding: var(--space-md);
+  padding: 12px;
   border-radius: var(--radius-lg);
   background: rgba(247, 251, 253, 0.8);
   border: 1px solid rgba(95, 122, 141, 0.12);
@@ -64,7 +64,7 @@
 .heroFocusValue,
 .summaryValue {
   font-family: var(--font-serif);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -78,13 +78,13 @@
 .summaryRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-sm);
+  gap: 6px;
 }
 
 .summaryCard {
   display: grid;
   gap: 4px;
-  padding: var(--space-sm);
+  padding: 10px;
   border-radius: var(--radius-md);
   border: 1px solid rgba(95, 122, 141, 0.1);
   background: rgba(245, 250, 252, 0.76);
@@ -93,16 +93,20 @@
 @media (min-width: 1024px) {
   .page {
     max-width: none;
+    padding: var(--space-md);
     padding-bottom: var(--space-lg);
   }
 
   .hero {
     grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
     align-items: start;
+    margin-bottom: var(--space-lg);
+    padding: var(--space-lg);
   }
 
   .summaryRow {
     grid-column: 1 / -1;
+    gap: var(--space-sm);
   }
 }
 
@@ -111,7 +115,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   gap: var(--space-xs);
-  margin-bottom: var(--space-md);
+  margin-bottom: 12px;
   padding: var(--space-xs);
   border-radius: var(--radius-lg);
   border: 1px solid rgba(95, 122, 141, 0.12);
@@ -125,7 +129,7 @@
   background: rgba(133, 164, 182, 0.05);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-xs);
+  padding: 10px 6px;
   font-size: 13px;
   color: var(--color-text-secondary);
   cursor: pointer;
@@ -149,7 +153,7 @@
 }
 
 .subpanel {
-  padding: var(--space-md);
+  padding: 12px;
   border-radius: var(--radius-xl);
   border: 1px solid rgba(95, 122, 141, 0.12);
   background: rgba(252, 254, 255, 0.9);
@@ -159,7 +163,7 @@
 .subpanelHeader {
   display: grid;
   gap: 6px;
-  margin-bottom: var(--space-md);
+  margin-bottom: 12px;
 }
 
 .subpanelEyebrow {
@@ -170,7 +174,7 @@
 
 .subpanelTitle {
   font-family: var(--font-serif);
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -178,8 +182,8 @@
 .subpanelLead {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.8;
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .subpanelBody {
@@ -189,7 +193,7 @@
 .panelLeadCard {
   display: grid;
   gap: 4px;
-  padding: var(--space-md);
+  padding: 12px;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(95, 122, 141, 0.1);
   background: rgba(245, 250, 252, 0.82);
@@ -999,6 +1003,12 @@
 
   .qualitySelect {
     grid-template-columns: 1fr 1fr 1fr 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .pageTitle {
+    font-size: 22px;
   }
 }
 

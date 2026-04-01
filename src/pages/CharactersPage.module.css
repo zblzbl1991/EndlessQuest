@@ -1,8 +1,8 @@
 /* CharactersPage.module.css */
 
 .page {
-  padding: var(--space-md);
-  padding-bottom: 80px;
+  padding: 12px;
+  padding-bottom: 76px;
   max-width: 480px;
   margin: 0 auto;
 }
@@ -10,8 +10,8 @@
 .hero {
   display: grid;
   gap: var(--space-md);
-  margin-bottom: var(--space-md);
-  padding: var(--space-lg);
+  margin-bottom: 12px;
+  padding: var(--space-md);
   border-radius: var(--radius-xl);
   background:
     radial-gradient(circle at right top, rgba(133, 164, 182, 0.16), transparent 34%),
@@ -34,7 +34,7 @@
 .pageTitle {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -42,14 +42,14 @@
 .pageLead {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: 13px;
-  line-height: 1.8;
+  font-size: 12px;
+  line-height: 1.7;
 }
 
 .heroFocusCard {
   display: grid;
   gap: 4px;
-  padding: var(--space-md);
+  padding: 12px;
   border-radius: var(--radius-lg);
   background: rgba(247, 251, 253, 0.8);
   border: 1px solid rgba(95, 122, 141, 0.12);
@@ -62,7 +62,7 @@
 
 .heroFocusValue {
   font-family: var(--font-serif);
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
   color: var(--color-text);
 }
@@ -76,19 +76,21 @@
 @media (min-width: 1024px) {
   .page {
     max-width: none;
+    padding: var(--space-md);
     padding-bottom: var(--space-lg);
   }
 
   .hero {
     grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
     align-items: start;
+    padding: var(--space-lg);
   }
 }
 
 /* Toolbar */
 .controlsBand {
-  margin-bottom: var(--space-md);
-  padding: var(--space-sm);
+  margin-bottom: 12px;
+  padding: 10px;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(95, 122, 141, 0.12);
   background: rgba(249, 252, 254, 0.82);
@@ -131,7 +133,7 @@
 .filterTabs {
   display: flex;
   gap: var(--space-xs);
-  margin-bottom: var(--space-md);
+  margin-bottom: 12px;
   overflow-x: auto;
 }
 
@@ -164,19 +166,19 @@
 .characterGrid {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 10px;
 }
 
 .gridView {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: var(--space-sm);
+  gap: 10px;
 }
 
 .listView {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: 10px;
 }
 
 .empty {
@@ -831,6 +833,7 @@
 @media (min-width: 1024px) {
   .gridView {
     grid-template-columns: 1fr 1fr 1fr;
+    gap: var(--space-sm);
   }
 
   .readoutGrid {
@@ -845,6 +848,12 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: var(--space-xs);
+  }
+}
+
+@media (max-width: 640px) {
+  .pageTitle {
+    font-size: 22px;
   }
 }
 

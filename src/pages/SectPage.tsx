@@ -4,7 +4,6 @@ import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { PixelIcon } from '../components/common/PixelIcon'
 import ResourceRate from '../components/common/ResourceRate'
-import CharacterCard from '../components/common/CharacterCard'
 import ActionAgenda from '../components/sect/ActionAgenda'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
@@ -176,15 +175,6 @@ export default function SectPage() {
         <LegacyPanel />
         <StatsPanel />
       </div>
-
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>弟子列表</div>
-        <div className={styles.characterList}>
-          {sect.characters.map((char) => (
-            <CharacterCard key={char.id} character={char} />
-          ))}
-        </div>
-      </section>
     </div>
   )
 }

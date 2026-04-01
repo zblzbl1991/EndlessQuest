@@ -67,4 +67,16 @@ describe('SectPage', () => {
     expect(screen.queryByText(/进行中的秘境/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看详情' })).toHaveAttribute('href', '/adventure/report/report_1')
   })
+
+  it('keeps disciple information at overview level without rendering the disciple list', () => {
+    render(
+      <MemoryRouter>
+        <SectPage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('弟子概况')).toBeInTheDocument()
+    expect(screen.queryByText('弟子列表')).not.toBeInTheDocument()
+    expect(screen.queryByText(useSectStore.getState().sect.characters[0]!.name)).not.toBeInTheDocument()
+  })
 })
