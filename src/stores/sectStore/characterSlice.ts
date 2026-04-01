@@ -15,6 +15,13 @@ import { getPathName } from '../../data/cultivationPaths'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 
+const DISCIPLE_POOL_RECRUIT_DISCOUNT = 0.8
+const TARGETED_RECRUIT_MULT = 1.5
+
+function getAdjustedRecruitCost(baseCost: number, costMult: number): number {
+  return Math.max(50, Math.floor(baseCost * costMult * DISCIPLE_POOL_RECRUIT_DISCOUNT))
+}
+
 export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   addCharacter: (quality: CharacterQuality) => {
     const { sect } = get()
@@ -28,11 +35,11 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     // Check spirit stone cost
     const baseCost = getRecruitCost(quality)
     const costMult = getRecruitCostMult(sect.buildings)
-    const cost = Math.floor(baseCost * costMult)
+    const cost = getAdjustedRecruitCost(baseCost, costMult)
     if (sect.resources.spiritStone < cost) return null
 
     // Deduct stones
-    const character = generateCharacter(quality, sect.activeRoute)
+    const character = { ...generateCharacter(quality, sect.activeRoute), investedSpiritStone: cost }
     const qualityLabel: Record<string, string> = {
       common: '凡品',
       spirit: '灵品',
@@ -83,7 +90,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     if (sect.characters.length >= getMaxCharacters(sect.level)) {
       return { allowed: false, reason: '弟子已满' }
     }
-    const cost = getRecruitCost(quality)
+    const cost = getAdjustedRecruitCost(getRecruitCost(quality), getRecruitCostMult(sect.buildings))
     if (sect.resources.spiritStone < cost) {
       return { allowed: false, reason: '灵石不足' }
     }
@@ -188,7 +195,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     // Calculate cost: 2x normal recruit cost for the min quality + 10 herb
     const baseCost = getRecruitCost(minQuality)
     const costMult = getRecruitCostMult(sect.buildings)
-    const stoneCost = Math.floor(baseCost * costMult * 2)
+    const stoneCost = Math.floor(baseCost * costMult * TARGETED_RECRUIT_MULT)
     const herbCost = 10
 
     if (sect.resources.spiritStone < stoneCost) return null
@@ -203,7 +210,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
       const candidate = generateCharacter(minQuality, sect.activeRoute)
       const candidateIndex = QUALITY_ORDER.indexOf(candidate.quality)
       if (candidateIndex >= minIndex) {
-        character = candidate
+        character = { ...candidate, investedSpiritStone: stoneCost }
         break
       }
     }

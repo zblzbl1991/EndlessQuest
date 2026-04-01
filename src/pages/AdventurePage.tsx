@@ -93,8 +93,8 @@ export default function AdventurePage() {
             <h1 className={styles.pageTitle}>秘境</h1>
             <p className={styles.pageLead}>
               {latestReport
-                ? `上一场${getRunIntentDef(latestReport.strategy).label}已留痕，如今可再定一局心意。`
-                : '秘境不会催你动作，只把去处与回响摆在眼前。'}
+                ? `上一场${getRunIntentDef(latestReport.strategy).label}已留痕，如今可再定一局心意，也要想清楚这一程愿付出多少弟子折损。`
+                : '秘境不会催你动作，只把去处、回响与可能付出的折损摆在眼前。'}
             </p>
           </div>
           <div className={styles.heroFocus}>
@@ -360,6 +360,7 @@ function TeamBuilder({
             <span className={styles.targetName}>{dungeon?.name ?? dungeonId}</span>
             <span className={styles.targetMeta}>先定去处，再决定这局是守、是争，还是寻机。</span>
           </div>
+          <div className={styles.teamBuilderHint}>本次探索可能折损弟子，若身死道消，将仅返还部分灵石。</div>
         </div>
 
         <div className={styles.teamBuilderSection}>

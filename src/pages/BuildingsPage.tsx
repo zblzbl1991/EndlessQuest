@@ -226,7 +226,7 @@ export default function BuildingsPage() {
         <div className={styles.heroMain}>
           <span className={styles.pageEyebrow}>营造卷</span>
           <h1 className={styles.pageTitle}>宗门营造</h1>
-          <p className={styles.pageLead}>先看宗门正在生长的方向，再决定今日是扩建、招收，还是炼制储备。</p>
+          <p className={styles.pageLead}>宗门才是长久之本。先看山门还缺什么，再决定今日是扩建、补员，还是炼制储备。</p>
         </div>
         <div className={styles.heroFocusCard}>
           <span className={styles.heroFocusLabel}>当前营造重点</span>
@@ -592,13 +592,15 @@ function RecruitTab() {
   }
 
   // Compute targeted cost display
-  const targetedStoneCost = targetedQuality ? getRecruitCost(targetedQuality) * 2 : 0
+  const targetedStoneCost = targetedQuality ? Math.floor(getRecruitCost(targetedQuality) * 1.5) : 0
 
   return (
     <div className={styles.recruitPanel}>
       <section className={styles.panelLeadCard}>
         <div className={styles.panelLeadTitle}>招募概览</div>
-        <div className={styles.panelLeadText}>先看宗门余量与今日愿纳之材，再决定是否广开山门或定向寻人。</div>
+        <div className={styles.panelLeadText}>
+          先看宗门余量与今日愿纳之材。折损之后也能续上门中人手，关键是补得及时、补得合用。
+        </div>
       </section>
 
       <div className={styles.recruitInfo}>

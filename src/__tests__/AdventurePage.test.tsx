@@ -100,5 +100,6 @@ describe('AdventurePage', () => {
     expect(screen.getByText('本局意图')).toBeInTheDocument()
     expect(screen.getByText('战术')).toBeInTheDocument()
     expect(screen.getByText('出战弟子')).toBeInTheDocument()
+    expect(screen.getByText(/本次探索可能折损弟子/)).toBeInTheDocument()
   })
 })

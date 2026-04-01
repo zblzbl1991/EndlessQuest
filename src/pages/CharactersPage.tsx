@@ -169,13 +169,15 @@ export default function CharactersPage() {
         <div className={styles.heroMain}>
           <span className={styles.pageEyebrow}>门中名册</span>
           <h1 className={styles.pageTitle}>门中弟子</h1>
-          <p className={styles.pageLead}>先看门中弟子的流转，再决定今天要关注谁、培养谁、派谁出门。</p>
+          <p className={styles.pageLead}>
+            弟子来去皆在流转。先看池中还有哪些人可用，再决定今天要养谁、派谁、舍谁去赌一程。
+          </p>
         </div>
         <div className={styles.heroFocusCard}>
-          <span className={styles.heroFocusLabel}>当前流转</span>
+          <span className={styles.heroFocusLabel}>当前弟子池</span>
           <span className={styles.heroFocusValue}>{flowSummary}</span>
           <span className={styles.heroFocusMeta}>
-            当前筛选下共有 {filteredCharacters.length} 人，{view === 'grid' ? '按网格' : '按列表'}阅览。
+            当前筛选下共有 {filteredCharacters.length} 人，折损之后也可继续补员，重点在池子的流转与去向。
           </span>
         </div>
       </section>
