@@ -1,17 +1,16 @@
-// src/systems/roguelike/EventSystem.ts
 import type { DungeonEvent } from '../../types/adventure'
 import type { AnyItem } from '../../types/item'
 import { ENEMY_TEMPLATES, createCombatUnitFromEnemy, type EnemyTemplate } from '../../data/enemies'
-import type { CombatUnit, CombatResult } from '../combat/CombatEngine'
-import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
+import { EQUIP_SLOTS } from '../../data/items'
 import { getTechniqueById } from '../../data/techniquesTable'
+import type { Resources } from '../../types/sect'
+import type { CombatResult, CombatUnit } from '../combat/CombatEngine'
+import { hasAffix, calcShield } from '../combat/AffixSystem'
 import { simulateCombat } from '../combat/CombatEngine'
 import { generateEquipment } from '../item/ItemGenerator'
-import { generateLoot } from './LootSystem'
+import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
 import type { LootResult } from './LootSystem'
-import { EQUIP_SLOTS } from '../../data/items'
-import type { Resources } from '../../types/sect'
-import { hasAffix, calcShield } from '../combat/AffixSystem'
+import { generateLoot } from './LootSystem'
 
 export interface ShopOffer {
   name: string
@@ -22,8 +21,8 @@ export interface ShopOffer {
 }
 
 const SHOP_ITEMS: ShopOffer[] = [
-  { name: '回春丹', description: '恢复 30% 生命', cost: 100, effect: 'heal', value: 0.3 },
-  { name: '传送符', description: '跳过当前层', cost: 200, effect: 'skip', value: 0 },
+  { name: 'Healing Dew', description: 'Restore 30% team HP.', cost: 100, effect: 'heal', value: 0.3 },
+  { name: 'Shadow Step Token', description: 'Skip the current floor.', cost: 200, effect: 'skip', value: 0 },
 ]
 
 export interface EventResult {
@@ -33,36 +32,25 @@ export interface EventResult {
   itemRewards: AnyItem[]
   combatResult?: CombatResult
   message: string
-  hpChanges: Record<string, number> // unit id -> hp change (positive = healed, negative = damage)
+  hpChanges: Record<string, number>
   techniqueReward?: { techniqueId: string }
   shopOffers?: ShopOffer[]
   petCaptureAvailable?: boolean
   mutationTrigger?: 'battle' | 'insight' | 'rest'
 }
 
-function getNonBossTemplates() {
-  return ENEMY_TEMPLATES.filter((e) => !e.isBoss)
+function getNonBossTemplates(): EnemyTemplate[] {
+  return ENEMY_TEMPLATES.filter((enemy) => !enemy.isBoss)
 }
 
-/**
- * Get alive units from the team for combat.
- * Dead allies are skipped in subsequent floors.
- */
 function getAliveTeam(team: CombatUnit[]): CombatUnit[] {
-  return team.filter((u) => u.hp > 0)
+  return team.filter((unit) => unit.hp > 0)
 }
 
-/**
- * Sum total max HP across all alive team members.
- */
 function totalTeamMaxHp(team: CombatUnit[]): number {
-  return getAliveTeam(team).reduce((sum, u) => sum + u.maxHp, 0)
+  return getAliveTeam(team).reduce((sum, unit) => sum + unit.maxHp, 0)
 }
 
-/**
- * Resolve loot results into resource rewards and item rewards.
- * Resources go to sect.resources, items go to vault via ItemStack.
- */
 function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyItem[]; hasPetCapture: boolean } {
   const reward: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
   const itemRewards: AnyItem[] = []
@@ -79,14 +67,14 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
       case 'ore':
         reward.ore += drop.amount
         break
-      case 'equipment':
-        if (drop.quality) {
-          const slot = EQUIP_SLOTS[Math.floor(Math.random() * EQUIP_SLOTS.length)]
-          itemRewards.push(generateEquipment(slot, drop.quality))
-        }
+      case 'equipment': {
+        if (!drop.quality) break
+        const slot = EQUIP_SLOTS[Math.floor(Math.random() * EQUIP_SLOTS.length)]
+        const equipment = generateEquipment(slot, drop.quality)
+        if (equipment) itemRewards.push(equipment)
         break
+      }
       case 'consumable':
-        // Handled by caller
         break
       case 'petCapture':
         hasPetCapture = true
@@ -97,87 +85,90 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
   return { reward, itemRewards, hasPetCapture }
 }
 
-/**
- * Resolve an event with a team of combat units (multi-unit support).
- *
- * Dead allies are filtered out before combat and non-combat events.
- * Returns rewards (resources + items) without mutating any store.
- */
+function buildCombatTeam(team: CombatUnit[]): CombatUnit[] {
+  return team.map((unit) => ({
+    ...unit,
+    affixes: unit.affixes ?? [],
+    preset: unit.preset ?? 'balanced',
+    aggro: unit.aggro ?? 0,
+    shield: unit.shield ?? 0,
+  }))
+}
+
+function buildHpChanges(originalTeam: CombatUnit[], allyHp: number[]): Record<string, number> {
+  const hpChanges: Record<string, number> = {}
+  for (let i = 0; i < originalTeam.length; i += 1) {
+    const originalHp = originalTeam[i].hp
+    const remainingHp = allyHp[i] ?? 0
+    hpChanges[originalTeam[i].id] = -(originalHp - remainingHp)
+  }
+  return hpChanges
+}
+
+function makeNoTeamResult(type: DungeonEvent['type']): EventResult {
+  return {
+    type,
+    success: false,
+    reward: { spiritStone: 0, herb: 0, ore: 0 },
+    itemRewards: [],
+    message: '全军覆没，无法继续前进。',
+    hpChanges: {},
+  }
+}
+
 export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumber: number): EventResult {
   const emptyReward = { spiritStone: 0, herb: 0, ore: 0 }
 
   switch (event.type) {
     case 'combat': {
       const aliveTeam = getAliveTeam(team)
-      if (aliveTeam.length === 0) {
-        return {
-          type: 'combat',
-          success: false,
-          reward: emptyReward,
-          itemRewards: [],
-          message: '队伍已全军覆没...',
-          hpChanges: {},
-        }
-      }
+      if (aliveTeam.length === 0) return makeNoTeamResult('combat')
+
       const templates = getNonBossTemplates()
       const enemyTemplate = templates[Math.floor(Math.random() * templates.length)] as EnemyTemplate
       const enemyUnit = createCombatUnitFromEnemy(enemyTemplate, floorNumber)
 
-      // Initialize enemy affix-based shield
       if (hasAffix(enemyUnit.affixes, 'shield')) {
         enemyUnit.shield = calcShield(enemyUnit.maxHp, true)
       }
 
-      // Initialize ally units with default fields
-      const combatTeam = aliveTeam.map((u) => ({
-        ...u,
-        affixes: u.affixes ?? [],
-        preset: u.preset ?? ('balanced' as const),
-        aggro: u.aggro ?? 0,
-        shield: u.shield ?? 0,
-      }))
+      const result = simulateCombat(buildCombatTeam(aliveTeam), [enemyUnit])
+      const hpChanges = buildHpChanges(aliveTeam, result.allyHp)
 
-      const result = simulateCombat(combatTeam, [enemyUnit])
-      const victory = result.victory
-
-      // Calculate HP changes for each alive team member
-      const hpChanges: Record<string, number> = {}
-      for (let i = 0; i < aliveTeam.length; i++) {
-        const original = aliveTeam[i].hp
-        const remaining = result.allyHp[i] ?? 0
-        hpChanges[aliveTeam[i].id] = -(original - remaining)
-      }
-
-      if (victory) {
-        const loot = generateLoot(enemyTemplate.lootTable, enemyTemplate.dropsPerFight, floorNumber)
-        const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
-        return {
-          type: 'combat',
-          success: true,
-          reward,
-          itemRewards,
-          combatResult: result,
-          message: hasPetCapture ? `击败了 ${enemyTemplate.name}，发现可捕获灵兽！` : `击败了 ${enemyTemplate.name}`,
-          hpChanges,
-          petCaptureAvailable: hasPetCapture || undefined,
-          mutationTrigger: 'battle',
-        }
-      } else {
+      if (!result.victory) {
         return {
           type: 'combat',
           success: false,
           reward: emptyReward,
           itemRewards: [],
           combatResult: result,
-          message: `被 ${enemyTemplate.name} 击败`,
+          message: `Lost to ${enemyTemplate.name}.`,
           hpChanges,
         }
       }
+
+      const loot = generateLoot(enemyTemplate.lootTable, enemyTemplate.dropsPerFight, floorNumber)
+      const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
+      return {
+        type: 'combat',
+        success: true,
+        reward,
+        itemRewards,
+        combatResult: result,
+        message: hasPetCapture
+          ? `Defeated ${enemyTemplate.name} and found a tameable beast.`
+          : `Defeated ${enemyTemplate.name}.`,
+        hpChanges,
+        petCaptureAvailable: hasPetCapture || undefined,
+        mutationTrigger: 'battle',
+      }
     }
+
     case 'random': {
       const aliveTeam = getAliveTeam(team)
       const maxHp = totalTeamMaxHp(team)
       const roll = Math.random()
+
       if (roll < 0.5) {
         return {
           type: 'random',
@@ -188,14 +179,13 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
           hpChanges: {},
           mutationTrigger: 'insight',
         }
-      } else if (roll < 0.8) {
-        // Heal all alive team members
+      }
+
+      if (roll < 0.8) {
         const healAmount = Math.floor(maxHp * 0.1)
         const perUnitHeal = aliveTeam.length > 0 ? Math.floor(healAmount / aliveTeam.length) : 0
         const hpChanges: Record<string, number> = {}
-        for (const unit of aliveTeam) {
-          hpChanges[unit.id] = perUnitHeal
-        }
+        for (const unit of aliveTeam) hpChanges[unit.id] = perUnitHeal
         return {
           type: 'random',
           success: true,
@@ -205,128 +195,99 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
           hpChanges,
           mutationTrigger: 'rest',
         }
-      } else {
-        // Damage all alive team members
-        const damageAmount = Math.floor(maxHp * 0.1)
-        const perUnitDamage = aliveTeam.length > 0 ? Math.floor(damageAmount / aliveTeam.length) : 0
-        const hpChanges: Record<string, number> = {}
-        for (const unit of aliveTeam) {
-          hpChanges[unit.id] = -perUnitDamage
-        }
-        return {
-          type: 'random',
-          success: false,
-          reward: emptyReward,
-          itemRewards: [],
-          message: '踩到了陷阱！',
-          hpChanges,
-        }
+      }
+
+      const damageAmount = Math.floor(maxHp * 0.1)
+      const perUnitDamage = aliveTeam.length > 0 ? Math.floor(damageAmount / aliveTeam.length) : 0
+      const hpChanges: Record<string, number> = {}
+      for (const unit of aliveTeam) hpChanges[unit.id] = -perUnitDamage
+      return {
+        type: 'random',
+        success: false,
+        reward: emptyReward,
+        itemRewards: [],
+        message: '踩到了陷阱！',
+        hpChanges,
       }
     }
+
     case 'shop': {
-      const shuffled = [...SHOP_ITEMS].sort(() => Math.random() - 0.5)
-      const offers = shuffled.slice(0, 2)
+      const offers = [...SHOP_ITEMS].sort(() => Math.random() - 0.5).slice(0, 2)
       return {
         type: 'shop',
         success: true,
         reward: emptyReward,
         itemRewards: [],
-        message: '遇到了游商',
+        message: 'Encountered a wandering merchant.',
         hpChanges: {},
         shopOffers: offers,
       }
     }
+
     case 'rest': {
       const aliveTeam = getAliveTeam(team)
       const maxHp = totalTeamMaxHp(team)
       const healTotal = Math.floor(maxHp * 0.3)
       const perUnitHeal = aliveTeam.length > 0 ? Math.floor(healTotal / aliveTeam.length) : 0
       const hpChanges: Record<string, number> = {}
-      for (const unit of aliveTeam) {
-        hpChanges[unit.id] = perUnitHeal
-      }
+      for (const unit of aliveTeam) hpChanges[unit.id] = perUnitHeal
       return {
         type: 'rest',
         success: true,
         reward: emptyReward,
         itemRewards: [],
-        message: '休息恢复了生命',
+        message: '在安全地带休息，恢复了状态',
         hpChanges,
         mutationTrigger: 'rest',
       }
     }
+
     case 'boss': {
       const aliveTeam = getAliveTeam(team)
-      if (aliveTeam.length === 0) {
-        return {
-          type: 'boss',
-          success: false,
-          reward: emptyReward,
-          itemRewards: [],
-          message: '队伍已全军覆没...',
-          hpChanges: {},
-        }
-      }
-      const bossTemplate = ENEMY_TEMPLATES.find((e) => e.isBoss) as EnemyTemplate
+      if (aliveTeam.length === 0) return makeNoTeamResult('boss')
+
+      const bossTemplate = ENEMY_TEMPLATES.find((enemy) => enemy.isBoss) as EnemyTemplate
       const bossUnit = createCombatUnitFromEnemy(bossTemplate, floorNumber)
-      // Boost boss for boss fight
       bossUnit.hp = Math.floor(bossUnit.hp * 2)
       bossUnit.maxHp = bossUnit.hp
       bossUnit.atk = Math.floor(bossUnit.atk * 1.5)
 
-      // Initialize boss affix-based shield
       if (hasAffix(bossUnit.affixes, 'shield')) {
         bossUnit.shield = calcShield(bossUnit.maxHp, true)
       }
 
-      // Initialize ally units with default fields
-      const combatTeam = aliveTeam.map((u) => ({
-        ...u,
-        affixes: u.affixes ?? [],
-        preset: u.preset ?? ('balanced' as const),
-        aggro: u.aggro ?? 0,
-        shield: u.shield ?? 0,
-      }))
+      const result = simulateCombat(buildCombatTeam(aliveTeam), [bossUnit])
+      const hpChanges = buildHpChanges(aliveTeam, result.allyHp)
 
-      const result = simulateCombat(combatTeam, [bossUnit])
-      const victory = result.victory
-
-      // Calculate HP changes for each alive team member
-      const hpChanges: Record<string, number> = {}
-      for (let i = 0; i < aliveTeam.length; i++) {
-        const original = aliveTeam[i].hp
-        const remaining = result.allyHp[i] ?? 0
-        hpChanges[aliveTeam[i].id] = -(original - remaining)
-      }
-
-      if (victory) {
-        const loot = generateLoot(bossTemplate.lootTable, bossTemplate.dropsPerFight, floorNumber)
-        const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
-        return {
-          type: 'boss',
-          success: true,
-          reward,
-          itemRewards,
-          combatResult: result,
-          message: hasPetCapture
-            ? `击败了 BOSS: ${bossTemplate.name}！发现可捕获灵兽！`
-            : `击败了 BOSS: ${bossTemplate.name}！`,
-          hpChanges,
-          petCaptureAvailable: hasPetCapture || undefined,
-          mutationTrigger: 'battle',
-        }
-      } else {
+      if (!result.victory) {
         return {
           type: 'boss',
           success: false,
           reward: { spiritStone: 50 * floorNumber, herb: 2 * floorNumber, ore: 0 },
           itemRewards: [],
           combatResult: result,
-          message: `被 BOSS: ${bossTemplate.name} 击败...`,
+          message: `Lost to BOSS: ${bossTemplate.name}.`,
           hpChanges,
         }
       }
+
+      const loot = generateLoot(bossTemplate.lootTable, bossTemplate.dropsPerFight, floorNumber)
+      const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
+      return {
+        type: 'boss',
+        success: true,
+        reward,
+        itemRewards,
+        combatResult: result,
+        message: hasPetCapture
+          ? `Defeated BOSS: ${bossTemplate.name} and found a tameable beast.`
+          : `Defeated BOSS: ${bossTemplate.name}.`,
+        hpChanges,
+        petCaptureAvailable: hasPetCapture || undefined,
+        mutationTrigger: 'battle',
+      }
     }
+
     case 'ancient_cave': {
       const techniqueId = pickTechniqueForFloor(floorNumber)
       const techniqueName = getTechniqueById(techniqueId)?.name ?? techniqueId
@@ -335,19 +296,20 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
         success: true,
         reward: { spiritStone: 0, herb: 0, ore: 0 },
         itemRewards: [],
-        message: `古修洞府中发现功法铭文：${techniqueName}`,
+        message: `Ancient cave manual discovered: ${techniqueName}`,
         hpChanges: {},
         techniqueReward: { techniqueId },
         mutationTrigger: 'insight',
       }
     }
+
     default:
       return {
         type: event.type,
         success: false,
         reward: emptyReward,
         itemRewards: [],
-        message: '未知事件',
+        message: 'Unknown event.',
         hpChanges: {},
       }
   }

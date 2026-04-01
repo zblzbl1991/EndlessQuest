@@ -1,6 +1,9 @@
 import type { Element } from './skill'
 
 export type TechniqueTier = 'mortal' | 'spirit' | 'immortal' | 'divine' | 'chaos'
+export type TechniqueOrigin = 'starter' | 'dungeon' | 'legacy'
+export type TechniqueFamily = 'qi' | 'body' | 'weapon' | 'mystic'
+export type TechniqueStyle = 'balanced' | 'burst' | 'guard' | 'tempo' | 'cultivation' | 'survival'
 
 export interface TechniqueBonus {
   type: string
@@ -13,6 +16,9 @@ export interface Technique {
   description: string
   tier: TechniqueTier
   element: Element
+  origin: TechniqueOrigin
+  family: TechniqueFamily
+  styles: TechniqueStyle[]
   bonuses: TechniqueBonus[]
   requirements: {
     minRealm: number

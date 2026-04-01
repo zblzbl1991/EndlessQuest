@@ -1,63 +1,80 @@
 import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
-import { getTechniqueById } from '../../data/techniquesTable'
-import { TECHNIQUE_TIER_NAMES } from '../../types/technique'
+import { TECHNIQUES } from '../../data/techniquesTable'
+import { getTechniqueCodexCapacity } from '../../systems/technique/TechniqueSystem'
 import { PixelIcon } from '../common/PixelIcon'
 import styles from './StudyPanel.module.css'
 
 export default function StudyPanel() {
-  const sect = useSectStore((s) => s.sect)
-  const studyTechnique = useSectStore((s) => s.studyTechnique)
-  const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
+  const sect = useSectStore((state) => state.sect)
+  const studyTechnique = useSectStore((state) => state.studyTechnique)
+  const [message, setMessage] = useState<string | null>(null)
 
-  const scriptureLevel = sect.buildings.find((b) => b.type === 'scriptureHall')?.level ?? 0
+  const scriptureLevel = sect.buildings.find((building) => building.type === 'scriptureHall')?.level ?? 0
+  const capacity = getTechniqueCodexCapacity(scriptureLevel)
+  const starterCount = sect.techniqueCodex.filter(
+    (techniqueId) => TECHNIQUES.find((technique) => technique.id === techniqueId)?.origin === 'starter'
+  ).length
+  const dungeonCount = sect.techniqueCodex.filter(
+    (techniqueId) => TECHNIQUES.find((technique) => technique.id === techniqueId)?.origin === 'dungeon'
+  ).length
+  const remaining = Math.max(0, capacity - sect.techniqueCodex.length)
 
-  const cost = 100 * sect.level
-  const canAfford = sect.resources.spiritStone >= cost
-
-  const maxRealm = sect.characters.length > 0 ? Math.max(...sect.characters.map((c) => c.realm)) : 0
-  const tierNames = ['凡级', '灵级', '仙级', '神级', '混沌级']
-  const maxTierName = tierNames[Math.min(maxRealm, tierNames.length - 1)] ?? '凡级'
-
-  const handleStudy = () => {
+  const handleInspect = () => {
     const result = studyTechnique()
-    if (result.success) {
-      const technique = getTechniqueById(result.reason)
-      setMessage({
-        success: true,
-        text: technique ? `参悟成功：获得 ${technique.name}（${TECHNIQUE_TIER_NAMES[technique.tier]}）` : '参悟成功',
-      })
-    } else {
-      setMessage({ success: false, text: result.reason })
-    }
-    setTimeout(() => setMessage(null), 2000)
+    setMessage(result.reason)
+    setTimeout(() => setMessage(null), 2500)
   }
 
   return (
     <div className={styles.buildingPanel}>
       <div className={styles.panelHeader}>
         <span className={styles.panelTitle}>
-          <PixelIcon name="techniqueScroll" size={20} className={styles.panelIcon} aria-label="功法参悟" />
-          藏经阁 Lv{scriptureLevel}
+          <PixelIcon name="scriptureHall" size={20} className={styles.panelIcon} aria-label="Scripture Hall" />
+          Scripture Hall Lv{scriptureLevel}
         </span>
-        <span className={styles.resourceDisplay}>灵石 {sect.resources.spiritStone}</span>
+        <span className={styles.resourceDisplay}>Codex {sect.techniqueCodex.length} / {capacity}</span>
       </div>
 
       <div className={styles.studyInfo}>
-        <div className={styles.studyDesc}>参悟功法，随机解锁一部宗门功法图鉴。</div>
-        <div className={styles.studyCost}>费用: {cost} 灵石</div>
-        <div className={styles.studyNote}>功法最高品质: {maxTierName}（根据弟子最高境界决定）</div>
+        <div className={styles.studyDesc}>
+          Scripture Hall is now a collection building. It does not mint new manuals by itself. Its job is to expand how
+          many techniques your sect can archive at once.
+        </div>
+
+        <div className={styles.studyMetaRow}>
+          <div className={styles.metaCard}>
+            <span className={styles.metaLabel}>Codex Cap</span>
+            <strong className={styles.metaValue}>{capacity}</strong>
+          </div>
+          <div className={styles.metaCard}>
+            <span className={styles.metaLabel}>Open Slots</span>
+            <strong className={styles.metaValue}>{remaining}</strong>
+          </div>
+          <div className={styles.metaCard}>
+            <span className={styles.metaLabel}>Dungeon Finds</span>
+            <strong className={styles.metaValue}>{dungeonCount}</strong>
+          </div>
+        </div>
+
+        <div className={styles.ruleList}>
+          <div className={styles.ruleItem}>1. Start with 3 basic manuals in the sect codex.</div>
+          <div className={styles.ruleItem}>2. All other techniques come from dungeon exploration.</div>
+          <div className={styles.ruleItem}>3. Breakthroughs comprehend from the codex based on character affinity.</div>
+          <div className={styles.ruleItem}>4. Duplicate discoveries can become fragments, not direct power spikes.</div>
+        </div>
+
+        <div className={styles.studyDesc}>
+          Current collection mix: {starterCount} starter manuals, {dungeonCount} dungeon manuals,{' '}
+          {TECHNIQUES.length - sect.techniqueCodex.length} still undiscovered.
+        </div>
+
+        <button className={styles.inspectButton} onClick={handleInspect}>
+          Inspect Hall Rule
+        </button>
       </div>
 
-      <button
-        className={`${styles.studyBtn} ${!canAfford ? styles.studyDisabled : ''}`}
-        onClick={handleStudy}
-        disabled={!canAfford}
-      >
-        参悟功法
-      </button>
-
-      {message && <div className={message.success ? 'globalMessageSuccess' : 'globalMessageFail'}>{message.text}</div>}
+      {message && <div className={styles.message}>{message}</div>}
     </div>
   )
 }

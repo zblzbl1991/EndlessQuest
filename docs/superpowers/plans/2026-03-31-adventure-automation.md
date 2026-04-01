@@ -1,5 +1,9 @@
 # Adventure Automation Implementation Plan
 
+> Status Snapshot (2026-04-01): Implemented and archived. Instant-resolution automation, adventure reports, report details routing, event-log linking, and report-centric adventure state are all in the current codebase.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the current floor-by-floor dungeon progression with an instant-resolution automation flow that generates structured exploration reports, surfaces recent summaries on the adventure page, provides a dedicated report details page, and lets the global event log jump into dungeon details.

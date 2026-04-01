@@ -99,19 +99,6 @@ function mergeSpecialtyLevels(
   return next
 }
 
-function getRouteBonusTechniques(routeId: SectRouteId | null): string[] {
-  switch (routeId) {
-    case 'alchemy':
-      return ['jiuzhuan']
-    case 'sword':
-      return ['wanjianguizong']
-    case 'beast':
-      return ['taishang']
-    default:
-      return []
-  }
-}
-
 function applyRouteIdentityBiases(
   specialties: Character['specialties'],
   routeId: SectRouteId | null
@@ -385,7 +372,7 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     quality = 'chaos'
   }
 
-  const learnedTechniques = ['qingxin', ...getRouteBonusTechniques(activeRoute)]
+  const learnedTechniques = ['qingxin']
   const specialties = applyRouteIdentityBiases(rollSpecialties(quality), activeRoute)
 
   return syncCharacterSkillLoadout({

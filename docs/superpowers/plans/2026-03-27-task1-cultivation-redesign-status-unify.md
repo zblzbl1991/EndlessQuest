@@ -4,6 +4,11 @@
 > **目标：** 移除 `cultivating`/`secluded` 状态，idle 即自动修炼，所有突破需灵石，实现自动突破
 
 ---
+> Status Snapshot (2026-04-01): Implemented as part of the core product overhaul and archived. Character status unification, idle auto-cultivation, breakthrough stone costs, and related UI/save updates are all present in the current codebase.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
+---
 
 ## 步骤
 

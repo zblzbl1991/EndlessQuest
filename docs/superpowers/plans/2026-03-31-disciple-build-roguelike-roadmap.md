@@ -1,5 +1,9 @@
 # Disciple Build Roguelike Roadmap
 
+> Status Snapshot (2026-04-01): Implemented and archived. Use the progress snapshot below as the historical breakdown of what shipped; the roadmap itself is no longer an active task list.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
 > **For agentic workers:** Prefer implementing this roadmap slice by slice. Each slice should remain playable and testable when complete.
 
 **Goal:** Turn EndlessQuest's disciple build into a low-operation, high-variance Roguelike system where long-term disciple identity and in-run growth meaningfully drive strategy, while preserving the current idle-management + automated-adventure direction.
@@ -67,7 +71,7 @@ Do not skip ahead. Slice 3 depends on Slice 1 being real, and Slice 4 matters on
 
 ### Verification snapshot
 
-- 2026-04-01: `npm test` passed with 52 test files and 857 tests passing
+- 2026-04-01: `npm test` passed with 62 test files and 884 tests passing
 - 2026-04-01: `npm run build` completed successfully
 
 ---

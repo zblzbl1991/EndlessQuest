@@ -1,9 +1,13 @@
 # Disciple Build Roguelike Implementation Plan
 
 **Date:** 2026-03-31  
-**Status:** Active  
+**Status:** Archived (implemented)  
 **Related design:** `docs/superpowers/specs/2026-03-31-disciple-build-roguelike-design.md`  
 **Related roadmap:** `docs/superpowers/plans/2026-03-31-disciple-build-roguelike-roadmap.md`
+
+> Status Snapshot (2026-04-01): Implemented and archived. The planned disciple identity, low-operation build controls, in-run build expression, and sect ecology rewiring are live in the current codebase.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
 
 ---
 

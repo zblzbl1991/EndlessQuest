@@ -1,5 +1,9 @@
-// src/__tests__/TechniqueSystem.test.ts
-import { tryComprehendOnBreakthrough, pickTechniqueForFloor } from '../systems/technique/TechniqueSystem'
+import {
+  getTechniqueCodexCapacity,
+  pickExplorationTechniqueReward,
+  pickTechniqueForFloor,
+  tryComprehendOnBreakthrough,
+} from '../systems/technique/TechniqueSystem'
 
 describe('tryComprehendOnBreakthrough', () => {
   const codex = ['qingxin', 'lieyan', 'fentian', 'xuanbing', 'leishen']
@@ -16,7 +20,13 @@ describe('tryComprehendOnBreakthrough', () => {
 
   it('should return technique when random roll succeeds (sub-level)', () => {
     const result = tryComprehendOnBreakthrough(
-      { learnedTechniques: ['qingxin', 'lieyan'], realm: 1, cultivationStats: { comprehension: 30 } },
+      {
+        learnedTechniques: ['qingxin', 'lieyan'],
+        realm: 1,
+        cultivationStats: { comprehension: 30 },
+        cultivationPath: 'alchemy',
+        specialties: [{ type: 'comprehension', level: 3 }],
+      },
       codex,
       false,
       () => 0.14
@@ -62,7 +72,13 @@ describe('tryComprehendOnBreakthrough', () => {
 
   it('should respect tier ceiling (realm 0 = mortal only)', () => {
     const result = tryComprehendOnBreakthrough(
-      { learnedTechniques: ['qingxin', 'lieyan'], realm: 0, cultivationStats: { comprehension: 30 } },
+      {
+        learnedTechniques: ['qingxin', 'lieyan'],
+        realm: 0,
+        cultivationStats: { comprehension: 30 },
+        cultivationPath: 'body',
+        specialties: [{ type: 'mining', level: 2 }],
+      },
       ['qingxin', 'lieyan', 'houtu', 'fentian', 'xuanbing', 'leishen'],
       true,
       () => 0
@@ -82,13 +98,8 @@ describe('tryComprehendOnBreakthrough', () => {
 })
 
 describe('pickTechniqueForFloor', () => {
-  it('should return mortal tier for floor 3 with low roll', () => {
+  it('should return spirit-or-higher dungeon techniques for early floors', () => {
     const id = pickTechniqueForFloor(3, () => 0.5)
-    expect(['qingxin', 'lieyan', 'houtu']).toContain(id)
-  })
-
-  it('should return spirit tier for floor 5 with high roll', () => {
-    const id = pickTechniqueForFloor(5, () => 0.9)
     expect(['fentian', 'xuanbing', 'leiyu']).toContain(id)
   })
 
@@ -100,5 +111,23 @@ describe('pickTechniqueForFloor', () => {
   it('should return divine tier for floor 12 with high roll', () => {
     const id = pickTechniqueForFloor(12, () => 0.9)
     expect(['wanjianguizong', 'taishang']).toContain(id)
+  })
+})
+
+describe('technique codex progression', () => {
+  it('should use scripture hall as codex capacity only', () => {
+    expect(getTechniqueCodexCapacity(0)).toBe(3)
+    expect(getTechniqueCodexCapacity(3)).toBe(9)
+  })
+
+  it('should only pick undiscovered dungeon techniques from exploration', () => {
+    const result = pickExplorationTechniqueReward(4, ['qingxin', 'lieyan', 'houtu'], 3, () => 0)
+    expect(result).not.toBeNull()
+    expect(['fentian', 'xuanbing', 'leiyu']).toContain(result!)
+  })
+
+  it('should return null when the scripture hall codex is already full', () => {
+    const result = pickExplorationTechniqueReward(4, ['qingxin', 'lieyan', 'houtu'], 0, () => 0)
+    expect(result).toBeNull()
   })
 })

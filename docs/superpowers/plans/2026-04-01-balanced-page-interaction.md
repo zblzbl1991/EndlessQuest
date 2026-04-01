@@ -1,5 +1,9 @@
 # Balanced Page Interaction Implementation Plan
 
+> Status Snapshot (2026-04-01): Implemented and archived. Adventure, buildings, characters list, and character detail now use the approved balanced daily-page interaction hierarchy, with regression tests covering the new anchors and flow order.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild `AdventurePage`, `BuildingsPage`, `CharactersPage`, and `CharacterDetail` around the approved balanced daily-page interaction model without changing core gameplay systems.

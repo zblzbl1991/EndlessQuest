@@ -21,20 +21,41 @@
   margin-bottom: var(--space-md);
 }
 
+.familyRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+}
+
+.familyChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: var(--color-accent-bg);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: var(--space-sm);
 }
 
 .card {
   padding: var(--space-sm);
   border: 1px solid var(--color-border-light);
-  border-radius: 6px;
+  border-radius: 8px;
   background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
 }
 
-.card.locked {
+.locked {
   opacity: 0.5;
 }
 
@@ -44,7 +65,6 @@
   gap: 6px;
   font-size: 14px;
   font-weight: 500;
-  margin-bottom: 2px;
 }
 
 .cardIcon {
@@ -54,14 +74,26 @@
 .cardTier {
   font-size: 11px;
   color: var(--color-text-tertiary);
-  margin-bottom: var(--space-xs);
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cardTag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--color-text-secondary);
+  font-size: 11px;
 }
 
 .cardDesc {
   font-size: 12px;
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-xs);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .cardStats {

@@ -1,5 +1,9 @@
 # Disciple Sacrifice Economy Implementation Plan
 
+> Status Snapshot (2026-04-01): Implemented and archived. Disciple investment tracking, canonical sacrifice handling, adventure and breakthrough death flows, refund rules, and supporting UI/report updates are present in the current codebase.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Convert disciples into high-loss resources by making all disciples permanently mortal in adventure and breakthrough flows, refunding only part of their spirit-stone investment on death, and shifting long-term player value toward sect growth instead of individual preservation.

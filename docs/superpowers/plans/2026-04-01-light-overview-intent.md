@@ -1,5 +1,9 @@
 # Light Overview And Run Intent Implementation Plan
 
+> Status Snapshot (2026-04-01): Implemented and archived. Shared run-intent language, light sect overview selection, disciple use-profile surfacing, and reusable adventure report insight extraction are all live in the current codebase.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace directive homepage guidance with a light overview, upgrade automation strategy into player-facing run intent, sharpen disciple role expression, and make adventure reports explain why a run succeeded or failed.

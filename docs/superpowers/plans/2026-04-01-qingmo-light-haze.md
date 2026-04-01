@@ -1,5 +1,9 @@
 # Qingmo Light Haze Theme Refresh Implementation Plan
 
+> Status Snapshot (2026-04-01): Implemented and archived. Global tokens, shell palette, and day-to-day page surfaces now use the approved `青墨轻岚` refresh, while keeping the page hierarchy and behavior intact.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the current warm-brown shell with the approved `清墨轻岚` theme while preserving the existing page hierarchy, interaction model, and gameplay behavior.

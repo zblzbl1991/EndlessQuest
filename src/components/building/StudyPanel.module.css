@@ -37,44 +37,82 @@
   border-left: 3px solid var(--color-accent);
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-md);
 }
 
 .studyDesc {
   font-size: 13px;
   color: var(--color-text-secondary);
+  line-height: 1.7;
 }
 
-.studyCost {
-  font-size: 13px;
-  color: var(--color-text);
+.studyMetaRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-sm);
 }
 
-.studyNote {
+.metaCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-sm);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.65);
+}
+
+.metaLabel {
   font-size: 12px;
   color: var(--color-text-tertiary);
 }
 
-.studyBtn {
-  width: 100%;
-  padding: 12px;
-  border: none;
-  border-radius: var(--radius-md);
-  font-size: 15px;
-  font-weight: 600;
+.metaValue {
+  font-size: 18px;
   font-family: var(--font-serif);
+  color: var(--color-text);
+}
+
+.ruleList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.ruleItem {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+.inspectButton {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-accent-bg);
+  color: var(--color-text);
+  font-size: 13px;
   cursor: pointer;
-  transition: opacity var(--transition-fast);
-  background: var(--color-accent);
-  color: #fff;
 }
 
-.studyBtn:hover {
-  opacity: 0.85;
+.inspectButton:hover {
+  background: rgba(195, 129, 72, 0.18);
 }
 
-.studyDisabled {
-  background: var(--color-bg);
-  color: var(--color-text-tertiary);
-  cursor: not-allowed;
+.message {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  border-radius: var(--radius-sm);
+  background: rgba(195, 129, 72, 0.12);
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 639px) {
+  .studyMetaRow {
+    grid-template-columns: 1fr;
+  }
 }

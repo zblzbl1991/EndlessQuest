@@ -15,6 +15,9 @@ export const TECHNIQUES: Technique[] = [
     description: '最基础的修炼功法，均衡提升各项能力，适合初入修途之人。',
     tier: 'mortal',
     element: 'neutral',
+    origin: 'starter',
+    family: 'qi',
+    styles: ['balanced', 'cultivation'],
     bonuses: [
       { type: 'hp', value: 10 },
       { type: 'atk', value: 2 },
@@ -29,6 +32,9 @@ export const TECHNIQUES: Technique[] = [
     description: '以烈焰之力淬炼经脉，攻击大幅提升。',
     tier: 'mortal',
     element: 'fire',
+    origin: 'starter',
+    family: 'qi',
+    styles: ['burst'],
     bonuses: [
       { type: 'atk', value: 5 },
       { type: 'crit', value: 0.02 },
@@ -41,6 +47,9 @@ export const TECHNIQUES: Technique[] = [
     description: '汲取大地之力强化肉身，生命与防御大幅提升。',
     tier: 'mortal',
     element: 'neutral',
+    origin: 'starter',
+    family: 'body',
+    styles: ['guard', 'survival'],
     bonuses: [
       { type: 'hp', value: 20 },
       { type: 'def', value: 4 },
@@ -55,6 +64,9 @@ export const TECHNIQUES: Technique[] = [
     description: '烈焰心法的进阶功法，焚尽万物，攻击力极高。',
     tier: 'spirit',
     element: 'fire',
+    origin: 'dungeon',
+    family: 'qi',
+    styles: ['burst'],
     bonuses: [
       { type: 'atk', value: 12 },
       { type: 'crit', value: 0.03 },
@@ -68,6 +80,9 @@ export const TECHNIQUES: Technique[] = [
     description: '以玄冰之力护体，防御与生命极强，攻击较弱。',
     tier: 'spirit',
     element: 'ice',
+    origin: 'dungeon',
+    family: 'qi',
+    styles: ['guard', 'survival'],
     bonuses: [
       { type: 'hp', value: 40 },
       { type: 'def', value: 8 },
@@ -80,6 +95,9 @@ export const TECHNIQUES: Technique[] = [
     description: '引雷电之力驾驭全身，速度极快，修炼效率提升。',
     tier: 'spirit',
     element: 'lightning',
+    origin: 'dungeon',
+    family: 'qi',
+    styles: ['tempo', 'cultivation'],
     bonuses: [
       { type: 'spd', value: 5 },
       { type: 'cultivationRate', value: 0.1 },
@@ -94,6 +112,9 @@ export const TECHNIQUES: Technique[] = [
     description: '雷御诀的进阶体修功法，速度与暴击极强，如雷神降世。',
     tier: 'immortal',
     element: 'lightning',
+    origin: 'dungeon',
+    family: 'weapon',
+    styles: ['burst', 'tempo'],
     bonuses: [
       { type: 'spd', value: 12 },
       { type: 'crit', value: 0.06 },
@@ -107,6 +128,9 @@ export const TECHNIQUES: Technique[] = [
     description: '传说中的体修绝学，肉身几乎不灭，生命与防御极强。',
     tier: 'immortal',
     element: 'neutral',
+    origin: 'dungeon',
+    family: 'body',
+    styles: ['guard', 'survival'],
     bonuses: [
       { type: 'hp', value: 80 },
       { type: 'def', value: 15 },
@@ -119,6 +143,9 @@ export const TECHNIQUES: Technique[] = [
     description: '轮回之力加持，各项属性均衡提升，攻守兼备。',
     tier: 'immortal',
     element: 'neutral',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced', 'cultivation'],
     bonuses: [
       { type: 'hp', value: 30 },
       { type: 'atk', value: 8 },
@@ -135,6 +162,9 @@ export const TECHNIQUES: Technique[] = [
     description: '万剑齐发毁天灭地，攻击力无与伦比。',
     tier: 'divine',
     element: 'neutral',
+    origin: 'dungeon',
+    family: 'weapon',
+    styles: ['burst'],
     bonuses: [
       { type: 'atk', value: 25 },
       { type: 'crit', value: 0.08 },
@@ -148,6 +178,9 @@ export const TECHNIQUES: Technique[] = [
     description: '太上忘情，断绝七情六欲，各项属性均衡且极强。',
     tier: 'divine',
     element: 'ice',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced', 'guard'],
     bonuses: [
       { type: 'hp', value: 40 },
       { type: 'atk', value: 15 },
@@ -164,6 +197,9 @@ export const TECHNIQUES: Technique[] = [
     description: '传说中的混沌功法，天地初开时便已存在，得之者可逆天改命。',
     tier: 'chaos',
     element: 'neutral',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced', 'burst', 'survival'],
     bonuses: [
       { type: 'hp', value: 60 },
       { type: 'atk', value: 30 },

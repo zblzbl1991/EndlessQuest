@@ -186,6 +186,32 @@ describe('SectStore - Character Management', () => {
     expect(useSectStore.getState().sect.resources.spiritStone).toBe(75)
   })
 
+  it('unlockCodexEntry should respect scripture hall collection capacity', () => {
+    useSectStore.setState((state) => ({
+      sect: {
+        ...state.sect,
+        buildings: state.sect.buildings.map((building) =>
+          building.type === 'scriptureHall' ? { ...building, unlocked: true, level: 0 } : building
+        ),
+        techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
+      },
+    }))
+
+    expect(getStore().unlockCodexEntry('fentian')).toBe(false)
+
+    useSectStore.setState((state) => ({
+      sect: {
+        ...state.sect,
+        buildings: state.sect.buildings.map((building) =>
+          building.type === 'scriptureHall' ? { ...building, unlocked: true, level: 2 } : building
+        ),
+      },
+    }))
+
+    expect(getStore().unlockCodexEntry('fentian')).toBe(true)
+    expect(getStore().sect.techniqueCodex).toContain('fentian')
+  })
+
   it('promoteCharacter should change title', () => {
     const char = getFirstCharacter()
     getStore().promoteCharacter(char.id, 'seniorDisciple')

@@ -151,6 +151,9 @@ describe('Technique types', () => {
       description: '上古心法',
       tier: 'spirit',
       element: 'fire',
+      origin: 'dungeon',
+      family: 'qi',
+      styles: ['burst', 'cultivation'],
       bonuses: [
         { type: 'hp', value: 10 },
         { type: 'atk', value: 5 },

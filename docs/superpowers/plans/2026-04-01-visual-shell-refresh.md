@@ -1,5 +1,9 @@
 # Visual Shell Refresh Implementation Plan
 
+> Status Snapshot (2026-04-01): Implemented and archived. Shared navigation metadata, refreshed shell framing, sect overview hierarchy, and high-moment report/offline surfaces are in the current codebase with dedicated shell and page regression coverage.
+>
+> Verification (2026-04-01): `npm test` passed with 62 files / 884 tests, and `npm run build` passed.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Rebuild the game shell around the approved `山门卷轴 / 山水层级 / 墨涌成势` direction without changing core gameplay behavior.

@@ -32,7 +32,7 @@ export function checkBuildingUnlock(
 
     const name = match[1]
     const reqLv = parseInt(match[2])
-    // Match by full name or substring (unlockCondition uses short names like "大殿")
+    // Match by full name or substring (unlockCondition uses short names like "澶ф")
     const bDef = BUILDING_DEFS.find((d) => d.name === name || d.name.includes(name))
     const displayName = bDef?.name ?? name
     if (bDef) {
@@ -44,7 +44,7 @@ export function checkBuildingUnlock(
   }
 
   // Check disciple requirements (Phase 6 will enforce these)
-  const discipleMatch = cond.match(/(.+品)弟子×(\d+)/)
+  const discipleMatch = cond.match(/(.+)弟子x(\d+)/)
   if (discipleMatch && _discipleCount) {
     return { unlocked: true, reason: '需要弟子解锁（Phase 6）' }
   }
