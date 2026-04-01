@@ -74,9 +74,9 @@ describe('AutoRunPolicy', () => {
     expect(routeIndex).toBe(0)
   })
 
-  it('profit prefers the highest-value route when the team is stable', () => {
+  it('profit prefers mutation and ancient-cave routes when the team is stable', () => {
     const routeIndex = pickAutomationRoute('profit', floor, makeContext({ averageHpRatio: 0.95, lowestHpRatio: 0.9 }))
-    expect(routeIndex).toBe(1)
+    expect(routeIndex).toBe(3)
   })
 
   it('classifies routes into readable build archetypes', () => {
@@ -96,9 +96,10 @@ describe('AutoRunPolicy', () => {
     expect(pickAutomationBlessing('profit', ['stoneHarvest', 'battleFocus', 'ironBody'])).toBe('stoneHarvest')
   })
 
-  it('steady retreats earlier than combat in the same low-hp state', () => {
+  it('steady retreats earlier than profit and combat in the same low-hp state', () => {
     const context = makeContext({ averageHpRatio: 0.34, lowestHpRatio: 0.18 })
     expect(shouldRetreat('steady', context)).toBe(true)
+    expect(shouldRetreat('profit', context)).toBe(false)
     expect(shouldRetreat('combat', context)).toBe(false)
   })
 

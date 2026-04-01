@@ -61,7 +61,9 @@ function scoreRouteReward(reward: DungeonFloor['routes'][number]['reward']): num
   return reward.spiritStone + reward.herb * 6 + reward.ore * 8
 }
 
-export function getRouteArchetype(route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>): RouteArchetype {
+export function getRouteArchetype(
+  route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>
+): RouteArchetype {
   const combatEvents = route.events.filter((event) => event.type === 'combat' || event.type === 'boss').length
   const restEvents = route.events.filter((event) => event.type === 'rest').length
   const specialEvents = route.events.filter((event) => event.type === 'ancient_cave').length
@@ -74,11 +76,15 @@ export function getRouteArchetype(route: Pick<DungeonFloor['routes'][number], 'e
   return route.riskLevel === 'low' ? 'stable' : 'profit'
 }
 
-export function getRouteArchetypeLabel(route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>): string {
+export function getRouteArchetypeLabel(
+  route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>
+): string {
   return ROUTE_ARCHETYPE_LABELS[getRouteArchetype(route)]
 }
 
-export function getRouteArchetypeName(route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>): string {
+export function getRouteArchetypeName(
+  route: Pick<DungeonFloor['routes'][number], 'events' | 'reward' | 'riskLevel'>
+): string {
   return ROUTE_ARCHETYPE_NAMES[getRouteArchetype(route)]
 }
 
@@ -95,6 +101,7 @@ export function pickAutomationRoute(
     const riskPenalty = RISK_SCORE[route.riskLevel] * 45
     const dangerMultiplier = context.averageHpRatio < 0.45 || context.lowestHpRatio < 0.25 ? 1.8 : 1
     const archetype = getRouteArchetype(route)
+    const routeHasAncientCave = route.events.some((event) => event.type === 'ancient_cave')
 
     let score = rewardScore
     if (strategy === 'steady') {
@@ -114,7 +121,8 @@ export function pickAutomationRoute(
     if (strategy === 'profit') {
       score += rewardScore * 0.35 - riskPenalty * 0.35
       if (archetype === 'profit') score += 50
-      if (archetype === 'mutation') score += 16
+      if (archetype === 'mutation') score += 120
+      if (routeHasAncientCave) score += 90
       if (archetype === 'stable') score -= 8
     }
 
