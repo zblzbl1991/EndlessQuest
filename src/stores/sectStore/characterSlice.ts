@@ -31,7 +31,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     if (sect.resources.spiritStone < cost) return null
 
     // Deduct stones
-    const character = generateCharacter(quality)
+    const character = generateCharacter(quality, sect.activeRoute)
     const qualityLabel: Record<string, string> = {
       common: '凡品',
       spirit: '灵品',
@@ -172,7 +172,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     const maxAttempts = minQuality === 'common' ? 1 : 10
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const candidate = generateCharacter(minQuality)
+      const candidate = generateCharacter(minQuality, sect.activeRoute)
       const candidateIndex = QUALITY_ORDER.indexOf(candidate.quality)
       if (candidateIndex >= minIndex) {
         character = candidate

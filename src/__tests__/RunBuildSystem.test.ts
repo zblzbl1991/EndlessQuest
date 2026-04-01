@@ -6,9 +6,11 @@ import {
   applyRunCombatModifiers,
   applyRunRecovery,
   applyRunRewardModifiers,
+  getBlessingWeight,
   pickBlessingOptions,
   pickRelicReward,
 } from '../systems/roguelike/RunBuildSystem'
+import { getDiscipleMutationWeight, pickDiscipleMutation } from '../data/discipleMutations'
 
 function makeUnit(overrides?: Partial<CombatUnit>): CombatUnit {
   return {
@@ -92,12 +94,39 @@ describe('RunBuildSystem', () => {
   })
 
   it('should apply disciple mutation reward bonuses', () => {
-    const reward = applyMutationRewardModifiers(
-      { spiritStone: 100, spiritEnergy: 0, herb: 20, ore: 10 },
-      ['lucky_omen', 'elixir_veins']
-    )
+    const reward = applyMutationRewardModifiers({ spiritStone: 100, spiritEnergy: 0, herb: 20, ore: 10 }, [
+      'lucky_omen',
+      'elixir_veins',
+    ])
 
     expect(reward.spiritStone).toBeGreaterThan(100)
     expect(reward.herb).toBeGreaterThan(20)
+  })
+
+  it('should weight sword-route forge ecology toward combat blessings', () => {
+    const context = {
+      routeId: 'sword' as const,
+      buildingLevels: { forge: 4 },
+    }
+
+    expect(getBlessingWeight('battleFocus', context)).toBeGreaterThan(getBlessingWeight('verdantBounty', context))
+    expect(pickBlessingOptions([], 1, () => 0, context)).toEqual(['battleFocus'])
+  })
+
+  it('should weight alchemy route and ecology toward sustain mutations', () => {
+    const profile = {
+      cultivationPath: 'none' as const,
+      specialties: [{ type: 'comprehension' as const }],
+      fateTags: ['stableDaoHeart' as const],
+    }
+    const context = {
+      routeId: 'alchemy' as const,
+      buildingLevels: { alchemyFurnace: 4, scriptureHall: 3 },
+    }
+
+    expect(getDiscipleMutationWeight('elixir_veins', profile, context)).toBeGreaterThan(
+      getDiscipleMutationWeight('sword_intent', profile, context)
+    )
+    expect(pickDiscipleMutation(profile, [], () => 0, context)).toBe('elixir_veins')
   })
 })

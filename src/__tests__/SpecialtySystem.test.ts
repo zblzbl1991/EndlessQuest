@@ -166,6 +166,16 @@ describe('getPrimaryRole', () => {
     const char = makeCharacter([{ type: 'herbalism', level: 1 }])
     expect(getPrimaryRole(char)).toBe('herbalism')
   })
+
+  it('should let sudden insight tilt a mixed disciple toward comprehension', () => {
+    const char = makeCharacter([
+      { type: 'combat', level: 1 },
+      { type: 'comprehension', level: 1 },
+    ])
+    char.fateTags = ['suddenInsight']
+
+    expect(getPrimaryRole(char)).toBe('comprehension')
+  })
 })
 
 describe('getRecommendedAssignment', () => {
@@ -209,12 +219,22 @@ describe('getRecommendedAssignment', () => {
     expect(getRecommendedAssignment(char)).toBeNull()
   })
 
-  it('should use first specialty for assignment when multiple exist', () => {
+  it('should favor the stronger specialty when multiple assignments compete', () => {
     const char = makeCharacter([
       { type: 'mining', level: 1 },
       { type: 'alchemy', level: 2 },
     ])
-    expect(getRecommendedAssignment(char)).toBe('spiritMine')
+    expect(getRecommendedAssignment(char)).toBe('alchemyFurnace')
+  })
+
+  it('should treat tribulation-scarred mixed disciples as better adventure candidates', () => {
+    const char = makeCharacter([
+      { type: 'mining', level: 1 },
+      { type: 'combat', level: 1 },
+    ])
+    char.fateTags = ['tribulationScar']
+
+    expect(getRecommendedAssignment(char)).toBe('adventure')
   })
 })
 

@@ -120,6 +120,13 @@ describe('CharacterEngine', () => {
       expect(c.specialties.some((spec) => spec.type === 'comprehension')).toBe(true)
     })
 
+    it('should bias recruits toward the active sect route identity', () => {
+      const c = generateCharacter('divine', 'sword')
+
+      expect(c.learnedTechniques).toEqual(expect.arrayContaining(['qingxin', 'wanjianguizong']))
+      expect(c.specialties.some((spec) => spec.type === 'combat')).toBe(true)
+    })
+
     it('should have status idle', () => {
       const c = generateCharacter('common')
       expect(c.status).toBe('idle')

@@ -17,6 +17,7 @@ import { BLESSING_DEFS } from '../../data/blessings'
 import { RELIC_DEFS } from '../../data/relics'
 import type { DiscipleMutationId, MutationCharacterProfile } from '../../data/discipleMutations'
 import { getDiscipleMutationDef, pickDiscipleMutation } from '../../data/discipleMutations'
+import type { RunBuildBiasContext } from '../../types/runBuild'
 import type { EventResult } from './EventSystem'
 import { resolveEvent } from './EventSystem'
 import {
@@ -120,6 +121,7 @@ function maybeGrantMutation(
   run: DungeonRun,
   discipleMutations: Record<string, DiscipleMutationId[]>,
   teamMutationProfiles: Record<string, MutationCharacterProfile>,
+  biasContext: RunBuildBiasContext,
   rng: () => number = Math.random
 ): { targetId: string; mutationId: DiscipleMutationId } | null {
   const candidates = run.teamCharacterIds
@@ -132,13 +134,21 @@ function maybeGrantMutation(
     const owned = discipleMutations[charId] ?? []
     if (owned.length >= 2) continue
 
-    const mutationId = pickDiscipleMutation(profile, owned, rng)
+    const mutationId = pickDiscipleMutation(profile, owned, rng, biasContext)
     if (!mutationId) continue
 
     return { targetId: charId, mutationId }
   }
 
   return null
+}
+
+function getRunBuildBiasContext(): RunBuildBiasContext {
+  const sect = useSectStore.getState().sect
+  return {
+    routeId: sect.activeRoute,
+    buildingLevels: Object.fromEntries(sect.buildings.map((building) => [building.type, building.level])),
+  }
 }
 
 function buildContext(run: DungeonRun): AutomationContext {
@@ -187,7 +197,9 @@ function nextStepIdFactory() {
 export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureReport {
   const now = input.now ?? Date.now
   const resolveEventFn = input.resolveEventFn ?? resolveEvent
-  const pickBlessingOptionsFn = input.pickBlessingOptionsFn ?? ((owned) => pickBlessingOptions(owned))
+  const biasContext = getRunBuildBiasContext()
+  const pickBlessingOptionsFn =
+    input.pickBlessingOptionsFn ?? ((owned) => pickBlessingOptions(owned, 3, Math.random, biasContext))
   const pickRelicRewardFn = input.pickRelicRewardFn ?? ((owned) => pickRelicReward(owned))
   const petCaptureFn =
     input.petCaptureFn ??
@@ -405,7 +417,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
       }
 
       if (eventResult.mutationTrigger) {
-        const granted = maybeGrantMutation(run, discipleMutations, teamMutationProfiles)
+        const granted = maybeGrantMutation(run, discipleMutations, teamMutationProfiles, biasContext)
         if (granted) {
           discipleMutations[granted.targetId] = [...(discipleMutations[granted.targetId] ?? []), granted.mutationId]
           const mutationDef = getDiscipleMutationDef(granted.mutationId)

@@ -40,6 +40,38 @@ Do not skip ahead. Slice 3 depends on Slice 1 being real, and Slice 4 matters on
 
 ---
 
+## Progress Snapshot
+
+> **Updated:** 2026-04-01
+
+### Completed
+
+- Phase 1 / Task 1: specialties are generated during live recruitment and surfaced in disciple UI
+- Phase 1 / Task 2: cultivation path is now chosen explicitly instead of being assigned randomly
+- Phase 1 / Task 3: fate traces now affect cultivation, breakthrough, tribulation, mutation bias, and long-term role/assignment evaluation
+- Phase 2 / Task 1: disciple skill loadouts now follow an automatic, path-aware build flow
+- Phase 2 / Task 2: sect staffing now includes recommendations and one-click auto-assignment
+- Phase 2 / Task 3: equipment now exposes tendency and character-fit recommendations
+- Phase 3 / Task 1: disciple mutations now exist as disciple-bound in-run growth
+- Phase 3 / Task 2: route categories now communicate build direction through stable/combat/profit/mutation archetypes
+- Phase 3 / Task 3: reports now explain run causality with core disciple, key build, turning point, and mutation highlights
+- Phase 4 / Task 1: sect route effects now influence recruitment identity, building output, adventure reward bias, combat bonuses, pet capture, and in-run build weighting
+- Phase 4 / Task 2: building ecology now biases recruitment-facing identity, visible build direction, and in-run blessing/mutation weighting
+- Phase 4 / Task 3: SectPage now mounts ActionAgenda as a real action-priority dashboard
+
+### Follow-up opportunities
+
+- Expand blessing and mutation pool breadth so route/ecology divergence shows up across more runs
+- Add clearer UI explanation for disciple recommendation changes caused by fate/path pressure
+- Continue balance passes if route/ecology divergence needs to become even more dramatic
+
+### Verification snapshot
+
+- 2026-04-01: `npm test` passed with 52 test files and 857 tests passing
+- 2026-04-01: `npm run build` completed successfully
+
+---
+
 ## Phase 1: Persistent Disciple Identity
 
 ### Player-facing outcome

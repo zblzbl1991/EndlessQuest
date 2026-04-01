@@ -1,4 +1,5 @@
 import type { CultivationPath, FateTag, SpecialtyType } from '../types/character'
+import type { RunBuildBiasContext } from '../types/runBuild'
 
 export type DiscipleMutationId =
   | 'sword_intent'
@@ -110,29 +111,73 @@ export const DISCIPLE_MUTATION_DEFS: Record<DiscipleMutationId, DiscipleMutation
   },
 }
 
+const MUTATION_ROUTE_WEIGHTS: Record<
+  NonNullable<RunBuildBiasContext['routeId']>,
+  Partial<Record<DiscipleMutationId, number>>
+> = {
+  alchemy: { elixir_veins: 4, array_eye: 2, lucky_omen: 1 },
+  sword: { sword_intent: 4, rift_edge: 3, scar_reactor: 1 },
+  beast: { pack_howl: 4, lucky_omen: 2, jade_skin: 1 },
+}
+
+const MUTATION_BUILDING_WEIGHTS: Partial<
+  Record<string, { minLevel: number; weights: Partial<Record<DiscipleMutationId, number>> }>
+> = {
+  alchemyFurnace: { minLevel: 3, weights: { elixir_veins: 4, lucky_omen: 1 } },
+  forge: { minLevel: 3, weights: { sword_intent: 4, rift_edge: 2 } },
+  scriptureHall: { minLevel: 3, weights: { array_eye: 3, elixir_veins: 2, lucky_omen: 1 } },
+  spiritField: { minLevel: 3, weights: { jade_skin: 2, lucky_omen: 2 } },
+}
+
 export function getDiscipleMutationDef(id: DiscipleMutationId): DiscipleMutationDef {
   return DISCIPLE_MUTATION_DEFS[id]
+}
+
+export function getDiscipleMutationWeight(
+  mutationId: DiscipleMutationId,
+  profile: MutationCharacterProfile,
+  context: RunBuildBiasContext = {}
+): number {
+  const mutation = DISCIPLE_MUTATION_DEFS[mutationId]
+  let weight = 1
+
+  if (mutation.favoredPaths?.includes(profile.cultivationPath)) weight += 4
+  if (mutation.favoredFates?.some((fate) => profile.fateTags.includes(fate))) weight += 3
+  if (mutation.favoredSpecialties?.some((spec) => profile.specialties.some((owned) => owned.type === spec))) {
+    weight += 2
+  }
+
+  if (context.routeId) {
+    weight += MUTATION_ROUTE_WEIGHTS[context.routeId]?.[mutationId] ?? 0
+  }
+
+  for (const [buildingType, config] of Object.entries(MUTATION_BUILDING_WEIGHTS)) {
+    if (!config) continue
+    const level =
+      context.buildingLevels?.[buildingType as keyof NonNullable<RunBuildBiasContext['buildingLevels']>] ?? 0
+    if (level >= config.minLevel) {
+      weight += config.weights[mutationId] ?? 0
+    }
+  }
+
+  return weight
 }
 
 export function pickDiscipleMutation(
   profile: MutationCharacterProfile,
   ownedMutations: DiscipleMutationId[],
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  context: RunBuildBiasContext = {}
 ): DiscipleMutationId | null {
   const pool = Object.values(DISCIPLE_MUTATION_DEFS).filter((mutation) => !ownedMutations.includes(mutation.id))
   if (pool.length === 0) return null
 
-  const weighted = pool.map((mutation) => {
-    let weight = 1
-
-    if (mutation.favoredPaths?.includes(profile.cultivationPath)) weight += 4
-    if (mutation.favoredFates?.some((fate) => profile.fateTags.includes(fate))) weight += 3
-    if (mutation.favoredSpecialties?.some((spec) => profile.specialties.some((owned) => owned.type === spec))) {
-      weight += 2
-    }
-
-    return { id: mutation.id, weight }
-  })
+  const weighted = pool
+    .map((mutation) => ({
+      id: mutation.id,
+      weight: getDiscipleMutationWeight(mutation.id, profile, context),
+    }))
+    .sort((a, b) => b.weight - a.weight || a.id.localeCompare(b.id))
 
   const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0)
   let roll = rng() * totalWeight

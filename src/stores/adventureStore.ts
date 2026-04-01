@@ -42,6 +42,7 @@ import {
   calcAdventureRouteRewardBonus,
   calcPetCaptureRouteBonus,
 } from '../systems/sect/SectRouteSystem'
+import type { RunBuildBiasContext } from '../types/runBuild'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -185,6 +186,14 @@ function applyRouteCombatModifiers(unit: CombatUnit): CombatUnit {
     atk: Math.floor(unit.atk * routeBonus.atk),
     def: Math.floor(unit.def * routeBonus.def),
     spd: Math.floor(unit.spd * routeBonus.spd),
+  }
+}
+
+function getRunBuildBiasContext(): RunBuildBiasContext {
+  const sect = useSectStore.getState().sect
+  return {
+    routeId: sect.activeRoute,
+    buildingLevels: Object.fromEntries(sect.buildings.map((building) => [building.type, building.level])),
   }
 }
 
@@ -451,7 +460,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const baseTeamUnits = config.teamCharacterIds
       .map((charId) => {
         const character = sect.characters.find((c) => c.id === charId)
-        return character ? applyRouteCombatModifiers(createCharacterCombatUnit(character, character.learnedTechniques)) : null
+        return character
+          ? applyRouteCombatModifiers(createCharacterCombatUnit(character, character.learnedTechniques))
+          : null
       })
       .filter((unit): unit is CombatUnit => unit !== null)
 
@@ -719,7 +730,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     }
 
     if (nextFloor % 2 === 1 && newBlessings.length < 4 && newBlessingOptions.length === 0) {
-      newBlessingOptions = pickBlessingOptions(newBlessings)
+      newBlessingOptions = pickBlessingOptions(newBlessings, 3, Math.random, getRunBuildBiasContext())
       if (newBlessingOptions.length > 0) {
         newLog.push({
           timestamp: Date.now(),

@@ -1,8 +1,15 @@
+import type { BuildingType } from './sect'
+
 /**
  * Tactic presets control how the AI selects skills and targets during combat.
  * Each preset modifies skill selection order and target priority.
  */
 export type TacticPreset = 'balanced' | 'conserve' | 'burst' | 'boss'
+
+export interface RunBuildBiasContext {
+  routeId?: 'alchemy' | 'sword' | 'beast' | null
+  buildingLevels?: Partial<Record<BuildingType, number>>
+}
 
 export const TACTIC_PRESET_LABELS: Record<TacticPreset, string> = {
   balanced: '均衡',

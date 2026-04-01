@@ -1,4 +1,11 @@
-import type { Character, CharacterQuality, Specialty, SpecialtyType } from '../../types/character'
+import type {
+  Character,
+  CharacterQuality,
+  CultivationPath,
+  FateTag,
+  Specialty,
+  SpecialtyType,
+} from '../../types/character'
 import { SPECIALTY_BONUS_TABLE, SPECIALTY_BUILDING_MAP, ALL_SPECIALTY_TYPES } from '../../data/specialties'
 
 interface SpecialtyConfig {
@@ -88,10 +95,56 @@ const ROLE_LABELS: Record<string, string> = {
   leadership: '统领',
 }
 
-/** Return the primary role string (first specialty type) for a character, or null if none. */
+const PATH_ROLE_BONUSES: Partial<Record<CultivationPath, Partial<Record<SpecialtyType, number>>>> = {
+  sword: { combat: 7, fortune: 2 },
+  body: { leadership: 6, combat: 2 },
+  alchemy: { alchemy: 7, comprehension: 3 },
+  beast: { fortune: 6, leadership: 3, combat: 2 },
+  formation: { comprehension: 6, leadership: 4 },
+  void: { combat: 5, fortune: 4, comprehension: 2 },
+}
+
+const FATE_ROLE_BONUSES: Record<FateTag, Partial<Record<SpecialtyType, number>>> = {
+  tribulationScar: { combat: 7, fortune: 3 },
+  heartDevilSeed: { combat: 8, fortune: 3 },
+  suddenInsight: { comprehension: 8, alchemy: 3, fortune: 1 },
+  stableDaoHeart: { alchemy: 4, comprehension: 4, leadership: 3 },
+}
+
+function getRoleScore(character: Character, role: SpecialtyType, specialtyOrder: Map<SpecialtyType, number>): number {
+  const specialty = character.specialties.find((owned) => owned.type === role)
+  if (!specialty) return Number.NEGATIVE_INFINITY
+
+  let score = specialty.level * 10 - (specialtyOrder.get(role) ?? 0)
+
+  if (character.cultivationPath !== 'none') {
+    score += PATH_ROLE_BONUSES[character.cultivationPath]?.[role] ?? 0
+  }
+
+  for (const fateTag of character.fateTags) {
+    score += FATE_ROLE_BONUSES[fateTag]?.[role] ?? 0
+  }
+
+  return score
+}
+
+/** Return the primary role string for a character after accounting for specialties, path, and fate. */
 export function getPrimaryRole(character: Character): SpecialtyType | null {
   if (character.specialties.length === 0) return null
-  return character.specialties[0].type
+
+  const specialtyOrder = new Map(character.specialties.map((specialty, index) => [specialty.type, index]))
+  let bestRole: SpecialtyType | null = null
+  let bestScore = Number.NEGATIVE_INFINITY
+
+  for (const specialty of character.specialties) {
+    const score = getRoleScore(character, specialty.type, specialtyOrder)
+    if (score > bestScore) {
+      bestRole = specialty.type
+      bestScore = score
+    }
+  }
+
+  return bestRole
 }
 
 /** Return the recommended building assignment, or 'adventure' for combat/fortune roles, or null if no specialties. */

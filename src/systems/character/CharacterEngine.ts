@@ -5,6 +5,7 @@ import { ALL_TALENTS } from '../../data/talents'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { getObservedBuildingLevel } from '../../data/buildings'
 import { getTechniqueById } from '../../data/techniquesTable'
+import type { SectRouteId } from '../../data/sectRoutes'
 import { rollSpecialties } from './SpecialtySystem'
 import { applyPathStatBonuses } from './CultivationPathSystem'
 
@@ -101,7 +102,11 @@ function mergeSpecialtyLevels(
 
 function getEcologyBonusTechniques(): string[] {
   const bonus: string[] = []
-  const ecologyOrder: Array<{ type: Parameters<typeof getObservedBuildingLevel>[0]; minLevel: number; techniques: string[] }> = [
+  const ecologyOrder: Array<{
+    type: Parameters<typeof getObservedBuildingLevel>[0]
+    minLevel: number
+    techniques: string[]
+  }> = [
     { type: 'forge', minLevel: 3, techniques: ['lieyan', 'fentian'] },
     { type: 'alchemyFurnace', minLevel: 3, techniques: ['xuanbing', 'jiuzhuan'] },
     { type: 'scriptureHall', minLevel: 3, techniques: ['taishang', 'qingxin'] },
@@ -131,9 +136,10 @@ function applyBuildingEcologyToSpecialties(
   return next
 }
 
-function applyBuildingEcologyBiases(
+function applyBuildingEcologyBiases(specialties: Character['specialties']): {
   specialties: Character['specialties']
-): { specialties: Character['specialties']; learnedTechniques: string[] } {
+  learnedTechniques: string[]
+} {
   const observed = {
     forge: getObservedBuildingLevel('forge'),
     alchemyFurnace: getObservedBuildingLevel('alchemyFurnace'),
@@ -159,6 +165,42 @@ function applyBuildingEcologyBiases(
     specialties: nextSpecialties,
     learnedTechniques: bonusTechniques,
   }
+}
+
+function getRouteBonusTechniques(routeId: SectRouteId | null): string[] {
+  switch (routeId) {
+    case 'alchemy':
+      return ['jiuzhuan']
+    case 'sword':
+      return ['wanjianguizong']
+    case 'beast':
+      return ['taishang']
+    default:
+      return []
+  }
+}
+
+function applyRouteIdentityBiases(
+  specialties: Character['specialties'],
+  routeId: SectRouteId | null
+): Character['specialties'] {
+  let next = [...specialties]
+
+  switch (routeId) {
+    case 'alchemy':
+      next = mergeSpecialtyLevels(next, 'alchemy', 2)
+      next = mergeSpecialtyLevels(next, 'comprehension', 1)
+      break
+    case 'sword':
+      next = mergeSpecialtyLevels(next, 'combat', 2)
+      break
+    case 'beast':
+      next = mergeSpecialtyLevels(next, 'fortune', 2)
+      next = mergeSpecialtyLevels(next, 'leadership', 1)
+      break
+  }
+
+  return next
 }
 
 function rollTalents(quality: CharacterQuality): Talent[] {
@@ -371,7 +413,7 @@ export function getQualityStats(quality: CharacterQuality): {
 /**
  * Generate a new character with the given quality.
  */
-export function generateCharacter(quality: CharacterQuality): Character {
+export function generateCharacter(quality: CharacterQuality, activeRoute: SectRouteId | null = null): Character {
   const qStats = QUALITY_STATS[quality]
   const variance = QUALITY_VARIANCE[quality]
 
@@ -412,8 +454,11 @@ export function generateCharacter(quality: CharacterQuality): Character {
   }
 
   const ecologyBias = applyBuildingEcologyBiases(rollSpecialties(quality))
-  const learnedTechniques = ['qingxin', ...ecologyBias.learnedTechniques]
-  const specialties = applyBuildingEcologyToSpecialties(ecologyBias.specialties, getObservedBuildingLevel('scriptureHall'))
+  const learnedTechniques = ['qingxin', ...getRouteBonusTechniques(activeRoute), ...ecologyBias.learnedTechniques]
+  const specialties = applyRouteIdentityBiases(
+    applyBuildingEcologyToSpecialties(ecologyBias.specialties, getObservedBuildingLevel('scriptureHall')),
+    activeRoute
+  )
 
   return syncCharacterSkillLoadout({
     id: 'char_' + Date.now() + '_' + ++_idCounter,

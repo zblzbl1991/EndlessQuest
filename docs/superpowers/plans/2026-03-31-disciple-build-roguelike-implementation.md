@@ -39,14 +39,27 @@ Each slice should leave the game in a playable state.
 
 - Slice 1 / Task 1.1: specialties are now generated in live character creation and surfaced in disciple UI
 - Slice 1 / Task 1.2: cultivation path is now chosen at the first major breakthrough checkpoint instead of being assigned randomly
+- Slice 1 / Task 1.3: fate traces now affect cultivation, breakthrough, tribulation, mutation bias, and long-term role/assignment evaluation
+- Slice 2 / Task 2.1: disciple skill loadouts now synchronize to an automatic, path-aware five-slot build flow
+- Slice 2 / Task 2.2: staffing recommendations and one-click auto-assignment now reduce repetitive sect staffing work
+- Slice 2 / Task 2.3: equipment tendency and character-fit recommendations now support low-maintenance gear decisions
+- Slice 3 / Task 3.1: disciple mutations now exist as disciple-bound in-run growth and are granted through auto-run flow
+- Slice 3 / Task 3.2: route presentation now exposes readable build archetypes such as stable, combat, profit, and mutation
+- Slice 3 / Task 3.3: adventure reports now explain run causality with core member, key build, turning point, and mutation highlights
+- Slice 4 / Task 4.1: sect route effects now influence recruitment identity, building output, adventure reward bias, combat modifiers, pet capture, and in-run build weighting
+- Slice 4 / Task 4.2: building ecology now biases recruitment-facing identity, visible build direction, and in-run blessing/mutation weighting
+- Slice 4 / Task 4.3: the sect page now mounts ActionAgenda as a real action-priority dashboard
 
-### Currently in progress
+### Follow-up opportunities
 
-- Slice 1 / Task 1.3: fate traces are being upgraded from breakthrough modifiers into long-term build identity
+- Expand the blessing and mutation pools so each route/ecology axis has more draft variety to express
+- Add richer UI copy around why a disciple is recommended for adventure vs sect work
+- Deepen route/building weighting beyond the current first production pass if future balance data shows weak divergence
 
-### Not started
+### Verification snapshot
 
-- Slice 2 / Task 2.1 through Slice 4 / Task 4.3 remain open
+- 2026-04-01: `npm test` passed with 52 test files and 857 tests passing
+- 2026-04-01: `npm run build` completed successfully
 
 ---
 

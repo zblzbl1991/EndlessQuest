@@ -1,4 +1,5 @@
 import type { BlessingId, RelicId, Resources } from '../../types'
+import type { RunBuildBiasContext } from '../../types/runBuild'
 import type { CombatUnit } from '../combat/CombatEngine'
 import type { DiscipleMutationId } from '../../data/discipleMutations'
 import { getDiscipleMutationDef } from '../../data/discipleMutations'
@@ -24,16 +25,70 @@ const LEGACY_RELIC_MULTIPLIERS: Record<string, Partial<Pick<CombatUnit, 'atk' | 
   mirror_shard: { atk: 1.1 },
 }
 
+const BLESSING_ROUTE_WEIGHTS: Record<
+  NonNullable<RunBuildBiasContext['routeId']>,
+  Partial<Record<BlessingId, number>>
+> = {
+  alchemy: { verdantBounty: 5, ironBody: 4, galeStride: 1 },
+  sword: { battleFocus: 5, galeStride: 4, stoneHarvest: 1 },
+  beast: { galeStride: 4, stoneHarvest: 3, ironBody: 2 },
+}
+
+const BLESSING_BUILDING_WEIGHTS: Partial<
+  Record<string, { minLevel: number; weights: Partial<Record<BlessingId, number>> }>
+> = {
+  alchemyFurnace: { minLevel: 3, weights: { verdantBounty: 4, ironBody: 3 } },
+  forge: { minLevel: 3, weights: { battleFocus: 4, galeStride: 2, stoneHarvest: 1 } },
+  scriptureHall: { minLevel: 3, weights: { galeStride: 2, ironBody: 2, verdantBounty: 1 } },
+  spiritField: { minLevel: 3, weights: { ironBody: 3, verdantBounty: 2 } },
+  spiritMine: { minLevel: 3, weights: { stoneHarvest: 3, battleFocus: 1 } },
+}
+
+export function getBlessingWeight(id: BlessingId, context: RunBuildBiasContext = {}): number {
+  let weight = 1
+
+  if (context.routeId) {
+    weight += BLESSING_ROUTE_WEIGHTS[context.routeId]?.[id] ?? 0
+  }
+
+  for (const [buildingType, config] of Object.entries(BLESSING_BUILDING_WEIGHTS)) {
+    if (!config) continue
+    const level =
+      context.buildingLevels?.[buildingType as keyof NonNullable<RunBuildBiasContext['buildingLevels']>] ?? 0
+    if (level >= config.minLevel) {
+      weight += config.weights[id] ?? 0
+    }
+  }
+
+  return weight
+}
+
 export function pickBlessingOptions(
   ownedBlessings: BlessingId[],
   count = 3,
-  rng: () => number = Math.random
+  rng: () => number = Math.random,
+  context: RunBuildBiasContext = {}
 ): BlessingId[] {
   const pool = ALL_BLESSINGS.filter((id) => !ownedBlessings.includes(id))
   const picked: BlessingId[] = []
   while (pool.length > 0 && picked.length < count) {
-    const index = Math.floor(rng() * pool.length)
-    picked.push(pool.splice(index, 1)[0])
+    const weighted = pool
+      .map((id) => ({ id, weight: getBlessingWeight(id, context) }))
+      .sort((a, b) => b.weight - a.weight || ALL_BLESSINGS.indexOf(a.id) - ALL_BLESSINGS.indexOf(b.id))
+    const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0)
+    let roll = rng() * totalWeight
+    let selected = weighted[weighted.length - 1]?.id ?? pool[0]
+
+    for (const entry of weighted) {
+      roll -= entry.weight
+      if (roll <= 0) {
+        selected = entry.id
+        break
+      }
+    }
+
+    picked.push(selected)
+    pool.splice(pool.indexOf(selected), 1)
   }
   return picked
 }
