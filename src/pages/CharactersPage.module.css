@@ -7,14 +7,91 @@
   margin: 0 auto;
 }
 
+.hero {
+  display: grid;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-xl);
+  background: linear-gradient(180deg, rgba(139, 69, 19, 0.08), rgba(139, 69, 19, 0.02)), rgba(255, 252, 246, 0.92);
+  border: 1px solid rgba(139, 69, 19, 0.14);
+  box-shadow: 0 18px 36px rgba(54, 33, 19, 0.08);
+}
+
+.heroMain {
+  display: grid;
+  gap: 6px;
+}
+
+.pageEyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--color-accent);
+}
+
+.pageTitle {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.pageLead {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+.heroFocusCard {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 248, 238, 0.72);
+  border: 1px solid rgba(139, 69, 19, 0.12);
+}
+
+.heroFocusLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.heroFocusValue {
+  font-family: var(--font-serif);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.heroFocusMeta {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.7;
+}
+
 @media (min-width: 1024px) {
   .page {
     max-width: none;
     padding-bottom: var(--space-lg);
   }
+
+  .hero {
+    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
+    align-items: start;
+  }
 }
 
 /* Toolbar */
+.controlsBand {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(139, 69, 19, 0.12);
+  background: rgba(255, 251, 247, 0.76);
+}
+
 .toolbar {
   display: flex;
   align-items: center;
@@ -124,6 +201,15 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-md);
+}
+
+.groupTitle {
+  padding-left: var(--space-xs);
+  border-left: 2px solid rgba(139, 69, 19, 0.28);
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
 }
 
 /* Detail Header */

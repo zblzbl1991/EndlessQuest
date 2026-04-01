@@ -142,6 +142,17 @@ export default function CharactersPage() {
     if (!tab || tab.key === 'all') return characters
     return characters.filter((c) => tab.match(c.status))
   }, [characters, filter])
+  const flowSummary = useMemo(() => {
+    const counts = {
+      cultivating: characters.filter((character) => character.status === 'idle').length,
+      dispatching: characters.filter((character) => character.status === 'patrolling').length,
+      adventuring: characters.filter((character) => character.status === 'adventuring').length,
+      recovering: characters.filter((character) => character.status === 'resting' || character.status === 'injured')
+        .length,
+    }
+
+    return `修炼 ${counts.cultivating} · 派遣 ${counts.dispatching} · 秘境 ${counts.adventuring} · 恢复 ${counts.recovering}`
+  }, [characters])
 
   // Detail view
   if (selectedId) {
@@ -154,35 +165,52 @@ export default function CharactersPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.toolbar}>
-        <div className={styles.viewToggle}>
-          <button
-            className={`${styles.toggleBtn} ${view === 'list' ? styles.toggleActive : ''}`}
-            onClick={() => setView('list')}
-          >
-            列表
-          </button>
-          <button
-            className={`${styles.toggleBtn} ${view === 'grid' ? styles.toggleActive : ''}`}
-            onClick={() => setView('grid')}
-          >
-            网格
-          </button>
+      <section className={styles.hero} data-testid="characters-hero">
+        <div className={styles.heroMain}>
+          <span className={styles.pageEyebrow}>门中名册</span>
+          <h1 className={styles.pageTitle}>门中弟子</h1>
+          <p className={styles.pageLead}>先看门中弟子的流转，再决定今天要关注谁、培养谁、派谁出门。</p>
         </div>
-      </div>
+        <div className={styles.heroFocusCard}>
+          <span className={styles.heroFocusLabel}>当前流转</span>
+          <span className={styles.heroFocusValue}>{flowSummary}</span>
+          <span className={styles.heroFocusMeta}>
+            当前筛选下共有 {filteredCharacters.length} 人，{view === 'grid' ? '按网格' : '按列表'}阅览。
+          </span>
+        </div>
+      </section>
 
-      <div className={styles.filterTabs}>
-        {FILTER_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            className={`${styles.filterTab} ${filter === tab.key ? styles.filterActive : ''}`}
-            onClick={() => setFilter(tab.key)}
-          >
-            <PixelIcon name={tab.icon} size={18} className={styles.filterIcon} aria-label={tab.label} />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <section className={styles.controlsBand}>
+        <div className={styles.toolbar}>
+          <div className={styles.viewToggle}>
+            <button
+              className={`${styles.toggleBtn} ${view === 'list' ? styles.toggleActive : ''}`}
+              onClick={() => setView('list')}
+            >
+              列表
+            </button>
+            <button
+              className={`${styles.toggleBtn} ${view === 'grid' ? styles.toggleActive : ''}`}
+              onClick={() => setView('grid')}
+            >
+              网格
+            </button>
+          </div>
+        </div>
+
+        <div className={styles.filterTabs}>
+          {FILTER_TABS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`${styles.filterTab} ${filter === tab.key ? styles.filterActive : ''}`}
+              onClick={() => setFilter(tab.key)}
+            >
+              <PixelIcon name={tab.icon} size={18} className={styles.filterIcon} aria-label={tab.label} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       <div className={`${styles.characterGrid} ${view === 'grid' ? styles.gridView : styles.listView}`}>
         {filteredCharacters.map((char) => (
@@ -262,7 +290,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
       </button>
 
       {/* Header */}
-      <div className={styles.detailHeader}>
+      <div className={styles.detailHeader} data-testid="character-identity">
         <div className={styles.detailNameRow}>
           <span className={styles.detailName}>
             <PixelIcon name="disciple" size={18} className={styles.inlineIcon} aria-label={character.name} />
@@ -350,6 +378,8 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
         </div>
       </div>
 
+      <div className={styles.groupTitle}>能力与成型</div>
+
       {/* Base Stats */}
       <section className={styles.section}>
         <div className={styles.sectionTitle}>
@@ -414,6 +444,8 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           </div>
         </div>
       </section>
+
+      <div className={styles.groupTitle}>当前去向</div>
 
       {/* Cultivation / Breakthrough */}
       <section className={styles.section}>
@@ -590,6 +622,8 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           <div className={styles.noTechnique}>未领悟功法</div>
         )}
       </section>
+
+      <div className={styles.groupTitle}>装备与背包</div>
 
       {/* Equipment */}
       <section className={styles.section}>

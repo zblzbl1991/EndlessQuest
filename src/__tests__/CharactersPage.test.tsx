@@ -62,6 +62,16 @@ describe('CharactersPage', () => {
     expect(getCultivationHeaderText()).toMatch(/^(0\.\d|1\.\d) \/ 100/)
   })
 
+  it('shows the new list-page overview anchors', () => {
+    render(<CharactersPage />)
+
+    expect(screen.getByTestId('characters-hero')).toBeInTheDocument()
+    expect(screen.getByText('门中弟子')).toBeInTheDocument()
+    expect(screen.getByText('当前流转')).toBeInTheDocument()
+    expect(screen.getByText('全部')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '网格' })).toBeInTheDocument()
+  })
+
   it('shows zero effective cultivation rate when there is no spirit supply', () => {
     const character = useSectStore.getState().sect.characters[0]
 
@@ -119,6 +129,10 @@ describe('CharactersPage', () => {
 
     fireEvent.click(screen.getByText(character.name))
 
+    expect(screen.getByTestId('character-identity')).toBeInTheDocument()
+    expect(screen.getByText('当前去向')).toBeInTheDocument()
+    expect(screen.getByText('能力与成型')).toBeInTheDocument()
+    expect(screen.getByText('装备与背包')).toBeInTheDocument()
     expect(screen.getByText('留守价值')).toBeInTheDocument()
     expect(screen.getByText('出战价值')).toBeInTheDocument()
     expect(screen.getByText('承险能力')).toBeInTheDocument()
