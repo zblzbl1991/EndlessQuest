@@ -20,9 +20,12 @@ export function buildAdventureReportInsight(
   report: AdventureReport,
   nameMap: Map<string, string>
 ): AdventureReportInsight {
+  const finalMemberStates = report.finalMemberStates ?? {}
+  const discipleMutations = report.discipleMutations ?? {}
+
   const members = report.teamCharacterIds
     .map((id) => {
-      const state = report.finalMemberStates[id]
+      const state = finalMemberStates[id]
       if (!state) return null
       return {
         id,
@@ -47,7 +50,7 @@ export function buildAdventureReportInsight(
     'run_failed',
     'run_completed',
   ])
-  const mutationHighlights = Object.entries(report.discipleMutations)
+  const mutationHighlights = Object.entries(discipleMutations)
     .flatMap(([charId, mutationIds]) => {
       const discipleName = nameMap.get(charId) ?? charId
       return mutationIds.map((mutationId) => `${discipleName} · ${getDiscipleMutationDef(mutationId).name}`)

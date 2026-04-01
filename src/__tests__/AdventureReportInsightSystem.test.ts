@@ -62,4 +62,17 @@ describe('AdventureReportInsightSystem', () => {
     expect(insight.turningPoint).toContain('主动撤退')
     expect(insight.cause).toContain('回撤')
   })
+
+  it('handles legacy reports without disciple mutations', () => {
+    const legacyReport = {
+      ...report,
+      discipleMutations: undefined,
+    } as unknown as AdventureReport
+
+    const insight = buildAdventureReportInsight(legacyReport, new Map([['c1', '李清风']]))
+
+    expect(insight.coreName).toBe('李清风')
+    expect(insight.mutationHighlights).toEqual([])
+    expect(insight.turningPoint).toContain('主动撤退')
+  })
 })
