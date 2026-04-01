@@ -3,7 +3,6 @@ import type { Equipment } from '../../types/item'
 import type { Talent, TalentRarity } from '../../types/talent'
 import { ALL_TALENTS } from '../../data/talents'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
-import { getObservedBuildingLevel } from '../../data/buildings'
 import { getTechniqueById } from '../../data/techniquesTable'
 import type { SectRouteId } from '../../data/sectRoutes'
 import { rollSpecialties } from './SpecialtySystem'
@@ -98,73 +97,6 @@ function mergeSpecialtyLevels(
     existing.level = level
   }
   return next
-}
-
-function getEcologyBonusTechniques(): string[] {
-  const bonus: string[] = []
-  const ecologyOrder: Array<{
-    type: Parameters<typeof getObservedBuildingLevel>[0]
-    minLevel: number
-    techniques: string[]
-  }> = [
-    { type: 'forge', minLevel: 3, techniques: ['lieyan', 'fentian'] },
-    { type: 'alchemyFurnace', minLevel: 3, techniques: ['xuanbing', 'jiuzhuan'] },
-    { type: 'scriptureHall', minLevel: 3, techniques: ['taishang', 'qingxin'] },
-    { type: 'spiritField', minLevel: 4, techniques: ['houtu'] },
-    { type: 'spiritMine', minLevel: 4, techniques: ['bumiejinshen'] },
-    { type: 'recruitmentPavilion', minLevel: 3, techniques: ['wanjianguizong'] },
-  ]
-
-  for (const entry of ecologyOrder) {
-    const observed = getObservedBuildingLevel(entry.type)
-    if (observed < entry.minLevel) continue
-    for (const techniqueId of entry.techniques) {
-      if (!bonus.includes(techniqueId)) bonus.push(techniqueId)
-    }
-  }
-
-  return bonus.slice(0, 2)
-}
-
-function applyBuildingEcologyToSpecialties(
-  specialties: Character['specialties'],
-  ecologyLevel: number
-): Character['specialties'] {
-  let next = [...specialties]
-  if (ecologyLevel >= 3) next = mergeSpecialtyLevels(next, 'comprehension', 2)
-  if (ecologyLevel >= 4) next = mergeSpecialtyLevels(next, 'leadership', 1)
-  return next
-}
-
-function applyBuildingEcologyBiases(specialties: Character['specialties']): {
-  specialties: Character['specialties']
-  learnedTechniques: string[]
-} {
-  const observed = {
-    forge: getObservedBuildingLevel('forge'),
-    alchemyFurnace: getObservedBuildingLevel('alchemyFurnace'),
-    scriptureHall: getObservedBuildingLevel('scriptureHall'),
-    spiritField: getObservedBuildingLevel('spiritField'),
-    spiritMine: getObservedBuildingLevel('spiritMine'),
-    recruitmentPavilion: getObservedBuildingLevel('recruitmentPavilion'),
-  }
-
-  let nextSpecialties = [...specialties]
-  if (observed.forge >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'combat', 2)
-  if (observed.alchemyFurnace >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'alchemy', 2)
-  if (observed.scriptureHall >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'comprehension', 2)
-  if (observed.spiritField >= 4) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'herbalism', 2)
-  if (observed.spiritMine >= 4) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'mining', 2)
-  if (observed.recruitmentPavilion >= 3) nextSpecialties = mergeSpecialtyLevels(nextSpecialties, 'leadership', 2)
-
-  const bonusTechniques = getEcologyBonusTechniques()
-
-  if (observed.forge >= 3) nextSpecialties = applyBuildingEcologyToSpecialties(nextSpecialties, observed.forge)
-
-  return {
-    specialties: nextSpecialties,
-    learnedTechniques: bonusTechniques,
-  }
 }
 
 function getRouteBonusTechniques(routeId: SectRouteId | null): string[] {
@@ -453,12 +385,8 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     quality = 'chaos'
   }
 
-  const ecologyBias = applyBuildingEcologyBiases(rollSpecialties(quality))
-  const learnedTechniques = ['qingxin', ...getRouteBonusTechniques(activeRoute), ...ecologyBias.learnedTechniques]
-  const specialties = applyRouteIdentityBiases(
-    applyBuildingEcologyToSpecialties(ecologyBias.specialties, getObservedBuildingLevel('scriptureHall')),
-    activeRoute
-  )
+  const learnedTechniques = ['qingxin', ...getRouteBonusTechniques(activeRoute)]
+  const specialties = applyRouteIdentityBiases(rollSpecialties(quality), activeRoute)
 
   return syncCharacterSkillLoadout({
     id: 'char_' + Date.now() + '_' + ++_idCounter,

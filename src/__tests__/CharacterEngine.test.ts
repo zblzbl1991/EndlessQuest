@@ -107,17 +107,15 @@ describe('CharacterEngine', () => {
       expect(divine.specialties.length).toBeGreaterThanOrEqual(1)
     })
 
-    it('should bias recruits toward building ecology when buildings are upgraded', () => {
+    it('should not bias recruits from observed building levels anymore', () => {
       observeBuildingLevel('forge', 4)
       observeBuildingLevel('alchemyFurnace', 3)
       observeBuildingLevel('scriptureHall', 3)
 
-      const c = generateCharacter('divine')
+      const c = generateCharacter('common')
 
-      expect(c.learnedTechniques).toEqual(expect.arrayContaining(['qingxin', 'lieyan', 'fentian']))
-      expect(c.specialties.some((spec) => spec.type === 'combat')).toBe(true)
-      expect(c.specialties.some((spec) => spec.type === 'alchemy')).toBe(true)
-      expect(c.specialties.some((spec) => spec.type === 'comprehension')).toBe(true)
+      expect(c.learnedTechniques).toEqual(['qingxin'])
+      expect(c.specialties).toEqual([])
     })
 
     it('should bias recruits toward the active sect route identity', () => {
