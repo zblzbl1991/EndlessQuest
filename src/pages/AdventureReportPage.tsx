@@ -8,9 +8,9 @@ import { buildAdventureReportInsight } from '../systems/roguelike/AdventureRepor
 import styles from './AdventureReportPage.module.css'
 
 const RESULT_LABELS = {
-  completed: '閫氬叧',
-  retreated: '鎾ら€€',
-  failed: '澶辫触',
+  completed: '通关',
+  retreated: '撤退',
+  failed: '失利',
 } as const
 
 function getDungeonIconName(dungeonId: string): string {
@@ -79,8 +79,8 @@ export default function AdventureReportPage() {
   if (!report) {
     return (
       <div className={styles.page}>
-        <h1 className={styles.pageTitle}>鎺㈢储杩囩▼</h1>
-        <div className={styles.empty}>鏈壘鍒板搴旂殑鎺㈢储鎶ュ憡銆?</div>
+        <h1 className={styles.pageTitle}>探索过程</h1>
+        <div className={styles.empty}>未找到对应的探索报告。</div>
       </div>
     )
   }
@@ -89,7 +89,7 @@ export default function AdventureReportPage() {
     <div className={styles.page}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.pageTitle}>鎺㈢储杩囩▼</h1>
+          <h1 className={styles.pageTitle}>探索过程</h1>
           <div className={styles.subtitle}>
             <PixelIcon
               name={getDungeonIconName(report.dungeonId)}
@@ -101,66 +101,66 @@ export default function AdventureReportPage() {
           </div>
         </div>
         <Link className={styles.backLink} to="/adventure">
-          杩斿洖绉樺
+          返回秘境
         </Link>
       </div>
 
       <section className={styles.summaryCard}>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="缁撴灉" />
-            缁撴灉
+            <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="结果" />
+            结果
           </span>
           <strong>{RESULT_LABELS[report.result]}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="绛栫暐" />
-            绛栫暐
+            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="策略" />
+            策略
           </span>
           <strong>{getRunIntentDef(report.config.automationStrategy).label}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="鎴樻湳" />
-            鎴樻湳
+            <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="战术" />
+            战术
           </span>
           <strong>{report.config.tacticalPreset}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="鏍稿績寮熷瓙" />
-            鏍稿績寮熷瓙
+            <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="核心弟子" />
+            核心弟子
           </span>
-          <strong>{insight?.coreName ?? '鏆傛棤'}</strong>
+          <strong>{insight?.coreName ?? '暂无'}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="鍏抽敭 build" />
-            鍏抽敭 build
+            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="关键 build" />
+            关键 build
           </span>
-          <strong>{insight?.keyBuild ?? '鏆傛棤'}</strong>
+          <strong>{insight?.keyBuild ?? '暂无'}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="eventCombat" size={16} className={styles.inlineIcon} aria-label="杞姌鐐?" />
-            杞姌鐐?
+            <PixelIcon name="eventCombat" size={16} className={styles.inlineIcon} aria-label="转折点" />
+            转折点
           </span>
-          <strong>{insight?.turningPoint ?? '鏆傛棤'}</strong>
+          <strong>{insight?.turningPoint ?? '暂无'}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="寮傚彉" />
-            寮傚彉
+            <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="异变" />
+            异变
           </span>
-          <strong>{insight?.mutationHighlights?.join(' · ') ?? '鏆傛棤寮傚彉'}</strong>
+          <strong>{insight?.mutationHighlights?.join(' · ') ?? '暂无异变'}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="鎴愯触鍘熷洜" />
-            鎴愯触鍘熷洜
+            <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="成败原因" />
+            成败原因
           </span>
-          <strong>{insight?.cause ?? '鏆傛棤'}</strong>
+          <strong>{insight?.cause ?? '暂无'}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
@@ -168,16 +168,16 @@ export default function AdventureReportPage() {
               name={getDungeonIconName(report.dungeonId)}
               size={16}
               className={styles.inlineIcon}
-              aria-label="鎺ㄨ繘灞傛暟"
+              aria-label="推进层数"
             />
-            鎺ㄨ繘灞傛暟
+            推进层数
           </span>
-          <strong>绗?{report.floorsCleared} 灞?</strong>
+          <strong>第 {report.floorsCleared} 层</strong>
         </div>
       </section>
 
       <section className={styles.timelineSection}>
-        <div className={styles.sectionTitle}>鏃堕棿绾?</div>
+        <div className={styles.sectionTitle}>时间线</div>
         <div className={styles.timeline}>
           {report.steps.map((step) => (
             <article key={step.id} className={styles.stepCard}>
@@ -191,35 +191,35 @@ export default function AdventureReportPage() {
                   />
                   {step.summary}
                 </span>
-                {step.floor !== null && <span className={styles.stepFloor}>绗?{step.floor} 灞?</span>}
+                {step.floor !== null && <span className={styles.stepFloor}>第 {step.floor} 层</span>}
               </div>
               <div className={styles.stepDetail}>{step.detail}</div>
-              {step.decisionReason && <div className={styles.stepReason}>鍐崇瓥渚濇嵁锛?{step.decisionReason}</div>}
+              {step.decisionReason && <div className={styles.stepReason}>决策依据：{step.decisionReason}</div>}
             </article>
           ))}
         </div>
       </section>
 
       <section className={styles.summaryCard}>
-        <div className={styles.sectionTitle}>缁撶畻</div>
+        <div className={styles.sectionTitle}>结算</div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="spiritStone" size={16} className={styles.inlineIcon} aria-label="鐏电煶" />
-            鐏电煶
+            <PixelIcon name="spiritStone" size={16} className={styles.inlineIcon} aria-label="灵石" />
+            灵石
           </span>
           <strong>{report.rewards.spiritStone}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="herb" size={16} className={styles.inlineIcon} aria-label="鐏佃崏" />
-            鐏佃崏
+            <PixelIcon name="herb" size={16} className={styles.inlineIcon} aria-label="灵草" />
+            灵草
           </span>
           <strong>{report.rewards.herb}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>
-            <PixelIcon name="ore" size={16} className={styles.inlineIcon} aria-label="鐏电熆" />
-            鐏电熆
+            <PixelIcon name="ore" size={16} className={styles.inlineIcon} aria-label="矿材" />
+            矿材
           </span>
           <strong>{report.rewards.ore}</strong>
         </div>

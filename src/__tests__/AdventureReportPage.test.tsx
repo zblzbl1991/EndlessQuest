@@ -16,7 +16,7 @@ function seedReport() {
         {
           ...baseCharacter,
           id: 'c1',
-          name: '娴嬭瘯寮熷瓙',
+          name: '测试弟子',
         },
       ],
     },
@@ -68,41 +68,41 @@ function seedReport() {
             type: 'run_started',
             timestamp: 1,
             floor: 1,
-            summary: '寮€濮嬫帰绱?',
-            detail: '闃熶紞杩涘叆鐏佃崏璋枫€?',
+            summary: '开始探索',
+            detail: '队伍进入灵草谷。',
           },
           {
             id: 'step_1',
             type: 'blessing_decision',
             timestamp: 1,
             floor: 1,
-            summary: '閫夋嫨绁濈锛氭垬鏂椾笓娉?',
-            detail: '闃熶紞閫夋嫨浜嗘洿鍋忔垬鏂楃殑涓村満寮哄寲銆?',
-            decisionReason: '绋冲仴鎺ㄨ繘浼樺厛淇濊瘉鐢熷瓨',
+            summary: '选择祝福：战斗专注',
+            detail: '队伍选择了更偏战斗的临场强化。',
+            decisionReason: '稳健推进优先保证生存',
           },
           {
             id: 'step_2',
             type: 'member_state_changed',
             timestamp: 1,
             floor: 3,
-            summary: '寮熷瓙琛€绾夸笅闄?',
-            detail: '娴嬭瘯寮熷瓙鍦ㄤ腑鏈熸垬鏂楀悗淇濇寔绋冲畾杈撳嚭锛屼絾琛€绾垮凡杩涘叆璀︽垝鍖恒€?',
+            summary: '弟子血线下滑',
+            detail: '测试弟子在中层战斗后保持稳定输出，但血线已进入警戒区。',
           },
           {
             id: 'step_3',
             type: 'auto_choice_made',
             timestamp: 2,
             floor: 5,
-            summary: '鑾峰緱閬楃墿锛氭垬鏃?',
-            detail: '鎴樻棗鎻愰珮浜嗗悗缁垬鏂楃殑鍘嬪埗鑳藉姏銆?',
+            summary: '获得遗物：战旗',
+            detail: '战旗提高了后续战斗的压制能力。',
           },
           {
             id: 'step_4',
             type: 'run_completed',
             timestamp: 2,
             floor: 5,
-            summary: '閫氬叧瀹屾垚',
-            detail: '闃熶紞淇濇寔琛€绾垮苟鎴愬姛娓呭浘銆?',
+            summary: '通关完成',
+            detail: '队伍保持血线并成功清图。',
           },
         ],
       },
@@ -124,21 +124,21 @@ describe('Adventure report pages', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('鏈€杩戞帰绱㈣褰?')).toBeInTheDocument()
+    expect(screen.getByText('最近探索记录')).toBeInTheDocument()
     expect(screen.getByText('守成')).toBeInTheDocument()
-    expect(screen.getByText('鏌ョ湅杩囩▼')).toBeInTheDocument()
+    expect(screen.getByText('查看过程')).toBeInTheDocument()
     expect(
       screen.getAllByText((_, node) => {
         const text = node?.textContent ?? ''
-        return text.includes('鏍稿績寮熷瓙') && text.includes('娴嬭瘯寮熷瓙')
+        return text.includes('核心弟子') && text.includes('测试弟子')
       }).length
     ).toBeGreaterThan(0)
-    expect(screen.getByText('杞姌鐐?')).toBeInTheDocument()
-    expect(screen.getByText('寮傚彉')).toBeInTheDocument()
+    expect(screen.getByText('转折点')).toBeInTheDocument()
+    expect(screen.getByText('异变')).toBeInTheDocument()
     expect(
       screen.getAllByText((_, node) => {
         const text = node?.textContent ?? ''
-        return text.includes('娴嬭瘯寮熷瓙') && text.includes(getDiscipleMutationDef('sword_intent').name)
+        return text.includes('测试弟子') && text.includes(getDiscipleMutationDef('sword_intent').name)
       }).length
     ).toBeGreaterThan(0)
   })
@@ -152,17 +152,17 @@ describe('Adventure report pages', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('鎺㈢储杩囩▼')).toBeInTheDocument()
-    expect(screen.getByText('娴嬭瘯寮熷瓙')).toBeInTheDocument()
-    expect(screen.getByText('閫夋嫨绁濈锛氭垬鏂椾笓娉?')).toBeInTheDocument()
-    expect(screen.getByText('鑾峰緱閬楃墿锛氭垬鏃?')).toBeInTheDocument()
-    expect(screen.getByText('寮傚彉')).toBeInTheDocument()
+    expect(screen.getByText('探索过程')).toBeInTheDocument()
+    expect(screen.getByText('测试弟子')).toBeInTheDocument()
+    expect(screen.getByText('选择祝福：战斗专注')).toBeInTheDocument()
+    expect(screen.getByText('获得遗物：战旗')).toBeInTheDocument()
+    expect(screen.getByText('异变')).toBeInTheDocument()
     expect(
       screen.getAllByText((_, node) => {
         const text = node?.textContent ?? ''
-        return text.includes('娴嬭瘯寮熷瓙') && text.includes(getDiscipleMutationDef('sword_intent').name)
+        return text.includes('测试弟子') && text.includes(getDiscipleMutationDef('sword_intent').name)
       }).length
     ).toBeGreaterThan(0)
-    expect(screen.getByText('闃熶紞淇濇寔琛€绾垮苟鎴愬姛娓呭浘銆?')).toBeInTheDocument()
+    expect(screen.getByText('队伍保持血线并成功清图。')).toBeInTheDocument()
   })
 })
