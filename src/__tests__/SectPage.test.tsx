@@ -19,6 +19,8 @@ describe('SectPage', () => {
     )
 
     expect(screen.getByText('宗门近况')).toBeInTheDocument()
+    expect(screen.getByTestId('sect-hero')).toBeInTheDocument()
+    expect(screen.getByTestId('sect-midground-grid')).toBeInTheDocument()
     expect(screen.queryByText('行动指引')).not.toBeInTheDocument()
     expect(screen.queryByText('行动优先级')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)

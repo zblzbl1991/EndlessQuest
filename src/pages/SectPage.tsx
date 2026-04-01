@@ -77,92 +77,105 @@ export default function SectPage() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h1 className={styles.sectName}>{sect.name}</h1>
+        <div>
+          <div className={styles.headerEyebrow}>山门总览</div>
+          <h1 className={styles.sectName}>{sect.name}</h1>
+        </div>
         <span className={styles.sectLevel}>宗门等级 {sect.level}</span>
       </div>
 
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>资源总览</div>
-        <div className={styles.resourceGrid}>
-          <div className={styles.resourceCard}>
-            <PixelIcon name="spiritStone" size={18} className={styles.inlineIcon} aria-label="灵石" />
-            <span className={styles.resourceLabel}>灵石</span>
-            <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritStone).toLocaleString()}</span>
-          </div>
-          <div className={styles.resourceCard}>
-            <PixelIcon name="spiritEnergy" size={18} className={styles.inlineIcon} aria-label="灵气" />
-            <span className={styles.resourceLabel}>灵气</span>
-            <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritEnergy).toLocaleString()}</span>
-          </div>
-          <div className={styles.resourceCard}>
-            <PixelIcon name="herb" size={18} className={styles.inlineIcon} aria-label="灵草" />
-            <span className={styles.resourceLabel}>灵草</span>
-            <span className={styles.resourceValue}>{Math.floor(sect.resources.herb).toLocaleString()}</span>
-          </div>
-          <div className={styles.resourceCard}>
-            <PixelIcon name="ore" size={18} className={styles.inlineIcon} aria-label="矿材" />
-            <span className={styles.resourceLabel}>矿材</span>
-            <span className={styles.resourceValue}>{Math.floor(sect.resources.ore).toLocaleString()}</span>
-          </div>
-        </div>
-        <div className={styles.rateRow}>
-          <ResourceRate />
-          {herbRate > 0 && <span className={styles.herbRate}>灵草 +{herbRate.toFixed(2)}/s</span>}
-        </div>
-      </section>
-
-      <section className={styles.section}>
+      <section className={`${styles.section} ${styles.heroSection}`} data-testid="sect-hero">
         <div className={styles.sectionTitle}>宗门近况</div>
-        <ActionAgenda />
-      </section>
-
-      <SectPathPanel />
-      <LegacyPanel />
-      <StatsPanel />
-
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>弟子概况</div>
-        <div className={styles.statsRow}>
-          {characterStats.map((item) => (
-            <span key={item.key} className={styles.statItem}>
-              <PixelIcon name={item.icon} size={16} className={styles.inlineIcon} aria-label={item.label} />
-              <span className={styles.statCount}>{item.count}</span>
-              <span className={styles.statLabel}>{item.label}</span>
-            </span>
-          ))}
+        <div className={styles.heroCard}>
+          <div className={styles.heroLead}>
+            <span className={styles.heroLine}>山门静开，内务与冒险各有流转。</span>
+            <span className={styles.heroHint}>此处只呈现当前最值得留意的变化，不替你排定先后。</span>
+          </div>
+          <ActionAgenda />
         </div>
       </section>
 
-      {reports.length > 0 && (
+      <div className={styles.midgroundGrid} data-testid="sect-midground-grid">
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>最近探险</div>
-          {reports.slice(0, 3).map((report) => {
-            const dungeon = dungeons.find((item) => item.id === report.dungeonId)
-            return (
-              <div key={report.id} className={styles.adventureItem}>
-                <div>
-                  <span className={styles.adventureName}>
-                    <PixelIcon
-                      name={getDungeonIconName(report.dungeonId)}
-                      size={16}
-                      className={styles.inlineIcon}
-                      aria-label={dungeon?.name ?? report.dungeonId}
-                    />
-                    {dungeon?.name ?? report.dungeonId}
-                  </span>
-                  <span className={styles.adventureFloor}>
-                    {report.result === 'completed' ? '通关' : report.result === 'retreated' ? '撤退' : '失败'} · 第
-                    {report.floorsCleared} 层
-                  </span>
-                </div>
-                <Link className={styles.adventureLink} to={`/adventure/report/${report.id}`}>
-                  查看详情
-                </Link>
-              </div>
-            )
-          })}
+          <div className={styles.sectionTitle}>资源总览</div>
+          <div className={styles.resourceGrid}>
+            <div className={styles.resourceCard}>
+              <PixelIcon name="spiritStone" size={18} className={styles.inlineIcon} aria-label="灵石" />
+              <span className={styles.resourceLabel}>灵石</span>
+              <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritStone).toLocaleString()}</span>
+            </div>
+            <div className={styles.resourceCard}>
+              <PixelIcon name="spiritEnergy" size={18} className={styles.inlineIcon} aria-label="灵气" />
+              <span className={styles.resourceLabel}>灵气</span>
+              <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritEnergy).toLocaleString()}</span>
+            </div>
+            <div className={styles.resourceCard}>
+              <PixelIcon name="herb" size={18} className={styles.inlineIcon} aria-label="灵草" />
+              <span className={styles.resourceLabel}>灵草</span>
+              <span className={styles.resourceValue}>{Math.floor(sect.resources.herb).toLocaleString()}</span>
+            </div>
+            <div className={styles.resourceCard}>
+              <PixelIcon name="ore" size={18} className={styles.inlineIcon} aria-label="矿材" />
+              <span className={styles.resourceLabel}>矿材</span>
+              <span className={styles.resourceValue}>{Math.floor(sect.resources.ore).toLocaleString()}</span>
+            </div>
+          </div>
+          <div className={styles.rateRow}>
+            <ResourceRate />
+            {herbRate > 0 && <span className={styles.herbRate}>灵草 +{herbRate.toFixed(2)}/s</span>}
+          </div>
         </section>
-      )}
+
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>弟子概况</div>
+          <div className={styles.statsRow}>
+            {characterStats.map((item) => (
+              <span key={item.key} className={styles.statItem}>
+                <PixelIcon name={item.icon} size={16} className={styles.inlineIcon} aria-label={item.label} />
+                <span className={styles.statCount}>{item.count}</span>
+                <span className={styles.statLabel}>{item.label}</span>
+              </span>
+            ))}
+          </div>
+        </section>
+
+        {reports.length > 0 && (
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>最近探险</div>
+            {reports.slice(0, 3).map((report) => {
+              const dungeon = dungeons.find((item) => item.id === report.dungeonId)
+              return (
+                <div key={report.id} className={styles.adventureItem}>
+                  <div>
+                    <span className={styles.adventureName}>
+                      <PixelIcon
+                        name={getDungeonIconName(report.dungeonId)}
+                        size={16}
+                        className={styles.inlineIcon}
+                        aria-label={dungeon?.name ?? report.dungeonId}
+                      />
+                      {dungeon?.name ?? report.dungeonId}
+                    </span>
+                    <span className={styles.adventureFloor}>
+                      {report.result === 'completed' ? '通关' : report.result === 'retreated' ? '撤退' : '失败'} · 第
+                      {report.floorsCleared} 层
+                    </span>
+                  </div>
+                  <Link className={styles.adventureLink} to={`/adventure/report/${report.id}`}>
+                    查看详情
+                  </Link>
+                </div>
+              )
+            })}
+          </section>
+        )}
+      </div>
+
+      <div className={styles.backgroundStack}>
+        <SectPathPanel />
+        <LegacyPanel />
+        <StatsPanel />
+      </div>
 
       <section className={styles.section}>
         <div className={styles.sectionTitle}>弟子列表</div>
