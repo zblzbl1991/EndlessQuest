@@ -7,6 +7,7 @@ export type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribu
 export type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
 export type BlessingId = 'stoneHarvest' | 'verdantBounty' | 'ironBody' | 'galeStride' | 'battleFocus'
 export type RelicId = 'jadeGourd' | 'merchantSeal' | 'warBanner'
+// Persisted strategy ids remain stable for save compatibility; UI copy maps them to 守成 / 争锋 / 寻机.
 export type AutomationStrategy = 'steady' | 'combat' | 'profit'
 
 export type EventType = 'combat' | 'random' | 'shop' | 'rest' | 'boss' | 'ancient_cave'

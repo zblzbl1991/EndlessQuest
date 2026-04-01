@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { getRunIntentDef } from '../data/runIntents'
 import type { AutomationContext } from '../systems/roguelike/AutoRunPolicy'
 import {
   getRouteArchetype,
@@ -62,6 +63,12 @@ function makeContext(overrides: Partial<AutomationContext> = {}): AutomationCont
 }
 
 describe('AutoRunPolicy', () => {
+  it('maps steady/combat/profit to 守成/争锋/寻机 copy', () => {
+    expect(getRunIntentDef('steady').label).toBe('守成')
+    expect(getRunIntentDef('combat').label).toBe('争锋')
+    expect(getRunIntentDef('profit').label).toBe('寻机')
+  })
+
   it('steady picks the lowest-risk route when the team is shaky', () => {
     const routeIndex = pickAutomationRoute('steady', floor, makeContext({ averageHpRatio: 0.42, lowestHpRatio: 0.28 }))
     expect(routeIndex).toBe(0)

@@ -4,6 +4,7 @@ import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { getRealmName } from '../data/realms'
 import { getDiscipleMutationDef } from '../data/discipleMutations'
+import { getRunIntentDef } from '../data/runIntents'
 import type { CharacterQuality } from '../types/character'
 import type { AdventureReport, AdventureReportSummary } from '../types'
 import type { AutomationStrategy, TacticalPreset } from '../types/adventure'
@@ -12,17 +13,13 @@ import RunBuildSummary from '../components/adventure/RunBuildSummary'
 import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
 import styles from './AdventurePage.module.css'
 
-const STRATEGY_LABELS: Record<AutomationStrategy, string> = {
-  steady: '绋冲仴',
-  combat: '鎴樻枟',
-  profit: '鏀剁泭',
-}
-
 const RESULT_LABELS = {
   completed: '閫氬叧',
   retreated: '鎾ら€€',
   failed: '澶辫触',
 } as const
+
+const RUN_INTENT_IDS: AutomationStrategy[] = ['steady', 'combat', 'profit']
 
 function getDungeonIconName(dungeonId: string): string {
   switch (dungeonId) {
@@ -89,9 +86,9 @@ function getReportInsight(
 
   const lastBlessing = [...(source?.steps ?? [])].reverse().find((step) => step.type === 'blessing_decision')
   const lastRelic = [...(source?.steps ?? [])].reverse().find((step) => step.type === 'auto_choice_made')
-  const turningPoint = [...(source?.steps ?? [])].reverse().find((step) =>
-    ['member_state_changed', 'run_retreated', 'run_failed', 'run_completed'].includes(step.type)
-  )
+  const turningPoint = [...(source?.steps ?? [])]
+    .reverse()
+    .find((step) => ['member_state_changed', 'run_retreated', 'run_failed', 'run_completed'].includes(step.type))
 
   const mutationHighlights = source
     ? Object.entries(source.discipleMutations)
@@ -132,7 +129,10 @@ export default function AdventurePage() {
   )
   const playerRealm = maxRealmChar?.realm ?? 0
   const playerStage = maxRealmChar?.realmStage ?? 0
-  const characterNameMap = useMemo(() => new Map(sect.characters.map((char) => [char.id, char.name])), [sect.characters])
+  const characterNameMap = useMemo(
+    () => new Map(sect.characters.map((char) => [char.id, char.name])),
+    [sect.characters]
+  )
 
   return (
     <div className={styles.page}>
@@ -200,7 +200,7 @@ export default function AdventurePage() {
                       <div className={styles.reportMeta}>闃熶紞锛?{teamNames}</div>
                     </div>
                     <div className={styles.reportBadges}>
-                      <span className={styles.reportBadge}>{STRATEGY_LABELS[report.strategy]}</span>
+                      <span className={styles.reportBadge}>{getRunIntentDef(report.strategy).label}</span>
                       <span className={`${styles.reportBadge} ${styles[`result${report.result}`] ?? ''}`}>
                         {RESULT_LABELS[report.result]}
                       </span>
@@ -401,14 +401,14 @@ function TeamBuilder({
         <div className={styles.strategyPanel}>
           <div className={styles.strategyTitle}>鎵樼绛栫暐</div>
           <div className={styles.strategyOptions}>
-            {(Object.keys(STRATEGY_LABELS) as AutomationStrategy[]).map((option) => (
+            {RUN_INTENT_IDS.map((option) => (
               <button
                 key={option}
                 type="button"
                 className={`${styles.strategyOption} ${strategy === option ? styles.strategyOptionActive : ''}`}
                 onClick={() => setStrategy(option)}
               >
-                {STRATEGY_LABELS[option]}
+                {getRunIntentDef(option).label}
               </button>
             ))}
           </div>
@@ -416,7 +416,9 @@ function TeamBuilder({
 
         <TacticPresetPicker value={preset} onChange={setPreset} />
 
-        <div className={styles.teamBuilderHint}>鎵樼浼氬嵆鏃剁粨绠楁暣娆＄澧冿紝骞朵繚鐣欏畬鏁存垬鎶ヤ緵浣犲鐩樸€?</div>
+        <div className={styles.teamBuilderHint}>
+          鎵樼浼氬嵆鏃剁粨绠楁暣娆＄澧冿紝骞朵繚鐣欏畬鏁存垬鎶ヤ緵浣犲鐩樸€?
+        </div>
 
         <div className={styles.teamActions}>
           <button className={styles.cancelBtn} onClick={onClose}>

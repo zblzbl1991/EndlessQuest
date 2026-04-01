@@ -4,6 +4,7 @@ import { useAdventureStore } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { PixelIcon } from '../components/common/PixelIcon'
 import { getDiscipleMutationDef } from '../data/discipleMutations'
+import { getRunIntentDef } from '../data/runIntents'
 import type { AdventureReport, AdventureReportStep } from '../types'
 import styles from './AdventureReportPage.module.css'
 
@@ -11,12 +12,6 @@ const RESULT_LABELS = {
   completed: '閫氬叧',
   retreated: '鎾ら€€',
   failed: '澶辫触',
-} as const
-
-const STRATEGY_LABELS = {
-  steady: '绋冲仴',
-  combat: '鎴樻枟',
-  profit: '鏀剁泭',
 } as const
 
 function getDungeonIconName(dungeonId: string): string {
@@ -99,7 +94,12 @@ function getReportInsight(report: AdventureReport, nameMap: Map<string, string>)
 
   const blessingStep = getLastStepOfTypes(report, ['blessing_decision'])
   const relicStep = getLastStepOfTypes(report, ['auto_choice_made'])
-  const turningStep = getLastStepOfTypes(report, ['member_state_changed', 'run_retreated', 'run_failed', 'run_completed'])
+  const turningStep = getLastStepOfTypes(report, [
+    'member_state_changed',
+    'run_retreated',
+    'run_failed',
+    'run_completed',
+  ])
   const mutationHighlights = Object.entries(report.discipleMutations)
     .flatMap(([charId, mutationIds]) => {
       const discipleName = nameMap.get(charId) ?? charId
@@ -111,7 +111,10 @@ function getReportInsight(report: AdventureReport, nameMap: Map<string, string>)
 
   let cause = '鏆傛棤鏄庣‘鍘熷洜'
   if (report.result === 'completed') {
-    cause = turningStep?.type === 'run_completed' ? '璺嚎涓庤祫婧愰€夋嫨淇濇寔浜嗙ǔ瀹氭帹杩?' : '鑷姩鍖栫瓥鐣ラ『鍒╁畬鎴愪簡娓呭浘'
+    cause =
+      turningStep?.type === 'run_completed'
+        ? '璺嚎涓庤祫婧愰€夋嫨淇濇寔浜嗙ǔ瀹氭帹杩?'
+        : '鑷姩鍖栫瓥鐣ラ『鍒╁畬鎴愪簡娓呭浘'
   } else if (report.result === 'retreated') {
     cause = turningStep?.type === 'run_retreated' ? turningStep.detail : '闃熶紞琛€绾垮帇鍔涜Е鍙戜簡鎾ら€€'
   } else if (turningStep?.type === 'run_failed') {
@@ -124,7 +127,8 @@ function getReportInsight(report: AdventureReport, nameMap: Map<string, string>)
     coreMember,
     keyBuild: keyBuild || '鏆傛棤鍏抽敭绁濈鎴栭仐鐝?',
     mutationHighlights,
-    turningPoint: turningStep?.summary ?? (report.result === 'completed' ? '绋冲畾鎺ㄨ繘鍒扮粓灞€' : '鏈嚭鐜版槑纭浆鎶樼偣'),
+    turningPoint:
+      turningStep?.summary ?? (report.result === 'completed' ? '绋冲畾鎺ㄨ繘鍒扮粓灞€' : '鏈嚭鐜版槑纭浆鎶樼偣'),
     cause,
   }
 }
@@ -135,7 +139,10 @@ export default function AdventureReportPage() {
   const dungeon = useAdventureStore((s) => s.dungeons.find((item) => item.id === report?.dungeonId))
   const characters = useSectStore((s) => s.sect.characters)
 
-  const characterNameMap = useMemo(() => new Map(characters.map((character) => [character.id, character.name])), [characters])
+  const characterNameMap = useMemo(
+    () => new Map(characters.map((character) => [character.id, character.name])),
+    [characters]
+  )
   const insight = report ? getReportInsight(report, characterNameMap) : null
 
   if (!report) {
@@ -180,7 +187,7 @@ export default function AdventureReportPage() {
             <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="绛栫暐" />
             绛栫暐
           </span>
-          <strong>{STRATEGY_LABELS[report.config.automationStrategy]}</strong>
+          <strong>{getRunIntentDef(report.config.automationStrategy).label}</strong>
         </div>
         <div className={styles.summaryRow}>
           <span className={styles.summaryLabel}>

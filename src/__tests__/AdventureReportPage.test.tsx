@@ -125,7 +125,7 @@ describe('Adventure report pages', () => {
     )
 
     expect(screen.getByText('鏈€杩戞帰绱㈣褰?')).toBeInTheDocument()
-    expect(screen.getByText('绋冲仴')).toBeInTheDocument()
+    expect(screen.getByText('守成')).toBeInTheDocument()
     expect(screen.getByText('鏌ョ湅杩囩▼')).toBeInTheDocument()
     expect(
       screen.getAllByText((_, node) => {
