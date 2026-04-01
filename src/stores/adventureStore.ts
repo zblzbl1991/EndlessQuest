@@ -256,12 +256,6 @@ function getSectLevel(): number {
   return level
 }
 
-/** Set character to resting with a recovery timer (reuses injuryTimer) */
-function setCharacterResting(charId: string, timerSec: number): void {
-  const sectStore = useSectStore.getState()
-  sectStore.setCharacterStatus(charId, 'resting', { injuryTimer: timerSec })
-}
-
 function unlockSectMilestone(id: 'firstDungeonClear'): void {
   const { sect } = useSectStore.getState()
   const nextMilestones = unlockArchiveMilestone(sect.archiveMilestones, id)
