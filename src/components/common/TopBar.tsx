@@ -15,7 +15,7 @@ export default function TopBar() {
   const r = sect.resources
 
   return (
-    <header className={styles.topBar}>
+    <header className={styles.topBar} data-testid="shell-topbar">
       <div className={styles.titleGroup} data-testid="shell-title">
         <div className={styles.eyebrow}>山门卷轴</div>
         <div className={styles.titleRow}>

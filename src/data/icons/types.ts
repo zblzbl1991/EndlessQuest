@@ -9,19 +9,19 @@ export const PALETTE: Record<string, string> = {
   '1': '#2c2c2c', // ink (outlines, main dark)
   '2': '#6b6b6b', // gray (shadows)
   '3': '#9ca3af', // light gray (muted elements)
-  '4': '#8b4513', // ochre (accent)
-  '5': '#a0522d', // dark ochre
-  '6': '#c4b5a0', // tan (borders, wood)
-  '7': '#f5f0e8', // paper (bg fill)
-  '0': '#faf6ef', // white (highlights)
+  '4': '#5f7a8d', // mist ink accent
+  '5': '#445b6d', // deep ink accent
+  '6': '#d3dde6', // pale border mist
+  '7': '#f3f7f8', // paper mist
+  '0': '#fbfdff', // highlight white
   // quality / element colors
   '8': '#60a5fa', // spirit blue
   '9': '#a78bfa', // immortal purple
   a: '#f59e0b', // divine gold
   b: '#ef4444', // chaos red / fire
-  c: '#2d6a4f', // green (healing / nature)
+  c: '#4f7a74', // green (healing / nature)
   d: '#4a9eff', // light blue
-  e: '#e67e22', // orange (warning)
+  e: '#b58b62', // muted warning
 }
 
 export interface PixelIconDef {

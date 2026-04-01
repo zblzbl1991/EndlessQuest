@@ -8,7 +8,7 @@ export default function Sidebar() {
   const sect = useSectStore((s) => s.sect)
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={styles.sidebar} data-testid="shell-sidebar">
       <div className={styles.sidebarHeader}>
         <div className={styles.sealRow}>
           <div className={styles.seal} data-testid="shell-seal" aria-hidden="true">

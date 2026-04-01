@@ -38,7 +38,9 @@ describe('Navigation shell', () => {
     expect(screen.queryByText('📜')).not.toBeInTheDocument()
 
     expect(screen.getByTestId('shell-seal')).toBeInTheDocument()
+    expect(screen.getByTestId('shell-sidebar')).toBeInTheDocument()
     expect(screen.getByTestId('shell-title')).toBeInTheDocument()
+    expect(screen.getByTestId('shell-topbar')).toBeInTheDocument()
     expect(screen.getByTestId('mobile-nav-active')).toBeInTheDocument()
   })
 })

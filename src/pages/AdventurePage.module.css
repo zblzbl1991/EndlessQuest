@@ -9,9 +9,11 @@
   margin-bottom: var(--space-xl);
   padding: var(--space-lg);
   border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, rgba(139, 69, 19, 0.09), rgba(139, 69, 19, 0.02)), rgba(255, 252, 246, 0.9);
-  border: 1px solid rgba(139, 69, 19, 0.14);
-  box-shadow: 0 18px 36px rgba(54, 33, 19, 0.08);
+  background:
+    radial-gradient(circle at right top, rgba(133, 164, 182, 0.16), transparent 32%),
+    linear-gradient(180deg, rgba(251, 254, 255, 0.96), rgba(239, 246, 250, 0.9));
+  border: 1px solid rgba(95, 122, 141, 0.14);
+  box-shadow: 0 18px 36px rgba(37, 50, 64, 0.08);
 }
 
 .heroHeader {
@@ -54,8 +56,8 @@
   gap: 6px;
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  background: rgba(255, 248, 238, 0.72);
-  border: 1px solid rgba(139, 69, 19, 0.12);
+  background: rgba(247, 251, 253, 0.8);
+  border: 1px solid rgba(95, 122, 141, 0.12);
 }
 
 .heroFocusLabel {
@@ -87,8 +89,8 @@
   gap: 2px;
   padding: var(--space-sm);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(139, 69, 19, 0.12);
-  background: linear-gradient(180deg, rgba(139, 69, 19, 0.08), rgba(139, 69, 19, 0.02));
+  border: 1px solid rgba(95, 122, 141, 0.12);
+  background: linear-gradient(180deg, rgba(133, 164, 182, 0.12), rgba(133, 164, 182, 0.03));
 }
 
 .summaryIcon {
@@ -146,7 +148,7 @@
   padding: var(--space-md);
   border-radius: var(--radius-md);
   background: var(--color-panel);
-  border: 1px solid rgba(139, 69, 19, 0.1);
+  border: 1px solid rgba(95, 122, 141, 0.1);
 }
 
 .reportHeader,
@@ -204,7 +206,7 @@
 .lockBadge {
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(139, 69, 19, 0.08);
+  background: rgba(95, 122, 141, 0.08);
   color: var(--color-accent);
   font-size: 11px;
 }
@@ -230,7 +232,7 @@
   gap: var(--space-sm);
   margin-top: var(--space-sm);
   padding-top: var(--space-sm);
-  border-top: 1px solid rgba(139, 69, 19, 0.08);
+  border-top: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .rewardLabel {
@@ -294,7 +296,7 @@
 
 .cancelBtn {
   padding: var(--space-sm) var(--space-md);
-  background: rgba(0, 0, 0, 0.06);
+  background: rgba(95, 122, 141, 0.08);
   color: var(--color-text-secondary);
   cursor: pointer;
 }
@@ -310,7 +312,7 @@
   display: grid;
   place-items: center;
   padding: var(--space-md);
-  background: rgba(23, 18, 14, 0.42);
+  background: rgba(33, 44, 55, 0.4);
   z-index: 20;
 }
 
@@ -320,8 +322,8 @@
   overflow: auto;
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
-  background: #f8f1e4;
-  border: 1px solid rgba(139, 69, 19, 0.12);
+  background: #f8fbfd;
+  border: 1px solid rgba(95, 122, 141, 0.12);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
 }
 
@@ -366,8 +368,8 @@
   gap: 4px;
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
-  background: rgba(139, 69, 19, 0.05);
-  border: 1px solid rgba(139, 69, 19, 0.1);
+  background: rgba(133, 164, 182, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.1);
 }
 
 .targetName {
@@ -394,12 +396,12 @@
   gap: var(--space-sm);
   width: 100%;
   padding: var(--space-sm);
-  background: rgba(139, 69, 19, 0.04);
+  background: rgba(133, 164, 182, 0.06);
   cursor: pointer;
 }
 
 .teamCharSelected {
-  background: rgba(139, 69, 19, 0.12);
+  background: rgba(95, 122, 141, 0.14);
 }
 
 .teamCharCheck {
@@ -408,7 +410,7 @@
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
-  background: rgba(139, 69, 19, 0.08);
+  background: rgba(95, 122, 141, 0.12);
   color: var(--color-accent);
 }
 
@@ -439,7 +441,7 @@
   display: grid;
   gap: 4px;
   padding: var(--space-sm);
-  background: rgba(139, 69, 19, 0.05);
+  background: rgba(133, 164, 182, 0.08);
   color: var(--color-text-secondary);
   cursor: pointer;
   text-align: left;

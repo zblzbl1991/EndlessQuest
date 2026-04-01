@@ -1,8 +1,8 @@
 .panel {
   margin-bottom: var(--space-md);
   padding: var(--space-sm);
-  background: rgba(139, 69, 19, 0.05);
-  border: 1px solid rgba(139, 69, 19, 0.12);
+  background: rgba(133, 164, 182, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.12);
   border-radius: var(--radius-md);
 }
 
@@ -40,13 +40,13 @@
 }
 
 .option:focus-visible {
-  outline: 2px solid rgba(139, 69, 19, 0.35);
+  outline: 2px solid rgba(95, 122, 141, 0.35);
   outline-offset: 2px;
 }
 
 .optionActive {
   border-color: var(--color-accent);
-  background: rgba(139, 69, 19, 0.08);
+  background: rgba(95, 122, 141, 0.08);
 }
 
 .optionName {

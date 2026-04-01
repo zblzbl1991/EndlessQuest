@@ -13,9 +13,11 @@
   margin-bottom: var(--space-lg);
   padding: var(--space-lg);
   border-radius: var(--radius-xl);
-  background: linear-gradient(180deg, rgba(139, 69, 19, 0.08), rgba(139, 69, 19, 0.02)), rgba(255, 252, 246, 0.92);
-  border: 1px solid rgba(139, 69, 19, 0.14);
-  box-shadow: 0 18px 36px rgba(54, 33, 19, 0.08);
+  background:
+    radial-gradient(circle at right top, rgba(133, 164, 182, 0.16), transparent 34%),
+    linear-gradient(180deg, rgba(251, 254, 255, 0.96), rgba(239, 246, 250, 0.9));
+  border: 1px solid rgba(95, 122, 141, 0.14);
+  box-shadow: 0 18px 36px rgba(37, 50, 64, 0.08);
 }
 
 .heroMain {
@@ -49,8 +51,8 @@
   gap: 4px;
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  background: rgba(255, 248, 238, 0.72);
-  border: 1px solid rgba(139, 69, 19, 0.12);
+  background: rgba(247, 251, 253, 0.8);
+  border: 1px solid rgba(95, 122, 141, 0.12);
 }
 
 .heroFocusLabel,
@@ -84,8 +86,8 @@
   gap: 4px;
   padding: var(--space-sm);
   border-radius: var(--radius-md);
-  border: 1px solid rgba(139, 69, 19, 0.1);
-  background: rgba(255, 248, 238, 0.54);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  background: rgba(245, 250, 252, 0.76);
 }
 
 @media (min-width: 1024px) {
@@ -112,15 +114,15 @@
   margin-bottom: var(--space-md);
   padding: var(--space-xs);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(139, 69, 19, 0.12);
-  background: rgba(255, 251, 247, 0.72);
+  border: 1px solid rgba(95, 122, 141, 0.12);
+  background: rgba(249, 252, 254, 0.8);
 }
 
 .tab {
   display: grid;
   justify-items: center;
   gap: 6px;
-  background: rgba(139, 69, 19, 0.03);
+  background: rgba(133, 164, 182, 0.05);
   border: 1px solid transparent;
   border-radius: var(--radius-md);
   padding: var(--space-sm) var(--space-xs);
@@ -134,8 +136,8 @@
 
 .tabActive {
   color: var(--color-accent);
-  border-color: rgba(139, 69, 19, 0.18);
-  background: linear-gradient(180deg, rgba(139, 69, 19, 0.1), rgba(139, 69, 19, 0.02));
+  border-color: rgba(95, 122, 141, 0.18);
+  background: linear-gradient(180deg, rgba(133, 164, 182, 0.14), rgba(133, 164, 182, 0.04));
 }
 
 .tabIcon {
@@ -149,9 +151,9 @@
 .subpanel {
   padding: var(--space-md);
   border-radius: var(--radius-xl);
-  border: 1px solid rgba(139, 69, 19, 0.12);
-  background: rgba(255, 251, 247, 0.84);
-  box-shadow: 0 14px 32px rgba(54, 33, 19, 0.05);
+  border: 1px solid rgba(95, 122, 141, 0.12);
+  background: rgba(252, 254, 255, 0.9);
+  box-shadow: 0 14px 32px rgba(37, 50, 64, 0.06);
 }
 
 .subpanelHeader {
@@ -189,8 +191,8 @@
   gap: 4px;
   padding: var(--space-md);
   border-radius: var(--radius-lg);
-  border: 1px solid rgba(139, 69, 19, 0.1);
-  background: rgba(255, 248, 238, 0.62);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  background: rgba(245, 250, 252, 0.82);
 }
 
 .panelLeadTitle {
@@ -414,7 +416,7 @@
 
 .qualityActive {
   border-color: var(--color-accent);
-  background: rgba(139, 90, 43, 0.1);
+  background: rgba(95, 122, 141, 0.1);
 }
 
 .qualityLocked {
@@ -639,7 +641,7 @@
 
 .targetedQualityActive {
   border-color: var(--color-accent);
-  background: rgba(139, 90, 43, 0.1);
+  background: rgba(95, 122, 141, 0.1);
 }
 
 .targetedCost {
@@ -948,7 +950,7 @@
 
 .recipeItemActive {
   border-color: var(--color-accent);
-  background: rgba(139, 90, 43, 0.1);
+  background: rgba(95, 122, 141, 0.1);
 }
 
 .recipeItemName {

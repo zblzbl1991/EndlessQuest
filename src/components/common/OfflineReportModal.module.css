@@ -1,7 +1,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(33, 44, 55, 0.46);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -10,13 +10,13 @@
 }
 
 .modal {
-  background: linear-gradient(180deg, rgba(255, 251, 244, 0.97), rgba(246, 237, 223, 0.94));
-  border: 1px solid rgba(139, 69, 19, 0.14);
+  background: linear-gradient(180deg, rgba(251, 254, 255, 0.97), rgba(237, 245, 249, 0.94));
+  border: 1px solid rgba(95, 122, 141, 0.14);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   max-width: 420px;
   width: 90%;
-  box-shadow: 0 24px 42px rgba(44, 31, 19, 0.22);
+  box-shadow: 0 24px 42px rgba(37, 50, 64, 0.18);
   animation: slideUp var(--transition-normal) ease;
 }
 
@@ -24,8 +24,9 @@
   margin-bottom: var(--space-md);
   padding: var(--space-md);
   border-radius: var(--radius-md);
-  background: radial-gradient(circle at top right, rgba(139, 69, 19, 0.14), transparent 24%), rgba(255, 255, 255, 0.72);
-  border: 1px solid rgba(139, 69, 19, 0.1);
+  background:
+    radial-gradient(circle at top right, rgba(133, 164, 182, 0.18), transparent 26%), rgba(255, 255, 255, 0.76);
+  border: 1px solid rgba(95, 122, 141, 0.1);
 }
 
 .eyebrow {
@@ -69,7 +70,7 @@
   color: var(--color-accent);
   margin-bottom: var(--space-sm);
   padding-bottom: var(--space-xs);
-  border-bottom: 1px solid rgba(139, 69, 19, 0.1);
+  border-bottom: 1px solid rgba(95, 122, 141, 0.1);
 }
 
 .resourceGrid {
@@ -85,7 +86,7 @@
   padding: 8px 10px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.58);
-  border: 1px solid rgba(139, 69, 19, 0.06);
+  border: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .resourceLabel {
@@ -124,7 +125,7 @@
   padding: 8px 0;
   display: flex;
   justify-content: space-between;
-  border-bottom: 1px dashed rgba(139, 69, 19, 0.1);
+  border-bottom: 1px dashed rgba(95, 122, 141, 0.1);
 }
 
 .craftedName {
@@ -142,7 +143,7 @@
   padding: 10px 12px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(139, 69, 19, 0.06);
+  border: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .taxLabel {
@@ -160,7 +161,7 @@
   padding: var(--space-sm);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.52);
-  border: 1px solid rgba(139, 69, 19, 0.06);
+  border: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .collectBtn {

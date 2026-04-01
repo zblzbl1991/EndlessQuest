@@ -13,8 +13,8 @@
 }
 
 .adventuring {
-  background: #fff3e0;
-  color: #e65100;
+  background: rgba(111, 141, 160, 0.12);
+  color: #557084;
 }
 
 .patrolling {
@@ -28,8 +28,8 @@
 }
 
 .training {
-  background: rgba(93, 64, 55, 0.12);
-  color: #6d4c41;
+  background: rgba(116, 136, 151, 0.12);
+  color: #5f7283;
 }
 
 .injured {

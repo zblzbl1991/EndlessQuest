@@ -16,7 +16,7 @@
 }
 
 .card[role='button']:focus-visible {
-  outline: 2px solid rgba(139, 69, 19, 0.35);
+  outline: 2px solid rgba(95, 122, 141, 0.35);
   outline-offset: 2px;
 }
 
@@ -126,7 +126,7 @@
   font-size: 10px;
   padding: 1px 6px;
   border-radius: var(--radius-xs);
-  background: rgba(139, 69, 19, 0.1);
+  background: rgba(95, 122, 141, 0.1);
   color: var(--color-accent);
   font-weight: 500;
   margin-bottom: 2px;
@@ -171,8 +171,8 @@
 }
 
 .roleTag {
-  background: rgba(76, 175, 80, 0.1);
-  color: #2e7d32;
+  background: rgba(79, 122, 116, 0.12);
+  color: #426963;
 }
 
 .dispositionRow {
@@ -192,7 +192,7 @@
 }
 
 .bandhigh {
-  background: rgba(184, 116, 52, 0.12);
+  background: rgba(95, 122, 141, 0.12);
   color: var(--color-accent);
 }
 
@@ -202,8 +202,8 @@
 }
 
 .bandlow {
-  background: rgba(93, 64, 55, 0.08);
-  color: var(--color-text-tertiary);
+  background: rgba(116, 136, 151, 0.08);
+  color: var(--color-text-secondary);
 }
 
 .specialtySummary {
@@ -233,7 +233,7 @@
 }
 
 .fateAccent {
-  background: rgba(139, 69, 19, 0.1);
+  background: rgba(95, 122, 141, 0.1);
   color: var(--color-accent);
 }
 

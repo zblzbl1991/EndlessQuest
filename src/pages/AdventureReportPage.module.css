@@ -51,10 +51,10 @@
   padding: var(--space-lg);
   border-radius: var(--radius-lg);
   background:
-    radial-gradient(circle at top right, rgba(139, 69, 19, 0.16), transparent 24%),
-    linear-gradient(180deg, rgba(255, 252, 247, 0.95), rgba(245, 236, 222, 0.88));
-  border: 1px solid rgba(139, 69, 19, 0.14);
-  box-shadow: 0 18px 32px rgba(94, 66, 40, 0.1);
+    radial-gradient(circle at top right, rgba(133, 164, 182, 0.2), transparent 26%),
+    linear-gradient(180deg, rgba(251, 254, 255, 0.96), rgba(236, 245, 249, 0.9));
+  border: 1px solid rgba(95, 122, 141, 0.14);
+  box-shadow: 0 18px 32px rgba(37, 50, 64, 0.1);
 }
 
 .highlightEyebrow {
@@ -77,7 +77,7 @@
   gap: 6px;
   border-radius: 999px;
   padding: 6px 10px;
-  background: rgba(139, 69, 19, 0.1);
+  background: rgba(95, 122, 141, 0.1);
   color: var(--color-accent);
   font-size: 12px;
   font-weight: 700;
@@ -103,7 +103,7 @@
   border-radius: 999px;
   padding: 6px 10px;
   background: rgba(255, 255, 255, 0.74);
-  border: 1px solid rgba(139, 69, 19, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.08);
   font-size: 12px;
   color: var(--color-text-secondary);
 }
@@ -113,7 +113,7 @@
   padding: var(--space-md);
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.66);
-  border: 1px solid rgba(139, 69, 19, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .highlightCauseLabel {
@@ -140,7 +140,7 @@
   padding: var(--space-md);
   border-radius: var(--radius-md);
   background: rgba(255, 255, 255, 0.66);
-  border: 1px solid rgba(139, 69, 19, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .highlightPanelTitle {
@@ -155,8 +155,8 @@
   padding: var(--space-md);
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.66);
-  border: 1px solid rgba(139, 69, 19, 0.1);
-  box-shadow: 0 10px 24px rgba(94, 66, 40, 0.04);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  box-shadow: 0 10px 24px rgba(37, 50, 64, 0.05);
 }
 
 .summaryRow {
@@ -185,7 +185,7 @@
   font-weight: 600;
   color: var(--color-text-secondary);
   padding-left: var(--space-sm);
-  border-left: 3px solid rgba(139, 69, 19, 0.72);
+  border-left: 3px solid rgba(95, 122, 141, 0.72);
 }
 
 .timelineSection {
@@ -193,8 +193,8 @@
   padding: var(--space-md);
   border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.62);
-  border: 1px solid rgba(139, 69, 19, 0.08);
-  box-shadow: 0 10px 24px rgba(94, 66, 40, 0.04);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+  box-shadow: 0 10px 24px rgba(37, 50, 64, 0.05);
 }
 
 .timeline {
@@ -206,8 +206,8 @@
 .stepCard {
   padding: var(--space-md);
   border-radius: var(--radius-md);
-  background: rgba(139, 69, 19, 0.04);
-  border: 1px solid rgba(139, 69, 19, 0.08);
+  background: rgba(133, 164, 182, 0.06);
+  border: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .stepHeader {
