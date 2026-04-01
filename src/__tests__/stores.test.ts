@@ -1652,8 +1652,8 @@ describe('SectStore - Recruit Cost', () => {
 
   it('addCharacter should deduct spirit stones', () => {
     const before = getStore().sect.resources.spiritStone
-    getStore().addCharacter('common') // costs 100
-    expect(getStore().sect.resources.spiritStone).toBe(before - 100)
+    getStore().addCharacter('common') // discounted to 80 for faster补员
+    expect(getStore().sect.resources.spiritStone).toBe(before - 80)
   })
 
   it('addCharacter should return null when insufficient stones', () => {
