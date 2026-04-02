@@ -6,7 +6,6 @@ import { calcEffectiveCultivationRate } from '../../systems/cultivation/Cultivat
 import { getPathName } from '../../data/cultivationPaths'
 import { getFateTagDef } from '../../data/fateTags'
 import { getPrimaryRole, getRoleLabel } from '../../systems/character/SpecialtySystem'
-import { getCharacterDisposition } from '../../systems/character/CharacterDispositionSystem'
 import { formatCultivationValue } from '../../utils/format'
 import { useSectStore } from '../../stores/sectStore'
 import { PixelIcon } from './PixelIcon'
@@ -58,16 +57,21 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
   const needed = getCultivationNeeded(character.realm, character.realmStage)
   const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
   const primaryRole = getPrimaryRole(character)
-  const disposition = getCharacterDisposition(character)
   const specialtySummary = character.specialties
     .slice(0, 2)
     .map((specialty) => `${getRoleLabel(specialty.type)} Lv.${specialty.level}`)
   const cultivationDirection =
-    character.cultivationPath !== 'none'
-      ? `${getPathName(character.cultivationPath)} · ${primaryRole ? getRoleLabel(primaryRole) : '待定'}`
-      : primaryRole
-        ? `未定路线 · ${getRoleLabel(primaryRole)}`
-        : '修行路线尚未定下'
+    character.cultivationPath !== 'none' ? getPathName(character.cultivationPath) : '未定路线'
+  const statusSummary =
+    character.status === 'recovering'
+      ? `恢复剩余 ${Math.max(0, character.recoveryDaysRemaining ?? 0)} 天`
+      : character.status === 'adventuring'
+        ? '当前正在秘境中'
+        : character.status === 'patrolling'
+          ? '当前执行派遣任务'
+          : primaryRole
+            ? `主定位 ${getRoleLabel(primaryRole)}`
+            : '待定培养方向'
 
   return (
     <div
@@ -92,30 +96,14 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           {getPathName(character.cultivationPath)}
         </span>
       )}
-      <div className={styles.infoStrip}>
-        <span className={styles.infoLabel}>修行去向</span>
-        <span className={styles.infoValue}>{cultivationDirection}</span>
+      <div className={styles.metaRow}>
+        <span className={styles.roleTag}>{cultivationDirection}</span>
+        {primaryRole && <span className={styles.roleTag}>擅长 {getRoleLabel(primaryRole)}</span>}
+        {character.status === 'recovering' && (
+          <span className={styles.stateTag}>休养 {Math.max(0, character.recoveryDaysRemaining ?? 0)} 天</span>
+        )}
       </div>
-      {character.specialties.length > 0 && (
-        <div className={styles.identityTags}>
-          {primaryRole && <span className={styles.roleTag}>擅长 {getRoleLabel(primaryRole)}</span>}
-        </div>
-      )}
-      <div className={styles.infoStrip}>
-        <span className={styles.infoLabel}>弟子判断</span>
-        <span className={styles.infoValue}>留守、出战与承险倾向如下</span>
-      </div>
-      <div className={styles.dispositionRow}>
-        <span className={`${styles.dispositionTag} ${styles[`band${disposition.management.band}`]}`}>
-          留守·{disposition.management.label}
-        </span>
-        <span className={`${styles.dispositionTag} ${styles[`band${disposition.adventure.band}`]}`}>
-          出战·{disposition.adventure.label}
-        </span>
-        <span className={`${styles.dispositionTag} ${styles[`band${disposition.risk.band}`]}`}>
-          承险·{disposition.risk.label}
-        </span>
-      </div>
+      <div className={styles.infoValue}>{statusSummary}</div>
       {specialtySummary.length > 0 && <div className={styles.specialtySummary}>{specialtySummary.join(' / ')}</div>}
       {character.fateTags.length > 0 && (
         <div className={styles.fateTags}>

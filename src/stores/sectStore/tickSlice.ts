@@ -3,6 +3,7 @@ import type { SectStore } from './types'
 import type { Character } from '../../types/character'
 import type { BuildingType, OfflineAccumulator } from '../../types'
 import { useGameStore } from '../gameStore'
+import { useAdventureStore } from '../adventureStore'
 import { calcSectLevel } from '../../systems/character/CharacterEngine'
 import { calcResourceRates, clampResources, calcTaxRate } from '../../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../../systems/economy/ResourceEngine'
@@ -30,7 +31,7 @@ import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { resolveSuccessfulBreakthroughFates } from '../../systems/character/FateSystem'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
 import { tickRecoveryDays } from '../../systems/character/DiscipleRecoverySystem'
-import { shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
+import { buildAutomationRunConfig, shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 
@@ -504,6 +505,27 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           const recruited = currentState.addCharacter(currentState.sect.automationSettings.recruitQualityFloor)
           if (!recruited) break
           currentState = get()
+        }
+
+        currentState = get()
+        const maxRealmCharacter = currentState.sect.characters.reduce<Character | null>((best, character) => {
+          if (!best) return character
+          if (character.realm > best.realm) return character
+          if (character.realm === best.realm && character.realmStage > best.realmStage) return character
+          return best
+        }, null)
+        const autoRunConfig = buildAutomationRunConfig({
+          settings: currentState.sect.automationSettings,
+          characters: currentState.sect.characters,
+          dungeons: useAdventureStore.getState().dungeons,
+          spiritStone: currentState.sect.resources.spiritStone,
+          spiritEnergy: currentState.sect.resources.spiritEnergy,
+          playerRealm: maxRealmCharacter?.realm ?? 0,
+          playerStage: maxRealmCharacter?.realmStage ?? 0,
+        })
+
+        if (autoRunConfig) {
+          useAdventureStore.getState().runAutomation(autoRunConfig)
         }
       }
     }

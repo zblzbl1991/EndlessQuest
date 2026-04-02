@@ -66,8 +66,8 @@ describe('CharactersPage', () => {
     render(<CharactersPage />)
 
     expect(screen.getByTestId('characters-hero')).toBeInTheDocument()
-    expect(screen.getByText('门中弟子')).toBeInTheDocument()
-    expect(screen.getByText('当前弟子池')).toBeInTheDocument()
+    expect(screen.getByText('弟子')).toBeInTheDocument()
+    expect(screen.getByText('宗门自动运转')).toBeInTheDocument()
     expect(screen.getByText('全部')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '网格' })).toBeInTheDocument()
   })
@@ -103,7 +103,7 @@ describe('CharactersPage', () => {
     expect(getCultivationHeaderText()).toMatch(/^[1-9]\d*(\.\d)? \/ 100/)
   })
 
-  it('shows disciple value tags in detail view without directive assignment copy', () => {
+  it('keeps the detail view focused on build and state without rendering the old disciple judgment cards', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
@@ -133,9 +133,9 @@ describe('CharactersPage', () => {
     expect(screen.getByText('当前去向')).toBeInTheDocument()
     expect(screen.getByText('能力与成型')).toBeInTheDocument()
     expect(screen.getByText('装备与背包')).toBeInTheDocument()
-    expect(screen.getByText('留守价值')).toBeInTheDocument()
-    expect(screen.getByText('出战价值')).toBeInTheDocument()
-    expect(screen.getByText('承险能力')).toBeInTheDocument()
+    expect(screen.queryByText('留守价值')).not.toBeInTheDocument()
+    expect(screen.queryByText('出战价值')).not.toBeInTheDocument()
+    expect(screen.queryByText('承险能力')).not.toBeInTheDocument()
     expect(screen.queryByText('推荐去向')).not.toBeInTheDocument()
   })
 })

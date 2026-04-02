@@ -4,6 +4,7 @@ import { useEventLogStore } from '../stores/eventLogStore'
 import type { EventType } from '../stores/eventLogStore'
 import { useSectStore } from '../stores/sectStore'
 import { getArchiveMilestoneDef } from '../data/archiveMilestones'
+import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
 import styles from './EventLogPage.module.css'
 
@@ -84,7 +85,7 @@ export default function EventLogPage() {
   if (events.length === 0 && archiveMilestones.length === 0) {
     return (
       <div className={styles.page}>
-        <h1 className={styles.pageTitle}>事件记录</h1>
+        <PageHeader title="记录" />
         <div className={styles.empty}>暂无记录</div>
       </div>
     )
@@ -92,7 +93,13 @@ export default function EventLogPage() {
 
   return (
     <div className={styles.page}>
-      <h1 className={styles.pageTitle}>事件记录</h1>
+      <PageHeader
+        title="记录"
+        metrics={[
+          { label: '里程碑', value: archiveMilestones.length, detail: '会跨轮回保留' },
+          { label: '当前筛选', value: filter === 'all' ? '全部' : '秘境', detail: `${filteredEvents.length} 条事件` },
+        ]}
+      />
       {archiveMilestones.length > 0 && (
         <section className={styles.archiveSection}>
           <div className={styles.sectionHeader}>
@@ -102,7 +109,6 @@ export default function EventLogPage() {
             </div>
             <div className={styles.sectionMeta}>{archiveMilestones.length} 条里程碑</div>
           </div>
-          <div className={styles.archiveLead}>这里记录宗门真正留下痕迹的时刻，后续轮回仍会保留。</div>
           <div className={styles.archiveList}>
             {[...archiveMilestones]
               .sort((a, b) => b.unlockedAt - a.unlockedAt)

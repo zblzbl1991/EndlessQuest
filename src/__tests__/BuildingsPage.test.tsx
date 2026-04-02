@@ -21,8 +21,8 @@ describe('BuildingsPage', () => {
     render(<BuildingsPage />)
 
     expect(screen.getByTestId('buildings-hero')).toBeInTheDocument()
-    expect(screen.getByText('宗门营造')).toBeInTheDocument()
-    expect(screen.getByText('当前营造重点')).toBeInTheDocument()
+    expect(screen.getAllByText('建筑').length).toBeGreaterThan(0)
+    expect(screen.getByText('当前重点')).toBeInTheDocument()
     expect(screen.queryByText('宗门生态')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('招收'))

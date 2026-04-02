@@ -17,7 +17,6 @@ export default function TopBar() {
   return (
     <header className={styles.topBar} data-testid="shell-topbar">
       <div className={styles.titleGroup} data-testid="shell-title">
-        <div className={styles.eyebrow}>山门卷轴</div>
         <div className={styles.titleRow}>
           <div className={styles.title}>{sect.name}</div>
           <span className={styles.sectLevel}>宗门第 {sect.level} 阶</span>

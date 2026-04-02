@@ -9,7 +9,7 @@ describe('CharacterCard', () => {
     useSectStore.getState().addResource('spiritEnergy', 100)
   })
 
-  it('surfaces cultivation direction and disciple judgment on the card face', () => {
+  it('surfaces cultivation direction without the old disciple judgment block', () => {
     const base = useSectStore.getState().sect.characters[0]
     const character = {
       ...base,
@@ -20,7 +20,8 @@ describe('CharacterCard', () => {
 
     render(<CharacterCard character={character} />)
 
-    expect(screen.getByText('修行去向')).toBeInTheDocument()
-    expect(screen.getByText('弟子判断')).toBeInTheDocument()
+    expect(screen.getAllByText('丹修').length).toBeGreaterThan(0)
+    expect(screen.getByText('擅长 炼丹')).toBeInTheDocument()
+    expect(screen.queryByText('弟子判断')).not.toBeInTheDocument()
   })
 })

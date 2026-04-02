@@ -4,6 +4,7 @@ import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
 import { PixelIcon } from '../components/common/PixelIcon'
+import PageHeader from '../components/common/PageHeader'
 import ResourceRate from '../components/common/ResourceRate'
 import ActionAgenda from '../components/sect/ActionAgenda'
 import SectPathPanel from '../components/sect/SectPathPanel'
@@ -91,26 +92,37 @@ export default function SectPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <div className={styles.headerEyebrow}>山门总览</div>
-          <h1 className={styles.sectName}>{sect.name}</h1>
-        </div>
-        <div className={styles.headerActions}>
-          <span className={styles.sectLevel}>宗门等级 {sect.level}</span>
+      <PageHeader
+        title={sect.name}
+        testId="sect-hero"
+        action={
           <button type="button" className={styles.resetButton} onClick={handleResetSect}>
             重置宗门
           </button>
-        </div>
-      </div>
+        }
+        metrics={[
+          { label: '宗门等级', value: sect.level, detail: `弟子 ${sect.characters.length} · 灵宠 ${sect.pets.length}` },
+          {
+            label: '自动运转',
+            value: sect.automationSettings.enabled ? '运行中' : '已关闭',
+            detail: `池子目标 ${sect.automationSettings.targetPoolSize} 人`,
+          },
+          {
+            label: '优先秘境',
+            value: sect.automationSettings.preferredDungeonId ?? '未设置',
+            detail: `伤亡倾向 ${sect.automationSettings.casualtyTolerance}`,
+          },
+          {
+            label: '最近战报',
+            value: reports.length,
+            detail: reports[0] ? `${reports[0].result} · 第 ${reports[0].floorsCleared} 层` : '暂无记录',
+          },
+        ]}
+      />
 
-      <section className={`${styles.section} ${styles.heroSection}`} data-testid="sect-hero">
-        <div className={styles.sectionTitle}>宗门近况</div>
+      <section className={`${styles.section} ${styles.heroSection}`}>
+        <div className={styles.sectionTitle}>当前安排</div>
         <div className={styles.heroCard}>
-          <div className={styles.heroLead}>
-            <span className={styles.heroLine}>山门静开，内务与冒险各有流转。</span>
-            <span className={styles.heroHint}>此处只呈现当前最值得留意的变化，不替你排定先后。</span>
-          </div>
           <ActionAgenda />
         </div>
       </section>

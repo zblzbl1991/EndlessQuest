@@ -3,7 +3,7 @@
 .page {
   padding: 12px;
   padding-bottom: 76px;
-  max-width: 480px;
+  max-width: none;
   margin: 0 auto;
 }
 
@@ -95,18 +95,6 @@
     max-width: none;
     padding: var(--space-md);
     padding-bottom: var(--space-lg);
-  }
-
-  .hero {
-    grid-template-columns: minmax(0, 1.6fr) minmax(240px, 1fr);
-    align-items: start;
-    margin-bottom: var(--space-lg);
-    padding: var(--space-lg);
-  }
-
-  .summaryRow {
-    grid-column: 1 / -1;
-    gap: var(--space-sm);
   }
 }
 

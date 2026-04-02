@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
+import { useGameStore } from '../stores/gameStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getAvailableMissions, DISPATCH_MISSIONS } from '../data/missions'
@@ -9,11 +10,11 @@ import { getFateTagDef } from '../data/fateTags'
 import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
 import { getPathDef } from '../data/cultivationPaths'
 import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySystem'
-import { getCharacterDisposition } from '../systems/character/CharacterDispositionSystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
 import { PixelIcon } from '../components/common/PixelIcon'
 import CharacterCard from '../components/common/CharacterCard'
+import PageHeader from '../components/common/PageHeader'
 import StatusBadge from '../components/common/StatusBadge'
 import ProgressBar from '../components/common/ProgressBar'
 import BreakthroughPanel from '../components/cultivation/BreakthroughPanel'
@@ -75,7 +76,7 @@ const FILTER_TABS: { key: FilterTab; label: string; icon: string; match: (s: Cha
   { key: 'dispatching', label: '派遣中', icon: 'dispatch', match: (s) => s === 'patrolling' },
   { key: 'adventuring', label: '秘境中', icon: 'adventure', match: (s) => s === 'adventuring' },
   { key: 'training', label: '研习中', icon: 'technique', match: (s) => s === 'training' },
-  { key: 'recovering', label: '恢复中', icon: 'recovery', match: (s) => s === 'resting' || s === 'injured' },
+  { key: 'recovering', label: '恢复中', icon: 'recovery', match: (s) => s === 'recovering' },
 ]
 
 const DETAIL_SECTION_ICONS = {
@@ -136,23 +137,26 @@ export default function CharactersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const characters = useSectStore((s) => s.sect.characters)
+  const automationSettings = useSectStore((s) => s.sect.automationSettings)
+  const setAutomationSettings = useSectStore((s) => s.setAutomationSettings)
+  const dayProgressSec = useGameStore((s) => s.dayProgressSec)
 
   const filteredCharacters = useMemo(() => {
     const tab = FILTER_TABS.find((t) => t.key === filter)
     if (!tab || tab.key === 'all') return characters
     return characters.filter((c) => tab.match(c.status))
   }, [characters, filter])
-  const flowSummary = useMemo(() => {
-    const counts = {
-      cultivating: characters.filter((character) => character.status === 'idle').length,
+  const counts = useMemo(
+    () => ({
+      idle: characters.filter((character) => character.status === 'idle').length,
       dispatching: characters.filter((character) => character.status === 'patrolling').length,
       adventuring: characters.filter((character) => character.status === 'adventuring').length,
-      recovering: characters.filter((character) => character.status === 'resting' || character.status === 'injured')
-        .length,
-    }
-
-    return `修炼 ${counts.cultivating} · 派遣 ${counts.dispatching} · 秘境 ${counts.adventuring} · 恢复 ${counts.recovering}`
-  }, [characters])
+      recovering: characters.filter((character) => character.status === 'recovering').length,
+    }),
+    [characters]
+  )
+  const nextDayCountdown = Math.max(0, 60 - dayProgressSec)
+  const automationSummary = `维持 ${automationSettings.targetPoolSize} 人，保留 ${automationSettings.reserveSpiritStone} 灵石 / ${automationSettings.reserveSpiritEnergy} 灵气`
 
   // Detail view
   if (selectedId) {
@@ -165,60 +169,162 @@ export default function CharactersPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.hero} data-testid="characters-hero">
-        <div className={styles.heroMain}>
-          <span className={styles.pageEyebrow}>门中名册</span>
-          <h1 className={styles.pageTitle}>门中弟子</h1>
-          <p className={styles.pageLead}>
-            弟子来去皆在流转。先看池中还有哪些人可用，再决定今天要养谁、派谁、舍谁去赌一程。
-          </p>
-        </div>
-        <div className={styles.heroFocusCard}>
-          <span className={styles.heroFocusLabel}>当前弟子池</span>
-          <span className={styles.heroFocusValue}>{flowSummary}</span>
-          <span className={styles.heroFocusMeta}>
-            当前筛选下共有 {filteredCharacters.length} 人，折损之后也可继续补员，重点在池子的流转与去向。
-          </span>
-        </div>
-      </section>
+      <PageHeader
+        title="弟子"
+        testId="characters-hero"
+        metrics={[
+          {
+            label: '弟子池',
+            value: `${characters.length}/${automationSettings.targetPoolSize}`,
+            detail: automationSummary,
+          },
+          { label: '可出战', value: counts.idle, detail: `派遣 ${counts.dispatching} · 秘境 ${counts.adventuring}` },
+          { label: '恢复中', value: counts.recovering, detail: '恢复中的弟子会按游戏日自动返场' },
+          { label: '下一日结算', value: `${Math.ceil(nextDayCountdown)} 秒`, detail: '现实 1 分钟 = 游戏 1 天' },
+        ]}
+      />
 
-      <section className={styles.controlsBand}>
-        <div className={styles.toolbar}>
-          <div className={styles.viewToggle}>
-            <button
-              className={`${styles.toggleBtn} ${view === 'list' ? styles.toggleActive : ''}`}
-              onClick={() => setView('list')}
-            >
-              列表
-            </button>
-            <button
-              className={`${styles.toggleBtn} ${view === 'grid' ? styles.toggleActive : ''}`}
-              onClick={() => setView('grid')}
-            >
-              网格
-            </button>
+      <div className={styles.overviewLayout}>
+        <section className={styles.automationPanel}>
+          <div className={styles.automationHeader}>
+            <div>
+              <h2 className={styles.panelTitle}>宗门自动运转</h2>
+              <p className={styles.panelMeta}>{automationSummary}</p>
+            </div>
+            <div className={styles.togglePair}>
+              <button
+                type="button"
+                className={`${styles.toggleBtn} ${automationSettings.enabled ? styles.toggleActive : ''}`}
+                onClick={() => setAutomationSettings({ enabled: true })}
+              >
+                自动开
+              </button>
+              <button
+                type="button"
+                className={`${styles.toggleBtn} ${!automationSettings.enabled ? styles.toggleActive : ''}`}
+                onClick={() => setAutomationSettings({ enabled: false })}
+              >
+                自动关
+              </button>
+            </div>
           </div>
-        </div>
 
-        <div className={styles.filterTabs}>
-          {FILTER_TABS.map((tab) => (
-            <button
-              key={tab.key}
-              className={`${styles.filterTab} ${filter === tab.key ? styles.filterActive : ''}`}
-              onClick={() => setFilter(tab.key)}
-            >
-              <PixelIcon name={tab.icon} size={18} className={styles.filterIcon} aria-label={tab.label} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </section>
+          <div className={styles.settingGrid}>
+            <label className={styles.settingField}>
+              <span className={styles.settingLabel}>目标弟子池</span>
+              <input
+                className={styles.settingInput}
+                type="number"
+                min={1}
+                value={automationSettings.targetPoolSize}
+                onChange={(event) =>
+                  setAutomationSettings({ targetPoolSize: Math.max(1, Number(event.target.value) || 1) })
+                }
+              />
+            </label>
+            <label className={styles.settingField}>
+              <span className={styles.settingLabel}>招募品质底线</span>
+              <select
+                className={styles.settingSelect}
+                value={automationSettings.recruitQualityFloor}
+                onChange={(event) =>
+                  setAutomationSettings({ recruitQualityFloor: event.target.value as CharacterQuality })
+                }
+              >
+                <option value="common">凡品起招</option>
+                <option value="spirit">至少灵品</option>
+                <option value="immortal">至少仙品</option>
+                <option value="divine">至少神品</option>
+                <option value="chaos">只收混沌</option>
+              </select>
+            </label>
+            <label className={styles.settingField}>
+              <span className={styles.settingLabel}>最低保留灵石</span>
+              <input
+                className={styles.settingInput}
+                type="number"
+                min={0}
+                value={automationSettings.reserveSpiritStone}
+                onChange={(event) =>
+                  setAutomationSettings({ reserveSpiritStone: Math.max(0, Number(event.target.value) || 0) })
+                }
+              />
+            </label>
+            <label className={styles.settingField}>
+              <span className={styles.settingLabel}>最低保留灵气</span>
+              <input
+                className={styles.settingInput}
+                type="number"
+                min={0}
+                value={automationSettings.reserveSpiritEnergy}
+                onChange={(event) =>
+                  setAutomationSettings({ reserveSpiritEnergy: Math.max(0, Number(event.target.value) || 0) })
+                }
+              />
+            </label>
+          </div>
 
-      <div className={`${styles.characterGrid} ${view === 'grid' ? styles.gridView : styles.listView}`}>
-        {filteredCharacters.map((char) => (
-          <CharacterCard key={char.id} character={char} onClick={() => setSelectedId(char.id)} />
-        ))}
-        {filteredCharacters.length === 0 && <div className={styles.empty}>暂无弟子</div>}
+          <div className={styles.settingFooter}>
+            <span className={styles.footerLabel}>自动突破</span>
+            <div className={styles.togglePair}>
+              <button
+                type="button"
+                className={`${styles.toggleBtn} ${automationSettings.autoBreakthrough ? styles.toggleActive : ''}`}
+                onClick={() => setAutomationSettings({ autoBreakthrough: true })}
+              >
+                开启
+              </button>
+              <button
+                type="button"
+                className={`${styles.toggleBtn} ${!automationSettings.autoBreakthrough ? styles.toggleActive : ''}`}
+                onClick={() => setAutomationSettings({ autoBreakthrough: false })}
+              >
+                关闭
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.rosterPanel}>
+          <div className={styles.controlsBand}>
+            <div className={styles.toolbar}>
+              <div className={styles.viewToggle}>
+                <button
+                  className={`${styles.toggleBtn} ${view === 'list' ? styles.toggleActive : ''}`}
+                  onClick={() => setView('list')}
+                >
+                  列表
+                </button>
+                <button
+                  className={`${styles.toggleBtn} ${view === 'grid' ? styles.toggleActive : ''}`}
+                  onClick={() => setView('grid')}
+                >
+                  网格
+                </button>
+              </div>
+            </div>
+
+            <div className={styles.filterTabs}>
+              {FILTER_TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  className={`${styles.filterTab} ${filter === tab.key ? styles.filterActive : ''}`}
+                  onClick={() => setFilter(tab.key)}
+                >
+                  <PixelIcon name={tab.icon} size={18} className={styles.filterIcon} aria-label={tab.label} />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className={`${styles.characterGrid} ${view === 'grid' ? styles.gridView : styles.listView}`}>
+            {filteredCharacters.map((char) => (
+              <CharacterCard key={char.id} character={char} onClick={() => setSelectedId(char.id)} />
+            ))}
+            {filteredCharacters.length === 0 && <div className={styles.empty}>暂无弟子</div>}
+          </div>
+        </section>
       </div>
     </div>
   )
@@ -250,7 +356,6 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
   // Cultivation speed
   const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
   const primaryRole = getPrimaryRole(character)
-  const disposition = getCharacterDisposition(character)
   const combatStyle = getCombatStyleProfile(character)
   const recommendedLoadout = buildCharacterSkillLoadout(character)
   const skillFrame = syncCharacterSkillLoadout(character)
@@ -349,15 +454,6 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
         {primaryRole && (
           <div className={styles.identityMeta}>{primaryRole && <span>主定位：{getRoleLabel(primaryRole)}</span>}</div>
         )}
-        <div className={styles.readoutGrid}>
-          {[disposition.management, disposition.adventure, disposition.risk].map((facet) => (
-            <div key={facet.key} className={`${styles.readoutCard} ${styles[`readout${facet.band}`]}`}>
-              <span className={styles.readoutLabel}>{facet.title}</span>
-              <span className={styles.readoutValue}>{facet.label}</span>
-              <span className={styles.readoutDesc}>{facet.description}</span>
-            </div>
-          ))}
-        </div>
         {character.fateTags.length > 0 && (
           <div className={styles.fateTagsList}>
             {character.fateTags.map((tag) => {

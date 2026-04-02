@@ -24,6 +24,7 @@ import type { Talent } from '../types/talent'
 import { TALENT_RARITY_NAMES } from '../types/talent'
 import ItemCard from '../components/inventory/ItemCard'
 import { PixelIcon } from '../components/common/PixelIcon'
+import PageHeader from '../components/common/PageHeader'
 import AlchemyPanel from '../components/building/AlchemyPanel'
 import ForgePanel from '../components/building/ForgePanel'
 import StudyPanel from '../components/building/StudyPanel'
@@ -65,17 +66,6 @@ const QUALITY_LABELS: Record<CharacterQuality, string> = {
   immortal: '仙品',
   divine: '神品',
   chaos: '混沌',
-}
-
-const TAB_LEADS: Record<TabKey, string> = {
-  buildings: '先看宗门营造整体走向，再决定这一笔资源投向何处。',
-  recruit: '来者何人、值不值得留，先看资质与缘分，再决定是否招收入门。',
-  vault: '仓中之物先理清去向，再决定卖、留，还是转予弟子。',
-  alchemy: '丹炉不必喧哗，先看存料与配方，再定这一炉的用途。',
-  forge: '锻造重在节奏，先看材料与成品方向，再落下这一锤。',
-  study: '参悟不催人，先辨当前修行缺口，再决定要读哪一卷。',
-  codex: '先看宗门已留存的见闻，再决定接下来补哪一门传承。',
-  market: '坊市重在取舍，先看手中所需，再决定这一趟换回什么。',
 }
 
 /** Base combat stats before variance -- used for stat coloring comparison. */
@@ -222,34 +212,16 @@ export default function BuildingsPage() {
 
   return (
     <div className={styles.page}>
-      <section className={styles.hero} data-testid="buildings-hero">
-        <div className={styles.heroMain}>
-          <span className={styles.pageEyebrow}>营造卷</span>
-          <h1 className={styles.pageTitle}>宗门营造</h1>
-          <p className={styles.pageLead}>宗门才是长久之本。先看山门还缺什么，再决定今日是扩建、补员，还是炼制储备。</p>
-        </div>
-        <div className={styles.heroFocusCard}>
-          <span className={styles.heroFocusLabel}>当前营造重点</span>
-          <span className={styles.heroFocusValue}>{buildFocus}</span>
-          <span className={styles.heroFocusMeta}>
-            已启用 {unlockedBuildings.length} 处建筑，现有 {activeSynergyCount} 组建筑协同。
-          </span>
-        </div>
-        <div className={styles.summaryRow}>
-          <div className={styles.summaryCard}>
-            <span className={styles.summaryLabel}>卷内分栏</span>
-            <span className={styles.summaryValue}>{availableTabs.length}</span>
-          </div>
-          <div className={styles.summaryCard}>
-            <span className={styles.summaryLabel}>可自动派驻</span>
-            <span className={styles.summaryValue}>{autoAssignableCount}</span>
-          </div>
-          <div className={styles.summaryCard}>
-            <span className={styles.summaryLabel}>当前所阅</span>
-            <span className={styles.summaryValue}>{activeTabMeta?.label}</span>
-          </div>
-        </div>
-      </section>
+      <PageHeader
+        title="建筑"
+        testId="buildings-hero"
+        metrics={[
+          { label: '当前重点', value: buildFocus, detail: `已启用 ${unlockedBuildings.length} 处建筑` },
+          { label: '建筑协同', value: activeSynergyCount, detail: '同阶建筑会自动叠加产线收益' },
+          { label: '可自动派驻', value: autoAssignableCount, detail: '只会安排闲置弟子，不覆盖手工派驻' },
+          { label: '当前页签', value: activeTabMeta?.label ?? '建筑', detail: `${availableTabs.length} 个功能分栏` },
+        ]}
+      />
 
       <div className={styles.tabs} data-testid="building-tab-rail">
         {availableTabs.map((t) => (
@@ -269,9 +241,7 @@ export default function BuildingsPage() {
       ) : (
         <section className={styles.subpanel} data-testid="building-subpanel">
           <div className={styles.subpanelHeader}>
-            <span className={styles.subpanelEyebrow}>卷内一栏</span>
             <div className={styles.subpanelTitle}>{activeTabMeta?.label}</div>
-            <p className={styles.subpanelLead}>{TAB_LEADS[activeTab]}</p>
           </div>
           <div className={styles.subpanelBody}>{content}</div>
         </section>

@@ -1,7 +1,7 @@
 .page {
   padding: 12px;
   padding-bottom: 76px;
-  max-width: 480px;
+  max-width: none;
   margin: 0 auto;
 }
 
@@ -11,44 +11,6 @@
     padding: var(--space-md);
     padding-bottom: var(--space-lg);
   }
-}
-
-/* Header */
-.header {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--space-md);
-  margin-bottom: var(--space-md);
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(95, 122, 141, 0.12);
-}
-
-.headerEyebrow {
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  color: var(--color-text-tertiary);
-  margin-bottom: 4px;
-}
-
-.sectName {
-  font-family: var(--font-serif);
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-text);
-  margin: 0;
-}
-
-.sectLevel {
-  font-size: 11px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-
-.headerActions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
 }
 
 .resetButton {

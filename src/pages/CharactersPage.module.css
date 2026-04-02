@@ -3,74 +3,8 @@
 .page {
   padding: 12px;
   padding-bottom: 76px;
-  max-width: 480px;
+  max-width: none;
   margin: 0 auto;
-}
-
-.hero {
-  display: grid;
-  gap: var(--space-md);
-  margin-bottom: 12px;
-  padding: var(--space-md);
-  border-radius: var(--radius-xl);
-  background:
-    radial-gradient(circle at right top, rgba(133, 164, 182, 0.16), transparent 34%),
-    linear-gradient(180deg, rgba(251, 254, 255, 0.96), rgba(239, 246, 250, 0.9));
-  border: 1px solid rgba(95, 122, 141, 0.14);
-  box-shadow: 0 18px 36px rgba(37, 50, 64, 0.08);
-}
-
-.heroMain {
-  display: grid;
-  gap: 6px;
-}
-
-.pageEyebrow {
-  font-size: 11px;
-  letter-spacing: 0.14em;
-  color: var(--color-accent);
-}
-
-.pageTitle {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.pageLead {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  line-height: 1.7;
-}
-
-.heroFocusCard {
-  display: grid;
-  gap: 4px;
-  padding: 12px;
-  border-radius: var(--radius-lg);
-  background: rgba(247, 251, 253, 0.8);
-  border: 1px solid rgba(95, 122, 141, 0.12);
-}
-
-.heroFocusLabel {
-  font-size: 11px;
-  color: var(--color-text-tertiary);
-}
-
-.heroFocusValue {
-  font-family: var(--font-serif);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.heroFocusMeta {
-  color: var(--color-text-secondary);
-  font-size: 12px;
-  line-height: 1.7;
 }
 
 @media (min-width: 1024px) {
@@ -79,21 +13,99 @@
     padding: var(--space-md);
     padding-bottom: var(--space-lg);
   }
+}
 
-  .hero {
-    grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr);
-    align-items: start;
-    padding: var(--space-lg);
-  }
+.overviewLayout {
+  display: grid;
+  gap: 12px;
+}
+
+.automationPanel,
+.rosterPanel {
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(95, 122, 141, 0.12);
+  background: linear-gradient(180deg, rgba(251, 254, 255, 0.98), rgba(242, 247, 250, 0.94));
+  box-shadow: 0 16px 32px rgba(37, 50, 64, 0.06);
+}
+
+.automationPanel {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.automationHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelTitle {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: 18px;
+  color: var(--color-text);
+}
+
+.panelMeta {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.settingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settingField {
+  display: grid;
+  gap: 6px;
+}
+
+.settingLabel,
+.footerLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.settingInput,
+.settingSelect {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-text);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.settingFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.togglePair {
+  display: inline-flex;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
 }
 
 /* Toolbar */
 .controlsBand {
   margin-bottom: 12px;
   padding: 10px;
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(95, 122, 141, 0.12);
-  background: rgba(249, 252, 254, 0.82);
+  border-bottom: 1px solid rgba(95, 122, 141, 0.08);
 }
 
 .toolbar {
@@ -167,6 +179,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  padding: 0 12px 12px;
 }
 
 .gridView {
@@ -187,6 +200,32 @@
   padding: var(--space-xl) 0;
   color: var(--color-text-tertiary);
   font-size: 13px;
+}
+
+@media (max-width: 639px) {
+  .settingGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .automationHeader,
+  .settingFooter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (min-width: 640px) {
+  .page {
+    padding: 16px;
+    padding-bottom: 88px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .overviewLayout {
+    grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    align-items: start;
+  }
 }
 
 /* ===== Detail View ===== */

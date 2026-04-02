@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
+import { useGameStore } from '../stores/gameStore'
 import { getRealmName } from '../data/realms'
 import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
@@ -9,6 +10,7 @@ import { buildAdventureReportInsight } from '../systems/roguelike/AdventureRepor
 import type { CharacterQuality } from '../types/character'
 import type { AdventureReport } from '../types'
 import type { AutomationStrategy, TacticalPreset } from '../types/adventure'
+import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
 import RunBuildSummary from '../components/adventure/RunBuildSummary'
 import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
@@ -56,9 +58,10 @@ export default function AdventurePage() {
   const dungeons = useAdventureStore((s) => s.dungeons)
   const reports = useAdventureStore((s) => s.reports)
   const completedDungeons = useAdventureStore((s) => s.completedDungeons)
-  const dispatches = useAdventureStore((s) => s.dispatches)
   const reportDetails = useAdventureStore((s) => s.reportDetails)
   const sect = useSectStore((s) => s.sect)
+  const setAutomationSettings = useSectStore((s) => s.setAutomationSettings)
+  const dayProgressSec = useGameStore((s) => s.dayProgressSec)
 
   const maxRealmChar = useMemo(() => {
     if (sect.characters.length === 0) return null
@@ -67,60 +70,124 @@ export default function AdventurePage() {
     )
   }, [sect.characters])
 
-  const availableCharacters = useMemo(
-    () => sect.characters.filter((char) => char.status === 'idle' || char.status === 'resting'),
-    [sect.characters]
-  )
+  const availableCharacters = useMemo(() => sect.characters.filter((char) => char.status === 'idle'), [sect.characters])
   const playerRealm = maxRealmChar?.realm ?? 0
   const playerStage = maxRealmChar?.realmStage ?? 0
+  const nextDayCountdown = Math.max(0, 60 - dayProgressSec)
+  const preferredDungeon = dungeons.find((item) => item.id === sect.automationSettings.preferredDungeonId) ?? null
+  const unlockedDungeons = dungeons.filter((dungeon) => isDungeonUnlocked(dungeon, playerRealm, playerStage))
   const characterNameMap = useMemo(
     () => new Map(sect.characters.map((char) => [char.id, char.name])),
     [sect.characters]
   )
   const latestReport = reports[0] ?? null
+  const manualLaunchDungeonId = preferredDungeon?.id ?? unlockedDungeons[0]?.id ?? null
 
   return (
     <div className={styles.page}>
-      <section className={styles.hero} data-testid="adventure-hero">
-        <div className={styles.heroHeader}>
-          <div className={styles.header}>
-            <span className={styles.pageEyebrow}>山门之前</span>
-            <h1 className={styles.pageTitle}>秘境</h1>
-            <p className={styles.pageLead}>
-              {latestReport
-                ? `上一场${getRunIntentDef(latestReport.strategy).label}已留痕，如今可再定一局心意，也要想清楚这一程愿付出多少弟子折损。`
-                : '秘境不会催你动作，只把去处、回响与可能付出的折损摆在眼前。'}
+      <PageHeader
+        title="秘境"
+        testId="adventure-hero"
+        action={
+          <button
+            type="button"
+            className={`${styles.startBtn} ${!manualLaunchDungeonId ? styles.btnDisabled : ''}`}
+            disabled={!manualLaunchDungeonId}
+            onClick={() => manualLaunchDungeonId && setBuildingTeam(manualLaunchDungeonId)}
+          >
+            手动发起
+          </button>
+        }
+        metrics={[
+          {
+            label: '优先秘境',
+            value: preferredDungeon?.name ?? '未设置',
+            detail: sect.automationSettings.enabled ? '每日结算后会自动尝试开跑' : '当前未启用自动运转',
+          },
+          {
+            label: '可出战',
+            value: availableCharacters.length,
+            detail: `恢复中 ${sect.characters.filter((char) => char.status === 'recovering').length}`,
+          },
+          {
+            label: '最近结果',
+            value: latestReport ? REPORT_RESULT_LABELS[latestReport.result] : '暂无',
+            detail: latestReport ? `推进至第 ${latestReport.floorsCleared} 层` : '尚未留下战报',
+          },
+          {
+            label: '下一日结算',
+            value: `${Math.ceil(nextDayCountdown)} 秒`,
+            detail: `已留名秘境 ${completedDungeons.length}`,
+          },
+        ]}
+      />
+
+      <section className={styles.automationPanel}>
+        <div className={styles.automationHeader}>
+          <div>
+            <h2 className={styles.panelTitle}>自动运转</h2>
+            <p className={styles.panelMeta}>
+              {sect.automationSettings.enabled
+                ? `系统会在每日结算后自动组队探索 ${preferredDungeon?.name ?? '首个可用秘境'}`
+                : '关闭后只保留手动发起入口。'}
             </p>
           </div>
-          <div className={styles.heroFocus}>
-            <span className={styles.heroFocusLabel}>门前风向</span>
-            <span className={styles.heroFocusValue}>
-              {availableCharacters.length > 0 ? `${availableCharacters.length} 名弟子可出发` : '暂无可出发弟子'}
-            </span>
-            <span className={styles.heroFocusMeta}>
-              {latestReport
-                ? `最近一局${REPORT_RESULT_LABELS[latestReport.result]}，推进至第 ${latestReport.floorsCleared} 层。`
-                : '最近尚无探索留痕，可先择一处秘境试路。'}
-            </span>
+          <div className={styles.togglePair}>
+            <button
+              type="button"
+              className={`${styles.toggleBtn} ${sect.automationSettings.enabled ? styles.toggleActive : ''}`}
+              onClick={() => setAutomationSettings({ enabled: true })}
+            >
+              自动开
+            </button>
+            <button
+              type="button"
+              className={`${styles.toggleBtn} ${!sect.automationSettings.enabled ? styles.toggleActive : ''}`}
+              onClick={() => setAutomationSettings({ enabled: false })}
+            >
+              自动关
+            </button>
           </div>
         </div>
 
-        <div className={styles.summaryRow}>
-          <div className={styles.summaryCard}>
-            <PixelIcon name="disciple" size={20} className={styles.summaryIcon} aria-label="可出战弟子" />
-            <span className={styles.summaryLabel}>可出战弟子</span>
-            <span className={styles.summaryValue}>{availableCharacters.length}</span>
-          </div>
-          <div className={styles.summaryCard}>
-            <PixelIcon name="eventCombat" size={20} className={styles.summaryIcon} aria-label="最近战报" />
-            <span className={styles.summaryLabel}>最近战报</span>
-            <span className={styles.summaryValue}>{reports.length}</span>
-          </div>
-          <div className={styles.summaryCard}>
-            <PixelIcon name="dungeonTribulation" size={20} className={styles.summaryIcon} aria-label="已留名秘境" />
-            <span className={styles.summaryLabel}>已留名秘境</span>
-            <span className={styles.summaryValue}>{completedDungeons.length}</span>
-          </div>
+        <div className={styles.settingGrid}>
+          <label className={styles.settingField}>
+            <span className={styles.settingLabel}>优先秘境</span>
+            <select
+              className={styles.settingSelect}
+              value={sect.automationSettings.preferredDungeonId ?? ''}
+              onChange={(event) =>
+                setAutomationSettings({ preferredDungeonId: event.target.value === '' ? null : event.target.value })
+              }
+            >
+              <option value="">未设置</option>
+              {dungeons.map((dungeon) => {
+                const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
+                return (
+                  <option key={dungeon.id} value={dungeon.id} disabled={!unlocked}>
+                    {unlocked ? dungeon.name : `${dungeon.name}（未解锁）`}
+                  </option>
+                )
+              })}
+            </select>
+          </label>
+
+          <label className={styles.settingField}>
+            <span className={styles.settingLabel}>伤亡倾向</span>
+            <select
+              className={styles.settingSelect}
+              value={sect.automationSettings.casualtyTolerance}
+              onChange={(event) =>
+                setAutomationSettings({
+                  casualtyTolerance: event.target.value as typeof sect.automationSettings.casualtyTolerance,
+                })
+              }
+            >
+              <option value="conservative">保守</option>
+              <option value="balanced">均衡</option>
+              <option value="risky">赌命</option>
+            </select>
+          </label>
         </div>
       </section>
 
@@ -225,30 +292,7 @@ export default function AdventurePage() {
       </section>
 
       <section className={styles.section}>
-        <div className={styles.sectionTitle}>任务派遣</div>
-        {dispatches.length === 0 ? (
-          <div className={styles.empty}>暂无派遣任务，可在弟子详情中安排派遣。</div>
-        ) : (
-          <div className={styles.dispatchList}>
-            {dispatches.map((dispatch) => {
-              const character = sect.characters.find((char) => char.id === dispatch.characterId)
-              const remaining = Math.max(0, dispatch.duration - dispatch.progress)
-              return (
-                <div key={dispatch.characterId} className={styles.dispatchCard}>
-                  <span className={styles.dispatchName}>
-                    <PixelIcon name="dispatch" size={18} className={styles.inlineIcon} aria-label="派遣任务" />
-                    {character?.name ?? dispatch.characterId}
-                  </span>
-                  <span>{Math.ceil(remaining)} 秒后完成</span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>待启程秘境</div>
+        <div className={styles.sectionTitle}>手动发起</div>
         <div className={styles.dungeonList}>
           {dungeons.map((dungeon) => {
             const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
@@ -277,14 +321,14 @@ export default function AdventurePage() {
                   <span>推荐：{unlockRealmName}</span>
                 </div>
                 <div className={styles.dungeonHint}>
-                  {unlocked ? '开始后会按托管策略即时结算整次探索。' : '当前境界尚不足以踏入此地。'}
+                  {unlocked ? '作为次入口手动开一局，仍会保留完整战报。' : '当前境界尚不足以踏入此地。'}
                 </div>
                 <button
                   className={`${styles.startBtn} ${launchDisabled ? styles.btnDisabled : ''}`}
                   disabled={launchDisabled}
                   onClick={() => setBuildingTeam(dungeon.id)}
                 >
-                  开始探索
+                  手动发起
                 </button>
               </div>
             )

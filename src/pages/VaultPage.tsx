@@ -10,6 +10,7 @@ import {
 } from '../systems/equipment/EquipmentEngine'
 import { getTechniqueById } from '../data/techniquesTable'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
+import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
 import ItemCard from '../components/inventory/ItemCard'
 import styles from './VaultPage.module.css'
@@ -69,8 +70,29 @@ function RecommendationBlock({ rec }: { rec: EquipmentRecommendation | null }) {
         : { background: 'rgba(120, 120, 120, 0.14)', color: 'var(--color-text-secondary)' }
 
   return (
-    <div style={{ display: 'grid', gap: 4, marginTop: 8, padding: '8px 10px', borderRadius: 8, background: 'var(--color-bg-paper)', border: '1px solid var(--color-border-light)' }}>
-      <div style={{ display: 'inline-flex', alignItems: 'center', width: 'fit-content', borderRadius: 999, padding: '2px 8px', fontSize: 10, fontWeight: 700, ...badgeStyle }}>
+    <div
+      style={{
+        display: 'grid',
+        gap: 4,
+        marginTop: 8,
+        padding: '8px 10px',
+        borderRadius: 8,
+        background: 'var(--color-bg-paper)',
+        border: '1px solid var(--color-border-light)',
+      }}
+    >
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          width: 'fit-content',
+          borderRadius: 999,
+          padding: '2px 8px',
+          fontSize: 10,
+          fontWeight: 700,
+          ...badgeStyle,
+        }}
+      >
         {rec.label}
       </div>
       <div style={{ fontSize: 11, color: 'var(--color-accent)', fontWeight: 600 }}>{rec.direction}</div>
@@ -88,12 +110,23 @@ function RecommendationBlock({ rec }: { rec: EquipmentRecommendation | null }) {
 
 export default function VaultPage() {
   const [tab, setTab] = useState<Tab>('vault')
+  const vaultCount = useSectStore((s) => s.sect.vault.length)
+  const maxSlots = useSectStore((s) => s.sect.maxVaultSlots)
+  const characters = useSectStore((s) => s.sect.characters)
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <h1 className={styles.pageTitle}>仓库</h1>
-      </div>
+      <PageHeader
+        title="仓库"
+        metrics={[
+          { label: '宗门仓库', value: `${vaultCount}/${maxSlots}`, detail: '常驻资源与装备流转' },
+          {
+            label: '弟子背包',
+            value: characters.reduce((total, character) => total + character.backpack.length, 0),
+            detail: `${characters.length} 名弟子可接收物品`,
+          },
+        ]}
+      />
 
       {/* Tab Navigation */}
       <div className={styles.tabBar}>
@@ -357,9 +390,7 @@ function BackpackTab() {
                 <div className={styles.detailPrice}>售价: {selectedItem.sellPrice} 灵石</div>
 
                 {selectedItem.type === 'equipment' && (
-                  <RecommendationBlock
-                    rec={getEquipmentRecommendationForCharacter(char, selectedItem as Equipment)}
-                  />
+                  <RecommendationBlock rec={getEquipmentRecommendationForCharacter(char, selectedItem as Equipment)} />
                 )}
 
                 <div className={styles.detailActions}>

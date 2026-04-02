@@ -83,9 +83,9 @@ describe('AdventurePage', () => {
     )
 
     expect(screen.getByTestId('adventure-hero')).toBeInTheDocument()
+    expect(screen.getByText('自动运转')).toBeInTheDocument()
     expect(screen.getByText('最近探索记录')).toBeInTheDocument()
-    expect(screen.getByText('任务派遣')).toBeInTheDocument()
-    expect(screen.getByText('待启程秘境')).toBeInTheDocument()
+    expect(screen.getAllByText('手动发起').length).toBeGreaterThan(0)
   })
 
   it('reorders the team builder around intent, tactic, and team selection', () => {
@@ -95,7 +95,7 @@ describe('AdventurePage', () => {
       </MemoryRouter>
     )
 
-    fireEvent.click(screen.getAllByText('开始探索')[0]!)
+    fireEvent.click(screen.getAllByText('手动发起')[0]!)
 
     expect(screen.getByText('本局意图')).toBeInTheDocument()
     expect(screen.getByText('战术')).toBeInTheDocument()

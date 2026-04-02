@@ -1829,7 +1829,10 @@ describe('AdventureStore - selectRoute', () => {
 })
 
 describe('SectStore - Daily automation', () => {
-  beforeEach(() => resetStore())
+  beforeEach(() => {
+    resetStore()
+    useAdventureStore.getState().reset()
+  })
 
   it('tickAll should advance the game day every 60 seconds', () => {
     expect(useGameStore.getState().currentGameDay).toBe(1)
@@ -1859,6 +1862,51 @@ describe('SectStore - Daily automation', () => {
     getStore().tickAll(60)
 
     expect(getStore().sect.characters.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('should auto-run the preferred dungeon once per elapsed day when automation is enabled', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((character) => ({ ...character, realmStage: 3 })),
+        resources: { ...s.sect.resources, spiritStone: 900, spiritEnergy: 240 },
+        automationSettings: {
+          ...s.sect.automationSettings,
+          enabled: true,
+          targetPoolSize: 1,
+          reserveSpiritStone: 200,
+          reserveSpiritEnergy: 100,
+          preferredDungeonId: 'lingCaoValley',
+          casualtyTolerance: 'conservative',
+        },
+      },
+    }))
+
+    getStore().tickAll(60)
+
+    expect(useAdventureStore.getState().reports.length).toBe(1)
+    expect(useAdventureStore.getState().reports[0]?.dungeonId).toBe('lingCaoValley')
+  })
+
+  it('should skip automatic adventures when resources are at or below reserve thresholds', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: 300, spiritEnergy: 100 },
+        automationSettings: {
+          ...s.sect.automationSettings,
+          enabled: true,
+          targetPoolSize: 1,
+          reserveSpiritStone: 300,
+          reserveSpiritEnergy: 100,
+          preferredDungeonId: 'lingCaoValley',
+        },
+      },
+    }))
+
+    getStore().tickAll(60)
+
+    expect(useAdventureStore.getState().reports).toHaveLength(0)
   })
 })
 

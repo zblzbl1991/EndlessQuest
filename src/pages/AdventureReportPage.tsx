@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
+import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
 import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
@@ -87,33 +88,32 @@ export default function AdventureReportPage() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.header}>
-        <div>
-          <h1 className={styles.pageTitle}>探索过程</h1>
-          <div className={styles.subtitle}>
-            <PixelIcon
-              name={getDungeonIconName(report.dungeonId)}
-              size={18}
-              className={styles.inlineIcon}
-              aria-label={dungeon?.name ?? report.dungeonId}
-            />
-            {dungeon?.name ?? report.dungeonId}
-          </div>
-        </div>
-        <Link className={styles.backLink} to="/adventure">
-          返回秘境
-        </Link>
-      </div>
+      <PageHeader
+        title="探索过程"
+        action={
+          <Link className={styles.backLink} to="/adventure">
+            返回秘境
+          </Link>
+        }
+        metrics={[
+          {
+            label: '秘境',
+            value: dungeon?.name ?? report.dungeonId,
+            detail: getRunIntentDef(report.config.automationStrategy).label,
+          },
+          {
+            label: '结果',
+            value: REPORT_RESULT_LABELS[report.result],
+            detail: getTacticalPresetLabel(report.config.tacticalPreset),
+          },
+          { label: '推进层数', value: `第 ${report.floorsCleared} 层`, detail: insight?.cause ?? '暂无原因摘要' },
+        ]}
+      />
 
       <section className={styles.highlightCard} data-testid="report-highlight">
-        <div className={styles.highlightEyebrow}>秘境余响</div>
         <div className={styles.highlightTop}>
           <div>
-            <div className={styles.resultBadge}>
-              <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="结果" />
-              {REPORT_RESULT_LABELS[report.result]}
-            </div>
-            <h2 className={styles.highlightTitle}>此行已定，卷中可见成败因由。</h2>
+            <div className={styles.resultBadge}>{REPORT_RESULT_LABELS[report.result]}</div>
           </div>
           <div className={styles.highlightMeta}>
             <span>{getRunIntentDef(report.config.automationStrategy).label}</span>
