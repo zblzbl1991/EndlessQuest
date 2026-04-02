@@ -1,9 +1,13 @@
 ﻿import { useState, useMemo, useCallback } from 'react'
 import { useSectStore } from '../stores/sectStore'
-import { BUILDING_DEFS, getBuildingEffectText, getBuildingUnlockText } from '../data/buildings'
+import {
+  BUILDING_DEFS,
+  getBuildingEffectText,
+  getBuildingExpandCost,
+  getBuildingNodeCap,
+  getBuildingUnlockText,
+} from '../data/buildings'
 import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
-import { calcTaxRate } from '../systems/economy/ResourceEngine'
-import { calcSectLevel } from '../systems/character/CharacterEngine'
 import { getActiveSynergies } from '../systems/economy/SynergySystem'
 import { SYNERGIES } from '../data/buildings'
 import { getAutoRecipesForBuilding, getAutoRecipeById } from '../data/recipes'
@@ -208,10 +212,10 @@ export default function BuildingsPage() {
         title="建筑"
         testId="buildings-hero"
         metrics={[
-          { label: '当前重点', value: buildFocus, detail: `已启用 ${unlockedBuildings.length} 处建筑` },
-          { label: '建筑协同', value: activeSynergyCount, detail: '同阶建筑会自动叠加产线收益' },
-          { label: '可自动派驻', value: autoAssignableCount, detail: '只会安排闲置弟子，不覆盖手工派驻' },
-          { label: '当前页签', value: activeTabMeta?.label ?? '建筑', detail: `${availableTabs.length} 个功能分栏` },
+          { label: '当前重点', value: buildFocus, detail: `${unlockedBuildings.length} 处已启用` },
+          { label: '建筑协同', value: activeSynergyCount, detail: '满足条件即生效' },
+          { label: '可自动派驻', value: autoAssignableCount, detail: '仅安排闲置弟子' },
+          { label: '当前页签', value: activeTabMeta?.label ?? '建筑', detail: `${availableTabs.length} 个分栏` },
         ]}
       />
 
@@ -249,6 +253,7 @@ export default function BuildingsPage() {
 function BuildingsTab() {
   const sect = useSectStore((s) => s.sect)
   const tryUpgradeBuilding = useSectStore((s) => s.tryUpgradeBuilding)
+  const tryExpandBuilding = useSectStore((s) => s.tryExpandBuilding)
   const setProductionRecipe = useSectStore((s) => s.setProductionRecipe)
   const autoAssignToBuilding = useSectStore((s) => s.autoAssignToBuilding)
   const autoOptimizeBuildingAssignments = useSectStore((s) => s.autoOptimizeBuildingAssignments)
@@ -260,6 +265,16 @@ function BuildingsTab() {
     const result = tryUpgradeBuilding(type)
     if (result.success) {
       setMessage({ success: true, text: '升级成功' })
+    } else {
+      setMessage({ success: false, text: result.reason })
+    }
+    setTimeout(() => setMessage(null), 2000)
+  }
+
+  const handleExpand = (type: BuildingType) => {
+    const result = tryExpandBuilding(type)
+    if (result.success) {
+      setMessage({ success: true, text: '扩建成功' })
     } else {
       setMessage({ success: false, text: result.reason })
     }
@@ -297,6 +312,8 @@ function BuildingsTab() {
     if (!AUTO_ASSIGNABLE_BUILDINGS.has(building.type)) return count
     return count + getRecommendedIdleCount(building.type, sect.characters)
   }, 0)
+  const mainHallLevel = sect.buildings.find((building) => building.type === 'mainHall')?.level ?? 1
+  const resourceNodeCap = getBuildingNodeCap(mainHallLevel)
   return (
     <div className={styles.buildingsGrid}>
       {autoAssignableCount > 0 && (
@@ -305,7 +322,7 @@ function BuildingsTab() {
           <div className={styles.synergyList}>
             <div className={styles.synergyCard}>
               <div className={styles.synergyName}>自动派驻推荐弟子</div>
-              <div className={styles.synergyDesc}>优先填充空位，只会安排闲置弟子，不会覆盖你已经手工派驻的人员。</div>
+              <div className={styles.synergyDesc}>优先填满空位，不覆盖手工派驻。</div>
               <button className={`${styles.upgradeBtn} ${styles.upgradeReady}`} onClick={handleAutoOptimize}>
                 一键优化派驻 ({autoAssignableCount} 人可派)
               </button>
@@ -323,6 +340,14 @@ function BuildingsTab() {
         const cost = def.upgradeCost(building.level)
         const canAfford = sect.resources.spiritStone >= cost.spiritStone
         const isProcessing = PROCESSING_BUILDINGS.includes(def.type)
+        const expandCost = def.expandable ? getBuildingExpandCost(def.type, building.count ?? 0) : null
+        const canExpand =
+          !!def.expandable &&
+          isUnlocked &&
+          building.level > 0 &&
+          (building.count ?? 0) < resourceNodeCap &&
+          !!expandCost &&
+          sect.resources.spiritStone >= expandCost.spiritStone
 
         // Production queue info
         const activeRecipe = building.productionQueue.recipeId
@@ -352,37 +377,24 @@ function BuildingsTab() {
               </span>
             </div>
             <div className={styles.buildingDesc}>{def.description}</div>
+            {def.expandable && isUnlocked && (
+              <div className={styles.buildingHint}>
+                当前 {building.count} 座 / 主殿上限 {resourceNodeCap} 座
+              </div>
+            )}
             {BUILDING_SPECIALTY_HINTS[def.type] && (
-              <div className={styles.buildingDesc}>{BUILDING_SPECIALTY_HINTS[def.type]}</div>
+              <div className={styles.buildingHint}>{BUILDING_SPECIALTY_HINTS[def.type]}</div>
             )}
             {isUnlocked && AUTO_ASSIGNABLE_BUILDINGS.has(def.type) && (
-              <div className={styles.buildingEffect}>推荐派驻: {recommendedIdleCount} / 3</div>
+              <div className={styles.buildingHint}>推荐派驻 {recommendedIdleCount} / 3</div>
             )}
             {(() => {
               const effectText = getBuildingEffectText(building)
               return effectText && <div className={styles.buildingEffect}>{effectText}</div>
             })()}
-            {def.type === 'mainHall' &&
-              isUnlocked &&
-              (() => {
-                const sectLevel = calcSectLevel(building.level)
-                const discipleCount = useSectStore.getState().sect.characters.length
-                const tax = calcTaxRate(sectLevel, discipleCount)
-                return <div className={styles.buildingEffect}>赋税收入: +{tax.toFixed(1)}/秒</div>
-              })()}
-            {!isUnlocked &&
-              (() => {
-                const unlockText = getBuildingUnlockText(building)
-                return unlockText && <div className={styles.buildingUnlockPreview}>{unlockText}</div>
-              })()}
-            {def.type === 'mainHall' &&
-              isUnlocked &&
-              (() => {
-                const sectLevel = calcSectLevel(building.level)
-                const discipleCount = useSectStore.getState().sect.characters.length
-                const tax = calcTaxRate(sectLevel, discipleCount)
-                return <div className={styles.buildingEffect}>赋税收入: +{tax.toFixed(1)}/秒</div>
-              })()}
+            {def.type === 'mainHall' && isUnlocked && (
+              <div className={styles.buildingEffect}>灵田 / 灵矿地块上限：各 {resourceNodeCap} 座</div>
+            )}
             {!isUnlocked &&
               (() => {
                 const unlockText = getBuildingUnlockText(building)
@@ -421,6 +433,17 @@ function BuildingsTab() {
                 disabled={!canAfford}
               >
                 升级 ({cost.spiritStone}灵石)
+              </button>
+            )}
+            {def.expandable && isUnlocked && building.level > 0 && expandCost && (
+              <button
+                className={`${styles.upgradeBtn} ${canExpand ? styles.upgradeReady : styles.upgradeDisabled}`}
+                onClick={() => handleExpand(def.type)}
+                disabled={!canExpand}
+              >
+                {(building.count ?? 0) >= resourceNodeCap
+                  ? `主殿当前上限 ${resourceNodeCap} 座`
+                  : `扩建 (${expandCost.spiritStone}灵石)`}
               </button>
             )}
             {isMaxLevel && <span className={styles.maxLevelTag}>已满级</span>}
@@ -576,7 +599,7 @@ function RecruitTab() {
         <>
           <div className={styles.targetedSection}>
             <div className={styles.targetedHeader}>定向招募</div>
-            <div className={styles.targetedDesc}>聚仙台 Lv3+ 解锁。保证招募不低于指定品质的弟子。</div>
+            <div className={styles.targetedDesc}>锁定最低品质，压缩空招。</div>
 
             <div className={styles.targetedQualitySelect}>
               {targetedOptions.map((quality) => {

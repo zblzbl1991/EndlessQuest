@@ -14,9 +14,17 @@ export default function StatsPanel() {
   const { stats } = sect
 
   const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
+  const sfCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
   const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
+  const smCount = sect.buildings.find((b) => b.type === 'spiritMine')?.count ?? 0
   const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
-  const rates = calcResourceRates({ spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel })
+  const rates = calcResourceRates({
+    spiritField: sfLevel,
+    spiritFieldCount: sfCount,
+    spiritMine: smLevel,
+    spiritMineCount: smCount,
+    mainHall: mhLevel,
+  })
   const spiritStonePerSec = rates.spiritStone
 
   const winRate = stats.totalBattles > 0 ? ((stats.totalVictories / stats.totalBattles) * 100).toFixed(1) : '0.0'
@@ -36,7 +44,9 @@ export default function StatsPanel() {
     const nextUpgrade = BUILDING_DEFS.find((def) => canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone).canUpgrade)
     const caps = calcResourceCaps(
       sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0,
-      sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
+      sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0,
+      sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0,
+      sect.buildings.find((b) => b.type === 'spiritMine')?.count ?? 0
     )
     const overflowTarget = [
       { name: '灵气', value: sect.resources.spiritEnergy, cap: caps.spiritEnergy },

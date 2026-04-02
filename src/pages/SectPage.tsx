@@ -77,7 +77,8 @@ export default function SectPage() {
 
   const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
   const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
-  const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel : 0
+  const spiritFieldCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
+  const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel * spiritFieldCount : 0
 
   const handleResetSect = async () => {
     if (!window.confirm('确认重置当前宗门档案吗？此操作会清空当前进度。')) {
@@ -101,16 +102,16 @@ export default function SectPage() {
           </button>
         }
         metrics={[
-          { label: '宗门等级', value: sect.level, detail: `弟子 ${sect.characters.length} · 灵宠 ${sect.pets.length}` },
+          { label: '宗门等级', value: sect.level, detail: `${sect.characters.length} 弟子 · ${sect.pets.length} 灵宠` },
           {
             label: '自动运转',
             value: sect.automationSettings.enabled ? '运行中' : '已关闭',
-            detail: `池子目标 ${sect.automationSettings.targetPoolSize} 人`,
+            detail: `目标 ${sect.automationSettings.targetPoolSize} 人`,
           },
           {
             label: '优先秘境',
             value: sect.automationSettings.preferredDungeonId ?? '未设置',
-            detail: `伤亡倾向 ${sect.automationSettings.casualtyTolerance}`,
+            detail: `倾向 ${sect.automationSettings.casualtyTolerance}`,
           },
           {
             label: '最近战报',
@@ -121,7 +122,7 @@ export default function SectPage() {
       />
 
       <section className={`${styles.section} ${styles.heroSection}`}>
-        <div className={styles.sectionTitle}>当前安排</div>
+        <div className={styles.sectionTitle}>要务</div>
         <div className={styles.heroCard}>
           <ActionAgenda />
         </div>
@@ -129,7 +130,7 @@ export default function SectPage() {
 
       <div className={styles.midgroundGrid} data-testid="sect-midground-grid">
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>资源总览</div>
+          <div className={styles.sectionTitle}>资源</div>
           <div className={styles.resourceGrid}>
             <div className={styles.resourceCard}>
               <PixelIcon name="spiritStone" size={18} className={styles.inlineIcon} aria-label="灵石" />
@@ -159,7 +160,7 @@ export default function SectPage() {
         </section>
 
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>弟子概况</div>
+          <div className={styles.sectionTitle}>弟子</div>
           <div className={styles.statsRow}>
             {characterStats.map((item) => (
               <span key={item.key} className={styles.statItem}>
@@ -173,7 +174,7 @@ export default function SectPage() {
 
         {reports.length > 0 && (
           <section className={styles.section}>
-            <div className={styles.sectionTitle}>最近探险</div>
+            <div className={styles.sectionTitle}>战报</div>
             {reports.slice(0, 3).map((report) => {
               const dungeon = dungeons.find((item) => item.id === report.dungeonId)
               return (

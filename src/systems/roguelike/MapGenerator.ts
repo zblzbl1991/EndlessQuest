@@ -11,6 +11,8 @@ const ROUTE_DESCS: Record<string, string> = {
   high: '高风险高回报',
 }
 
+const ROUTE_FIXED_REWARD_SCALE = 0.65
+
 export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFloor {
   const isBossFloor = floorNumber === dungeon.totalLayers
   const eventsPerRoute = dungeon.eventsPerLayer
@@ -27,9 +29,9 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
           riskLevel: 'high',
           events: [{ type: 'boss', id: `boss_${dungeon.id}_${floorNumber}` }],
           reward: {
-            spiritStone: 500 * floorNumber,
-            herb: 20 * floorNumber,
-            ore: 10 * floorNumber,
+            spiritStone: Math.floor(500 * floorNumber * ROUTE_FIXED_REWARD_SCALE),
+            herb: Math.floor(20 * floorNumber * ROUTE_FIXED_REWARD_SCALE),
+            ore: Math.floor(10 * floorNumber * ROUTE_FIXED_REWARD_SCALE),
           },
         },
       ],
@@ -70,9 +72,9 @@ export function generateFloor(dungeon: Dungeon, floorNumber: number): DungeonFlo
       riskLevel,
       events,
       reward: {
-        spiritStone: Math.floor(100 * floorNumber * rewardMult),
-        herb: Math.floor(5 * floorNumber * rewardMult),
-        ore: Math.floor(3 * floorNumber * rewardMult),
+        spiritStone: Math.floor(100 * floorNumber * rewardMult * ROUTE_FIXED_REWARD_SCALE),
+        herb: Math.floor(5 * floorNumber * rewardMult * ROUTE_FIXED_REWARD_SCALE),
+        ore: Math.floor(3 * floorNumber * rewardMult * ROUTE_FIXED_REWARD_SCALE),
       },
     }
     const archetypeName = getRouteArchetypeName(routePrototype)

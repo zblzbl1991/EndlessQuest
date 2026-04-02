@@ -147,7 +147,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  margin: 4px 0 2px;
+  margin: 4px 0 0;
 }
 
 .roleTag {
@@ -167,7 +167,7 @@
 .specialtySummary {
   font-size: 11px;
   color: var(--color-text-secondary);
-  margin-bottom: 2px;
+  margin: 2px 0;
 }
 
 .stateTag {

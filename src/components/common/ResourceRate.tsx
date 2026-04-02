@@ -9,9 +9,17 @@ export default function ResourceRate() {
 
   const { rates, spiritConsumption } = useMemo(() => {
     const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
+    const sfCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
     const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
+    const smCount = sect.buildings.find((b) => b.type === 'spiritMine')?.count ?? 0
     const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
-    const rates = calcResourceRates({ spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel })
+    const rates = calcResourceRates({
+      spiritField: sfLevel,
+      spiritFieldCount: sfCount,
+      spiritMine: smLevel,
+      spiritMineCount: smCount,
+      mainHall: mhLevel,
+    })
     const cultivatingCount = sect.characters.filter((c) => c.status === 'idle').length
     const spiritConsumption = cultivatingCount * 2
     return { rates, spiritConsumption }

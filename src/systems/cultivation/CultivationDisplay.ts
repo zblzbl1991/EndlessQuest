@@ -14,7 +14,9 @@ export interface CultivationEconomySnapshot {
 
 export function getCultivationEconomySnapshot(sect: Sect): CultivationEconomySnapshot {
   const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
+  const sfCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
   const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
+  const smCount = sect.buildings.find((b) => b.type === 'spiritMine')?.count ?? 0
   const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
 
   const maxTechRate = sect.characters
@@ -27,7 +29,13 @@ export function getCultivationEconomySnapshot(sect: Sect): CultivationEconomySna
     }, 1)
 
   const rates = calcResourceRates(
-    { spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel },
+    {
+      spiritField: sfLevel,
+      spiritFieldCount: sfCount,
+      spiritMine: smLevel,
+      spiritMineCount: smCount,
+      mainHall: mhLevel,
+    },
     { techniqueMultiplier: maxTechRate, discipleMultiplier: 1 }
   )
 

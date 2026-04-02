@@ -250,7 +250,13 @@
 .buildingDesc {
   font-size: 12px;
   color: var(--color-text-tertiary);
-  margin-bottom: var(--space-sm);
+  margin-bottom: 6px;
+}
+
+.buildingHint {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
 }
 
 .buildingEffect {
@@ -607,8 +613,8 @@
 }
 
 .targetedDesc {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
+  font-size: 11px;
+  color: var(--color-text-secondary);
 }
 
 .targetedQualitySelect {

@@ -53,18 +53,16 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
   const specialtySummary = character.specialties
     .slice(0, 2)
     .map((specialty) => `${getRoleLabel(specialty.type)} Lv.${specialty.level}`)
-  const cultivationDirection =
-    character.cultivationPath !== 'none' ? getPathName(character.cultivationPath) : '未定路线'
   const statusSummary =
     character.status === 'recovering'
-      ? `恢复剩余 ${Math.max(0, character.recoveryDaysRemaining ?? 0)} 天`
+      ? `休养 ${Math.max(0, character.recoveryDaysRemaining ?? 0)} 天`
       : character.status === 'adventuring'
-        ? '当前正在秘境中'
+        ? '秘境中'
         : character.status === 'patrolling'
-          ? '当前执行派遣任务'
+          ? '派遣中'
           : primaryRole
             ? `主定位 ${getRoleLabel(primaryRole)}`
-            : '待定培养方向'
+            : '待培养'
 
   return (
     <div
@@ -90,7 +88,6 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
         </span>
       )}
       <div className={styles.metaRow}>
-        <span className={styles.roleTag}>{cultivationDirection}</span>
         {primaryRole && <span className={styles.roleTag}>擅长 {getRoleLabel(primaryRole)}</span>}
         {character.status === 'recovering' && (
           <span className={styles.stateTag}>休养 {Math.max(0, character.recoveryDaysRemaining ?? 0)} 天</span>
@@ -122,7 +119,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
       )}
       {character.learnedTechniques.length > 0 && (
         <div className={styles.techniques}>
-          {character.learnedTechniques.map((techId) => {
+          {character.learnedTechniques.slice(0, 2).map((techId) => {
             const tech = getTechniqueById(techId)
             if (!tech) return null
             return (
@@ -131,6 +128,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
               </span>
             )
           })}
+          {character.learnedTechniques.length > 2 && <span className={styles.techTag}>+{character.learnedTechniques.length - 2}</span>}
         </div>
       )}
       {character.status === 'idle' && (

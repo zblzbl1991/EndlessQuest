@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import type { ReactNode } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
@@ -30,17 +31,12 @@ import {
 } from '../data/activeSkills'
 import styles from './CharactersPage.module.css'
 
-// ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
 const TITLE_NAMES: Record<string, string> = {
   disciple: '弟子',
   seniorDisciple: '内门弟子',
   master: '长老',
   elder: '掌门',
 }
-
 
 const STAT_LABELS: Record<string, string> = {
   hp: '气血',
@@ -52,7 +48,6 @@ const STAT_LABELS: Record<string, string> = {
   cultivationRate: '修炼速度',
 }
 
-// Tier class mapping — must reference styles object directly for CSS Modules hash
 const TECHNIQUE_TIER_CLASS: Record<string, string> = {
   mortal: styles.tierMortal,
   spirit: styles.tierSpirit,
@@ -121,9 +116,32 @@ function getSkillIconName(skillId: string): string {
   return 'technique'
 }
 
-// ---------------------------------------------------------------------------
-// CharactersPage
-// ---------------------------------------------------------------------------
+function FoldSection({
+  icon,
+  title,
+  summary,
+  children,
+  defaultOpen = false,
+}: {
+  icon: string
+  title: string
+  summary: string
+  children: ReactNode
+  defaultOpen?: boolean
+}) {
+  return (
+    <details className={styles.foldSection} open={defaultOpen}>
+      <summary className={styles.foldSummary}>
+        <span className={styles.foldTitle}>
+          <PixelIcon name={icon} size={16} className={styles.inlineIcon} aria-label={title} />
+          {title}
+        </span>
+        <span className={styles.foldMeta}>{summary}</span>
+      </summary>
+      <div className={styles.foldBody}>{children}</div>
+    </details>
+  )
+}
 
 export default function CharactersPage() {
   const [view, setView] = useState<ViewMode>('grid')
@@ -140,6 +158,7 @@ export default function CharactersPage() {
     if (!tab || tab.key === 'all') return characters
     return characters.filter((c) => tab.match(c.status))
   }, [characters, filter])
+
   const counts = useMemo(
     () => ({
       idle: characters.filter((character) => character.status === 'idle').length,
@@ -149,10 +168,10 @@ export default function CharactersPage() {
     }),
     [characters]
   )
-  const nextDayCountdown = Math.max(0, 60 - dayProgressSec)
-  const automationSummary = `维持 ${automationSettings.targetPoolSize} 人，保留 ${automationSettings.reserveSpiritStone} 灵石 / ${automationSettings.reserveSpiritEnergy} 灵气`
 
-  // Detail view
+  const nextDayCountdown = Math.max(0, 60 - dayProgressSec)
+  const automationSummary = `维持 ${automationSettings.targetPoolSize} 人弟子池，保留 ${automationSettings.reserveSpiritStone} 灵石 / ${automationSettings.reserveSpiritEnergy} 灵气`
+
   if (selectedId) {
     return (
       <div className={styles.page}>
@@ -170,11 +189,11 @@ export default function CharactersPage() {
           {
             label: '弟子池',
             value: `${characters.length}/${automationSettings.targetPoolSize}`,
-            detail: automationSummary,
+            detail: `${automationSettings.reserveSpiritStone} 灵石 · ${automationSettings.reserveSpiritEnergy} 灵气保底`,
           },
           { label: '可出战', value: counts.idle, detail: `派遣 ${counts.dispatching} · 秘境 ${counts.adventuring}` },
-          { label: '恢复中', value: counts.recovering, detail: '恢复中的弟子会按游戏日自动返场' },
-          { label: '下一日结算', value: `${Math.ceil(nextDayCountdown)} 秒`, detail: '现实 1 分钟 = 游戏 1 天' },
+          { label: '恢复中', value: counts.recovering, detail: '按游戏日返场' },
+          { label: '下一次结算', value: `${Math.ceil(nextDayCountdown)} 秒`, detail: '每日自动结算一次' },
         ]}
       />
 
@@ -203,64 +222,71 @@ export default function CharactersPage() {
             </div>
           </div>
 
-          <div className={styles.settingGrid}>
-            <label className={styles.settingField}>
-              <span className={styles.settingLabel}>目标弟子池</span>
-              <input
-                className={styles.settingInput}
-                type="number"
-                min={1}
-                value={automationSettings.targetPoolSize}
-                onChange={(event) =>
-                  setAutomationSettings({ targetPoolSize: Math.max(1, Number(event.target.value) || 1) })
-                }
-              />
-            </label>
-            <label className={styles.settingField}>
-              <span className={styles.settingLabel}>最低保留灵石</span>
-              <input
-                className={styles.settingInput}
-                type="number"
-                min={0}
-                value={automationSettings.reserveSpiritStone}
-                onChange={(event) =>
-                  setAutomationSettings({ reserveSpiritStone: Math.max(0, Number(event.target.value) || 0) })
-                }
-              />
-            </label>
-            <label className={styles.settingField}>
-              <span className={styles.settingLabel}>最低保留灵气</span>
-              <input
-                className={styles.settingInput}
-                type="number"
-                min={0}
-                value={automationSettings.reserveSpiritEnergy}
-                onChange={(event) =>
-                  setAutomationSettings({ reserveSpiritEnergy: Math.max(0, Number(event.target.value) || 0) })
-                }
-              />
-            </label>
-          </div>
+          <details className={styles.automationDetails}>
+            <summary className={styles.automationSummary}>
+              <span>补员、保底与突破</span>
+              <span className={styles.automationSummaryMeta}>展开设置</span>
+            </summary>
 
-          <div className={styles.settingFooter}>
-            <span className={styles.footerLabel}>自动突破</span>
-            <div className={styles.togglePair}>
-              <button
-                type="button"
-                className={`${styles.toggleBtn} ${automationSettings.autoBreakthrough ? styles.toggleActive : ''}`}
-                onClick={() => setAutomationSettings({ autoBreakthrough: true })}
-              >
-                开启
-              </button>
-              <button
-                type="button"
-                className={`${styles.toggleBtn} ${!automationSettings.autoBreakthrough ? styles.toggleActive : ''}`}
-                onClick={() => setAutomationSettings({ autoBreakthrough: false })}
-              >
-                关闭
-              </button>
+            <div className={styles.settingGrid}>
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>目标弟子池</span>
+                <input
+                  className={styles.settingInput}
+                  type="number"
+                  min={1}
+                  value={automationSettings.targetPoolSize}
+                  onChange={(event) =>
+                    setAutomationSettings({ targetPoolSize: Math.max(1, Number(event.target.value) || 1) })
+                  }
+                />
+              </label>
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>最低保留灵石</span>
+                <input
+                  className={styles.settingInput}
+                  type="number"
+                  min={0}
+                  value={automationSettings.reserveSpiritStone}
+                  onChange={(event) =>
+                    setAutomationSettings({ reserveSpiritStone: Math.max(0, Number(event.target.value) || 0) })
+                  }
+                />
+              </label>
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>最低保留灵气</span>
+                <input
+                  className={styles.settingInput}
+                  type="number"
+                  min={0}
+                  value={automationSettings.reserveSpiritEnergy}
+                  onChange={(event) =>
+                    setAutomationSettings({ reserveSpiritEnergy: Math.max(0, Number(event.target.value) || 0) })
+                  }
+                />
+              </label>
             </div>
-          </div>
+
+            <div className={styles.settingFooter}>
+              <span className={styles.footerLabel}>自动突破</span>
+              <div className={styles.togglePair}>
+                <button
+                  type="button"
+                  className={`${styles.toggleBtn} ${automationSettings.autoBreakthrough ? styles.toggleActive : ''}`}
+                  onClick={() => setAutomationSettings({ autoBreakthrough: true })}
+                >
+                  开启
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.toggleBtn} ${!automationSettings.autoBreakthrough ? styles.toggleActive : ''}`}
+                  onClick={() => setAutomationSettings({ autoBreakthrough: false })}
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section className={styles.rosterPanel}>
@@ -300,17 +326,13 @@ export default function CharactersPage() {
             {filteredCharacters.map((char) => (
               <CharacterCard key={char.id} character={char} onClick={() => setSelectedId(char.id)} />
             ))}
-            {filteredCharacters.length === 0 && <div className={styles.empty}>暂无弟子</div>}
+            {filteredCharacters.length === 0 && <div className={styles.empty}>暂无符合筛选的弟子</div>}
           </div>
         </section>
       </div>
     </div>
   )
 }
-
-// ---------------------------------------------------------------------------
-// CharacterDetail
-// ---------------------------------------------------------------------------
 
 function CharacterDetail({ characterId, onBack }: { characterId: string; onBack: () => void }) {
   const sect = useSectStore((s) => s.sect)
@@ -330,8 +352,6 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
   const realmName = getRealmName(character.realm, character.realmStage)
   const needed = getCultivationNeeded(character.realm, character.realmStage)
-
-  // Cultivation speed
   const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
   const primaryRole = getPrimaryRole(character)
   const combatStyle = getCombatStyleProfile(character)
@@ -350,10 +370,9 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
       : '修行路线: 未定',
     `风格画像: ${combatStyle.styleName}`,
     primaryRole ? `专长: ${getRoleLabel(primaryRole)}` : '专长: 待补强',
-    `功法: ${character.learnedTechniques.length} 门`,
-    `建议 loadout: ${recommendedLoadout.filter(Boolean).length}/${MAX_CHARACTER_SKILL_SLOTS}`,
-    character.fateTags.length > 0 ? `命格: ${character.fateTags.length} 条` : '命格: 基础',
-  ]
+    `功法 ${character.learnedTechniques.length} 门`,
+    character.fateTags.length > 0 ? `命格 ${character.fateTags.length} 条` : '命格基础',
+  ].slice(0, 4)
 
   function formatBonusValue(type: string, value: number): string {
     if (type === 'crit' || type === 'critDmg' || type === 'cultivationRate') {
@@ -367,217 +386,142 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
     setSelectedBackpackIdx(null)
   }
 
+  const dispatch = dispatches.find((item) => item.characterId === character.id)
+  const activeMission = dispatch ? DISPATCH_MISSIONS.find((mission) => mission.id === dispatch.missionId) : null
+  const dispatchRemaining = dispatch ? Math.max(0, dispatch.duration - dispatch.progress) : 0
+  const dispatchMinutes = Math.floor(dispatchRemaining / 60)
+  const dispatchSeconds = Math.floor(dispatchRemaining % 60)
+
   return (
     <div className={styles.detail}>
-      {/* Back button */}
       <button className={styles.backBtn} onClick={onBack}>
-        &larr; 返回
+        ← 返回
       </button>
 
-      {/* Header */}
-      <div className={styles.detailHeader} data-testid="character-identity">
-        <div className={styles.detailNameRow}>
-          <span className={styles.detailName}>
-            <PixelIcon name="disciple" size={18} className={styles.inlineIcon} aria-label={character.name} />
-            {character.name}
-          </span>
-          <span className={styles.qualityBadge}>{CHAR_QUALITY_SHORT[character.quality]}</span>
-        </div>
-        <div className={styles.detailSubRow}>
-          <span className={styles.detailTitle}>{TITLE_NAMES[character.title]}</span>
-          <StatusBadge status={character.status} />
-        </div>
-        <div className={styles.detailRealm}>{realmName}</div>
-        {character.cultivationPath !== 'none' &&
-          (() => {
-            const pathDef = getPathDef(character.cultivationPath)
-            return pathDef ? (
-              <div className={styles.pathRow}>
-                <span className={styles.pathLabel}>修行:</span>
-                <span className={styles.pathName}>
-                  <PixelIcon
-                    name={
-                      character.cultivationPath === 'sword'
-                        ? 'swordPath'
-                        : character.cultivationPath === 'body'
-                          ? 'bodyPath'
-                          : character.cultivationPath === 'alchemy'
-                            ? 'alchemyPath'
-                            : character.cultivationPath === 'beast'
-                              ? 'beastPath'
-                              : 'spellPath'
-                    }
-                    size={16}
-                    className={styles.inlineIcon}
-                    aria-label={pathDef.name}
-                  />
-                  {pathDef.name}
-                </span>
-                <span className={styles.pathDesc}>{pathDef.description}</span>
+      <div className={styles.detailShell}>
+        <div className={styles.coreColumn}>
+          <div className={styles.detailHeader} data-testid="character-identity">
+            <div className={styles.detailNameRow}>
+              <span className={styles.detailName}>
+                <PixelIcon name="disciple" size={18} className={styles.inlineIcon} aria-label={character.name} />
+                {character.name}
+              </span>
+              <span className={styles.qualityBadge}>{CHAR_QUALITY_SHORT[character.quality]}</span>
+            </div>
+            <div className={styles.detailSubRow}>
+              <span className={styles.detailTitle}>{TITLE_NAMES[character.title]}</span>
+              <StatusBadge status={character.status} />
+            </div>
+            <div className={styles.detailRealm}>{realmName}</div>
+
+            {character.cultivationPath !== 'none' &&
+              (() => {
+                const pathDef = getPathDef(character.cultivationPath)
+                return pathDef ? (
+                  <div className={styles.pathRow}>
+                    <span className={styles.pathLabel}>修行</span>
+                    <span className={styles.pathName}>
+                      <PixelIcon
+                        name={
+                          character.cultivationPath === 'sword'
+                            ? 'swordPath'
+                            : character.cultivationPath === 'body'
+                              ? 'bodyPath'
+                              : character.cultivationPath === 'alchemy'
+                                ? 'alchemyPath'
+                                : character.cultivationPath === 'beast'
+                                  ? 'beastPath'
+                                  : 'spellPath'
+                        }
+                        size={16}
+                        className={styles.inlineIcon}
+                        aria-label={pathDef.name}
+                      />
+                      {pathDef.name}
+                    </span>
+                  </div>
+                ) : null
+              })()}
+
+            {character.specialties.length > 0 && (
+              <div className={styles.identityBlock}>
+                <span className={styles.pathLabel}>专长</span>
+                <div className={styles.identityTags}>
+                  {character.specialties.map((specialty, index) => (
+                    <span key={`${specialty.type}-${index}`} className={styles.identityTag}>
+                      {getRoleLabel(specialty.type)} Lv.{specialty.level}
+                    </span>
+                  ))}
+                </div>
               </div>
-            ) : null
-          })()}
-        {character.specialties.length > 0 && (
-          <div className={styles.identityBlock}>
-            <span className={styles.pathLabel}>专长:</span>
-            <div className={styles.identityTags}>
-              {character.specialties.map((specialty, index) => (
-                <span key={`${specialty.type}-${index}`} className={styles.identityTag}>
-                  {getRoleLabel(specialty.type)} Lv.{specialty.level}
-                </span>
-              ))}
+            )}
+
+            {primaryRole && <div className={styles.identityMeta}>主定位: {getRoleLabel(primaryRole)}</div>}
+
+            {character.fateTags.length > 0 && (
+              <div className={styles.fateTagsList}>
+                {character.fateTags.map((tag) => {
+                  const def = getFateTagDef(tag)
+                  return (
+                    <div key={tag} className={styles.fateTag}>
+                      <span className={styles.fateTagName}>{def.name}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            <div className={styles.detailProgress}>
+              <ProgressBar value={character.cultivation} max={needed} variant="ink" />
+              <span className={styles.progressText}>
+                {formatCultivationValue(character.cultivation)} / {needed.toLocaleString()} (+
+                {effectiveCultivationSpeed.toFixed(1)}/s)
+              </span>
             </div>
           </div>
-        )}
-        {primaryRole && (
-          <div className={styles.identityMeta}>{primaryRole && <span>主定位：{getRoleLabel(primaryRole)}</span>}</div>
-        )}
-        {character.fateTags.length > 0 && (
-          <div className={styles.fateTagsList}>
-            {character.fateTags.map((tag) => {
-              const def = getFateTagDef(tag)
-              return (
-                <div key={tag} className={styles.fateTag}>
-                  <span className={styles.fateTagName}>{def.name}</span>
-                  <span className={styles.fateTagDesc}>{def.description}</span>
-                </div>
-              )
-            })}
-          </div>
-        )}
-        <div className={styles.detailProgress}>
-          <ProgressBar value={character.cultivation} max={needed} variant="ink" />
-          <span className={styles.progressText}>
-            {formatCultivationValue(character.cultivation)} / {needed.toLocaleString()} (+
-            {effectiveCultivationSpeed.toFixed(1)}/s)
-          </span>
-        </div>
-      </div>
 
-      <div className={styles.groupTitle}>能力与成型</div>
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>
+              <PixelIcon
+                name={DETAIL_SECTION_ICONS.cultivation}
+                size={16}
+                className={styles.inlineIcon}
+                aria-label="修炼"
+              />
+              修炼与突破
+            </div>
+            <div className={styles.cultivationInfo}>修炼速度 {effectiveCultivationSpeed.toFixed(1)}/s</div>
+            <BreakthroughPanel characterId={characterId} />
+            <div className={styles.cultivationActions}>
+              {character.status === 'idle' && getActiveDispatchCount() < 5 && (
+                <button className={styles.actionBtn} onClick={() => setShowingMissions(true)}>
+                  派遣
+                </button>
+              )}
+              {character.status === 'training' && character.assignedBuilding && (
+                <button className={styles.actionBtn} onClick={() => unassignFromBuilding(character.id)}>
+                  撤回指派
+                </button>
+              )}
+            </div>
+          </section>
 
-      {/* Base Stats */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PixelIcon name={DETAIL_SECTION_ICONS.base} size={16} className={styles.inlineIcon} aria-label="基础属性" />
-          基础属性
-        </div>
-        <div className={styles.statsGrid}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>气血</span>
-            <span className={styles.statValue}>{Math.floor(character.baseStats.hp).toLocaleString()}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>攻击</span>
-            <span className={styles.statValue}>{Math.floor(character.baseStats.atk).toLocaleString()}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>防御</span>
-            <span className={styles.statValue}>{Math.floor(character.baseStats.def).toLocaleString()}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>速度</span>
-            <span className={styles.statValue}>{Math.floor(character.baseStats.spd).toLocaleString()}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>暴击</span>
-            <span className={styles.statValue}>{Math.round(character.baseStats.crit * 1000) / 10}%</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>暴伤</span>
-            <span className={styles.statValue}>{(character.baseStats.critDmg * 100).toFixed(0)}%</span>
-          </div>
-        </div>
-      </section>
-
-      {/* Cultivation Stats */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PixelIcon
-            name={DETAIL_SECTION_ICONS.aptitude}
-            size={16}
-            className={styles.inlineIcon}
-            aria-label="修炼资质"
-          />
-          修炼资质
-        </div>
-        <div className={styles.statsGrid}>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>灵根</span>
-            <span className={styles.statValue}>{character.cultivationStats.spiritualRoot}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>悟性</span>
-            <span className={styles.statValue}>{character.cultivationStats.comprehension}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>机缘</span>
-            <span className={styles.statValue}>{character.cultivationStats.fortune}</span>
-          </div>
-          <div className={styles.statItem}>
-            <span className={styles.statLabel}>灵力</span>
-            <span className={styles.statValue}>{Math.floor(character.cultivationStats.spiritPower)}</span>
-          </div>
-        </div>
-      </section>
-
-      <div className={styles.groupTitle}>当前去向</div>
-
-      {/* Cultivation / Breakthrough */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PixelIcon
-            name={DETAIL_SECTION_ICONS.cultivation}
-            size={16}
-            className={styles.inlineIcon}
-            aria-label="修炼"
-          />
-          修炼
-        </div>
-        <div className={styles.cultivationInfo}>
-          <span>修炼速度: {effectiveCultivationSpeed.toFixed(1)}/s</span>
-        </div>
-        <BreakthroughPanel characterId={characterId} />
-        <div className={styles.cultivationActions}>
-          {character.status === 'idle' && getActiveDispatchCount() < 5 && (
-            <button className={styles.actionBtn} onClick={() => setShowingMissions(true)}>
-              派遣
-            </button>
+          {character.status === 'adventuring' && (
+            <section className={styles.section}>
+              <div className={styles.sectionTitle}>
+                <PixelIcon
+                  name={DETAIL_SECTION_ICONS.adventure}
+                  size={16}
+                  className={styles.inlineIcon}
+                  aria-label="秘境"
+                />
+                当前状态
+              </div>
+              <div className={styles.adventureInfo}>正在秘境中探索，结算后会返回宗门。</div>
+            </section>
           )}
-          {character.status === 'training' && character.assignedBuilding && (
-            <button className={styles.actionBtn} onClick={() => unassignFromBuilding(character.id)}>
-              撤回指派
-            </button>
-          )}
-        </div>
-      </section>
 
-      {/* Adventure info */}
-      {character.status === 'adventuring' && (
-        <section className={styles.section}>
-          <div className={styles.sectionTitle}>
-            <PixelIcon
-              name={DETAIL_SECTION_ICONS.adventure}
-              size={16}
-              className={styles.inlineIcon}
-              aria-label="秘境"
-            />
-            秘境
-          </div>
-          <div className={styles.adventureInfo}>正在秘境中探索...</div>
-        </section>
-      )}
-
-      {/* Dispatch info */}
-      {character.status === 'patrolling' &&
-        (() => {
-          const dispatch = dispatches.find((d) => d.characterId === character.id)
-          if (!dispatch) return null
-          const mission = DISPATCH_MISSIONS.find((m) => m.id === dispatch.missionId)
-          const remaining = Math.max(0, dispatch.duration - dispatch.progress)
-          const minutes = Math.floor(remaining / 60)
-          const seconds = Math.floor(remaining % 60)
-          return (
+          {character.status === 'patrolling' && dispatch && (
             <section className={styles.section}>
               <div className={styles.sectionTitle}>
                 <PixelIcon
@@ -586,7 +530,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                   className={styles.inlineIcon}
                   aria-label="派遣任务"
                 />
-                派遣任务
+                当前派遣
               </div>
               <div className={styles.dispatchInfo}>
                 <span className={styles.dispatchName}>
@@ -594,20 +538,266 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                     name={getMissionIconName(dispatch.missionId)}
                     size={16}
                     className={styles.inlineIcon}
-                    aria-label={mission?.name ?? '未知任务'}
+                    aria-label={activeMission?.name ?? '未知任务'}
                   />
-                  {mission?.name ?? '未知任务'}
+                  {activeMission?.name ?? '未知任务'}
                 </span>
                 <span>
-                  剩余: {minutes}:{seconds.toString().padStart(2, '0')}
+                  剩余 {dispatchMinutes}:{dispatchSeconds.toString().padStart(2, '0')}
                 </span>
               </div>
               <ProgressBar value={dispatch.progress} max={dispatch.duration} variant="ink" />
             </section>
-          )
-        })()}
+          )}
 
-      {/* Mission selection modal */}
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>
+              <PixelIcon
+                name={DETAIL_SECTION_ICONS.base}
+                size={16}
+                className={styles.inlineIcon}
+                aria-label="基础属性"
+              />
+              基础属性
+            </div>
+            <div className={styles.statsGrid}>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>气血</span>
+                <span className={styles.statValue}>{Math.floor(character.baseStats.hp).toLocaleString()}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>攻击</span>
+                <span className={styles.statValue}>{Math.floor(character.baseStats.atk).toLocaleString()}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>防御</span>
+                <span className={styles.statValue}>{Math.floor(character.baseStats.def).toLocaleString()}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>速度</span>
+                <span className={styles.statValue}>{Math.floor(character.baseStats.spd).toLocaleString()}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>暴击</span>
+                <span className={styles.statValue}>{Math.round(character.baseStats.crit * 1000) / 10}%</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>暴伤</span>
+                <span className={styles.statValue}>{(character.baseStats.critDmg * 100).toFixed(0)}%</span>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>
+              <PixelIcon
+                name={DETAIL_SECTION_ICONS.aptitude}
+                size={16}
+                className={styles.inlineIcon}
+                aria-label="修炼资质"
+              />
+              修炼资质
+            </div>
+            <div className={styles.statsGrid}>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>灵根</span>
+                <span className={styles.statValue}>{character.cultivationStats.spiritualRoot}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>悟性</span>
+                <span className={styles.statValue}>{character.cultivationStats.comprehension}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>机缘</span>
+                <span className={styles.statValue}>{character.cultivationStats.fortune}</span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>灵力</span>
+                <span className={styles.statValue}>{Math.floor(character.cultivationStats.spiritPower)}</span>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>
+              <PixelIcon name={DETAIL_SECTION_ICONS.equipment} size={16} className={styles.inlineIcon} aria-label="装备" />
+              装备
+            </div>
+            <EquipPanel
+              characterId={characterId}
+              onItemClick={() => {}}
+              onSlotClick={() => {
+                const eqItems = character.backpack
+                  .map((stack, idx) => ({ item: stack.item, idx }))
+                  .filter(({ item }) => item.type === 'equipment')
+                if (eqItems.length > 0) {
+                  setSelectedBackpackIdx(eqItems[0].idx)
+                }
+              }}
+            />
+            {selectedBackpackIdx !== null && character.backpack[selectedBackpackIdx]?.item.type === 'equipment' && (
+              <div className={styles.equipFromBackpack}>
+                <div className={styles.equipFromLabel}>选择装备槽位</div>
+                <div className={styles.equipSlotButtons}>
+                  {Array.from({ length: 9 }, (_, i) => (
+                    <button
+                      key={i}
+                      className={styles.equipSlotBtn}
+                      onClick={() => handleEquipFromBackpack(selectedBackpackIdx, i)}
+                    >
+                      {['头冠', '道袍', '护臂', '腰带', '靴子', '武器', '饰品', '饰品', '法宝'][i]}
+                    </button>
+                  ))}
+                </div>
+                <button className={styles.cancelBtn} onClick={() => setSelectedBackpackIdx(null)}>
+                  取消
+                </button>
+              </div>
+            )}
+          </section>
+        </div>
+
+        <aside className={styles.supportColumn}>
+          <FoldSection
+            icon="technique"
+            title="战斗画像"
+            summary={`${buildStyle.label} · 主动技 ${activeSkills.length}/${MAX_CHARACTER_SKILL_SLOTS}`}
+          >
+            <div className={styles.buildSummary}>
+              <div className={styles.buildStyleCard}>
+                <div className={styles.buildStyleHeader}>
+                  <span className={styles.buildStyleLabel}>{buildStyle.label}</span>
+                  <span className={styles.buildStyleCount}>
+                    主动技 {activeSkills.length}/{MAX_CHARACTER_SKILL_SLOTS} · 功法 {character.learnedTechniques.length} 门
+                  </span>
+                </div>
+                <div className={styles.buildStyleDesc}>{buildStyle.description}</div>
+              </div>
+
+              <div className={styles.buildSourceCard}>
+                <div className={styles.buildSourceTitle}>成型来源</div>
+                <div className={styles.buildSourceTags}>
+                  {buildSourceTags.map((tag) => (
+                    <span key={tag} className={styles.buildSourceTag}>
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.buildSkillCard}>
+                <div className={styles.buildSkillTitle}>当前主动技</div>
+                {activeSkills.length > 0 ? (
+                  <div className={styles.buildSkillList}>
+                    {activeSkills.map((skill) => (
+                      <div key={skill.id} className={styles.buildSkillItem}>
+                        <span className={styles.buildSkillName}>
+                          <PixelIcon
+                            name={getSkillIconName(skill.id)}
+                            size={14}
+                            className={styles.inlineIcon}
+                            aria-label={skill.name}
+                          />
+                          {skill.name}
+                        </span>
+                        <span className={styles.buildSkillMeta}>
+                          {skill.category} · {skill.spiritCost} 灵力 · CD {skill.cooldown}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className={styles.noSkillState}>当前没有固定主动技，主要依赖功法、命格与基础面板。</div>
+                )}
+              </div>
+            </div>
+          </FoldSection>
+
+          <FoldSection
+            icon={DETAIL_SECTION_ICONS.technique}
+            title="功法"
+            summary={`${character.learnedTechniques.length} 门已掌握`}
+          >
+            {character.learnedTechniques.length > 0 ? (
+              <div className={styles.techniqueList}>
+                {character.learnedTechniques.map((techId) => {
+                  const tech = getTechniqueById(techId)
+                  if (!tech) return null
+                  const tierClass = TECHNIQUE_TIER_CLASS[tech.tier] ?? ''
+                  return (
+                    <div key={techId} className={styles.techniquePanel}>
+                      <div className={styles.techniqueName}>
+                        <PixelIcon
+                          name={getTechniqueIconName(tech.name, tech.element)}
+                          size={16}
+                          className={styles.inlineIcon}
+                          aria-label={tech.name}
+                        />
+                        {tech.name}
+                        <span className={`${styles.techniqueTier} ${tierClass}`}>{TECHNIQUE_TIER_NAMES[tech.tier]}</span>
+                      </div>
+                      <div className={styles.bonuses}>
+                        {tech.bonuses.map((bonus, index) => (
+                          <div key={index} className={styles.bonusItem}>
+                            <span className={styles.bonusLabel}>{STAT_LABELS[bonus.type] ?? bonus.type}</span>
+                            <span className={styles.bonusValue}>{formatBonusValue(bonus.type, bonus.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className={styles.noTechnique}>尚未领悟功法</div>
+            )}
+          </FoldSection>
+
+          <FoldSection
+            icon="building"
+            title="背包"
+            summary={`${character.backpack.length}/${character.maxBackpackSlots} 格`}
+          >
+            <div className={styles.backpackGrid}>
+              {character.backpack.map((stack, idx) => (
+                <div key={`${stack.item.id}-${idx}`} className={styles.backpackItemWrapper}>
+                  <ItemCard
+                    item={stack.item}
+                    selected={selectedBackpackIdx === idx}
+                    onClick={() => setSelectedBackpackIdx(selectedBackpackIdx === idx ? null : idx)}
+                  />
+                  {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
+                  {selectedBackpackIdx === idx && (
+                    <div className={styles.itemActions}>
+                      {stack.item.type === 'equipment' && <span className={styles.itemHint}>点装备空槽即可穿戴</span>}
+                      <button
+                        className={styles.itemActionBtn}
+                        onClick={() => {
+                          transferItemToVault(characterId, idx)
+                          setSelectedBackpackIdx(null)
+                        }}
+                      >
+                        转入仓库
+                      </button>
+                      <button
+                        className={`${styles.itemActionBtn} ${styles.sellAction}`}
+                        onClick={() => {
+                          sellCharacterItem(characterId, idx)
+                          setSelectedBackpackIdx(null)
+                        }}
+                      >
+                        出售 ({stack.item.sellPrice} 灵石)
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {character.backpack.length === 0 && <div className={styles.empty}>背包为空</div>}
+            </div>
+          </FoldSection>
+        </aside>
+      </div>
+
       {showingMissions && (
         <div className={styles.overlay}>
           <div className={styles.missionPanel}>
@@ -631,21 +821,20 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                     />
                     {mission.name}
                   </div>
-                  <div className={styles.missionDesc}>{mission.description}</div>
                   <div className={styles.missionMeta}>
-                    <span>{Math.floor(mission.duration / 60)}分钟</span>
+                    <span>{Math.floor(mission.duration / 60)} 分钟</span>
                     <span>
                       {mission.rewards
-                        .map((r) => {
+                        .map((reward) => {
                           const typeLabel: Record<string, string> = {
                             spiritStone: '灵石',
-                            herb: '灵药',
+                            herb: '灵草',
                             ore: '矿石',
                             consumable: '物品',
                           }
-                          return `${typeLabel[r.type] ?? r.type} ×${r.amount}`
+                          return `${typeLabel[reward.type] ?? reward.type} ×${reward.amount}`
                         })
-                        .join(', ')}
+                        .join('，')}
                     </span>
                   </div>
                 </div>
@@ -657,190 +846,6 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           </div>
         </div>
       )}
-
-      {/* Technique */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PixelIcon name={DETAIL_SECTION_ICONS.technique} size={16} className={styles.inlineIcon} aria-label="功法" />
-          功法
-        </div>
-        {character.learnedTechniques.length > 0 ? (
-          <div className={styles.techniqueList}>
-            {character.learnedTechniques.map((techId) => {
-              const tech = getTechniqueById(techId)
-              if (!tech) return null
-              const tierClass = TECHNIQUE_TIER_CLASS[tech.tier] ?? ''
-              return (
-                <div key={techId} className={styles.techniquePanel}>
-                  <div className={styles.techniqueName}>
-                    <PixelIcon
-                      name={getTechniqueIconName(tech.name, tech.element)}
-                      size={16}
-                      className={styles.inlineIcon}
-                      aria-label={tech.name}
-                    />
-                    {tech.name}
-                    <span className={`${styles.techniqueTier} ${tierClass}`}>{TECHNIQUE_TIER_NAMES[tech.tier]}</span>
-                  </div>
-                  <div className={styles.bonuses}>
-                    {tech.bonuses.map((b, i) => (
-                      <div key={i} className={styles.bonusItem}>
-                        <span className={styles.bonusLabel}>{STAT_LABELS[b.type] ?? b.type}</span>
-                        <span className={styles.bonusValue}>{formatBonusValue(b.type, b.value)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className={styles.noTechnique}>未领悟功法</div>
-        )}
-      </section>
-
-      <div className={styles.groupTitle}>装备与背包</div>
-
-      {/* Equipment */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PixelIcon name={DETAIL_SECTION_ICONS.equipment} size={16} className={styles.inlineIcon} aria-label="装备" />
-          装备
-        </div>
-        <EquipPanel
-          characterId={characterId}
-          onItemClick={() => {}}
-          onSlotClick={(_slotIdx) => {
-            // If backpack has equipment, offer to equip
-            const eqItems = character.backpack
-              .map((stack, idx) => ({ item: stack.item, idx }))
-              .filter(({ item }) => item.type === 'equipment')
-            if (eqItems.length > 0) {
-              setSelectedBackpackIdx(eqItems[0].idx)
-            }
-          }}
-        />
-        {/* Equip from backpack when a slot is clicked */}
-        {selectedBackpackIdx !== null && character.backpack[selectedBackpackIdx]?.item.type === 'equipment' && (
-          <div className={styles.equipFromBackpack}>
-            <div className={styles.equipFromLabel}>选择装备槽位:</div>
-            <div className={styles.equipSlotButtons}>
-              {Array.from({ length: 9 }, (_, i) => (
-                <button
-                  key={i}
-                  className={styles.equipSlotBtn}
-                  onClick={() => handleEquipFromBackpack(selectedBackpackIdx, i)}
-                >
-                  {['头冠', '道袍', '护腕', '腰带', '鞋子', '武器', '饰品', '饰品', '法宝'][i]}
-                </button>
-              ))}
-            </div>
-            <button className={styles.cancelBtn} onClick={() => setSelectedBackpackIdx(null)}>
-              取消
-            </button>
-          </div>
-        )}
-      </section>
-
-      {/* Backpack */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PixelIcon name="building" size={16} className={styles.inlineIcon} aria-label="背包" />
-          背包 ({character.backpack.length}/{character.maxBackpackSlots})
-        </div>
-        <div className={styles.backpackGrid}>
-          {character.backpack.map((stack, idx) => (
-            <div key={stack.item.id + '-' + idx} className={styles.backpackItemWrapper}>
-              <ItemCard
-                item={stack.item}
-                selected={selectedBackpackIdx === idx}
-                onClick={() => setSelectedBackpackIdx(selectedBackpackIdx === idx ? null : idx)}
-              />
-              {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
-              {selectedBackpackIdx === idx && (
-                <div className={styles.itemActions}>
-                  {stack.item.type === 'equipment' && <span className={styles.itemHint}>点击装备栏空槽位穿戴</span>}
-                  <button
-                    className={styles.itemActionBtn}
-                    onClick={() => {
-                      transferItemToVault(characterId, idx)
-                      setSelectedBackpackIdx(null)
-                    }}
-                  >
-                    转仓库
-                  </button>
-                  <button
-                    className={`${styles.itemActionBtn} ${styles.sellAction}`}
-                    onClick={() => {
-                      sellCharacterItem(characterId, idx)
-                      setSelectedBackpackIdx(null)
-                    }}
-                  >
-                    出售 ({stack.item.sellPrice}灵石)
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-          {character.backpack.length === 0 && <div className={styles.empty}>背包为空</div>}
-        </div>
-      </section>
-
-      {/* Skills */}
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>
-          <PixelIcon name="technique" size={16} className={styles.inlineIcon} aria-label="战斗风格" />
-          战斗风格
-        </div>
-        <div className={styles.buildSummary}>
-          <div className={styles.buildStyleCard}>
-            <div className={styles.buildStyleHeader}>
-              <span className={styles.buildStyleLabel}>{buildStyle.label}</span>
-              <span className={styles.buildStyleCount}>
-                主动技 {activeSkills.length}/{MAX_CHARACTER_SKILL_SLOTS} · 功法 {character.learnedTechniques.length} 门
-              </span>
-            </div>
-            <div className={styles.buildStyleDesc}>{buildStyle.description}</div>
-          </div>
-
-          <div className={styles.buildSourceCard}>
-            <div className={styles.buildSourceTitle}>成型来源</div>
-            <div className={styles.buildSourceTags}>
-              {buildSourceTags.map((tag) => (
-                <span key={tag} className={styles.buildSourceTag}>
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.buildSkillCard}>
-            <div className={styles.buildSkillTitle}>当前主动技</div>
-            {activeSkills.length > 0 ? (
-              <div className={styles.buildSkillList}>
-                {activeSkills.map((skill) => (
-                  <div key={skill.id} className={styles.buildSkillItem}>
-                    <span className={styles.buildSkillName}>
-                      <PixelIcon
-                        name={getSkillIconName(skill.id)}
-                        size={14}
-                        className={styles.inlineIcon}
-                        aria-label={skill.name}
-                      />
-                      {skill.name}
-                    </span>
-                    <span className={styles.buildSkillMeta}>
-                      {skill.category} · {skill.spiritCost} 灵力 · CD {skill.cooldown}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className={styles.noSkillState}>当前尚未固化主动技，战斗风格将主要由功法、命格与突破结果驱动。</div>
-            )}
-          </div>
-        </div>
-      </section>
     </div>
   )
 }

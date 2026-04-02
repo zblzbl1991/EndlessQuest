@@ -61,8 +61,9 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
   // Reset buildings to initial state
   const buildings: Building[] = BUILDING_DEFS.map((def) => ({
     type: def.type,
-    level: def.type === 'mainHall' ? 1 : 0,
-    unlocked: def.type === 'mainHall' || def.type === 'spiritMine',
+    level: def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField' ? 1 : 0,
+    count: def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField' ? 1 : 0,
+    unlocked: def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField',
     productionQueue: { recipeId: null, progress: 0 },
   }))
   const automationSettings: Sect['automationSettings'] = {

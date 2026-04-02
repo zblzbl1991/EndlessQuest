@@ -44,7 +44,7 @@ function extractRouteDirections(detail: AdventureReport | undefined): string[] {
   for (const step of detail.steps) {
     if (step.type !== 'route_selected' && step.type !== 'route_considered') continue
     const text = `${step.summary} ${step.detail}`.toLowerCase()
-    if (text.includes('稳定') || text.includes('stable route') || text.includes('stable')) labels.push('stable')
+    if (text.includes('稳') || text.includes('stable route') || text.includes('stable')) labels.push('stable')
     if (text.includes('战斗') || text.includes('combat route') || text.includes('combat')) labels.push('combat')
     if (text.includes('收益') || text.includes('profit route') || text.includes('profit')) labels.push('profit')
     if (text.includes('异变') || text.includes('mutation route') || text.includes('mutation')) labels.push('mutation')
@@ -102,7 +102,7 @@ export default function AdventurePage() {
           {
             label: '优先秘境',
             value: preferredDungeon?.name ?? '未设置',
-            detail: sect.automationSettings.enabled ? '每日结算后会自动尝试开跑' : '当前未启用自动运转',
+            detail: sect.automationSettings.enabled ? '每日结算后自动尝试' : '当前仅保留手动发起',
           },
           {
             label: '可出战',
@@ -115,7 +115,7 @@ export default function AdventurePage() {
             detail: latestReport ? `推进至第 ${latestReport.floorsCleared} 层` : '尚未留下战报',
           },
           {
-            label: '下一日结算',
+            label: '下一次结算',
             value: `${Math.ceil(nextDayCountdown)} 秒`,
             detail: `已留名秘境 ${completedDungeons.length}`,
           },
@@ -128,8 +128,8 @@ export default function AdventurePage() {
             <h2 className={styles.panelTitle}>自动运转</h2>
             <p className={styles.panelMeta}>
               {sect.automationSettings.enabled
-                ? `系统会在每日结算后自动组队探索 ${preferredDungeon?.name ?? '首个可用秘境'}`
-                : '关闭后只保留手动发起入口。'}
+                ? `每日结算后自动尝试 ${preferredDungeon?.name ?? '首个可用秘境'}`
+                : '关闭后仅保留手动发起。'}
             </p>
           </div>
           <div className={styles.togglePair}>
@@ -150,45 +150,52 @@ export default function AdventurePage() {
           </div>
         </div>
 
-        <div className={styles.settingGrid}>
-          <label className={styles.settingField}>
-            <span className={styles.settingLabel}>优先秘境</span>
-            <select
-              className={styles.settingSelect}
-              value={sect.automationSettings.preferredDungeonId ?? ''}
-              onChange={(event) =>
-                setAutomationSettings({ preferredDungeonId: event.target.value === '' ? null : event.target.value })
-              }
-            >
-              <option value="">未设置</option>
-              {dungeons.map((dungeon) => {
-                const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
-                return (
-                  <option key={dungeon.id} value={dungeon.id} disabled={!unlocked}>
-                    {unlocked ? dungeon.name : `${dungeon.name}（未解锁）`}
-                  </option>
-                )
-              })}
-            </select>
-          </label>
+        <details className={styles.automationDetails}>
+          <summary className={styles.automationSummary}>
+            <span>优先目标与风险偏好</span>
+            <span className={styles.automationSummaryMeta}>展开设置</span>
+          </summary>
 
-          <label className={styles.settingField}>
-            <span className={styles.settingLabel}>伤亡倾向</span>
-            <select
-              className={styles.settingSelect}
-              value={sect.automationSettings.casualtyTolerance}
-              onChange={(event) =>
-                setAutomationSettings({
-                  casualtyTolerance: event.target.value as typeof sect.automationSettings.casualtyTolerance,
-                })
-              }
-            >
-              <option value="conservative">保守</option>
-              <option value="balanced">均衡</option>
-              <option value="risky">赌命</option>
-            </select>
-          </label>
-        </div>
+          <div className={styles.settingGrid}>
+            <label className={styles.settingField}>
+              <span className={styles.settingLabel}>优先秘境</span>
+              <select
+                className={styles.settingSelect}
+                value={sect.automationSettings.preferredDungeonId ?? ''}
+                onChange={(event) =>
+                  setAutomationSettings({ preferredDungeonId: event.target.value === '' ? null : event.target.value })
+                }
+              >
+                <option value="">未设置</option>
+                {dungeons.map((dungeon) => {
+                  const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
+                  return (
+                    <option key={dungeon.id} value={dungeon.id} disabled={!unlocked}>
+                      {unlocked ? dungeon.name : `${dungeon.name}（未解锁）`}
+                    </option>
+                  )
+                })}
+              </select>
+            </label>
+
+            <label className={styles.settingField}>
+              <span className={styles.settingLabel}>伤亡倾向</span>
+              <select
+                className={styles.settingSelect}
+                value={sect.automationSettings.casualtyTolerance}
+                onChange={(event) =>
+                  setAutomationSettings({
+                    casualtyTolerance: event.target.value as typeof sect.automationSettings.casualtyTolerance,
+                  })
+                }
+              >
+                <option value="conservative">保守</option>
+                <option value="balanced">均衡</option>
+                <option value="risky">赌命</option>
+              </select>
+            </label>
+          </div>
+        </details>
       </section>
 
       {buildingTeam && (
@@ -199,147 +206,171 @@ export default function AdventurePage() {
         />
       )}
 
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>最近探索记录</div>
-        {reports.length === 0 ? (
-          <div className={styles.empty}>还没有探索战报。</div>
-        ) : (
-          <div className={styles.reportList}>
-            {reports.map((report) => {
-              const dungeon = dungeons.find((item) => item.id === report.dungeonId)
-              const detail = reportDetails[report.id]
-              const insight = detail ? buildAdventureReportInsight(detail, characterNameMap) : null
-              const teamNames = report.teamCharacterIds
-                .map((id) => detail?.teamSnapshot?.[id]?.name ?? characterNameMap.get(id) ?? id)
-                .join('、')
-              const rewardBits = [
-                report.rewards.spiritStone > 0 ? `${report.rewards.spiritStone} 灵石` : null,
-                report.rewards.herb > 0 ? `${report.rewards.herb} 灵草` : null,
-                report.rewards.ore > 0 ? `${report.rewards.ore} 矿材` : null,
-                report.itemRewardCount > 0 ? `${report.itemRewardCount} 件物品` : null,
-              ].filter(Boolean)
+      <div className={styles.contentLayout}>
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>最近探索记录</div>
+          {reports.length === 0 ? (
+            <div className={styles.empty}>还没有探索战报。</div>
+          ) : (
+            <div className={styles.reportList}>
+              {reports.map((report) => {
+                const dungeon = dungeons.find((item) => item.id === report.dungeonId)
+                const detail = reportDetails[report.id]
+                const insight = detail ? buildAdventureReportInsight(detail, characterNameMap) : null
+                const teamNames = report.teamCharacterIds
+                  .map((id) => detail?.teamSnapshot?.[id]?.name ?? characterNameMap.get(id) ?? id)
+                  .join('、')
+                const rewardBits = [
+                  report.rewards.spiritStone > 0 ? `${report.rewards.spiritStone} 灵石` : null,
+                  report.rewards.herb > 0 ? `${report.rewards.herb} 灵草` : null,
+                  report.rewards.ore > 0 ? `${report.rewards.ore} 矿材` : null,
+                  report.itemRewardCount > 0 ? `${report.itemRewardCount} 件物品` : null,
+                ].filter(Boolean)
 
-              return (
-                <article key={report.id} className={styles.reportCard}>
-                  <div className={styles.reportHeader}>
-                    <div className={styles.reportTitleGroup}>
-                      <div className={styles.reportName}>
+                return (
+                  <article key={report.id} className={styles.reportCard}>
+                    <div className={styles.reportHeader}>
+                      <div className={styles.reportTitleGroup}>
+                        <div className={styles.reportName}>
+                          <PixelIcon
+                            name={getDungeonIconName(report.dungeonId)}
+                            size={18}
+                            className={styles.inlineIcon}
+                            aria-label={dungeon?.name ?? report.dungeonId}
+                          />
+                          {dungeon?.name ?? report.dungeonId}
+                        </div>
+                        <div className={styles.reportMeta}>队伍：{teamNames}</div>
+                      </div>
+                      <div className={styles.reportBadges}>
+                        <span className={styles.reportBadge}>{getRunIntentDef(report.strategy).label}</span>
+                        <span className={`${styles.reportBadge} ${styles[`result${report.result}`] ?? ''}`}>
+                          {REPORT_RESULT_LABELS[report.result]}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.reportStats}>
+                      <span>战术：{getTacticalPresetLabel(report.tacticalPreset)}</span>
+                      <span>推进至第 {report.floorsCleared} 层</span>
+                    </div>
+
+                    <div className={styles.reportRewardLine}>
+                      <span className={styles.rewardLabel}>所得</span>
+                      <span className={styles.rewardValues}>{rewardBits.length > 0 ? rewardBits.join(' · ') : '暂无收获'}</span>
+                    </div>
+
+                    <div className={styles.reportRewardLine}>
+                      <span className={styles.rewardLabel}>回宗</span>
+                      <span className={styles.rewardValues}>{insight?.returnOutcome.summary ?? '暂无记录'}</span>
+                    </div>
+
+                    <details className={styles.reportDetails}>
+                      <summary className={styles.reportDetailsSummary}>
+                        <span>构筑与转折</span>
+                        <span className={styles.reportDetailsMeta}>展开细节</span>
+                      </summary>
+
+                      <div className={styles.reportDetailsBody}>
+                        <div className={styles.reportOutcomeLine}>
+                          <span className={styles.rewardLabel}>核心</span>
+                          <span className={styles.rewardValues}>{insight?.coreName ?? '暂无'}</span>
+                        </div>
+                        <div className={styles.reportOutcomeLine}>
+                          <span className={styles.rewardLabel}>构筑</span>
+                          <span className={styles.rewardValues}>{insight?.keyBuild ?? '暂无'}</span>
+                        </div>
+                        <div className={styles.reportOutcomeLine}>
+                          <span className={styles.rewardLabel}>转折</span>
+                          <span className={styles.rewardValues}>
+                            {insight?.turningPoint ?? (report.result === 'completed' ? '稳定推进至终局' : '暂无')}
+                          </span>
+                        </div>
+
+                        <RunBuildSummary
+                          tacticalPreset={report.tacticalPreset}
+                          blessings={[]}
+                          relics={[]}
+                          branchTags={[]}
+                          routeDirections={extractRouteDirections(detail)}
+                        />
+                      </div>
+                    </details>
+
+                    <Link className={styles.detailLink} to={`/adventure/report/${report.id}`}>
+                      查看过程
+                    </Link>
+                  </article>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        <aside className={styles.sideColumn}>
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>手动发起</div>
+            <div className={styles.launchPanel}>
+              <div className={styles.launchSummary}>
+                <span className={styles.launchLabel}>当前候选</span>
+                <span className={styles.launchValue}>{preferredDungeon?.name ?? unlockedDungeons[0]?.name ?? '暂无可用秘境'}</span>
+              </div>
+              <button
+                className={`${styles.startBtn} ${!manualLaunchDungeonId ? styles.btnDisabled : ''}`}
+                disabled={!manualLaunchDungeonId}
+                onClick={() => manualLaunchDungeonId && setBuildingTeam(manualLaunchDungeonId)}
+              >
+                组队出发
+              </button>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>可选秘境</div>
+            <div className={styles.dungeonList}>
+              {dungeons.map((dungeon) => {
+                const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
+                const unlockRealmName = getRealmName(dungeon.unlockRealm, dungeon.unlockStage as 0 | 1 | 2 | 3)
+                const cleared = completedDungeons.includes(dungeon.id)
+                const launchDisabled = !unlocked || availableCharacters.length === 0
+
+                return (
+                  <div key={dungeon.id} className={`${styles.dungeonCard} ${!unlocked ? styles.dungeonLocked : ''}`}>
+                    <div className={styles.dungeonHeader}>
+                      <span className={styles.dungeonName}>
                         <PixelIcon
-                          name={getDungeonIconName(report.dungeonId)}
+                          name={getDungeonIconName(dungeon.id)}
                           size={18}
                           className={styles.inlineIcon}
-                          aria-label={dungeon?.name ?? report.dungeonId}
+                          aria-label={dungeon.name}
                         />
-                        {dungeon?.name ?? report.dungeonId}
-                      </div>
-                      <div className={styles.reportMeta}>队伍：{teamNames}</div>
-                    </div>
-                    <div className={styles.reportBadges}>
-                      <span className={styles.reportBadge}>{getRunIntentDef(report.strategy).label}</span>
-                      <span className={`${styles.reportBadge} ${styles[`result${report.result}`] ?? ''}`}>
-                        {REPORT_RESULT_LABELS[report.result]}
+                        {dungeon.name}
+                      </span>
+                      <span className={styles.lockBadge}>
+                        {unlocked ? (cleared ? '已留名' : '可探索') : `${unlockRealmName} 解锁`}
                       </span>
                     </div>
+                    <div className={styles.dungeonInfo}>
+                      <span>层数：{dungeon.totalLayers}</span>
+                      <span>推荐：{unlockRealmName}</span>
+                    </div>
+                    <div className={styles.dungeonHint}>
+                      {unlocked ? '手动发起并保留完整战报。' : '当前境界不足。'}
+                    </div>
+                    <button
+                      className={`${styles.startBtn} ${launchDisabled ? styles.btnDisabled : ''}`}
+                      disabled={launchDisabled}
+                      onClick={() => setBuildingTeam(dungeon.id)}
+                    >
+                      手动发起
+                    </button>
                   </div>
-
-                  <div className={styles.reportStats}>
-                    <span>战术：{getTacticalPresetLabel(report.tacticalPreset)}</span>
-                    <span>推进至第 {report.floorsCleared} 层</span>
-                  </div>
-
-                  <div className={styles.reportRewardLine}>
-                    <span className={styles.rewardLabel}>本次所得</span>
-                    <span className={styles.rewardValues}>
-                      {rewardBits.length > 0 ? rewardBits.join(' · ') : '暂无收获'}
-                    </span>
-                  </div>
-
-                  <div className={styles.reportStats}>
-                    <span>核心弟子：{insight?.coreName ?? '暂无'}</span>
-                    <span>关键构筑：{insight?.keyBuild ?? '暂无关键构筑'}</span>
-                  </div>
-
-                  <div className={styles.reportRewardLine}>
-                    <span className={styles.rewardLabel}>转折点</span>
-                    <span className={styles.rewardValues}>
-                      {insight?.turningPoint ?? (report.result === 'completed' ? '稳定推进到终局' : '暂无')}
-                    </span>
-                  </div>
-
-                  <div className={styles.reportRewardLine}>
-                    <span className={styles.rewardLabel}>归宗结果</span>
-                    <span className={styles.rewardValues}>{insight?.returnOutcome.summary ?? '暂无记录'}</span>
-                  </div>
-
-                  <div className={styles.reportRewardLine}>
-                    <span className={styles.rewardLabel}>异变</span>
-                    <span className={styles.rewardValues}>
-                      {insight?.mutationHighlights?.length ? insight.mutationHighlights.join(' · ') : '暂无异变'}
-                    </span>
-                  </div>
-
-                  <RunBuildSummary
-                    tacticalPreset={report.tacticalPreset}
-                    blessings={[]}
-                    relics={[]}
-                    branchTags={[]}
-                    routeDirections={extractRouteDirections(detail)}
-                  />
-
-                  <Link className={styles.detailLink} to={`/adventure/report/${report.id}`}>
-                    查看过程
-                  </Link>
-                </article>
-              )
-            })}
-          </div>
-        )}
-      </section>
-
-      <section className={styles.section}>
-        <div className={styles.sectionTitle}>手动发起</div>
-        <div className={styles.dungeonList}>
-          {dungeons.map((dungeon) => {
-            const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
-            const unlockRealmName = getRealmName(dungeon.unlockRealm, dungeon.unlockStage as 0 | 1 | 2 | 3)
-            const cleared = completedDungeons.includes(dungeon.id)
-            const launchDisabled = !unlocked || availableCharacters.length === 0
-
-            return (
-              <div key={dungeon.id} className={`${styles.dungeonCard} ${!unlocked ? styles.dungeonLocked : ''}`}>
-                <div className={styles.dungeonHeader}>
-                  <span className={styles.dungeonName}>
-                    <PixelIcon
-                      name={getDungeonIconName(dungeon.id)}
-                      size={18}
-                      className={styles.inlineIcon}
-                      aria-label={dungeon.name}
-                    />
-                    {dungeon.name}
-                  </span>
-                  <span className={styles.lockBadge}>
-                    {unlocked ? (cleared ? '已留名' : '可探索') : `${unlockRealmName}解锁`}
-                  </span>
-                </div>
-                <div className={styles.dungeonInfo}>
-                  <span>层数：{dungeon.totalLayers}</span>
-                  <span>推荐：{unlockRealmName}</span>
-                </div>
-                <div className={styles.dungeonHint}>
-                  {unlocked ? '作为次入口手动开一局，仍会保留完整战报。' : '当前境界尚不足以踏入此地。'}
-                </div>
-                <button
-                  className={`${styles.startBtn} ${launchDisabled ? styles.btnDisabled : ''}`}
-                  disabled={launchDisabled}
-                  onClick={() => setBuildingTeam(dungeon.id)}
-                >
-                  手动发起
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      </section>
+                )
+              })}
+            </div>
+          </section>
+        </aside>
+      </div>
     </div>
   )
 }
@@ -399,7 +430,7 @@ function TeamBuilder({
           <div className={styles.sectionLabel}>目标秘境</div>
           <div className={styles.targetCard}>
             <span className={styles.targetName}>{dungeon?.name ?? dungeonId}</span>
-            <span className={styles.targetMeta}>将即时结算并生成战报。</span>
+            <span className={styles.targetMeta}>即时结算并生成完整战报。</span>
           </div>
         </div>
 
@@ -436,7 +467,7 @@ function TeamBuilder({
                   className={`${styles.teamCharItem} ${selected ? styles.teamCharSelected : ''}`}
                   onClick={() => toggleCharacter(char.id)}
                 >
-                  <span className={styles.teamCharCheck}>{selected ? '✓' : ''}</span>
+                  <span className={styles.teamCharCheck}>{selected ? '√' : ''}</span>
                   <span className={styles.teamCharInfo}>
                     <span className={styles.teamCharName}>{char.name}</span>
                     <span className={styles.teamCharRealm}>{getRealmName(char.realm, char.realmStage)}</span>
@@ -445,7 +476,7 @@ function TeamBuilder({
               )
             })}
           </div>
-          <div className={styles.teamBuilderHint}>已选 {selectedIds.length} / 5 名</div>
+          <div className={styles.teamBuilderHint}>已选 {selectedIds.length} / 5</div>
         </div>
 
         <div className={styles.teamActions}>
