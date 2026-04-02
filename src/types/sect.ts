@@ -1,4 +1,4 @@
-import type { Character, CharacterQuality } from './character'
+import type { Character } from './character'
 import type { ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 import type { SectRouteId } from '../data/sectRoutes'
@@ -91,7 +91,6 @@ export interface SectAutomationSettings {
   targetPoolSize: number
   reserveSpiritStone: number
   reserveSpiritEnergy: number
-  recruitQualityFloor: CharacterQuality
   preferredDungeonId: string | null
   casualtyTolerance: CasualtyTolerance
   autoBreakthrough: boolean

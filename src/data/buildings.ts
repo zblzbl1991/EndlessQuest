@@ -231,7 +231,7 @@ export function getBuildingEffectText(building: Building): string {
 
   switch (building.type) {
     case 'mainHall':
-      return `宗门位阶 ${Math.ceil(building.level / 2)}`
+      return `宗门位阶 ${building.level} | 弟子上限 ${5 + building.level * 5}`
     case 'spiritField':
       return `灵气 +${getSpiritFieldRate(building.level)}/秒 | 灵草 +${(0.1 * building.level).toFixed(1)}/秒`
     case 'spiritMine':

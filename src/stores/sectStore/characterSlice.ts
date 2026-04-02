@@ -5,7 +5,7 @@ import {
   generateCharacter,
   getMaxCharacters,
   getRecruitCost,
-  isQualityUnlocked,
+  rollRecruitQuality,
 } from '../../systems/character/CharacterEngine'
 import { calcDiscipleDeathRefund } from '../../systems/character/DiscipleSacrificeSystem'
 import { getRecruitCostMult } from '../../systems/economy/BuildingEffects'
@@ -24,17 +24,17 @@ function getAdjustedRecruitCost(baseCost: number, costMult: number): number {
 }
 
 export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
-  addCharacter: (quality: CharacterQuality) => {
+  addCharacter: () => {
     const { sect } = get()
-
-    // Check quality unlock
-    if (!isQualityUnlocked(quality, sect.level)) return null
 
     // Check character cap
     if (sect.characters.length >= getMaxCharacters(sect.level)) return null
 
-    // Check spirit stone cost
-    const baseCost = getRecruitCost(quality)
+    // Roll quality based on sect level
+    const quality = rollRecruitQuality(sect.level)
+
+    // Check spirit stone cost (always common cost for normal recruit)
+    const baseCost = getRecruitCost('common')
     const costMult = getRecruitCostMult(sect.buildings)
     const cost = getAdjustedRecruitCost(baseCost, costMult)
     if (sect.resources.spiritStone < cost) return null
@@ -75,16 +75,13 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     return character
   },
 
-  canRecruit: (quality: CharacterQuality) => {
+  canRecruit: () => {
     const { sect } = get()
 
-    if (!isQualityUnlocked(quality, sect.level)) {
-      return { allowed: false, reason: '宗门等级不足' }
-    }
     if (sect.characters.length >= getMaxCharacters(sect.level)) {
       return { allowed: false, reason: '弟子已满' }
     }
-    const cost = getAdjustedRecruitCost(getRecruitCost(quality), getRecruitCostMult(sect.buildings))
+    const cost = getAdjustedRecruitCost(getRecruitCost('common'), getRecruitCostMult(sect.buildings))
     if (sect.resources.spiritStone < cost) {
       return { allowed: false, reason: '灵石不足' }
     }

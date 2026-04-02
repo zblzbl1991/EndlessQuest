@@ -70,7 +70,6 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     targetPoolSize: 8,
     reserveSpiritStone: 300,
     reserveSpiritEnergy: 120,
-    recruitQualityFloor: 'common',
     preferredDungeonId: 'lingCaoValley',
     casualtyTolerance: 'balanced',
     autoBreakthrough: true,

@@ -184,16 +184,12 @@ function applyVariance(value: number, range: number, isFloat: boolean): number {
 }
 
 // ---------------------------------------------------------------------------
-// Sect level table
+// Sect level & capacity formulas
 // ---------------------------------------------------------------------------
 
-const SECT_LEVEL_TABLE = [
-  { mainHallRequired: 1, maxCharacters: 5, maxSimultaneousRuns: 1 },
-  { mainHallRequired: 3, maxCharacters: 10, maxSimultaneousRuns: 1 },
-  { mainHallRequired: 5, maxCharacters: 15, maxSimultaneousRuns: 2 },
-  { mainHallRequired: 8, maxCharacters: 20, maxSimultaneousRuns: 2 },
-  { mainHallRequired: 10, maxCharacters: 30, maxSimultaneousRuns: 3 },
-]
+/** Sect level = main hall level (1:1 mapping, capped at 1-10) */
+const MIN_SECT_LEVEL = 1
+const MAX_SECT_LEVEL = 10
 
 // ---------------------------------------------------------------------------
 // Chinese name generation
@@ -456,34 +452,26 @@ export function calcCharacterTotalStats(
 
 /**
  * Get the maximum number of characters allowed for a given sect level.
+ * Formula: 5 + level × 5 (10/15/20/.../55)
  */
 export function getMaxCharacters(sectLevel: number): number {
-  const entry = SECT_LEVEL_TABLE[sectLevel - 1]
-  return entry ? entry.maxCharacters : 5
+  return 5 + Math.max(1, Math.min(MAX_SECT_LEVEL, sectLevel)) * 5
 }
 
 /**
  * Get the maximum number of simultaneous adventure runs for a given sect level.
+ * Formula: level (1~10)
  */
 export function getMaxSimultaneousRuns(sectLevel: number): number {
-  const entry = SECT_LEVEL_TABLE[sectLevel - 1]
-  return entry ? entry.maxSimultaneousRuns : 1
+  return Math.max(1, Math.min(MAX_SECT_LEVEL, sectLevel))
 }
 
 /**
- * Calculate the sect level (1-5) based on the main hall building level.
- * Returns the highest table entry where mainHallRequired <= mainHallLevel.
+ * Calculate the sect level based on the main hall building level.
+ * Sect level = main hall level (1:1 mapping, capped at 1-10).
  */
 export function calcSectLevel(mainHallLevel: number): number {
-  let level = 1
-  for (let i = 0; i < SECT_LEVEL_TABLE.length; i++) {
-    if (mainHallLevel >= SECT_LEVEL_TABLE[i].mainHallRequired) {
-      level = i + 1
-    } else {
-      break
-    }
-  }
-  return level
+  return Math.max(MIN_SECT_LEVEL, Math.min(MAX_SECT_LEVEL, mainHallLevel))
 }
 
 // ---------------------------------------------------------------------------
@@ -503,9 +491,9 @@ export function getRecruitCost(quality: CharacterQuality): number {
 
 const QUALITY_UNLOCK_LEVEL: Partial<Record<CharacterQuality, number>> = {
   common: 1,
-  spirit: 2,
-  immortal: 3,
-  divine: 4,
+  spirit: 3,
+  immortal: 6,
+  divine: 9,
 }
 
 export function isQualityUnlocked(quality: CharacterQuality, sectLevel: number): boolean {
@@ -521,8 +509,21 @@ export function getAvailableQualities(sectLevel: number): CharacterQuality[] {
 
 /** Get the mainHall level required to unlock a character quality (for UI display) */
 export function getQualityUnlockMainHallLevel(quality: CharacterQuality): number | undefined {
-  const sectLvl = QUALITY_UNLOCK_LEVEL[quality]
-  if (sectLvl === undefined) return undefined
-  const entry = SECT_LEVEL_TABLE[sectLvl - 1]
-  return entry?.mainHallRequired
+  // Sect level = main hall level (1:1), so the unlock level IS the main hall level
+  return QUALITY_UNLOCK_LEVEL[quality]
+}
+
+/**
+ * Roll recruit quality based on sect level.
+ * Higher sect levels have increasing chances of better quality.
+ * - Level 1-2: 100% common
+ * - Level 3-5: ~15% spirit
+ * - Level 6-8: ~15% spirit, ~8% immortal
+ * - Level 9-10: ~15% spirit, ~8% immortal, ~2% divine
+ */
+export function rollRecruitQuality(sectLevel: number): CharacterQuality {
+  if (sectLevel >= 9 && Math.random() < 0.02) return 'divine'
+  if (sectLevel >= 6 && Math.random() < 0.08) return 'immortal'
+  if (sectLevel >= 3 && Math.random() < 0.15) return 'spirit'
+  return 'common'
 }

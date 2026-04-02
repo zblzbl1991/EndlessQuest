@@ -349,7 +349,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
             reserveSpiritEnergy: currentState.sect.automationSettings.reserveSpiritEnergy,
           })
         ) {
-          const recruited = currentState.addCharacter(currentState.sect.automationSettings.recruitQualityFloor)
+          const recruited = currentState.addCharacter()
           if (!recruited) break
           currentState = get()
         }

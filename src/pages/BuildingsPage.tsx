@@ -13,9 +13,7 @@ import type { AutoRecipe } from '../data/recipes'
 import {
   getMaxCharacters,
   getRecruitCost,
-  getAvailableQualities,
   getQualityStats,
-  getQualityUnlockMainHallLevel,
 } from '../systems/character/CharacterEngine'
 import type { BuildingType, CharacterQuality } from '../types'
 import type { ItemStack } from '../types/item'
@@ -515,13 +513,11 @@ function RecruitTab() {
   const canRecruit = useSectStore((s) => s.canRecruit)
   const addCharacter = useSectStore((s) => s.addCharacter)
   const targetedRecruit = useSectStore((s) => s.targetedRecruit)
-  const [selectedQuality, setSelectedQuality] = useState<CharacterQuality>('common')
   const [recruitedCharacter, setRecruitedCharacter] = useState<Character | null>(null)
   const [targetedQuality, setTargetedQuality] = useState<CharacterQuality>('spirit')
   const [targetedMessage, setTargetedMessage] = useState<string | null>(null)
 
   const maxChars = getMaxCharacters(sect.level)
-  const availableQualities = getAvailableQualities(sect.level)
 
   const recruitmentPavilionLevel = sect.buildings.find((b) => b.type === 'recruitmentPavilion')?.level ?? 0
   const hasTargetedRecruit = recruitmentPavilionLevel >= 3
@@ -529,16 +525,12 @@ function RecruitTab() {
   // Targeted recruit qualities: spirit, immortal, divine (minimum)
   const targetedOptions: CharacterQuality[] = ['spirit', 'immortal', 'divine']
 
-  // Derived: clamp selected quality to an available option
-  const effectiveQuality = availableQualities.includes(selectedQuality)
-    ? selectedQuality
-    : (availableQualities[0] ?? selectedQuality)
-  const recruitCheck = canRecruit(effectiveQuality)
-  const cost = getRecruitCost(effectiveQuality)
+  const recruitCheck = canRecruit()
+  const cost = getRecruitCost('common')
 
   const handleRecruit = () => {
     if (!recruitCheck.allowed) return
-    const character = addCharacter(effectiveQuality)
+    const character = addCharacter()
     if (character) {
       setRecruitedCharacter(character)
     }
@@ -568,25 +560,7 @@ function RecruitTab() {
       </div>
 
       <div className={styles.qualitySelect}>
-        {(['common', 'spirit', 'immortal', 'divine'] as CharacterQuality[]).map((quality) => {
-          const available = availableQualities.includes(quality)
-          const unlockMainHall = getQualityUnlockMainHallLevel(quality)
-          const qualityCost = getRecruitCost(quality)
-          return (
-            <button
-              key={quality}
-              className={`${styles.qualityBtn} ${effectiveQuality === quality ? styles.qualityActive : ''} ${!available ? styles.qualityLocked : ''}`}
-              onClick={() => available && setSelectedQuality(quality)}
-              disabled={!available}
-            >
-              {CHAR_QUALITY_NAMES[quality]}
-              <span className={styles.qualityCost}>{qualityCost}灵石</span>
-              {!available && unlockMainHall != null && (
-                <span className={styles.qualityLockHint}>大殿Lv{unlockMainHall}解锁</span>
-              )}
-            </button>
-          )
-        })}
+        <span className={styles.qualityHint}>品质随宗门位阶提升</span>
       </div>
 
       <button
@@ -594,7 +568,7 @@ function RecruitTab() {
         onClick={handleRecruit}
         disabled={!recruitCheck.allowed}
       >
-        {!recruitCheck.allowed ? recruitCheck.reason : `招收${CHAR_QUALITY_NAMES[effectiveQuality]}弟子 (${cost}灵石)`}
+        {!recruitCheck.allowed ? recruitCheck.reason : `招收弟子 (${cost}灵石)`}
       </button>
 
       {/* Targeted Recruitment Section */}

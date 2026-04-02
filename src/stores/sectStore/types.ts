@@ -37,8 +37,8 @@ export interface SectStore {
   refreshDailyShop(): void
 
   // Character management
-  addCharacter(quality: CharacterQuality): Character | null
-  canRecruit(quality: CharacterQuality): { allowed: boolean; reason: string }
+  addCharacter(): Character | null
+  canRecruit(): { allowed: boolean; reason: string }
   removeCharacter(id: string): void
   sacrificeCharacter(id: string, context: CharacterSacrificeContext): boolean
   promoteCharacter(id: string, newTitle: CharacterTitle): void

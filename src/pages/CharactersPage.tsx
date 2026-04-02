@@ -11,7 +11,7 @@ import { calcEffectiveCultivationRate } from '../systems/cultivation/Cultivation
 import { getPathDef } from '../data/cultivationPaths'
 import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
-import type { CharacterStatus, CharacterQuality } from '../types/character'
+import type { CharacterStatus } from '../types/character'
 import { CHAR_QUALITY_SHORT } from '../data/uiCopy'
 import { PixelIcon } from '../components/common/PixelIcon'
 import CharacterCard from '../components/common/CharacterCard'
@@ -215,22 +215,6 @@ export default function CharactersPage() {
                   setAutomationSettings({ targetPoolSize: Math.max(1, Number(event.target.value) || 1) })
                 }
               />
-            </label>
-            <label className={styles.settingField}>
-              <span className={styles.settingLabel}>招募品质底线</span>
-              <select
-                className={styles.settingSelect}
-                value={automationSettings.recruitQualityFloor}
-                onChange={(event) =>
-                  setAutomationSettings({ recruitQualityFloor: event.target.value as CharacterQuality })
-                }
-              >
-                <option value="common">凡品起招</option>
-                <option value="spirit">至少灵品</option>
-                <option value="immortal">至少仙品</option>
-                <option value="divine">至少神品</option>
-                <option value="chaos">只收混沌</option>
-              </select>
             </label>
             <label className={styles.settingField}>
               <span className={styles.settingLabel}>最低保留灵石</span>

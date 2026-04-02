@@ -105,7 +105,6 @@ const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
   targetPoolSize: 8,
   reserveSpiritStone: 300,
   reserveSpiritEnergy: 120,
-  recruitQualityFloor: 'common',
   preferredDungeonId: 'lingCaoValley',
   casualtyTolerance: 'balanced',
   autoBreakthrough: true,

@@ -18,6 +18,7 @@ import { RELIC_DEFS } from '../../data/relics'
 import type { DiscipleMutationId, MutationCharacterProfile } from '../../data/discipleMutations'
 import { getDiscipleMutationDef, pickDiscipleMutation } from '../../data/discipleMutations'
 import type { RunBuildBiasContext } from '../../types/runBuild'
+import { getRunBuildBiasContext } from './RunBuildContext'
 import type { EventResult } from './EventSystem'
 import { resolveEvent } from './EventSystem'
 import {
@@ -162,14 +163,6 @@ function maybeGrantMutation(
   }
 
   return null
-}
-
-function getRunBuildBiasContext(): RunBuildBiasContext {
-  const sect = useSectStore.getState().sect
-  return {
-    routeId: sect.activeRoute,
-    buildingLevels: Object.fromEntries(sect.buildings.map((building) => [building.type, building.level])),
-  }
 }
 
 function buildContext(run: DungeonRun): AutomationContext {

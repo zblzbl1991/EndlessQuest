@@ -45,7 +45,8 @@ import {
   calcAdventureRouteRewardBonus,
   calcPetCaptureRouteBonus,
 } from '../systems/sect/SectRouteSystem'
-import type { RunBuildBiasContext } from '../types/runBuild'
+import { getRunBuildBiasContext } from '../systems/roguelike/RunBuildContext'
+import { calcSectLevel } from '../systems/character/CharacterEngine'
 import { getTechniqueCodexCapacity } from '../systems/technique/TechniqueSystem'
 
 // ---------------------------------------------------------------------------
@@ -193,14 +194,6 @@ function applyRouteCombatModifiers(unit: CombatUnit): CombatUnit {
   }
 }
 
-function getRunBuildBiasContext(): RunBuildBiasContext {
-  const sect = useSectStore.getState().sect
-  return {
-    routeId: sect.activeRoute,
-    buildingLevels: Object.fromEntries(sect.buildings.map((building) => [building.type, building.level])),
-  }
-}
-
 /** Deposit resources into sectStore via addResource */
 function depositResourcesToSect(resources: Resources): void {
   const sectStore = useSectStore.getState()
@@ -231,7 +224,7 @@ function settleRunMembers(run: DungeonRun): Record<string, AdventureMemberReturn
     if (!memberState) continue
 
     if (memberState.status === 'dead') {
-      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '缂備礁顦伴敋妞わ絻鍔戦獮瀣熷ú璇插Г' })
+      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境中陨落' })
       outcomes[charId] = { outcome: 'sacrificed' }
     } else {
       sectStore.setCharacterStatus(charId, 'idle')
@@ -282,21 +275,6 @@ function depositItemsToVault(items: AnyItem[]): void {
   for (const item of items) {
     sectStore.addToVault(item)
   }
-}
-
-/** Get the sect's effective level from mainHall building */
-function getSectLevel(): number {
-  const { sect } = useSectStore.getState()
-  const mainHall = sect.buildings.find((b) => b.type === 'mainHall')
-  const mainHallLevel = mainHall?.level ?? 1
-  // Derive sect level from mainHall level (matches CharacterEngine.calcSectLevel)
-  const table = [1, 3, 5, 8, 10]
-  let level = 1
-  for (let i = 0; i < table.length; i++) {
-    if (mainHallLevel >= table[i]) level = i + 1
-    else break
-  }
-  return level
 }
 
 function unlockSectMilestone(id: 'firstDungeonClear'): void {
@@ -1285,7 +1263,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         {
           timestamp: Date.now(),
           message:
-            '闂佽绻樺褔宕ラ弮鍫濈闁哄洠鈧磭顔嗘繝銏″劶缁墽鎲撮敃鍌涙櫖鐎光偓閳ь剚瀵奸幒妤€绀傚ù鐘差儌閸嬫捇宕橀鈩冨发婵?..',
+            '灵兽挣脱了束缚，未能捕获。',
         },
       ]
       set((s) => ({
@@ -1311,7 +1289,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   },
 
   getMaxSimultaneousRuns: () => {
-    const level = getSectLevel()
+    const { sect } = useSectStore.getState()
+    const mainHall = sect.buildings.find((b) => b.type === 'mainHall')
+    const level = calcSectLevel(mainHall?.level ?? 1)
     return getMaxSimultaneousRuns(level)
   },
 

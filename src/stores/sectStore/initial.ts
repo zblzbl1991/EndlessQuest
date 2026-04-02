@@ -93,7 +93,6 @@ export function createInitialState(): { sect: Sect } {
         targetPoolSize: 8,
         reserveSpiritStone: 300,
         reserveSpiritEnergy: 120,
-        recruitQualityFloor: 'common',
         preferredDungeonId: 'lingCaoValley',
         casualtyTolerance: 'balanced',
         autoBreakthrough: true,
