@@ -36,6 +36,8 @@ export type {
   Building,
   Sect,
   SectStats,
+  SectAutomationSettings,
+  CasualtyTolerance,
   OfflineAccumulator,
   LegacyBonus,
   ArchiveMilestoneId,

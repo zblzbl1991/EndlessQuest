@@ -4,12 +4,16 @@ const initialState = {
   saveSlot: 1,
   lastOnlineTime: Date.now(),
   isPaused: false,
+  currentGameDay: 1,
+  dayProgressSec: 0,
 }
 
 interface GameStore {
   saveSlot: number
   lastOnlineTime: number
   isPaused: boolean
+  currentGameDay: number
+  dayProgressSec: number
   startGame(): void
   stopGame(): void
   pauseGame(): void

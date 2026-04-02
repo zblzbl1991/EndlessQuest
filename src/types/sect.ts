@@ -1,10 +1,11 @@
-import type { Character } from './character'
+import type { Character, CharacterQuality } from './character'
 import type { ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 import type { SectRouteId } from '../data/sectRoutes'
 
 export type SectPath = 'none' | 'pill' | 'sword' | 'beast'
 export type ArchiveMilestoneId = 'firstRareRecruit' | 'firstTribulationSuccess' | 'firstDungeonClear'
+export type CasualtyTolerance = 'conservative' | 'balanced' | 'risky'
 
 export type BuildingType =
   | 'mainHall'
@@ -85,6 +86,17 @@ export interface SectStats {
   longestOfflineSeconds: number
 }
 
+export interface SectAutomationSettings {
+  enabled: boolean
+  targetPoolSize: number
+  reserveSpiritStone: number
+  reserveSpiritEnergy: number
+  recruitQualityFloor: CharacterQuality
+  preferredDungeonId: string | null
+  casualtyTolerance: CasualtyTolerance
+  autoBreakthrough: boolean
+}
+
 export interface Sect {
   name: string
   level: number
@@ -106,4 +118,5 @@ export interface Sect {
   legacy: LegacyBonus
   stats: SectStats
   archiveMilestones: ArchiveMilestoneEntry[]
+  automationSettings: SectAutomationSettings
 }

@@ -8,7 +8,7 @@ export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
 
 export type CharacterQuality = 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
 
-export type CharacterStatus = 'idle' | 'adventuring' | 'patrolling' | 'resting' | 'injured' | 'training'
+export type CharacterStatus = 'idle' | 'adventuring' | 'patrolling' | 'resting' | 'injured' | 'training' | 'recovering'
 
 export type RealmStage = 0 | 1 | 2 | 3
 
@@ -65,6 +65,7 @@ export interface Character {
   talents: Talent[]
   status: CharacterStatus
   injuryTimer: number
+  recoveryDaysRemaining?: number
   createdAt: number
   totalCultivation: number
   specialties: Specialty[]

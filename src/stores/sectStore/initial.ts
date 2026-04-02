@@ -88,6 +88,16 @@ export function createInitialState(): { sect: Sect } {
       pathUnlockedAt: null,
       legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
       archiveMilestones: [],
+      automationSettings: {
+        enabled: true,
+        targetPoolSize: 8,
+        reserveSpiritStone: 300,
+        reserveSpiritEnergy: 120,
+        recruitQualityFloor: 'common',
+        preferredDungeonId: 'lingCaoValley',
+        casualtyTolerance: 'balanced',
+        autoBreakthrough: true,
+      },
       stats: {
         totalSpiritStoneEarned: 0,
         totalSpiritStoneSpent: 0,

@@ -394,6 +394,7 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     talents,
     status: 'idle',
     injuryTimer: 0,
+    recoveryDaysRemaining: 0,
     createdAt: Date.now(),
     totalCultivation: 0,
     specialties,
