@@ -141,22 +141,24 @@ describe('SectStore - Character Management', () => {
   beforeEach(() => resetStore())
 
   it('addCharacter should add a new character', () => {
-    const char = getStore().addCharacter('common')
+    const char = getStore().addCharacter()
     expect(char).not.toBeNull()
     expect(getStore().sect.characters).toHaveLength(2)
     expect(char!.quality).toBe('common')
   })
 
   it('addCharacter should return null when at max', () => {
-    // Sect level 1 -> maxCharacters 5, initial 1, add 4 more
-    for (let i = 0; i < 4; i++) {
-      const char = getStore().addCharacter('common')
+    // Sect level 1 -> maxCharacters 10, initial 1, add 9 more
+    // Need enough spirit stones for 9 recruits (80 each = 720)
+    getStore().addResource('spiritStone', 1000)
+    for (let i = 0; i < 9; i++) {
+      const char = getStore().addCharacter()
       expect(char).not.toBeNull()
     }
-    // 6th should fail
-    const char = getStore().addCharacter('common')
+    // 11th should fail
+    const char = getStore().addCharacter()
     expect(char).toBeNull()
-    expect(getStore().sect.characters).toHaveLength(5)
+    expect(getStore().sect.characters).toHaveLength(10)
   })
 
   it('removeCharacter should remove a character by id', () => {
@@ -1194,7 +1196,7 @@ describe('SectStore - Reset', () => {
   it('reset should restore initial state', () => {
     // Modify state
     getStore().addResource('spiritStone', 1000)
-    getStore().addCharacter('spirit')
+    getStore().addCharacter()
 
     // Reset
     resetStore()
@@ -1252,7 +1254,7 @@ describe('AdventureStore - startRun', () => {
     expect(run1).not.toBeNull()
 
     // Add another character and try to start another run with the same character
-    const char2 = getStore().addCharacter('common')
+    const char2 = getStore().addCharacter()
     expect(char2).not.toBeNull()
 
     // Try to start a second run with the same character
@@ -1267,7 +1269,7 @@ describe('AdventureStore - startRun', () => {
     expect(run1).not.toBeNull()
 
     // Add another character
-    const char2 = getStore().addCharacter('common')
+    const char2 = getStore().addCharacter()
     expect(char2).not.toBeNull()
 
     // Try to start second run (should fail due to max runs = 1 at level 1)
@@ -1281,14 +1283,14 @@ describe('AdventureStore - startRun', () => {
   })
 
   it('should reject if team size exceeds 5', () => {
-    // At sect level 1, max characters is 5 (1 initial + 4 addable)
-    // That gives us exactly 5 characters, which is the max team size
+    // At sect level 1, max characters is 10 (1 initial + 9 addable)
+    // That gives us enough characters to test the team size limit of 5
     const charIds: string[] = []
     const initialChar = getStore().sect.characters[0]
     charIds.push(initialChar.id)
 
     for (let i = 0; i < 4; i++) {
-      const c = getStore().addCharacter('common')
+      const c = getStore().addCharacter()
       if (c) charIds.push(c.id)
     }
 
@@ -1678,7 +1680,7 @@ describe('AdventureStore - runAutomation', () => {
 
   it('should persist failed member return outcomes on automation reports', () => {
     const first = getStore().sect.characters[0]
-    const second = getStore().addCharacter('common')
+    const second = getStore().addCharacter()
     expect(second).not.toBeNull()
 
     const resolveSpy = vi.spyOn(autoRunEngine, 'resolveAutomatedRun').mockReturnValue({
@@ -1802,43 +1804,33 @@ describe('SectStore - Recruit Cost', () => {
 
   it('addCharacter should deduct spirit stones', () => {
     const before = getStore().sect.resources.spiritStone
-    getStore().addCharacter('common') // discounted to 80 for faster补员
+    getStore().addCharacter() // discounted to 80 for faster recruitment
     expect(getStore().sect.resources.spiritStone).toBe(before - 80)
   })
 
   it('addCharacter should return null when insufficient stones', () => {
     getStore().spendResource('spiritStone', 500)
-    const char = getStore().addCharacter('common')
-    expect(char).toBeNull()
-  })
-
-  it('addCharacter should return null when quality not unlocked', () => {
-    const char = getStore().addCharacter('divine') // needs level 4, current is 1
+    const char = getStore().addCharacter()
     expect(char).toBeNull()
   })
 
   it('canRecruit should report insufficient stones', () => {
     getStore().spendResource('spiritStone', 500)
-    const result = getStore().canRecruit('common')
+    const result = getStore().canRecruit()
     expect(result.allowed).toBe(false)
     expect(result.reason).toBe('灵石不足')
   })
 
-  it('canRecruit should report quality locked', () => {
-    const result = getStore().canRecruit('divine')
-    expect(result.allowed).toBe(false)
-    expect(result.reason).toBe('宗门等级不足')
-  })
-
   it('canRecruit should report characters full', () => {
-    for (let i = 0; i < 4; i++) getStore().addCharacter('common')
-    const result = getStore().canRecruit('common')
+    getStore().addResource('spiritStone', 1000)
+    for (let i = 0; i < 9; i++) getStore().addCharacter()
+    const result = getStore().canRecruit()
     expect(result.allowed).toBe(false)
     expect(result.reason).toBe('弟子已满')
   })
 
   it('canRecruit should allow when conditions met', () => {
-    const result = getStore().canRecruit('common')
+    const result = getStore().canRecruit()
     expect(result.allowed).toBe(true)
     expect(result.reason).toBe('')
   })
@@ -1847,14 +1839,20 @@ describe('SectStore - Recruit Cost', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        level: 2,
+        level: 3,
         resources: { ...s.sect.resources, spiritStone: 5000 },
       },
     }))
 
-    const recruit = getStore().addCharacter('spirit')
+    // Mock rollRecruitQuality to guarantee a spirit quality recruit
+    vi.spyOn(Math, 'random').mockReturnValue(0.1) // < 0.15 -> spirit at level 3
+
+    const recruit = getStore().addCharacter()
     expect(recruit).not.toBeNull()
+    expect(recruit!.quality).not.toBe('common')
     expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'firstRareRecruit')).toBe(true)
+
+    vi.restoreAllMocks()
   })
 })
 
@@ -1922,7 +1920,6 @@ describe('SectStore - Daily automation', () => {
           targetPoolSize: 2,
           reserveSpiritStone: 200,
           reserveSpiritEnergy: 100,
-          recruitQualityFloor: 'common',
         },
       },
     }))

@@ -8,6 +8,7 @@ import {
   getRecruitCost,
   isQualityUnlocked,
   getAvailableQualities,
+  rollRecruitQuality,
 } from '../systems/character/CharacterEngine'
 import { observeBuildingLevel, resetObservedBuildingLevels } from '../data/buildings'
 import type { CharacterQuality } from '../types/character'
@@ -205,42 +206,100 @@ describe('CharacterEngine', () => {
   })
 
   describe('getMaxCharacters', () => {
-    it('should return 5 for sect level 1', () => {
-      expect(getMaxCharacters(1)).toBe(5)
+    it('should return 10 for sect level 1 (5 + 1*5)', () => {
+      expect(getMaxCharacters(1)).toBe(10)
+    })
+
+    it('should return 15 for sect level 2 (5 + 2*5)', () => {
+      expect(getMaxCharacters(2)).toBe(15)
+    })
+
+    it('should return 20 for sect level 3', () => {
+      expect(getMaxCharacters(3)).toBe(20)
     })
 
     it('should return 30 for sect level 5', () => {
       expect(getMaxCharacters(5)).toBe(30)
     })
+
+    it('should return 55 for sect level 10 (5 + 10*5)', () => {
+      expect(getMaxCharacters(10)).toBe(55)
+    })
+
+    it('should clamp level 0 to level 1, returning 10', () => {
+      expect(getMaxCharacters(0)).toBe(10)
+    })
+
+    it('should clamp level 15 to level 10, returning 55', () => {
+      expect(getMaxCharacters(15)).toBe(55)
+    })
   })
 
   describe('getMaxSimultaneousRuns', () => {
-    it('should return 1 for level 1-2', () => {
+    it('should return 1 for level 1', () => {
       expect(getMaxSimultaneousRuns(1)).toBe(1)
-      expect(getMaxSimultaneousRuns(2)).toBe(1)
     })
 
-    it('should return 2 for level 3-4', () => {
-      expect(getMaxSimultaneousRuns(3)).toBe(2)
-      expect(getMaxSimultaneousRuns(4)).toBe(2)
+    it('should return 2 for level 2', () => {
+      expect(getMaxSimultaneousRuns(2)).toBe(2)
     })
 
-    it('should return 3 for level 5', () => {
-      expect(getMaxSimultaneousRuns(5)).toBe(3)
+    it('should return 3 for level 3', () => {
+      expect(getMaxSimultaneousRuns(3)).toBe(3)
+    })
+
+    it('should return 4 for level 4', () => {
+      expect(getMaxSimultaneousRuns(4)).toBe(4)
+    })
+
+    it('should return 5 for level 5', () => {
+      expect(getMaxSimultaneousRuns(5)).toBe(5)
+    })
+
+    it('should return 10 for level 10', () => {
+      expect(getMaxSimultaneousRuns(10)).toBe(10)
+    })
+
+    it('should clamp level 0 to level 1, returning 1', () => {
+      expect(getMaxSimultaneousRuns(0)).toBe(1)
+    })
+
+    it('should clamp level 15 to level 10, returning 10', () => {
+      expect(getMaxSimultaneousRuns(15)).toBe(10)
     })
   })
 
   describe('calcSectLevel', () => {
+    it('should return 1 for mainHall 0 (clamped)', () => {
+      expect(calcSectLevel(0)).toBe(1)
+    })
+
     it('should return 1 for mainHall 1', () => {
       expect(calcSectLevel(1)).toBe(1)
     })
 
-    it('should return 2 for mainHall 3', () => {
-      expect(calcSectLevel(3)).toBe(2)
+    it('should return 2 for mainHall 2', () => {
+      expect(calcSectLevel(2)).toBe(2)
     })
 
-    it('should return 5 for mainHall 10', () => {
-      expect(calcSectLevel(10)).toBe(5)
+    it('should return 3 for mainHall 3', () => {
+      expect(calcSectLevel(3)).toBe(3)
+    })
+
+    it('should return 5 for mainHall 5', () => {
+      expect(calcSectLevel(5)).toBe(5)
+    })
+
+    it('should return 8 for mainHall 8', () => {
+      expect(calcSectLevel(8)).toBe(8)
+    })
+
+    it('should return 10 for mainHall 10', () => {
+      expect(calcSectLevel(10)).toBe(10)
+    })
+
+    it('should return 10 for mainHall 15 (clamped)', () => {
+      expect(calcSectLevel(15)).toBe(10)
     })
   })
 })
@@ -297,20 +356,27 @@ describe('getRecruitCost', () => {
 
 describe('isQualityUnlocked', () => {
   it('common at level 1', () => expect(isQualityUnlocked('common', 1)).toBe(true))
-  it('spirit at level 1', () => expect(isQualityUnlocked('spirit', 1)).toBe(false))
-  it('spirit at level 2', () => expect(isQualityUnlocked('spirit', 2)).toBe(true))
-  it('immortal at level 3', () => expect(isQualityUnlocked('immortal', 3)).toBe(true))
-  it('divine at level 4', () => expect(isQualityUnlocked('divine', 4)).toBe(true))
-  it('chaos always locked', () => expect(isQualityUnlocked('chaos', 5)).toBe(false))
+  it('spirit at level 1 (requires 3)', () => expect(isQualityUnlocked('spirit', 1)).toBe(false))
+  it('spirit at level 2 (requires 3)', () => expect(isQualityUnlocked('spirit', 2)).toBe(false))
+  it('spirit at level 3', () => expect(isQualityUnlocked('spirit', 3)).toBe(true))
+  it('immortal at level 5 (requires 6)', () => expect(isQualityUnlocked('immortal', 5)).toBe(false))
+  it('immortal at level 6', () => expect(isQualityUnlocked('immortal', 6)).toBe(true))
+  it('divine at level 8 (requires 9)', () => expect(isQualityUnlocked('divine', 8)).toBe(false))
+  it('divine at level 9', () => expect(isQualityUnlocked('divine', 9)).toBe(true))
+  it('chaos always locked', () => expect(isQualityUnlocked('chaos', 10)).toBe(false))
 })
 
 describe('getAvailableQualities', () => {
   it('level 1 should return [common]', () => expect(getAvailableQualities(1)).toEqual(['common']))
-  it('level 2 should return [common, spirit]', () => expect(getAvailableQualities(2)).toEqual(['common', 'spirit']))
-  it('level 4 should return [common, spirit, immortal, divine]', () =>
-    expect(getAvailableQualities(4)).toEqual(['common', 'spirit', 'immortal', 'divine']))
-  it('level 5+ should also return [common, spirit, immortal, divine]', () =>
-    expect(getAvailableQualities(5)).toEqual(['common', 'spirit', 'immortal', 'divine']))
+  it('level 2 should return [common]', () => expect(getAvailableQualities(2)).toEqual(['common']))
+  it('level 3 should return [common, spirit]', () => expect(getAvailableQualities(3)).toEqual(['common', 'spirit']))
+  it('level 5 should return [common, spirit]', () => expect(getAvailableQualities(5)).toEqual(['common', 'spirit']))
+  it('level 6 should return [common, spirit, immortal]', () =>
+    expect(getAvailableQualities(6)).toEqual(['common', 'spirit', 'immortal']))
+  it('level 9 should return [common, spirit, immortal, divine]', () =>
+    expect(getAvailableQualities(9)).toEqual(['common', 'spirit', 'immortal', 'divine']))
+  it('level 10 should return [common, spirit, immortal, divine]', () =>
+    expect(getAvailableQualities(10)).toEqual(['common', 'spirit', 'immortal', 'divine']))
 })
 
 describe('chaos upgrade from divine', () => {
@@ -361,5 +427,83 @@ describe('talent weight distribution', () => {
         expect(rarityCounts.epic / total).toBeLessThan(0.3)
       }
     }
+  })
+})
+
+describe('rollRecruitQuality', () => {
+  it('should always return common for sect level 1', () => {
+    for (let i = 0; i < 100; i++) {
+      expect(rollRecruitQuality(1)).toBe('common')
+    }
+  })
+
+  it('should always return common for sect level 2', () => {
+    for (let i = 0; i < 100; i++) {
+      expect(rollRecruitQuality(2)).toBe('common')
+    }
+  })
+
+  it('should mostly return common but occasionally spirit at level 3', () => {
+    let spiritCount = 0
+    const n = 1000
+    for (let i = 0; i < n; i++) {
+      const q = rollRecruitQuality(3)
+      expect(q === 'common' || q === 'spirit').toBe(true)
+      if (q === 'spirit') spiritCount++
+    }
+    // ~15% chance of spirit
+    expect(spiritCount).toBeGreaterThan(n * 0.05)
+    expect(spiritCount).toBeLessThan(n * 0.3)
+  })
+
+  it('should occasionally roll spirit at level 5 but never immortal', () => {
+    let spiritCount = 0
+    const n = 1000
+    for (let i = 0; i < n; i++) {
+      const q = rollRecruitQuality(5)
+      expect(q === 'common' || q === 'spirit').toBe(true)
+      if (q === 'spirit') spiritCount++
+    }
+    expect(spiritCount).toBeGreaterThan(n * 0.05)
+    expect(spiritCount).toBeLessThan(n * 0.3)
+  })
+
+  it('should roll spirit and immortal at level 6 but never divine', () => {
+    let spiritCount = 0
+    let immortalCount = 0
+    const n = 1000
+    for (let i = 0; i < n; i++) {
+      const q = rollRecruitQuality(6)
+      expect(q === 'common' || q === 'spirit' || q === 'immortal').toBe(true)
+      if (q === 'spirit') spiritCount++
+      if (q === 'immortal') immortalCount++
+    }
+    expect(spiritCount).toBeGreaterThan(0)
+    expect(immortalCount).toBeGreaterThan(0)
+  })
+
+  it('should roll all unlocked qualities including divine at level 9', () => {
+    const qualities = new Set<CharacterQuality>()
+    const n = 2000
+    for (let i = 0; i < n; i++) {
+      const q = rollRecruitQuality(9)
+      expect(q === 'common' || q === 'spirit' || q === 'immortal' || q === 'divine').toBe(true)
+      qualities.add(q)
+    }
+    expect(qualities.has('common')).toBe(true)
+    expect(qualities.has('spirit')).toBe(true)
+    expect(qualities.has('immortal')).toBe(true)
+    expect(qualities.has('divine')).toBe(true)
+  })
+
+  it('should return common as the most frequent quality at level 10', () => {
+    const counts: Record<string, number> = { common: 0, spirit: 0, immortal: 0, divine: 0 }
+    const n = 2000
+    for (let i = 0; i < n; i++) {
+      const q = rollRecruitQuality(10)
+      counts[q] = (counts[q] ?? 0) + 1
+    }
+    expect(counts['common']).toBeGreaterThan(counts['spirit'])
+    expect(counts['spirit']).toBeGreaterThan(counts['immortal'])
   })
 })
