@@ -805,6 +805,12 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
   it('should auto-breakthrough sub-level with enough cultivation', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100) // realm 0, stage 0 needs 100
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritEnergy: 1000 },
+      },
+    }))
 
     vi.spyOn(Math, 'random').mockReturnValue(0.99)
     getStore().tickAll(1)
@@ -832,7 +838,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
-        resources: { ...s.sect.resources, spiritStone: 5000 },
+        resources: { ...s.sect.resources, spiritStone: 5000, spiritEnergy: 1000 },
         vault: [],
       },
     }))
@@ -876,7 +882,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
-        resources: { ...s.sect.resources, spiritStone: 1000 },
+        resources: { ...s.sect.resources, spiritStone: 1000, spiritEnergy: 1000 },
         vault: [],
       },
     }))
@@ -896,7 +902,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
-        resources: { ...s.sect.resources, spiritStone: 100 },
+        resources: { ...s.sect.resources, spiritStone: 100, spiritEnergy: 1000 },
         vault: [],
       },
     }))
@@ -910,13 +916,32 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(getStore().sect.resources.spiritStone).toBe(100.5)
   })
 
+  it('should skip breakthrough when spiritEnergy is insufficient', () => {
+    const char = getFirstCharacter()
+    setCharacterCultivation(char.id, 100)
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: 1000, spiritEnergy: 0 },
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    getStore().tickAll(1)
+
+    const updated = getStore().sect.characters[0]
+    expect(updated.realm).toBe(0)
+    expect(updated.realmStage).toBe(0)
+    expect(updated.cultivation).toBe(100)
+  })
+
   it('should consume spirit stones for sub-level breakthrough', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100)
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        resources: { ...s.sect.resources, spiritStone: 1000 },
+        resources: { ...s.sect.resources, spiritStone: 1000, spiritEnergy: 1000 },
         vault: [{ item: makeConsumable('pill_1', { name: '回血丹' }), quantity: 1 }],
       },
     }))
@@ -935,7 +960,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        resources: { ...s.sect.resources, spiritStone: 1000 },
+        resources: { ...s.sect.resources, spiritStone: 1000, spiritEnergy: 1000 },
       },
     }))
 
@@ -953,7 +978,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        resources: { ...s.sect.resources, spiritStone: 30 },
+        resources: { ...s.sect.resources, spiritStone: 30, spiritEnergy: 1000 },
       },
     }))
 
@@ -964,8 +989,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     // Should NOT have broken through (insufficient spirit stones)
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(0)
-    // Cultivation should remain full (not reset)
-    expect(updated.cultivation).toBe(100)
+    // Cultivation can continue growing while the breakthrough remains blocked
+    expect(updated.cultivation).toBeGreaterThan(100)
   })
 
   it('should add fate tags and unlock milestone after first tribulation success', () => {
@@ -988,7 +1013,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
               }
             : c
         ),
-        resources: { ...s.sect.resources, spiritStone: 20000, spiritEnergy: 1000 },
+        resources: { ...s.sect.resources, spiritStone: 20000, spiritEnergy: 10000 },
       },
     }))
 
@@ -2261,6 +2286,7 @@ describe('SectStore - Offline Accumulator', () => {
   it('should accumulate breakthroughs when they occur', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100) // needs 100 for sub-level breakthrough
+    getStore().addResource('spiritEnergy', 1000)
 
     vi.spyOn(Math, 'random').mockReturnValue(0.99)
     getStore().tickAll(1)

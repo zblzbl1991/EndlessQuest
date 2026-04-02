@@ -136,8 +136,8 @@ export function tick(
  */
 export function canBreakthrough(
   character: Character,
-  spiritStoneCost?: number,
-  availableSpiritStones?: number
+  costs?: { spiritStone?: number; spiritEnergy?: number },
+  availableResources?: { spiritStone: number; spiritEnergy: number }
 ): boolean {
   const realm = REALMS[character.realm]
   if (!realm) return false
@@ -152,8 +152,13 @@ export function canBreakthrough(
   const needed = getCultivationNeeded(character.realm, character.realmStage)
   if (character.cultivation < needed) return false
 
-  if (spiritStoneCost !== undefined && availableSpiritStones !== undefined && availableSpiritStones < spiritStoneCost) {
-    return false
+  if (costs && availableResources) {
+    if (costs.spiritStone !== undefined && availableResources.spiritStone < costs.spiritStone) {
+      return false
+    }
+    if (costs.spiritEnergy !== undefined && availableResources.spiritEnergy < costs.spiritEnergy) {
+      return false
+    }
   }
 
   return true

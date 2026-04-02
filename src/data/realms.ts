@@ -85,16 +85,21 @@ export function getCultivationNeeded(realmIndex: number, stage: number): number 
   return REALMS[realmIndex]?.cultivationCosts[stage] ?? Infinity
 }
 
+export interface BreakthroughResourceCost {
+  spiritStone: number
+  spiritEnergy: number
+}
+
 /**
  * Breakthrough costs for major realm transitions.
- * Key = target realm index (1-5). Requires spiritStone only.
+ * Key = target realm index (1-5). Requires both spiritStone and spiritEnergy.
  */
-export const BREAKTHROUGH_COSTS: Record<number, { spiritStone: number }> = {
-  1: { spiritStone: 3000 },
-  2: { spiritStone: 15000 },
-  3: { spiritStone: 80000 },
-  4: { spiritStone: 350000 },
-  5: { spiritStone: 1500000 },
+export const BREAKTHROUGH_COSTS: Record<number, BreakthroughResourceCost> = {
+  1: { spiritStone: 3000, spiritEnergy: 800 },
+  2: { spiritStone: 15000, spiritEnergy: 4000 },
+  3: { spiritStone: 80000, spiritEnergy: 20000 },
+  4: { spiritStone: 350000, spiritEnergy: 90000 },
+  5: { spiritStone: 1500000, spiritEnergy: 400000 },
 }
 
 /**
@@ -108,6 +113,14 @@ export const MINOR_BREAKTHROUGH_COSTS: Record<number, Record<number, number>> = 
   2: { 1: 1000, 2: 3000, 3: 9000 },
   3: { 1: 5000, 2: 15000, 3: 45000 },
   4: { 1: 25000, 2: 75000, 3: 225000 },
+}
+
+export const MINOR_BREAKTHROUGH_ENERGY_COSTS: Record<number, Record<number, number>> = {
+  0: { 1: 40, 2: 120, 3: 320 },
+  1: { 1: 160, 2: 480, 3: 1440 },
+  2: { 1: 800, 2: 2400, 3: 7200 },
+  3: { 1: 4000, 2: 12000, 3: 36000 },
+  4: { 1: 20000, 2: 60000, 3: 180000 },
 }
 
 /**
@@ -126,4 +139,19 @@ export function getMinorBreakthroughCost(realmIndex: number, stage: number): num
   const realm = REALMS[realmIndex]
   if (!realm) return Infinity
   return realm.minorBreakthroughCost[stage] ?? Infinity
+}
+
+export function getMinorBreakthroughEnergyCost(realmIndex: number, stage: number): number {
+  return MINOR_BREAKTHROUGH_ENERGY_COSTS[realmIndex]?.[stage + 1] ?? Infinity
+}
+
+export function getBreakthroughResourceCost(realmIndex: number, currentStage: number): BreakthroughResourceCost {
+  if (currentStage >= 3) {
+    return BREAKTHROUGH_COSTS[realmIndex + 1] ?? { spiritStone: Infinity, spiritEnergy: Infinity }
+  }
+
+  return {
+    spiritStone: MINOR_BREAKTHROUGH_COSTS[realmIndex]?.[currentStage + 1] ?? Infinity,
+    spiritEnergy: MINOR_BREAKTHROUGH_ENERGY_COSTS[realmIndex]?.[currentStage + 1] ?? Infinity,
+  }
 }

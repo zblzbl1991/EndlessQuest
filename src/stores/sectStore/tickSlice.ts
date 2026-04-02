@@ -14,7 +14,7 @@ import {
 } from '../../systems/cultivation/CultivationEngine'
 import { tryComprehendOnBreakthrough } from '../../systems/technique/TechniqueSystem'
 import { calcResourceCaps } from '../../data/buildings'
-import { REALMS, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
+import { REALMS, getBreakthroughResourceCost } from '../../data/realms'
 import { tickProductionQueue, calcOfflineProduction } from '../../systems/building/ProductionSystem'
 import { getAutoRecipeById } from '../../data/recipes'
 import { emitEvent } from '../eventLogStore'
@@ -157,6 +157,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     // 9. Process each character
     let breakthroughStoneCost = 0
+    let breakthroughEnergyCost = 0
     let statBreakthroughAttempts = 0
     let statBreakthroughSuccesses = 0
     let unlockedFirstTribulationSuccess = false
@@ -190,15 +191,18 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           // Check if this is a major realm breakthrough (max stage -> new realm)
           const currentRealm = REALMS[updatedChar.realm]
           const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
-          const newRealmIndex = isMajorBreakthrough ? updatedChar.realm + 1 : updatedChar.realm
-          const cost = isMajorBreakthrough ? BREAKTHROUGH_COSTS[newRealmIndex] : undefined
+          const cost = getBreakthroughResourceCost(updatedChar.realm, updatedChar.realmStage)
 
-          if (cost) {
+          if (isMajorBreakthrough) {
             // Major realm transition requires spiritStone
-            if (sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone) {
+            if (
+              sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone ||
+              updatedSpiritEnergy - breakthroughEnergyCost < cost.spiritEnergy
+            ) {
               // Cannot breakthrough: insufficient stones - skip
             } else {
               breakthroughStoneCost += cost.spiritStone
+              breakthroughEnergyCost += cost.spiritEnergy
 
               if (shouldTriggerTribulation(updatedChar.realm, updatedChar.realmStage)) {
                 // Tribulation path for realms with tribulationPower
@@ -303,12 +307,15 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
               }
             }
           } else {
-            // Sub-level breakthrough: check minor breakthrough spirit stone cost
-            const minorCost = getMinorBreakthroughCost(updatedChar.realm, updatedChar.realmStage)
-            if (sect.resources.spiritStone - breakthroughStoneCost < minorCost) {
+            // Sub-level breakthrough: check spirit stone and spirit energy costs
+            if (
+              sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone ||
+              updatedSpiritEnergy - breakthroughEnergyCost < cost.spiritEnergy
+            ) {
               // Cannot breakthrough: insufficient stones - skip (keep cultivation full)
             } else {
-              breakthroughStoneCost += minorCost
+              breakthroughStoneCost += cost.spiritStone
+              breakthroughEnergyCost += cost.spiritEnergy
               const failureRate = calcBreakthroughFailureRate(updatedChar)
               statBreakthroughAttempts++
               const btResult = performBreakthrough(updatedChar, failureRate)
@@ -377,7 +384,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const taxProduced = calcTaxRate(newSectLevel, sect.characters.length) * deltaSec
 
     const newResources = {
-      spiritEnergy: Math.max(0, updatedSpiritEnergy),
+      spiritEnergy: Math.max(0, updatedSpiritEnergy - breakthroughEnergyCost),
       spiritStone: Math.max(
         0,
         sect.resources.spiritStone +
