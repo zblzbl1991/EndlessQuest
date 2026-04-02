@@ -2,7 +2,7 @@
 import type { SectStore } from './types'
 import type { BuildingType } from '../../types'
 import type { Character } from '../../types/character'
-import { BUILDING_DEFS } from '../../data/buildings'
+import { BUILDING_DEFS, getBuildingExpandCost, getBuildingNodeCap, isResourceNode } from '../../data/buildings'
 import { SPECIALTY_BUILDING_MAP } from '../../data/specialties'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../../systems/sect/BuildingSystem'
 import { emitEvent } from '../eventLogStore'
@@ -89,7 +89,39 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
     set((s) => ({
       sect: {
         ...s.sect,
-        buildings: s.sect.buildings.map((b) => (b.type === type ? { ...b, level: b.level + 1 } : b)),
+        buildings: s.sect.buildings.map((b) =>
+          b.type === type ? { ...b, level: b.level + 1, count: Math.max(1, b.count ?? 0) } : b
+        ),
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
+        },
+        stats: {
+          ...s.sect.stats,
+          totalBuildingUpgrades: s.sect.stats.totalBuildingUpgrades + 1,
+          totalSpiritStoneSpent: s.sect.stats.totalSpiritStoneSpent + cost.spiritStone,
+        },
+      },
+    }))
+
+    return true
+  },
+
+  expandBuilding: (type: BuildingType) => {
+    const { sect } = get()
+    const building = sect.buildings.find((b) => b.type === type)
+    const mainHallLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
+
+    if (!building || !building.unlocked || !isResourceNode(type) || building.level <= 0) return false
+    if ((building.count ?? 0) >= getBuildingNodeCap(mainHallLevel)) return false
+
+    const cost = getBuildingExpandCost(type, building.count ?? 0)
+    if (sect.resources.spiritStone < cost.spiritStone) return false
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) => (b.type === type ? { ...b, count: (b.count ?? 0) + 1 } : b)),
         resources: {
           ...s.sect.resources,
           spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
@@ -134,6 +166,30 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
       } else {
         emitEvent('building_upgrade', `${bDef?.name ?? type} 閸楀洨楠囬懛?Lv${newLevel}`)
       }
+    }
+
+    return { success, reason: '' }
+  },
+
+  tryExpandBuilding: (type: BuildingType) => {
+    const { sect } = get()
+    const building = sect.buildings.find((b) => b.type === type)
+    const def = BUILDING_DEFS.find((d) => d.type === type)
+    const mainHallLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
+
+    if (!building?.unlocked || building.level <= 0) return { success: false, reason: '建筑尚未启用' }
+    if (!def?.expandable || !isResourceNode(type)) return { success: false, reason: '当前建筑不可扩建' }
+
+    const nodeCap = getBuildingNodeCap(mainHallLevel)
+    if ((building.count ?? 0) >= nodeCap) return { success: false, reason: `主殿当前仅容纳 ${nodeCap} 座` }
+
+    const cost = getBuildingExpandCost(type, building.count ?? 0)
+    if (sect.resources.spiritStone < cost.spiritStone) return { success: false, reason: '灵石不足' }
+
+    const success = get().expandBuilding(type)
+    if (success) {
+      const nextCount = get().sect.buildings.find((b) => b.type === type)?.count ?? building.count
+      emitEvent('building_upgrade', `${def.name} 扩建至 ${nextCount} 座`)
     }
 
     return { success, reason: '' }

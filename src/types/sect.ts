@@ -50,6 +50,7 @@ export interface OfflineAccumulator {
 export interface Building {
   type: BuildingType
   level: number
+  count: number
   unlocked: boolean
   productionQueue: ProductionQueue
 }

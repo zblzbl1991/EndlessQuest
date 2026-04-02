@@ -9,6 +9,7 @@ import type { GameHistoryEntry } from './HistoryStore'
 import { getDB } from './db'
 import { migrateToItemStacks } from '../item/ItemStackUtils'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
+import { BUILDING_DEFS } from '../../data/buildings'
 
 const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
@@ -130,6 +131,33 @@ function normalizeAutomationSettings(
     ...DEFAULT_AUTOMATION_SETTINGS,
     ...settings,
   }
+}
+
+function normalizeBuildings(buildings: Partial<Sect['buildings'][number]>[] | undefined): Sect['buildings'] {
+  const buildingMap = new Map((buildings ?? []).map((building) => [building.type, building]))
+
+  return BUILDING_DEFS.map((def) => {
+    const saved = buildingMap.get(def.type)
+    const unlocked = saved?.unlocked ?? (def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField')
+    const level =
+      typeof saved?.level === 'number'
+        ? saved.level
+        : def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField'
+          ? 1
+          : 0
+    const fallbackCount = level > 0 || unlocked ? 1 : 0
+
+    return {
+      type: def.type,
+      level,
+      count: normalizeFiniteNumber(saved?.count, fallbackCount),
+      unlocked,
+      productionQueue: {
+        recipeId: saved?.productionQueue?.recipeId ?? null,
+        progress: normalizeFiniteNumber(saved?.productionQueue?.progress, 0),
+      },
+    }
+  })
 }
 
 // ---------------------------------------------------------------------------
@@ -261,14 +289,16 @@ export async function loadGame(): Promise<boolean> {
 
     // Read per-entity stores
     const rawCharacters = (await db.getAll('characters')) as SavedCharacter[]
-    const buildings = (await db.getAll('buildings')) as Sect['buildings']
+    const rawBuildings = (await db.getAll('buildings')) as Partial<Sect['buildings'][number]>[]
     const rawVault = await db.getAll('vault')
     const pets = (await db.getAll('pets')) as Sect['pets']
 
     // Integrity check: if meta exists but all entity stores are empty, corrupted
-    if (rawCharacters.length === 0 && buildings.length === 0) {
+    if (rawCharacters.length === 0 && rawBuildings.length === 0) {
       return false
     }
+
+    const buildings = normalizeBuildings(rawBuildings)
 
     // Migrate vault and backpacks to ItemStack format
     const vault = migrateToItemStacks(rawVault)

@@ -10,6 +10,7 @@ export interface BuildingDef {
   maxLevel: number
   upgradeCost: (level: number) => { spiritStone: number }
   unlockCondition: string
+  expandable?: boolean
 }
 
 export interface BuildingEcologyProfile {
@@ -134,35 +135,37 @@ export function getObservedBuildingEcology(type: BuildingType): BuildingEcologyP
 export const BUILDING_DEFS: BuildingDef[] = [
   {
     type: 'mainHall',
-    name: '大殿',
-    description: '宗门中枢，统摄诸殿运转。',
+    name: '主殿',
+    description: '宗门中枢，决定地块上限与整体展开能力。',
     maxLevel: 10,
     upgradeCost: (level) => ({ spiritStone: Math.round(100 * Math.pow(level + 1, 1.3)) }),
     unlockCondition: '初始',
   },
   {
     type: 'spiritMine',
-    name: '灵石矿',
-    description: '产出灵石与矿材，支撑宗门营造。',
+    name: '灵矿',
+    description: '产出灵石与矿材，是宗门的稳定灵石来源。',
     maxLevel: 10,
     upgradeCost: (level) => ({ spiritStone: Math.round(100 * Math.pow(level + 1, 1.3)) }),
     unlockCondition: '初始',
+    expandable: true,
   },
   {
     type: 'spiritField',
     name: '灵田',
-    description: '产出灵气与灵草，维系丹药与修行。',
+    description: '产出灵气与灵草，支撑修炼与炼丹需求。',
     maxLevel: 10,
     upgradeCost: (level) => ({ spiritStone: Math.round(80 * Math.pow(level + 1, 1.3)) }),
-    unlockCondition: '大殿 Lv1',
+    unlockCondition: '初始',
+    expandable: true,
   },
   {
     type: 'market',
     name: '坊市',
-    description: '往来商旅汇聚，可换购宗门所需。',
+    description: '来往商旅汇聚，可换购宗门所需物资。',
     maxLevel: 8,
     upgradeCost: (level) => ({ spiritStone: Math.round(100 * Math.pow(level + 1, 1.3)) }),
-    unlockCondition: '大殿 Lv1',
+    unlockCondition: '主殿 Lv1',
   },
   {
     type: 'alchemyFurnace',
@@ -170,7 +173,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     description: '炼制丹药与灵液，补足修行与战备。',
     maxLevel: 8,
     upgradeCost: (level) => ({ spiritStone: Math.round(150 * Math.pow(level + 1, 1.3)) }),
-    unlockCondition: '大殿 Lv2 + 灵田 Lv2',
+    unlockCondition: '主殿 Lv2 + 灵田 Lv2',
   },
   {
     type: 'forge',
@@ -178,7 +181,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     description: '锻造并精炼器物，提升弟子战力。',
     maxLevel: 8,
     upgradeCost: (level) => ({ spiritStone: Math.round(150 * Math.pow(level + 1, 1.3)) }),
-    unlockCondition: '大殿 Lv2',
+    unlockCondition: '主殿 Lv2',
   },
   {
     type: 'scriptureHall',
@@ -186,7 +189,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     description: '扩充藏经容量，沉淀宗门传承。',
     maxLevel: 8,
     upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.3)) }),
-    unlockCondition: '大殿 Lv3',
+    unlockCondition: '主殿 Lv3',
   },
   {
     type: 'recruitmentPavilion',
@@ -194,7 +197,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     description: '广纳有缘之人，补充门中弟子。',
     maxLevel: 6,
     upgradeCost: (level) => ({ spiritStone: Math.round(300 * Math.pow(level + 1, 1.3)) }),
-    unlockCondition: '大殿 Lv3',
+    unlockCondition: '主殿 Lv3',
   },
 ]
 
@@ -202,9 +205,31 @@ export function getBuildingDef(type: BuildingType): BuildingDef | undefined {
   return BUILDING_DEFS.find((building) => building.type === type)
 }
 
+export function isResourceNode(type: BuildingType): boolean {
+  return type === 'spiritField' || type === 'spiritMine'
+}
+
+export function getBuildingNodeCap(mainHallLevel: number): number {
+  if (mainHallLevel >= 6) return 4
+  if (mainHallLevel >= 4) return 3
+  if (mainHallLevel >= 2) return 2
+  return 1
+}
+
+export function getBuildingExpandCost(type: BuildingType, currentCount: number): { spiritStone: number } {
+  const nextCount = Math.max(1, currentCount + 1)
+  const base = type === 'spiritField' ? 140 : 180
+  return { spiritStone: Math.round(base * Math.pow(nextCount, 1.6)) }
+}
+
 export function getSpiritFieldRate(level: number): number {
   if (level < 1) return 0
   return 3 + (level - 1) * 2
+}
+
+export function getSpiritFieldHerbRate(level: number): number {
+  if (level < 1) return 0
+  return 0.1 * level
 }
 
 export function getSpiritMineRate(level: number): number {
@@ -217,11 +242,16 @@ export function getSpiritMineOreRate(level: number): number {
   return 0.05 * level
 }
 
-export function calcResourceCaps(spiritFieldLevel: number, spiritMineLevel: number): ResourceCaps {
+export function calcResourceCaps(
+  spiritFieldLevel: number,
+  spiritMineLevel: number,
+  spiritFieldCount = 1,
+  spiritMineCount = 1
+): ResourceCaps {
   return {
-    spiritEnergy: 500 + spiritFieldLevel * 300,
-    herb: 200 + spiritFieldLevel * 100,
-    ore: 200 + spiritMineLevel * 100,
+    spiritEnergy: (500 + spiritFieldLevel * 300) * Math.max(1, spiritFieldCount),
+    herb: (200 + spiritFieldLevel * 100) * Math.max(1, spiritFieldCount),
+    ore: (200 + spiritMineLevel * 100) * Math.max(1, spiritMineCount),
   }
 }
 
@@ -231,11 +261,11 @@ export function getBuildingEffectText(building: Building): string {
 
   switch (building.type) {
     case 'mainHall':
-      return `宗门位阶 ${building.level} | 弟子上限 ${5 + building.level * 5}`
+      return `宗门位阶 ${building.level} | 资源地块上限 ${getBuildingNodeCap(building.level)}`
     case 'spiritField':
-      return `灵气 +${getSpiritFieldRate(building.level)}/秒 | 灵草 +${(0.1 * building.level).toFixed(1)}/秒`
+      return `单座灵气 +${getSpiritFieldRate(building.level)}/秒 | 单座灵草 +${getSpiritFieldHerbRate(building.level).toFixed(1)}/秒`
     case 'spiritMine':
-      return `灵石 +${getSpiritMineRate(building.level).toFixed(1)}/秒 | 矿材 +${getSpiritMineOreRate(building.level).toFixed(2)}/秒`
+      return `单座灵石 +${getSpiritMineRate(building.level).toFixed(1)}/秒 | 单座矿材 +${getSpiritMineOreRate(building.level).toFixed(2)}/秒`
     case 'market': {
       const buff = getMarketBuff(building.level)
       return `每日刷新 ${buff.dailyRefreshCount} 次`

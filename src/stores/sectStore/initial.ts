@@ -64,8 +64,9 @@ export function createInitialState(): { sect: Sect } {
       },
       buildings: BUILDING_DEFS.map((def) => ({
         type: def.type,
-        level: def.type === 'mainHall' ? 1 : 0,
-        unlocked: def.type === 'mainHall' || def.type === 'spiritMine',
+        level: def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField' ? 1 : 0,
+        count: def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField' ? 1 : 0,
+        unlocked: def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField',
         productionQueue: { recipeId: null, progress: 0 },
       })),
       characters: [generateCharacter('common')],

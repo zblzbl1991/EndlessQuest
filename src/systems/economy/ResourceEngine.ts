@@ -1,13 +1,15 @@
 // src/systems/economy/ResourceEngine.ts
 
-import { getSpiritFieldRate, getSpiritMineRate, getSpiritMineOreRate } from '../../data/buildings'
+import { getSpiritFieldHerbRate, getSpiritFieldRate, getSpiritMineOreRate, getSpiritMineRate } from '../../data/buildings'
 import type { ResourceCaps, Resources } from '../../types/sect'
 
 export type { Resources }
 
 export interface BuildingLevels {
   spiritField: number
+  spiritFieldCount: number
   spiritMine: number
+  spiritMineCount: number
   mainHall: number
 }
 
@@ -29,22 +31,24 @@ export function calcResourceRates(
 ): ResourceRates {
   const totalMult = bonuses.techniqueMultiplier * bonuses.discipleMultiplier
   const sfLevel = buildingLevels.spiritField
+  const sfCount = Math.max(0, buildingLevels.spiritFieldCount)
   const smLevel = buildingLevels.spiritMine
+  const smCount = Math.max(0, buildingLevels.spiritMineCount)
 
-  const spiritEnergy = sfLevel > 0 ? getSpiritFieldRate(sfLevel) * totalMult : 0
-  const spiritStone = smLevel > 0 ? getSpiritMineRate(smLevel) * totalMult : 0
-  const herb = sfLevel > 0 ? 0.1 * sfLevel * totalMult : 0
-  const ore = smLevel > 0 ? getSpiritMineOreRate(smLevel) * totalMult : 0
+  const spiritEnergy = sfLevel > 0 ? getSpiritFieldRate(sfLevel) * sfCount * totalMult : 0
+  const spiritStone = smLevel > 0 ? getSpiritMineRate(smLevel) * smCount * totalMult : 0
+  const herb = sfLevel > 0 ? getSpiritFieldHerbRate(sfLevel) * sfCount * totalMult : 0
+  const ore = smLevel > 0 ? getSpiritMineOreRate(smLevel) * smCount * totalMult : 0
 
   return { spiritEnergy, spiritStone, herb, ore }
 }
 
 /**
  * Calculate sect tax (spirit stone income from main hall).
- * Formula: sectLevel * discipleCount * 0.5 per second
+ * Formula: sectLevel * discipleCount * 0.1 per second
  */
 export function calcTaxRate(sectLevel: number, discipleCount: number): number {
-  return sectLevel * discipleCount * 0.5
+  return sectLevel * discipleCount * 0.1
 }
 
 export function clampResources(resources: Resources, caps: ResourceCaps): Resources {

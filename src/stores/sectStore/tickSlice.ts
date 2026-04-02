@@ -32,11 +32,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     // 1. Calculate building levels
     const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
+    const sfCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
     const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
+    const smCount = sect.buildings.find((b) => b.type === 'spiritMine')?.count ?? 0
     const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
 
     // 2. Calculate resource caps
-    const caps = calcResourceCaps(sfLevel, smLevel)
+    const caps = calcResourceCaps(sfLevel, smLevel, sfCount, smCount)
 
     // 3. Calculate technique multiplier from best cultivating character
     const maxTechRate = sect.characters
@@ -50,7 +52,16 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const bonuses: ProductionBonuses = { techniqueMultiplier: maxTechRate, discipleMultiplier: 1 }
 
     // 4. Calculate resource rates with production bonuses
-    const rates = calcResourceRates({ spiritField: sfLevel, spiritMine: smLevel, mainHall: mhLevel }, bonuses)
+    const rates = calcResourceRates(
+      {
+        spiritField: sfLevel,
+        spiritFieldCount: sfCount,
+        spiritMine: smLevel,
+        spiritMineCount: smCount,
+        mainHall: mhLevel,
+      },
+      bonuses
+    )
 
     // 4b. Apply specialty bonuses from assigned disciples
     const assignedSpecialties = (buildingType: string) =>

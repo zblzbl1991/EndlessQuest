@@ -54,6 +54,8 @@ export interface SectStore {
   // Building management
   upgradeBuilding(type: BuildingType): boolean
   tryUpgradeBuilding(type: BuildingType): { success: boolean; reason: string }
+  expandBuilding(type: BuildingType): boolean
+  tryExpandBuilding(type: BuildingType): { success: boolean; reason: string }
   setProductionRecipe(buildingType: BuildingType, recipeId: string | null): void
   autoAssignToBuilding(buildingType: string): { success: boolean; assigned: number; reason: string }
   autoOptimizeBuildingAssignments(): { success: boolean; assigned: number; reason: string }
