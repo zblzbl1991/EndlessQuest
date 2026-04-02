@@ -7,32 +7,20 @@ import { useAdventureStore } from '../adventureStore'
 import { calcSectLevel } from '../../systems/character/CharacterEngine'
 import { calcResourceRates, clampResources, calcTaxRate } from '../../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../../systems/economy/ResourceEngine'
-import {
-  tick as cultivationTick,
-  canBreakthrough,
-  breakthrough as performBreakthrough,
-  calcBreakthroughFailureRate,
-  calcCultivationRate,
-} from '../../systems/cultivation/CultivationEngine'
-import { tryComprehendOnBreakthrough } from '../../systems/technique/TechniqueSystem'
+import { tick as cultivationTick, canBreakthrough, calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
+import { processBreakthrough } from '../../systems/cultivation/BreakthroughCoordinator'
 import { calcResourceCaps } from '../../data/buildings'
-import { REALMS, getBreakthroughResourceCost } from '../../data/realms'
 import { tickProductionQueue, calcOfflineProduction } from '../../systems/building/ProductionSystem'
 import { getAutoRecipeById } from '../../data/recipes'
 import { emitEvent } from '../eventLogStore'
-import { getRealmName } from '../../data/realms'
-import { shouldTriggerTribulation, resolveTribulation } from '../../systems/cultivation/TribulationSystem'
 import { getBuildingBonus } from '../../systems/character/SpecialtySystem'
 import { getSynergyBonus } from '../../systems/economy/SynergySystem'
 import { addItemQuantityToStacks } from '../../systems/item/ItemStackUtils'
 import { produceItemAsStack } from './initial'
-import { getTechniqueById } from '../../data/techniquesTable'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
-import { resolveSuccessfulBreakthroughFates } from '../../systems/character/FateSystem'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
 import { tickRecoveryDays } from '../../systems/character/DiscipleRecoverySystem'
 import { buildAutomationRunConfig, shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
-import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 
 export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
@@ -172,10 +160,6 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
       if (char.status === 'idle') {
-        if (needsCultivationPathChoice(char) && canBreakthrough(char)) {
-          return char
-        }
-
         const effectiveSpirit = 2 * spiritRatio * deltaSec
         const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
         const gained = result.cultivationGained
@@ -189,178 +173,41 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         // Deduct spirit energy
         updatedSpiritEnergy -= effectiveSpirit
 
-        // Auto-breakthrough check
+        // Auto-breakthrough: delegate to pure coordinator
         if (canBreakthrough(updatedChar)) {
-          if (needsCultivationPathChoice(updatedChar)) {
-            return updatedChar
+          const btResult = processBreakthrough(
+            updatedChar,
+            sect.resources.spiritStone - breakthroughStoneCost,
+            updatedSpiritEnergy - breakthroughEnergyCost,
+            get().sect.techniqueCodex,
+            { spiritStone: breakthroughStoneCost, spiritEnergy: breakthroughEnergyCost }
+          )
+
+          updatedChar = btResult.updatedChar
+          breakthroughStoneCost += btResult.resourceCost.spiritStone
+          breakthroughEnergyCost += btResult.resourceCost.spiritEnergy
+          statBreakthroughAttempts += btResult.attemptsCount
+          statBreakthroughSuccesses += btResult.successesCount
+
+          for (const event of btResult.events) {
+            emitEvent(event.type, event.message)
           }
 
-          // Check if this is a major realm breakthrough (max stage -> new realm)
-          const currentRealm = REALMS[updatedChar.realm]
-          const isMajorBreakthrough = updatedChar.realmStage >= currentRealm.stages.length - 1
-          const cost = getBreakthroughResourceCost(updatedChar.realm, updatedChar.realmStage)
+          if (btResult.died) {
+            breakthroughDeaths.push(updatedChar)
+          }
 
-          if (isMajorBreakthrough) {
-            // Major realm transition requires spiritStone
-            if (
-              sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone ||
-              updatedSpiritEnergy - breakthroughEnergyCost < cost.spiritEnergy
-            ) {
-              // Cannot breakthrough: insufficient stones - skip
-            } else {
-              breakthroughStoneCost += cost.spiritStone
-              breakthroughEnergyCost += cost.spiritEnergy
+          if (btResult.unlockedTribulationMilestone) {
+            unlockedFirstTribulationSuccess = true
+          }
 
-              if (shouldTriggerTribulation(updatedChar.realm, updatedChar.realmStage)) {
-                // Tribulation path for realms with tribulationPower
-                const tribResult = resolveTribulation(updatedChar)
-                if (tribResult.success) {
-                  const failureRate = calcBreakthroughFailureRate(updatedChar)
-                  statBreakthroughAttempts++
-                  const btResult = performBreakthrough(updatedChar, failureRate)
-                  if (btResult.success) {
-                    statBreakthroughSuccesses++
-                    const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-                    emitEvent('breakthrough_success', `${updatedChar.name} 渡过天劫，突破至 ${nextName}！`)
-                    accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
-                    updatedChar = {
-                      ...updatedChar,
-                      realm: btResult.newRealm,
-                      realmStage: btResult.newStage,
-                      cultivation: 0,
-                      baseStats: btResult.newStats,
-                      fateTags: resolveSuccessfulBreakthroughFates(updatedChar.fateTags, {
-                        tribulation: true,
-                        failureRate,
-                      }),
-                    }
-                    unlockedFirstTribulationSuccess = true
-                    const comprehendedId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, true)
-                    if (comprehendedId) {
-                      updatedChar = {
-                        ...updatedChar,
-                        learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
-                      }
-                      const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
-                      emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
-                    }
-                  } else {
-                    emitEvent('breakthrough_failure', `${updatedChar.name} 天劫虽过，却在突破中身死道消`)
-                    accBreakthroughs.push({
-                      characterName: updatedChar.name,
-                      targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
-                      success: false,
-                    })
-                    breakthroughDeaths.push(updatedChar)
-                  }
-                } else {
-                  emitEvent(
-                    'breakthrough_failure',
-                    tribResult.severe
-                      ? `${updatedChar.name} 未能渡过天劫，当场身死道消`
-                      : `${updatedChar.name} 渡劫失败，身死道消`
-                  )
-                  accBreakthroughs.push({
-                    characterName: updatedChar.name,
-                    targetRealm: getRealmName(updatedChar.realm + 1, 0),
-                    success: false,
-                  })
-                  breakthroughDeaths.push(updatedChar)
-                }
-              } else {
-                // Non-tribulation path for realms without tribulationPower
-                const failureRate = calcBreakthroughFailureRate(updatedChar)
-                statBreakthroughAttempts++
-                const btResult = performBreakthrough(updatedChar, failureRate)
-                if (btResult.success) {
-                  statBreakthroughSuccesses++
-                  const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-                  emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
-                  accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
-                  updatedChar = {
-                    ...updatedChar,
-                    realm: btResult.newRealm,
-                    realmStage: btResult.newStage,
-                    cultivation: 0,
-                    baseStats: btResult.newStats,
-                    fateTags: resolveSuccessfulBreakthroughFates(updatedChar.fateTags, {
-                      tribulation: false,
-                      failureRate,
-                    }),
-                  }
-                  // Breakthrough comprehension (major)
-                  const comprehendedId = tryComprehendOnBreakthrough(
-                    updatedChar,
-                    get().sect.techniqueCodex,
-                    isMajorBreakthrough
-                  )
-                  if (comprehendedId) {
-                    updatedChar = {
-                      ...updatedChar,
-                      learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
-                    }
-                    const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
-                    emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${compName}`)
-                  }
-                } else {
-                  emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，身死道消`)
-                  accBreakthroughs.push({
-                    characterName: updatedChar.name,
-                    targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
-                    success: false,
-                  })
-                  breakthroughDeaths.push(updatedChar)
-                }
-              }
-            }
-          } else {
-            // Sub-level breakthrough: check spirit stone and spirit energy costs
-            if (
-              sect.resources.spiritStone - breakthroughStoneCost < cost.spiritStone ||
-              updatedSpiritEnergy - breakthroughEnergyCost < cost.spiritEnergy
-            ) {
-              // Cannot breakthrough: insufficient stones - skip (keep cultivation full)
-            } else {
-              breakthroughStoneCost += cost.spiritStone
-              breakthroughEnergyCost += cost.spiritEnergy
-              const failureRate = calcBreakthroughFailureRate(updatedChar)
-              statBreakthroughAttempts++
-              const btResult = performBreakthrough(updatedChar, failureRate)
-              if (btResult.success) {
-                statBreakthroughSuccesses++
-                const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-                emitEvent('breakthrough_success', `${updatedChar.name} 突破至 ${nextName}`)
-                accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: nextName, success: true })
-                updatedChar = {
-                  ...updatedChar,
-                  realm: btResult.newRealm,
-                  realmStage: btResult.newStage,
-                  cultivation: 0,
-                  baseStats: btResult.newStats,
-                  fateTags: resolveSuccessfulBreakthroughFates(updatedChar.fateTags, {
-                    tribulation: false,
-                    failureRate,
-                  }),
-                }
-                // Breakthrough comprehension (sub-level)
-                const subComprehendedId = tryComprehendOnBreakthrough(updatedChar, get().sect.techniqueCodex, false)
-                if (subComprehendedId) {
-                  updatedChar = {
-                    ...updatedChar,
-                    learnedTechniques: [...updatedChar.learnedTechniques, subComprehendedId],
-                  }
-                  const subCompName = getTechniqueById(subComprehendedId)?.name ?? subComprehendedId
-                  emitEvent('breakthrough_comprehension', `${updatedChar.name} 顿悟了 ${subCompName}`)
-                }
-              } else {
-                emitEvent('breakthrough_failure', `${updatedChar.name} 突破失败，身死道消`)
-                accBreakthroughs.push({
-                  characterName: updatedChar.name,
-                  targetRealm: getRealmName(btResult.newRealm, btResult.newStage),
-                  success: false,
-                })
-                breakthroughDeaths.push(updatedChar)
-              }
+          // Track breakthroughs for offline accumulator from events
+          for (const event of btResult.events) {
+            if (event.type === 'breakthrough_success') {
+              const targetRealm = `${updatedChar.realm}-${updatedChar.realmStage}`
+              accBreakthroughs.push({ characterName: updatedChar.name, targetRealm, success: true })
+            } else if (event.type === 'breakthrough_failure') {
+              accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: 'unknown', success: false })
             }
           }
         }
