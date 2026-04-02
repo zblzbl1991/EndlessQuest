@@ -412,4 +412,32 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     expect(useSectStore.getState().sect.characters[0].fateTags).toEqual([])
     expect(useSectStore.getState().sect.archiveMilestones).toEqual([])
   })
+
+  it('should normalize missing saved resource fields to safe numeric defaults', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    const db = await getDB()
+    const meta = await db.get('meta', 1)
+    await db.put('meta', {
+      ...meta,
+      resources: {
+        spiritEnergy: 123,
+        herb: 9,
+        ore: 2,
+      },
+    })
+
+    useSectStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+    expect(useSectStore.getState().sect.resources).toEqual({
+      spiritStone: 0,
+      spiritEnergy: 123,
+      herb: 9,
+      ore: 2,
+    })
+  })
 })

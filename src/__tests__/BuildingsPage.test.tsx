@@ -44,4 +44,17 @@ describe('BuildingsPage', () => {
     fireEvent.click(screen.getByText('参悟'))
     expect(screen.queryByText(/生态偏置/)).not.toBeInTheDocument()
   })
+
+  it('renders buildings page interactions in Chinese', () => {
+    render(<BuildingsPage />)
+
+    expect(screen.queryByText('MAX')).not.toBeInTheDocument()
+    expect(screen.queryByText('Core sect building.')).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(/Sect tier|Daily refreshes|Potion power|Forge success|Codex cap|Recruit cost/)
+    ).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByText('选择配方')[0]!)
+    expect(screen.getByRole('button', { name: '关闭' })).toBeInTheDocument()
+  })
 })

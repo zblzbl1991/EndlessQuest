@@ -4,6 +4,7 @@ import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { getRealmName } from '../data/realms'
 import { getRunIntentDef } from '../data/runIntents'
+import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import type { CharacterQuality } from '../types/character'
 import type { AdventureReport } from '../types'
@@ -12,12 +13,6 @@ import { PixelIcon } from '../components/common/PixelIcon'
 import RunBuildSummary from '../components/adventure/RunBuildSummary'
 import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
 import styles from './AdventurePage.module.css'
-
-const RESULT_LABELS = {
-  completed: '通关',
-  retreated: '撤退',
-  failed: '失利',
-} as const
 
 const RUN_INTENT_IDS: AutomationStrategy[] = ['steady', 'combat', 'profit']
 
@@ -46,11 +41,11 @@ function extractRouteDirections(detail: AdventureReport | undefined): string[] {
   const labels: string[] = []
   for (const step of detail.steps) {
     if (step.type !== 'route_selected' && step.type !== 'route_considered') continue
-    const text = `${step.summary} ${step.detail}`
-    if (text.includes('stable route') || text.includes('stable')) labels.push('stable')
-    else if (text.includes('combat route') || text.includes('combat')) labels.push('combat')
-    else if (text.includes('profit route') || text.includes('profit')) labels.push('profit')
-    else if (text.includes('mutation route') || text.includes('mutation')) labels.push('mutation')
+    const text = `${step.summary} ${step.detail}`.toLowerCase()
+    if (text.includes('稳定') || text.includes('stable route') || text.includes('stable')) labels.push('stable')
+    if (text.includes('战斗') || text.includes('combat route') || text.includes('combat')) labels.push('combat')
+    if (text.includes('收益') || text.includes('profit route') || text.includes('profit')) labels.push('profit')
+    if (text.includes('异变') || text.includes('mutation route') || text.includes('mutation')) labels.push('mutation')
   }
 
   return [...new Set(labels)]
@@ -104,7 +99,7 @@ export default function AdventurePage() {
             </span>
             <span className={styles.heroFocusMeta}>
               {latestReport
-                ? `最近一局${RESULT_LABELS[latestReport.result]}，推进至第 ${latestReport.floorsCleared} 层。`
+                ? `最近一局${REPORT_RESULT_LABELS[latestReport.result]}，推进至第 ${latestReport.floorsCleared} 层。`
                 : '最近尚无探索留痕，可先择一处秘境试路。'}
             </span>
           </div>
@@ -175,13 +170,13 @@ export default function AdventurePage() {
                     <div className={styles.reportBadges}>
                       <span className={styles.reportBadge}>{getRunIntentDef(report.strategy).label}</span>
                       <span className={`${styles.reportBadge} ${styles[`result${report.result}`] ?? ''}`}>
-                        {RESULT_LABELS[report.result]}
+                        {REPORT_RESULT_LABELS[report.result]}
                       </span>
                     </div>
                   </div>
 
                   <div className={styles.reportStats}>
-                    <span>战术：{report.tacticalPreset}</span>
+                    <span>战术：{getTacticalPresetLabel(report.tacticalPreset)}</span>
                     <span>推进至第 {report.floorsCleared} 层</span>
                   </div>
 
@@ -194,7 +189,7 @@ export default function AdventurePage() {
 
                   <div className={styles.reportStats}>
                     <span>核心弟子：{insight?.coreName ?? '暂无'}</span>
-                    <span>关键 build：{insight?.keyBuild ?? '暂无关键 build'}</span>
+                    <span>关键构筑：{insight?.keyBuild ?? '暂无关键构筑'}</span>
                   </div>
 
                   <div className={styles.reportRewardLine}>

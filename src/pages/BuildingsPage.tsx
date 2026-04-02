@@ -316,7 +316,7 @@ function BuildingsTab() {
     const result = autoAssignToBuilding(buildingType)
     setMessage({
       success: result.success,
-      text: result.success ? `Auto-assigned ${result.assigned} disciples` : result.reason,
+      text: result.success ? `已自动派驻 ${result.assigned} 名弟子` : result.reason,
     })
     setTimeout(() => setMessage(null), 2000)
   }
@@ -325,7 +325,7 @@ function BuildingsTab() {
     const result = autoOptimizeBuildingAssignments()
     setMessage({
       success: result.success,
-      text: result.success ? `Optimized ${result.assigned} disciple assignments` : result.reason,
+      text: result.success ? `已优化 ${result.assigned} 名弟子派驻` : result.reason,
     })
     setTimeout(() => setMessage(null), 2000)
   }
@@ -386,7 +386,7 @@ function BuildingsTab() {
               </span>
               <span className={styles.buildingLevel}>
                 Lv{building.level}
-                {isMaxLevel ? ' MAX' : ''}
+                {isMaxLevel ? ' 满级' : ''}
               </span>
             </div>
             <div className={styles.buildingDesc}>{def.description}</div>
@@ -780,7 +780,7 @@ function RecipeDrawer({
             {buildingType === 'alchemyFurnace' ? '炼丹配方' : '锻造配方'}
           </span>
           <button className={styles.recipeDrawerClose} onClick={onClose}>
-            x
+            关闭
           </button>
         </div>
 

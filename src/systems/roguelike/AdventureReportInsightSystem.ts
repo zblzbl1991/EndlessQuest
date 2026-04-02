@@ -76,7 +76,7 @@ export function buildAdventureReportInsight(
 
   return {
     coreName: coreMember?.name ?? '暂无',
-    keyBuild: keyBuild || '暂无关键 build',
+    keyBuild: keyBuild || '暂无关键构筑',
     mutationHighlights,
     turningPoint: turningStep?.summary ?? (report.result === 'completed' ? '稳定推进到终局' : '未出现明确转折点'),
     cause,

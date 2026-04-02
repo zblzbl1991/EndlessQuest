@@ -4,14 +4,9 @@ import { useAdventureStore } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { PixelIcon } from '../components/common/PixelIcon'
 import { getRunIntentDef } from '../data/runIntents'
+import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import styles from './AdventureReportPage.module.css'
-
-const RESULT_LABELS = {
-  completed: '通关',
-  retreated: '撤退',
-  failed: '失利',
-} as const
 
 function getDungeonIconName(dungeonId: string): string {
   switch (dungeonId) {
@@ -116,13 +111,13 @@ export default function AdventureReportPage() {
           <div>
             <div className={styles.resultBadge}>
               <PixelIcon name="eventAncientCave" size={16} className={styles.inlineIcon} aria-label="结果" />
-              {RESULT_LABELS[report.result]}
+              {REPORT_RESULT_LABELS[report.result]}
             </div>
             <h2 className={styles.highlightTitle}>此行已定，卷中可见成败因由。</h2>
           </div>
           <div className={styles.highlightMeta}>
             <span>{getRunIntentDef(report.config.automationStrategy).label}</span>
-            <span>{report.config.tacticalPreset}</span>
+            <span>{getTacticalPresetLabel(report.config.tacticalPreset)}</span>
             <span>第 {report.floorsCleared} 层</span>
           </div>
         </div>
@@ -155,8 +150,8 @@ export default function AdventureReportPage() {
             <div className={styles.highlightPanelTitle}>构筑余势</div>
             <div className={styles.summaryRow}>
               <span className={styles.summaryLabel}>
-                <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="关键 build" />
-                关键 build
+                <PixelIcon name="eventRandom" size={16} className={styles.inlineIcon} aria-label="关键构筑" />
+                关键构筑
               </span>
               <strong>{insight?.keyBuild ?? '暂无'}</strong>
             </div>

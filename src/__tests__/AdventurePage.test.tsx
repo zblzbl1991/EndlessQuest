@@ -102,4 +102,37 @@ describe('AdventurePage', () => {
     expect(screen.getByText('出战弟子')).toBeInTheDocument()
     expect(screen.getByText(/本次探索可能折损弟子/)).toBeInTheDocument()
   })
+
+  it('renders player-facing adventure copy in Chinese and normalizes legacy route text', () => {
+    useAdventureStore.setState((state) => ({
+      reportDetails: {
+        ...state.reportDetails,
+        report_recent: {
+          ...state.reportDetails.report_recent,
+          steps: [
+            {
+              id: 'legacy_route',
+              type: 'route_selected',
+              timestamp: 2,
+              floor: 2,
+              summary: 'stable route chosen',
+              detail: 'combat route was skipped for safety.',
+            },
+          ],
+        },
+      },
+    }))
+
+    render(
+      <MemoryRouter>
+        <AdventurePage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getAllByText('战术：平衡').length).toBeGreaterThan(0)
+    expect(screen.getByText(/关键构筑：/)).toBeInTheDocument()
+    expect(screen.queryByText(/build/i)).not.toBeInTheDocument()
+    expect(screen.getByText('稳定')).toBeInTheDocument()
+    expect(screen.getByText('战斗')).toBeInTheDocument()
+  })
 })

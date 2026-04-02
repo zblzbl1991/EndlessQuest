@@ -1,4 +1,4 @@
-import type { Sect, SectStats } from '../../types'
+import type { Sect, SectStats, Resources } from '../../types'
 import type { DungeonRun, AdventureReport } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
@@ -88,6 +88,26 @@ const DEFAULT_STATS: SectStats = {
   totalPetCaptures: 0,
   totalPlayTime: 0,
   longestOfflineSeconds: 0,
+}
+
+const DEFAULT_RESOURCES: Resources = {
+  spiritStone: 0,
+  spiritEnergy: 0,
+  herb: 0,
+  ore: 0,
+}
+
+function normalizeFiniteNumber(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback
+}
+
+function normalizeResources(resources: Partial<Resources> | undefined): Resources {
+  return {
+    spiritStone: normalizeFiniteNumber(resources?.spiritStone, DEFAULT_RESOURCES.spiritStone),
+    spiritEnergy: normalizeFiniteNumber(resources?.spiritEnergy, DEFAULT_RESOURCES.spiritEnergy),
+    herb: normalizeFiniteNumber(resources?.herb, DEFAULT_RESOURCES.herb),
+    ore: normalizeFiniteNumber(resources?.ore, DEFAULT_RESOURCES.ore),
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -267,7 +287,7 @@ export async function loadGame(): Promise<boolean> {
     const sect: Sect = {
       name: meta.sectName,
       level: meta.sectLevel,
-      resources: meta.resources,
+      resources: normalizeResources(meta.resources),
       buildings: buildings ?? [],
       characters,
       vault,

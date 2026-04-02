@@ -1,21 +1,8 @@
 import { BLESSING_DEFS } from '../../data/blessings'
 import { RELIC_DEFS } from '../../data/relics'
 import type { BlessingId, RelicId, TacticalPreset } from '../../types/adventure'
+import { ROUTE_DIRECTION_LABELS, getTacticalPresetLabel } from '../../data/uiCopy'
 import styles from './RunBuildSummary.module.css'
-
-const PRESET_LABELS: Record<TacticalPreset, string> = {
-  conservative: '守势',
-  balanced: '平衡',
-  burst: '爆发',
-  bossCounter: '破首',
-}
-
-const ROUTE_DIRECTION_LABELS: Record<string, string> = {
-  stable: '稳定',
-  combat: '战斗',
-  profit: '收益',
-  mutation: '异变',
-}
 
 interface RunBuildSummaryProps {
   tacticalPreset: TacticalPreset
@@ -36,7 +23,7 @@ export default function RunBuildSummary({
     <div className={styles.panel}>
       <div className={styles.header}>
         <span className={styles.title}>本次构筑</span>
-        <span className={styles.preset}>战术: {PRESET_LABELS[tacticalPreset]}</span>
+        <span className={styles.preset}>战术：{getTacticalPresetLabel(tacticalPreset)}</span>
       </div>
 
       <div className={styles.section}>
@@ -75,7 +62,7 @@ export default function RunBuildSummary({
           <div className={styles.tags}>
             {routeDirections.map((tag, index) => (
               <span key={`${tag}-${index}`} className={styles.routeTag}>
-                {ROUTE_DIRECTION_LABELS[tag] ?? tag}
+                {ROUTE_DIRECTION_LABELS[tag as keyof typeof ROUTE_DIRECTION_LABELS] ?? tag}
               </span>
             ))}
           </div>

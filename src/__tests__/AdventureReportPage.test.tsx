@@ -170,6 +170,20 @@ describe('Adventure report pages', () => {
     expect(screen.getByText('队伍保持血线并成功清图。')).toBeInTheDocument()
   })
 
+  it('renders report detail highlight copy in Chinese', () => {
+    render(
+      <MemoryRouter initialEntries={['/adventure/report/report_1']}>
+        <Routes>
+          <Route path="/adventure/report/:reportId" element={<AdventureReportPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('平衡')).toBeInTheDocument()
+    expect(screen.getByText('关键构筑')).toBeInTheDocument()
+    expect(screen.queryByText(/build/i)).not.toBeInTheDocument()
+  })
+
   it('keeps report names readable even after the disciple is removed from the live roster', () => {
     useSectStore.setState((s) => ({
       sect: {
