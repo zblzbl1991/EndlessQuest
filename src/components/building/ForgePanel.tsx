@@ -3,14 +3,8 @@ import { useSectStore } from '../../stores/sectStore'
 import { FORGE_RECIPES, canForge } from '../../systems/economy/ForgeSystem'
 import { getForgeBuff } from '../../systems/economy/BuildingEffects'
 import { PixelIcon } from '../common/PixelIcon'
+import { CHAR_QUALITY_NAMES } from '../../data/uiCopy'
 import styles from './ForgePanel.module.css'
-
-const QUALITY_LABELS: Record<string, string> = {
-  common: '凡品',
-  spirit: '灵品',
-  immortal: '仙品',
-  divine: '神品',
-}
 
 function getQualityClass(quality: string): string {
   if (quality === 'divine') return styles.recipeQualityDivine
@@ -65,7 +59,7 @@ export default function ForgePanel() {
                 {recipe.name}
               </span>
               <span className={`${styles.recipeQuality} ${getQualityClass(recipe.quality)}`}>
-                {QUALITY_LABELS[recipe.quality] || recipe.quality}
+                {CHAR_QUALITY_NAMES[recipe.quality as keyof typeof CHAR_QUALITY_NAMES] || recipe.quality}
               </span>
             </div>
             <div className={styles.recipeCost}>
