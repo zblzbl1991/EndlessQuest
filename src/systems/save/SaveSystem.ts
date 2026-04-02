@@ -149,7 +149,7 @@ export async function saveGame(): Promise<void> {
     // Write meta
     await tx.objectStore('meta').put({
       slot: 1,
-      version: 7,
+      version: 8,
       lastOnlineTime: Date.now(),
       sectName: sect.name,
       sectLevel: sect.level,
@@ -251,6 +251,14 @@ export async function loadGame(): Promise<boolean> {
     if (localStorage.getItem(OLD_SAVE_KEY)) localStorage.removeItem(OLD_SAVE_KEY)
 
     if (!meta) return false
+
+    // Version compatibility check -- placeholder for future migrations.
+    // Currently v7 and below load via nullish-coalescing defaults (the
+    // normalization pattern below). When a new format introduces breaking
+    // changes, add migration logic before this block and bump the version.
+    if (meta.version < 8) {
+      // Future migration hooks go here. Existing normalization handles v7 saves.
+    }
 
     // Read per-entity stores
     const rawCharacters = (await db.getAll('characters')) as SavedCharacter[]
