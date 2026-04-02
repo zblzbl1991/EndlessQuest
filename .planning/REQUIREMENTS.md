@@ -90,36 +90,36 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | Phase 1 | Pending |
-| FOUND-02 | Phase 1 | Pending |
-| FOUND-03 | Phase 1 | Pending |
-| FOUND-04 | Phase 1 | Pending |
-| FOUND-05 | Phase 1 | Pending |
-| FOUND-06 | Phase 1 | Pending |
-| IDEN-01 | Phase 2 | Pending |
-| IDEN-02 | Phase 2 | Pending |
-| IDEN-03 | Phase 2 | Pending |
-| IDEN-04 | Phase 2 | Pending |
-| IDEN-05 | Phase 2 | Pending |
-| SKILL-01 | Phase 3 | Pending |
-| SKILL-02 | Phase 3 | Pending |
-| SKILL-03 | Phase 3 | Pending |
-| SKILL-04 | Phase 3 | Pending |
-| PETC-01 | Phase 3 | Pending |
-| PETC-02 | Phase 3 | Pending |
-| PETC-03 | Phase 3 | Pending |
-| TECH-01 | Phase 3 | Pending |
-| TECH-02 | Phase 3 | Pending |
-| TECH-03 | Phase 3 | Pending |
-| TECH-04 | Phase 3 | Pending |
-| EQUIP-01 | Phase 3 | Pending |
-| EQUIP-02 | Phase 3 | Pending |
-| EQUIP-03 | Phase 4 | Pending |
-| EQUIP-04 | Phase 4 | Pending |
-| TALN-01 | Phase 4 | Pending |
-| TALN-02 | Phase 4 | Pending |
-| TALN-03 | Phase 4 | Pending |
-| TALN-04 | Phase 4 | Pending |
+| FOUND-01 | Phase 1: Foundation | Pending |
+| FOUND-02 | Phase 1: Foundation | Pending |
+| FOUND-03 | Phase 1: Foundation | Pending |
+| FOUND-04 | Phase 1: Foundation | Pending |
+| FOUND-05 | Phase 1: Foundation | Pending |
+| FOUND-06 | Phase 1: Foundation | Pending |
+| IDEN-01 | Phase 2: Character Identity | Pending |
+| IDEN-02 | Phase 2: Character Identity | Pending |
+| IDEN-03 | Phase 2: Character Identity | Pending |
+| IDEN-04 | Phase 2: Character Identity | Pending |
+| IDEN-05 | Phase 2: Character Identity | Pending |
+| SKILL-01 | Phase 3: Skill Loadout | Pending |
+| SKILL-02 | Phase 3: Skill Loadout | Pending |
+| SKILL-03 | Phase 3: Skill Loadout | Pending |
+| SKILL-04 | Phase 3: Skill Loadout | Pending |
+| PETC-01 | Phase 4: Pet & Refinement Integration | Pending |
+| PETC-02 | Phase 4: Pet & Refinement Integration | Pending |
+| PETC-03 | Phase 4: Pet & Refinement Integration | Pending |
+| EQUIP-01 | Phase 4: Pet & Refinement Integration | Pending |
+| EQUIP-02 | Phase 4: Pet & Refinement Integration | Pending |
+| TECH-01 | Phase 5: Technique Comprehension | Pending |
+| TECH-02 | Phase 5: Technique Comprehension | Pending |
+| TECH-03 | Phase 5: Technique Comprehension | Pending |
+| TECH-04 | Phase 5: Technique Comprehension | Pending |
+| EQUIP-03 | Phase 6: Content Depth | Pending |
+| EQUIP-04 | Phase 6: Content Depth | Pending |
+| TALN-01 | Phase 6: Content Depth | Pending |
+| TALN-02 | Phase 6: Content Depth | Pending |
+| TALN-03 | Phase 6: Content Depth | Pending |
+| TALN-04 | Phase 6: Content Depth | Pending |
 
 **Coverage:**
 - v1 requirements: 30 total
@@ -128,4 +128,4 @@
 
 ---
 *Requirements defined: 2026-04-02*
-*Last updated: 2026-04-02 after initial definition*
+*Last updated: 2026-04-02 after roadmap creation (6-phase split)*
