@@ -65,6 +65,16 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     unlocked: def.type === 'mainHall' || def.type === 'spiritMine',
     productionQueue: { recipeId: null, progress: 0 },
   }))
+  const automationSettings: Sect['automationSettings'] = {
+    enabled: true,
+    targetPoolSize: 8,
+    reserveSpiritStone: 300,
+    reserveSpiritEnergy: 120,
+    recruitQualityFloor: 'common',
+    preferredDungeonId: 'lingCaoValley',
+    casualtyTolerance: 'balanced',
+    autoBreakthrough: true,
+  }
 
   const newSect: Sect = {
     name: sect.name,
@@ -106,6 +116,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     // Preserve stats across ascensions
     stats: sect.stats,
     archiveMilestones: sect.archiveMilestones,
+    automationSettings,
   }
 
   const report: AscensionReport = {

@@ -307,6 +307,15 @@ describe('performAscension', () => {
     expect(report.statBonus).toBeDefined()
   })
 
+  it('should seed automation settings after ascension reset', () => {
+    const sect = makeSect()
+    const { newSect } = performAscension(sect)
+
+    expect(newSect.automationSettings.enabled).toBe(true)
+    expect(newSect.automationSettings.targetPoolSize).toBe(8)
+    expect(newSect.automationSettings.preferredDungeonId).toBe('lingCaoValley')
+  })
+
   it('should apply starting spirit stone bonus for first ascension', () => {
     const sect = makeSect({
       legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },

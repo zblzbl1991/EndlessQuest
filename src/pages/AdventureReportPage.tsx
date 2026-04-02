@@ -9,25 +9,6 @@ import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import styles from './AdventureReportPage.module.css'
 
-function getDungeonIconName(dungeonId: string): string {
-  switch (dungeonId) {
-    case 'lingCaoValley':
-      return 'dungeonValley'
-    case 'luoYunCave':
-      return 'dungeonCave'
-    case 'bloodDemonAbyss':
-      return 'dungeonAbyss'
-    case 'dragonBoneWasteland':
-      return 'dungeonWasteland'
-    case 'nineNetherPurgatory':
-      return 'dungeonPurgatory'
-    case 'heavenlyTribulationRealm':
-      return 'dungeonTribulation'
-    default:
-      return 'dungeonCave'
-  }
-}
-
 function getStepIconName(type: string): string {
   switch (type) {
     case 'run_started':
