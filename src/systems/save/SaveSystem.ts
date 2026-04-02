@@ -14,12 +14,12 @@ const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
 
 // ---------------------------------------------------------------------------
-// SaveMeta v6 — stored in IndexedDB 'meta' store (keyPath: slot)
+// SaveMeta v8 — stored in IndexedDB 'meta' store (keyPath: slot)
 // ---------------------------------------------------------------------------
 
 interface SaveMeta {
   slot: number
-  version: 7
+  version: 8
   lastOnlineTime: number
   sectName: string
   sectLevel: number
@@ -36,6 +36,9 @@ interface SaveMeta {
   legacy: Sect['legacy']
   stats: SectStats
   archiveMilestones: Sect['archiveMilestones']
+  automationSettings?: Sect['automationSettings']
+  currentGameDay?: number
+  dayProgressSec?: number
 }
 
 type SavedAdventureRunRecord = {
@@ -97,6 +100,17 @@ const DEFAULT_RESOURCES: Resources = {
   ore: 0,
 }
 
+const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
+  enabled: true,
+  targetPoolSize: 8,
+  reserveSpiritStone: 300,
+  reserveSpiritEnergy: 120,
+  recruitQualityFloor: 'common',
+  preferredDungeonId: 'lingCaoValley',
+  casualtyTolerance: 'balanced',
+  autoBreakthrough: true,
+}
+
 function normalizeFiniteNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
@@ -110,6 +124,15 @@ function normalizeResources(resources: Partial<Resources> | undefined): Resource
   }
 }
 
+function normalizeAutomationSettings(
+  settings: Partial<Sect['automationSettings']> | undefined
+): Sect['automationSettings'] {
+  return {
+    ...DEFAULT_AUTOMATION_SETTINGS,
+    ...settings,
+  }
+}
+
 // ---------------------------------------------------------------------------
 // saveGame — write sect data to per-entity stores
 // ---------------------------------------------------------------------------
@@ -118,6 +141,7 @@ export async function saveGame(): Promise<void> {
   try {
     const sect = useSectStore.getState().sect
     const { activeRuns, dispatches, reports, reportDetails } = useAdventureStore.getState()
+    const gameState = useGameStore.getState()
     const db = await getDB()
     const storeNames = ['meta', 'characters', 'buildings', 'vault', 'pets', 'adventure'] as const
     const tx = db.transaction(storeNames, 'readwrite')
@@ -142,6 +166,9 @@ export async function saveGame(): Promise<void> {
       legacy: sect.legacy,
       stats: sect.stats,
       archiveMilestones: sect.archiveMilestones,
+      automationSettings: sect.automationSettings,
+      currentGameDay: gameState.currentGameDay,
+      dayProgressSec: gameState.dayProgressSec,
     })
 
     // Write characters
@@ -260,6 +287,7 @@ export async function loadGame(): Promise<boolean> {
     )
 
     const characters = migratedCharacters.map((c) => {
+      const recoveryDaysRemaining = normalizeFiniteNumber(c.recoveryDaysRemaining, 0)
       const rawAssignedBuilding = c.assignedBuilding ?? null
       const hasValidTrainingAssignment =
         c.status === 'training' && rawAssignedBuilding !== null && unlockedBuildingTypes.has(rawAssignedBuilding)
@@ -271,6 +299,8 @@ export async function loadGame(): Promise<boolean> {
         normalizedStatus = 'idle'
       } else if (c.status === 'training' && !hasValidTrainingAssignment) {
         normalizedStatus = 'idle'
+      } else if (c.status === 'recovering' && recoveryDaysRemaining <= 0) {
+        normalizedStatus = 'idle'
       }
 
       return syncCharacterSkillLoadout({
@@ -281,6 +311,7 @@ export async function loadGame(): Promise<boolean> {
         assignedBuilding: normalizedStatus === 'training' && hasValidTrainingAssignment ? rawAssignedBuilding : null,
         cultivationPath: c.cultivationPath ?? 'none',
         fateTags: c.fateTags ?? [],
+        recoveryDaysRemaining: normalizedStatus === 'recovering' ? recoveryDaysRemaining : 0,
       })
     })
 
@@ -309,6 +340,7 @@ export async function loadGame(): Promise<boolean> {
       pathUnlockedAt: meta.pathUnlockedAt ?? null,
       legacy: meta.legacy ?? DEFAULT_LEGACY,
       archiveMilestones: meta.archiveMilestones ?? [],
+      automationSettings: normalizeAutomationSettings(meta.automationSettings),
       stats: meta.stats ?? DEFAULT_STATS,
     }
 
@@ -367,7 +399,11 @@ export async function loadGame(): Promise<boolean> {
       useEventLogStore.setState({ events })
     }
 
-    useGameStore.setState({ lastOnlineTime: meta.lastOnlineTime })
+    useGameStore.setState({
+      lastOnlineTime: meta.lastOnlineTime,
+      currentGameDay: normalizeFiniteNumber(meta.currentGameDay, 1),
+      dayProgressSec: normalizeFiniteNumber(meta.dayProgressSec, 0),
+    })
 
     return true
   } catch (e) {

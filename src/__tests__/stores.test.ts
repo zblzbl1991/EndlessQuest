@@ -1521,22 +1521,51 @@ describe('AdventureStore - failRun', () => {
     })
 
     const beforeStones = getStore().sect.resources.spiritStone
+
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValueOnce(0.2).mockReturnValueOnce(0.5)
+
     getAdventureStore().failRun(runId)
     const afterStones = getStore().sect.resources.spiritStone
 
     // Should deposit 50% of 400 = 200
     expect(afterStones - beforeStones).toBe(200)
+
+    randomSpy.mockRestore()
   })
 
-  it('should return surviving characters to idle on failRun', () => {
+  it('should mark surviving characters as recovering on failRun when the casualty roll returns injury', () => {
     const char = getStore().sect.characters[0]
     const run = getAdventureStore().startRun('lingCaoValley', [char.id])
     expect(run).not.toBeNull()
     const runId = run!.id
 
-    // Character is alive but run fails
+    useSectStore.getState().setAutomationSettings({ casualtyTolerance: 'conservative' })
+
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValueOnce(0.2).mockReturnValueOnce(0.5)
+
     getAdventureStore().failRun(runId)
-    expect(getStore().sect.characters[0].status).toBe('idle')
+
+    const updatedCharacter = getStore().sect.characters.find((character) => character.id === char.id)
+    expect(updatedCharacter?.status).toBe('recovering')
+    expect(updatedCharacter?.recoveryDaysRemaining).toBe(2)
+
+    randomSpy.mockRestore()
+  })
+
+  it('should sacrifice surviving characters on failRun when the casualty roll misses recovery', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('lingCaoValley', [char.id])
+    expect(run).not.toBeNull()
+
+    useSectStore.getState().setAutomationSettings({ casualtyTolerance: 'balanced' })
+
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.95)
+
+    getAdventureStore().failRun(run!.id)
+
+    expect(getStore().sect.characters.find((character) => character.id === char.id)).toBeUndefined()
+
+    randomSpy.mockRestore()
   })
 
   it('should remove run from activeRuns on failRun', () => {

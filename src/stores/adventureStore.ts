@@ -22,6 +22,7 @@ import { resolveEvent } from '../systems/roguelike/EventSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { createCharacterCombatUnit } from '../data/enemies'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
+import { resolveAdventureFailureOutcome } from '../systems/character/DiscipleRecoverySystem'
 import { DISPATCH_MISSIONS } from '../data/missions'
 import { generatePet, tryCapturePet } from '../systems/pet/PetSystem'
 import type { PetQuality } from '../systems/pet/PetSystem'
@@ -44,9 +45,7 @@ import {
   calcPetCaptureRouteBonus,
 } from '../systems/sect/SectRouteSystem'
 import type { RunBuildBiasContext } from '../types/runBuild'
-import {
-  getTechniqueCodexCapacity,
-} from '../systems/technique/TechniqueSystem'
+import { getTechniqueCodexCapacity } from '../systems/technique/TechniqueSystem'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -234,6 +233,34 @@ function settleRunMembers(run: DungeonRun): void {
     } else {
       sectStore.setCharacterStatus(charId, 'idle')
     }
+  }
+}
+
+function settleFailedRunMembers(run: DungeonRun): void {
+  const sectStore = useSectStore.getState()
+  const casualtyTolerance = sectStore.sect.automationSettings.casualtyTolerance
+
+  for (const charId of run.teamCharacterIds) {
+    const memberState = run.memberStates[charId]
+    const character = sectStore.sect.characters.find((item) => item.id === charId)
+    if (!memberState || !character) continue
+
+    if (memberState.status === 'dead') {
+      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境中陨落' })
+      continue
+    }
+
+    const failureOutcome = resolveAdventureFailureOutcome(character.quality, casualtyTolerance)
+    if (failureOutcome.outcome === 'recovering') {
+      sectStore.setCharacterRecovering(charId, failureOutcome.recoveryDays)
+      emitEvent('adventure_fail', `${character.name}重伤归宗，需休养 ${failureOutcome.recoveryDays} 天`, {
+        characterId: charId,
+        recoveryDays: failureOutcome.recoveryDays,
+      })
+      continue
+    }
+
+    sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境失利后未能归来' })
   }
 }
 
@@ -632,7 +659,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       // Handle technique reward (cross-store)
       if (result.techniqueReward) {
         const sectStore = useSectStore.getState()
-        const scriptureLevel = sectStore.sect.buildings.find((building) => building.type === 'scriptureHall')?.level ?? 0
+        const scriptureLevel =
+          sectStore.sect.buildings.find((building) => building.type === 'scriptureHall')?.level ?? 0
         const discoveredId = result.techniqueReward.techniqueId
         const codexCapacity = getTechniqueCodexCapacity(scriptureLevel)
 
@@ -798,7 +826,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!(run.pendingBlessingOptions ?? []).includes(blessingId)) return false
 
     const nextBlessings = run.blessings.includes(blessingId) ? run.blessings : [...run.blessings, blessingId]
-    const nextLog = [...run.eventLog, { timestamp: Date.now(), message: `Obtained blessing: ${BLESSING_DEFS[blessingId].name}` }]
+    const nextLog = [
+      ...run.eventLog,
+      { timestamp: Date.now(), message: `Obtained blessing: ${BLESSING_DEFS[blessingId].name}` },
+    ]
 
     set((s) => ({
       activeRuns: {
@@ -1009,8 +1040,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(run.itemRewards)
 
-    // 3. Survivors return to idle; dead disciples are removed with partial refund
-    settleRunMembers(run)
+    // 3. Failed runs resolve into sacrifice or recovery
+    settleFailedRunMembers(run)
 
     // 4. Remove run
     set((s) => {
@@ -1222,7 +1253,14 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         },
       }))
     } else {
-      const newLog = [...run.eventLog, { timestamp: Date.now(), message: '闂佽绻樺褔宕ラ弮鍫濈闁哄洠鈧磭顔嗘繝銏″劶缁墽鎲撮敃鍌涙櫖鐎光偓閳ь剚瀵奸幒妤€绀傚ù鐘差儌閸嬫捇宕橀鈩冨发婵?..' }]
+      const newLog = [
+        ...run.eventLog,
+        {
+          timestamp: Date.now(),
+          message:
+            '闂佽绻樺褔宕ラ弮鍫濈闁哄洠鈧磭顔嗘繝銏″劶缁墽鎲撮敃鍌涙櫖鐎光偓閳ь剚瀵奸幒妤€绀傚ù鐘差儌閸嬫捇宕橀鈩冨发婵?..',
+        },
+      ]
       set((s) => ({
         activeRuns: {
           ...s.activeRuns,
@@ -1271,5 +1309,3 @@ function isDungeonUnlocked(dungeon: Dungeon, playerRealm: number, playerStage: n
 }
 
 export { isDungeonUnlocked }
-
-

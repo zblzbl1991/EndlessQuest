@@ -208,6 +208,52 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     ])
   })
 
+  it('should preserve automation settings, game day progress, and recovering disciples through save/load', async () => {
+    useGameStore.getState().startGame()
+    const characterId = useSectStore.getState().sect.characters[0].id
+
+    useSectStore.getState().setAutomationSettings({
+      enabled: false,
+      targetPoolSize: 12,
+      reserveSpiritStone: 640,
+      reserveSpiritEnergy: 260,
+      recruitQualityFloor: 'spirit',
+      preferredDungeonId: 'blackWindCave',
+      casualtyTolerance: 'conservative',
+      autoBreakthrough: false,
+    })
+    useSectStore.getState().setCharacterRecovering(characterId, 4)
+    useGameStore.setState({
+      currentGameDay: 9,
+      dayProgressSec: 15,
+    })
+
+    await saveGame()
+
+    useSectStore.getState().reset()
+    useAdventureStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const loadedCharacter = useSectStore.getState().sect.characters.find((c) => c.id === characterId)
+    expect(loadedCharacter?.status).toBe('recovering')
+    expect(loadedCharacter?.recoveryDaysRemaining).toBe(4)
+    expect(useSectStore.getState().sect.automationSettings).toMatchObject({
+      enabled: false,
+      targetPoolSize: 12,
+      reserveSpiritStone: 640,
+      reserveSpiritEnergy: 260,
+      recruitQualityFloor: 'spirit',
+      preferredDungeonId: 'blackWindCave',
+      casualtyTolerance: 'conservative',
+      autoBreakthrough: false,
+    })
+    expect(useGameStore.getState().currentGameDay).toBe(9)
+    expect(useGameStore.getState().dayProgressSec).toBe(15)
+  })
+
   it('should normalize patrolling status to idle when no dispatch record exists on load', async () => {
     useGameStore.getState().startGame()
     await saveGame()
