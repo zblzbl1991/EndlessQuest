@@ -8,7 +8,7 @@
 ### Foundation
 
 - [ ] **FOUND-01**: `generateCharacter()` 调用 `rollSpecialties()` 并将结果持久化到角色实例上
-- [ ] **FOUND-02**: 品质标签/品质顺序统一定义在单一源文件中，所有 7 处重复定义替换为 import
+- [x] **FOUND-02**: 品质标签/品质顺序统一定义在单一源文件中，所有 7 处重复定义替换为 import
 - [ ] **FOUND-03**: 存档系统增加版本号检查，新 Character 字段有明确的迁移默认值
 - [ ] **FOUND-04**: `tickSlice.ts` 突破逻辑提取为独立纯函数，支持钩子列表扩展
 - [ ] **FOUND-05**: `adventureStore.ts` 中 2 处乱码中文字符串替换为正确中文文本
@@ -91,7 +91,7 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | FOUND-01 | Phase 1: Foundation | Pending |
-| FOUND-02 | Phase 1: Foundation | Pending |
+| FOUND-02 | Phase 1: Foundation | Complete (01-02) |
 | FOUND-03 | Phase 1: Foundation | Pending |
 | FOUND-04 | Phase 1: Foundation | Pending |
 | FOUND-05 | Phase 1: Foundation | Pending |
