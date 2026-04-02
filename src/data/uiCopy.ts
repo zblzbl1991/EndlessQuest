@@ -1,3 +1,4 @@
+import type { CharacterQuality } from '../types/character'
 import type { AdventureReportResult, TacticalPreset } from '../types/adventure'
 
 export const TACTICAL_PRESET_LABELS: Record<TacticalPreset, string> = {
@@ -34,3 +35,26 @@ export function getTacticalPresetLabel(preset: TacticalPreset): string {
 export function getRouteDirectionLabel(direction: keyof typeof ROUTE_DIRECTION_LABELS): string {
   return ROUTE_DIRECTION_LABELS[direction]
 }
+
+// --- Character Quality Labels ---
+
+/** Character quality display names (Chinese labels). Single source of truth. */
+export const CHAR_QUALITY_NAMES: Record<CharacterQuality, string> = {
+  common: '凡品',
+  spirit: '灵品',
+  immortal: '仙品',
+  divine: '神品',
+  chaos: '混沌',
+}
+
+/** Short character quality labels for compact UI (badge, inline). */
+export const CHAR_QUALITY_SHORT: Record<CharacterQuality, string> = {
+  common: '凡',
+  spirit: '灵',
+  immortal: '仙',
+  divine: '神',
+  chaos: '混沌',
+}
+
+/** Character quality ordering from lowest to highest. */
+export const CHAR_QUALITY_ORDER: CharacterQuality[] = ['common', 'spirit', 'immortal', 'divine', 'chaos']
