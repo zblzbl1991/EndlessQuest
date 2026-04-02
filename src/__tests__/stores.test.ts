@@ -107,12 +107,11 @@ describe('SectStore - Initialization', () => {
     expect(mainHall?.unlocked).toBe(true)
   })
 
-  it('should have spiritField unlocked at level 0 (unlockCondition: mainHall Lv1)', () => {
-    // spiritField requires mainHall Lv1 — which we have. It should be unlockable but starts at level 0.
-    // But it doesn't auto-unlock — that happens through tryUpgradeBuilding.
+  it('should start with spiritField unlocked at level 1 and one node', () => {
     const sf = getStore().sect.buildings.find((b) => b.type === 'spiritField')
-    expect(sf?.level).toBe(0)
-    expect(sf?.unlocked).toBe(false)
+    expect(sf?.level).toBe(1)
+    expect(sf?.count).toBe(1)
+    expect(sf?.unlocked).toBe(true)
   })
 
   it('should have empty vault with maxVaultSlots 50', () => {
@@ -308,12 +307,13 @@ describe('SectStore - Building Management', () => {
     expect(result.reason).toBe('')
   })
 
-  it('upgradeBuilding should auto-unlock spiritField when mainHall is Lv1', () => {
+  it('upgradeBuilding should upgrade spiritField from its initial unlocked state', () => {
     const result = getStore().tryUpgradeBuilding('spiritField')
     expect(result.success).toBe(true)
     const sf = getStore().sect.buildings.find((b) => b.type === 'spiritField')
     expect(sf?.unlocked).toBe(true)
-    expect(sf?.level).toBe(1)
+    expect(sf?.level).toBe(2)
+    expect(sf?.count).toBe(1)
   })
 
   it('autoAssignToBuilding should fill matching idle disciples without moving manual assignments', () => {
@@ -879,7 +879,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
     expect(updated.cultivationPath).toBe('none')
-    expect(getStore().sect.resources.spiritStone).toBe(5000.5)
+    expect(getStore().sect.resources.spiritStone).toBe(5000.6)
   })
 
   it('should skip breakthrough when spiritStone is insufficient', () => {
@@ -898,8 +898,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Tax adds 0.5 spiritStone per tick (sectLevel=1, 1 disciple)
-    expect(getStore().sect.resources.spiritStone).toBe(1000.5)
+    // Initial spiritMine + tax now add 0.6 spiritStone per tick.
+    expect(getStore().sect.resources.spiritStone).toBe(1000.6)
   })
 
   it('should skip breakthrough when spiritStone insufficient', () => {
@@ -918,8 +918,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Tax adds 0.5 spiritStone per tick (sectLevel=1, 1 disciple)
-    expect(getStore().sect.resources.spiritStone).toBe(100.5)
+    // Initial spiritMine + tax now add 0.6 spiritStone per tick.
+    expect(getStore().sect.resources.spiritStone).toBe(100.6)
   })
 
   it('should skip breakthrough when spiritEnergy is insufficient', () => {
@@ -938,7 +938,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(0)
-    expect(updated.cultivation).toBe(100)
+    expect(updated.cultivation).toBeGreaterThan(100)
   })
 
   it('should consume spirit stones for sub-level breakthrough', () => {
@@ -957,7 +957,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
 
     // Sub-level breakthrough consumes minor breakthrough cost (50 for realm 0, stage 0) but not vault items
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.resources.spiritStone).toBe(950.5) // 1000 - 50 (minor cost) + 0.5 (tax)
+    expect(getStore().sect.resources.spiritStone).toBe(950.6) // 1000 - 50 + 0.5 (mine) + 0.1 (tax)
   })
 
   it('should remove a disciple when sub-level breakthrough fails', () => {
@@ -1042,12 +1042,11 @@ describe('SectStore - tickAll', () => {
   beforeEach(() => resetStore())
 
   it('tickAll should produce spirit energy', () => {
-    // Upgrade spiritField to level 1 so it produces spirit energy (3/s).
-    // Also give spirit stones to upgrade. Use tryUpgradeBuilding which auto-unlocks.
+    // spiritField starts at level 1; upgrade it once to level 2 so it produces 5/s.
     getStore().addResource('spiritStone', 1000)
     getStore().tryUpgradeBuilding('spiritField')
     const result = getStore().tickAll(10)
-    expect(result.spiritProduced).toBeCloseTo(30, 0) // 3/s * 10s = 30 spirit energy
+    expect(result.spiritProduced).toBeCloseTo(50, 0) // 5/s * 10s = 50 spirit energy
     expect(result.spiritConsumed).toBeGreaterThan(0) // cultivator consumed some
   })
 
@@ -2122,7 +2121,7 @@ describe('tickAll with production queue', () => {
 
     const sect = getStore().sect
     expect(sect.vault.length).toBe(0) // nothing produced (no herbs)
-    expect(sect.resources.herb).toBe(0)
+    expect(sect.resources.herb).toBeCloseTo(2) // initial spiritField still passively grows herbs
   })
 
   it('should clamp resources to caps after tick', () => {
@@ -2395,7 +2394,7 @@ describe('SectStore - Offline Accumulator', () => {
     getStore().tickAll(10)
 
     const acc = getStore().sect.offlineAccumulator
-    // Tax income accumulates (sectLevel=1, 1 disciple -> 0.5/s * 10 = 5)
+    // Tax income accumulates separately from spiritMine passive stone income.
     expect(acc.taxIncome).toBeGreaterThan(0)
   })
 
@@ -2404,8 +2403,8 @@ describe('SectStore - Offline Accumulator', () => {
     getStore().tickAll(10)
 
     const acc = getStore().sect.offlineAccumulator
-    // At sect level 1 with 1 disciple: taxRate = 0.5/s, 10s = 5
-    expect(acc.taxIncome).toBeCloseTo(5, 0)
+    // At sect level 1 with 1 disciple: taxRate = 0.1/s, 10s = 1
+    expect(acc.taxIncome).toBeCloseTo(1, 0)
   })
 
   it('should accumulate resources across multiple tickAll calls', () => {
@@ -2416,7 +2415,7 @@ describe('SectStore - Offline Accumulator', () => {
 
     const acc = getStore().sect.offlineAccumulator
     // Tax should have accumulated across both ticks
-    expect(acc.taxIncome).toBeCloseTo(10, 0)
+    expect(acc.taxIncome).toBeCloseTo(2, 0)
   })
 
   it('should clear accumulator when clearOfflineAccumulator is called', () => {

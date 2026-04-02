@@ -344,9 +344,9 @@ describe('Buildings data', () => {
 describe('Realms data', () => {
   it('getMinorBreakthroughCost returns correct cost for valid realm/stage', () => {
     expect(getMinorBreakthroughCost(0, 0)).toBe(50)
-    expect(getMinorBreakthroughCost(0, 1)).toBe(150)
-    expect(getMinorBreakthroughCost(0, 2)).toBe(400)
-    expect(getMinorBreakthroughCost(1, 0)).toBe(300)
+    expect(getMinorBreakthroughCost(0, 1)).toBe(120)
+    expect(getMinorBreakthroughCost(0, 2)).toBe(300)
+    expect(getMinorBreakthroughCost(1, 0)).toBe(180)
     expect(getMinorBreakthroughCost(2, 1)).toBe(5000)
     expect(getMinorBreakthroughCost(3, 2)).toBe(100000)
     expect(getMinorBreakthroughCost(4, 0)).toBe(100000)

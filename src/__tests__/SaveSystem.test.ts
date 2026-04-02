@@ -486,4 +486,46 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
       ore: 2,
     })
   })
+
+  it('should normalize legacy buildings that are missing count fields on load', async () => {
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    const db = await getDB()
+    await db.put('buildings', {
+      type: 'spiritField',
+      level: 2,
+      unlocked: true,
+      productionQueue: { recipeId: null, progress: 0 },
+    })
+    await db.put('buildings', {
+      type: 'alchemyFurnace',
+      level: 1,
+      unlocked: true,
+      productionQueue: { recipeId: 'hp_potion', progress: 12 },
+    })
+
+    useSectStore.getState().reset()
+    useAdventureStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+
+    const spiritField = useSectStore.getState().sect.buildings.find((building) => building.type === 'spiritField')
+    const alchemyFurnace = useSectStore.getState().sect.buildings.find((building) => building.type === 'alchemyFurnace')
+
+    expect(spiritField).toMatchObject({
+      level: 2,
+      unlocked: true,
+      count: 1,
+      productionQueue: { recipeId: null, progress: 0 },
+    })
+    expect(alchemyFurnace).toMatchObject({
+      level: 1,
+      unlocked: true,
+      count: 1,
+      productionQueue: { recipeId: 'hp_potion', progress: 12 },
+    })
+  })
 })
