@@ -17,7 +17,7 @@ export const REALMS: RealmDef[] = [
     name: '炼气期',
     stages: ['初期', '中期', '后期', '圆满'],
     cultivationCosts: [100, 300, 600, 1000],
-    minorBreakthroughCost: [50, 150, 400],
+    minorBreakthroughCost: [50, 120, 300],
     breakthroughExtra: null,
     unlockContent: '基础功法、灵品装备掉落',
     statMultiplier: 1,
@@ -26,7 +26,7 @@ export const REALMS: RealmDef[] = [
     name: '筑基期',
     stages: ['初期', '中期', '后期', '圆满'],
     cultivationCosts: [2000, 4000, 7000, 11000],
-    minorBreakthroughCost: [300, 800, 2000],
+    minorBreakthroughCost: [180, 480, 1400],
     breakthroughExtra: '需消耗大量灵石',
     unlockContent: '秘境解锁（落云洞）',
     statMultiplier: 1.8,
@@ -95,8 +95,8 @@ export interface BreakthroughResourceCost {
  * Key = target realm index (1-5). Requires both spiritStone and spiritEnergy.
  */
 export const BREAKTHROUGH_COSTS: Record<number, BreakthroughResourceCost> = {
-  1: { spiritStone: 3000, spiritEnergy: 800 },
-  2: { spiritStone: 15000, spiritEnergy: 4000 },
+  1: { spiritStone: 1800, spiritEnergy: 480 },
+  2: { spiritStone: 9600, spiritEnergy: 2400 },
   3: { spiritStone: 80000, spiritEnergy: 20000 },
   4: { spiritStone: 350000, spiritEnergy: 90000 },
   5: { spiritStone: 1500000, spiritEnergy: 400000 },
@@ -108,16 +108,16 @@ export const BREAKTHROUGH_COSTS: Record<number, BreakthroughResourceCost> = {
  * e.g., MINOR_BREAKTHROUGH_COSTS[0][1] = 50 (炼气 初期→中期)
  */
 export const MINOR_BREAKTHROUGH_COSTS: Record<number, Record<number, number>> = {
-  0: { 1: 50, 2: 150, 3: 400 },
-  1: { 1: 200, 2: 600, 3: 1800 },
+  0: { 1: 50, 2: 120, 3: 300 },
+  1: { 1: 180, 2: 480, 3: 1400 },
   2: { 1: 1000, 2: 3000, 3: 9000 },
   3: { 1: 5000, 2: 15000, 3: 45000 },
   4: { 1: 25000, 2: 75000, 3: 225000 },
 }
 
 export const MINOR_BREAKTHROUGH_ENERGY_COSTS: Record<number, Record<number, number>> = {
-  0: { 1: 40, 2: 120, 3: 320 },
-  1: { 1: 160, 2: 480, 3: 1440 },
+  0: { 1: 40, 2: 90, 3: 180 },
+  1: { 1: 120, 2: 320, 3: 840 },
   2: { 1: 800, 2: 2400, 3: 7200 },
   3: { 1: 4000, 2: 12000, 3: 36000 },
   4: { 1: 20000, 2: 60000, 3: 180000 },

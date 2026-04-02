@@ -19,7 +19,7 @@ export const DISPATCH_MISSIONS: DispatchMission[] = [
     name: '采集灵药',
     description: '前往山野采集灵药',
     duration: 300,
-    rewards: [{ type: 'herb', amount: 80 }],
+    rewards: [{ type: 'herb', amount: 60 }],
     minRealm: 0,
   },
   {
@@ -27,7 +27,7 @@ export const DISPATCH_MISSIONS: DispatchMission[] = [
     name: '探矿',
     description: '深入矿脉开采矿石',
     duration: 300,
-    rewards: [{ type: 'ore', amount: 50 }],
+    rewards: [{ type: 'ore', amount: 36 }],
     minRealm: 0,
   },
   {
