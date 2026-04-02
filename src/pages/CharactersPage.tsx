@@ -12,6 +12,7 @@ import { getPathDef } from '../data/cultivationPaths'
 import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus, CharacterQuality } from '../types/character'
+import { CHAR_QUALITY_SHORT } from '../data/uiCopy'
 import { PixelIcon } from '../components/common/PixelIcon'
 import CharacterCard from '../components/common/CharacterCard'
 import PageHeader from '../components/common/PageHeader'
@@ -40,13 +41,6 @@ const TITLE_NAMES: Record<string, string> = {
   elder: '掌门',
 }
 
-const QUALITY_NAMES_CHAR: Record<CharacterQuality, string> = {
-  common: '凡',
-  spirit: '灵',
-  immortal: '仙',
-  divine: '神',
-  chaos: '混沌',
-}
 
 const STAT_LABELS: Record<string, string> = {
   hp: '气血',
@@ -403,7 +397,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
             <PixelIcon name="disciple" size={18} className={styles.inlineIcon} aria-label={character.name} />
             {character.name}
           </span>
-          <span className={styles.qualityBadge}>{QUALITY_NAMES_CHAR[character.quality]}</span>
+          <span className={styles.qualityBadge}>{CHAR_QUALITY_SHORT[character.quality]}</span>
         </div>
         <div className={styles.detailSubRow}>
           <span className={styles.detailTitle}>{TITLE_NAMES[character.title]}</span>

@@ -1,13 +1,8 @@
 import { useState } from 'react'
 import { useSectStore } from '../../stores/sectStore'
 import { ALCHEMY_RECIPES, canCraft } from '../../systems/economy/AlchemySystem'
+import { CHAR_QUALITY_NAMES } from '../../data/uiCopy'
 import styles from './AlchemyPanel.module.css'
-
-const QUALITY_LABELS: Record<string, string> = {
-  common: '凡品',
-  spirit: '灵品',
-  immortal: '仙品',
-}
 
 function getQualityClass(quality: string): string {
   if (quality === 'immortal') return styles.recipeQualityImmortal
@@ -53,7 +48,7 @@ export default function AlchemyPanel() {
             <div className={styles.recipeHeader}>
               <span className={styles.recipeName}>{recipe.name}</span>
               <span className={`${styles.recipeQuality} ${getQualityClass(recipe.product.quality)}`}>
-                {QUALITY_LABELS[recipe.product.quality] || recipe.product.quality}
+                {CHAR_QUALITY_NAMES[recipe.product.quality as keyof typeof CHAR_QUALITY_NAMES] || recipe.product.quality}
               </span>
             </div>
             <div className={styles.recipeDesc}>{recipe.description}</div>

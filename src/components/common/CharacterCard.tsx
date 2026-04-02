@@ -21,13 +21,6 @@ const QUALITY_BORDER: Record<CharacterQuality, string> = {
   chaos: styles.qualityChaos,
 }
 
-const QUALITY_NAMES: Record<CharacterQuality, string> = {
-  common: '凡',
-  spirit: '灵',
-  immortal: '仙',
-  divine: '神',
-  chaos: '混沌',
-}
 
 const PATH_ICON_NAMES: Record<string, string> = {
   sword: 'swordPath',
@@ -155,5 +148,3 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
     </div>
   )
 }
-
-export { QUALITY_NAMES }

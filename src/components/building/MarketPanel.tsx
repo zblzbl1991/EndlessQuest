@@ -3,14 +3,8 @@ import { useSectStore } from '../../stores/sectStore'
 import type { AnyItem, EquipSlot } from '../../types/item'
 import { getMarketBuff } from '../../systems/economy/BuildingEffects'
 import { PixelIcon } from '../common/PixelIcon'
+import { CHAR_QUALITY_NAMES } from '../../data/uiCopy'
 import styles from './MarketPanel.module.css'
-
-const QUALITY_LABELS: Record<string, string> = {
-  common: '凡品',
-  spirit: '灵品',
-  immortal: '仙品',
-  divine: '神品',
-}
 
 function getQualityClass(quality: string): string {
   if (quality === 'divine') return styles.itemQualityDivine
@@ -135,7 +129,7 @@ export default function MarketPanel() {
               {shopItem.item.name}
             </span>
             <span className={`${styles.itemQuality} ${getQualityClass(shopItem.item.quality)}`}>
-              {QUALITY_LABELS[shopItem.item.quality] || shopItem.item.quality}
+              {CHAR_QUALITY_NAMES[shopItem.item.quality as keyof typeof CHAR_QUALITY_NAMES] || shopItem.item.quality}
             </span>
           </div>
           <div className={styles.itemDesc}>{shopItem.item.description}</div>
@@ -176,7 +170,7 @@ export default function MarketPanel() {
               {shopItem.item.name}
             </span>
             <span className={`${styles.itemQuality} ${getQualityClass(shopItem.item.quality)}`}>
-              {QUALITY_LABELS[shopItem.item.quality] || shopItem.item.quality}
+              {CHAR_QUALITY_NAMES[shopItem.item.quality as keyof typeof CHAR_QUALITY_NAMES] || shopItem.item.quality}
             </span>
           </div>
           {shopItem.item.description && <div className={styles.itemDesc}>{shopItem.item.description}</div>}

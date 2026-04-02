@@ -8,11 +8,10 @@ import { checkBuildingUnlock, canUpgradeBuilding } from '../../systems/sect/Buil
 import { emitEvent } from '../eventLogStore'
 import { canStartRecipe } from '../../systems/building/ProductionSystem'
 import { getRecommendedAssignment } from '../../systems/character/SpecialtySystem'
-
-const QUALITY_ORDER: Character['quality'][] = ['common', 'spirit', 'immortal', 'divine', 'chaos']
+import { CHAR_QUALITY_ORDER } from '../../data/uiCopy'
 
 function getQualityRank(quality: Character['quality']): number {
-  return QUALITY_ORDER.indexOf(quality)
+  return CHAR_QUALITY_ORDER.indexOf(quality)
 }
 
 function getBuildingAssignmentScore(character: Character, buildingType: string): number {

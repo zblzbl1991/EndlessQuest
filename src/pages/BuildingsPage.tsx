@@ -22,6 +22,7 @@ import type { ItemStack } from '../types/item'
 import type { Character } from '../types/character'
 import type { Talent } from '../types/talent'
 import { TALENT_RARITY_NAMES } from '../types/talent'
+import { CHAR_QUALITY_NAMES } from '../data/uiCopy'
 import ItemCard from '../components/inventory/ItemCard'
 import { PixelIcon } from '../components/common/PixelIcon'
 import PageHeader from '../components/common/PageHeader'
@@ -60,13 +61,6 @@ const BUILDING_ICON_NAMES: Partial<Record<BuildingType, string>> = {
   recruitmentPavilion: 'recruitmentPavilion',
 }
 
-const QUALITY_LABELS: Record<CharacterQuality, string> = {
-  common: '凡品',
-  spirit: '灵品',
-  immortal: '仙品',
-  divine: '神品',
-  chaos: '混沌',
-}
 
 /** Base combat stats before variance -- used for stat coloring comparison. */
 const BASE_COMBAT_STATS = { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 }
@@ -585,7 +579,7 @@ function RecruitTab() {
               onClick={() => available && setSelectedQuality(quality)}
               disabled={!available}
             >
-              {QUALITY_LABELS[quality]}
+              {CHAR_QUALITY_NAMES[quality]}
               <span className={styles.qualityCost}>{qualityCost}灵石</span>
               {!available && unlockMainHall != null && (
                 <span className={styles.qualityLockHint}>大殿Lv{unlockMainHall}解锁</span>
@@ -600,7 +594,7 @@ function RecruitTab() {
         onClick={handleRecruit}
         disabled={!recruitCheck.allowed}
       >
-        {!recruitCheck.allowed ? recruitCheck.reason : `招收${QUALITY_LABELS[effectiveQuality]}弟子 (${cost}灵石)`}
+        {!recruitCheck.allowed ? recruitCheck.reason : `招收${CHAR_QUALITY_NAMES[effectiveQuality]}弟子 (${cost}灵石)`}
       </button>
 
       {/* Targeted Recruitment Section */}
@@ -620,7 +614,7 @@ function RecruitTab() {
                     className={`${styles.targetedQualityBtn} ${isSelected ? styles.targetedQualityActive : ''}`}
                     onClick={() => setTargetedQuality(quality)}
                   >
-                    {QUALITY_LABELS[quality]}+<span className={styles.targetedCost}>{qCost}灵石 + 10灵草</span>
+                    {CHAR_QUALITY_NAMES[quality]}+<span className={styles.targetedCost}>{qCost}灵石 + 10灵草</span>
                   </button>
                 )
               })}
@@ -631,7 +625,7 @@ function RecruitTab() {
               onClick={handleTargetedRecruit}
               disabled={!!targetedMessage}
             >
-              定向招募{QUALITY_LABELS[targetedQuality]}+弟子 ({targetedStoneCost}灵石 + 10灵草)
+              定向招募{CHAR_QUALITY_NAMES[targetedQuality]}+弟子 ({targetedStoneCost}灵石 + 10灵草)
             </button>
 
             {targetedMessage && <div className={styles.targetedFailMsg}>{targetedMessage}</div>}
@@ -673,7 +667,7 @@ function RecruitResultModal({ character, onClose }: { character: Character; onCl
       <div className={styles.recruitResultContent} onClick={(e) => e.stopPropagation()}>
         <div className={styles.recruitCharHeader}>
           <div className={styles.recruitCharName}>{character.name}</div>
-          <span className={styles.recruitCharQuality}>{QUALITY_LABELS[character.quality]}</span>
+          <span className={styles.recruitCharQuality}>{CHAR_QUALITY_NAMES[character.quality]}</span>
         </div>
 
         <div className={styles.recruitStats}>

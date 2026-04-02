@@ -10,6 +10,7 @@ import {
 import { calcDiscipleDeathRefund } from '../../systems/character/DiscipleSacrificeSystem'
 import { getRecruitCostMult } from '../../systems/economy/BuildingEffects'
 import { emitEvent } from '../eventLogStore'
+import { CHAR_QUALITY_NAMES, CHAR_QUALITY_ORDER } from '../../data/uiCopy'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
 import { getPathName } from '../../data/cultivationPaths'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
@@ -40,14 +41,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
 
     // Deduct stones
     const character = { ...generateCharacter(quality, sect.activeRoute), investedSpiritStone: cost }
-    const qualityLabel: Record<string, string> = {
-      common: '凡品',
-      spirit: '灵品',
-      immortal: '仙品',
-      divine: '神品',
-      chaos: '混沌',
-    }
-    emitEvent('recruit', `招收弟子 ${character.name} (${qualityLabel[quality] ?? quality})`)
+    emitEvent('recruit', `招收弟子 ${character.name} (${CHAR_QUALITY_NAMES[quality] ?? quality})`)
     set((s) => ({
       sect: {
         ...s.sect,
@@ -219,8 +213,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     if (sect.characters.length >= maxChars) return null
 
     // Quality ordering for comparison
-    const QUALITY_ORDER: CharacterQuality[] = ['common', 'spirit', 'immortal', 'divine', 'chaos']
-    const minIndex = QUALITY_ORDER.indexOf(minQuality)
+    const minIndex = CHAR_QUALITY_ORDER.indexOf(minQuality)
 
     // Calculate cost: 2x normal recruit cost for the min quality + 10 herb
     const baseCost = getRecruitCost(minQuality)
@@ -238,7 +231,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
       const candidate = generateCharacter(minQuality, sect.activeRoute)
-      const candidateIndex = QUALITY_ORDER.indexOf(candidate.quality)
+      const candidateIndex = CHAR_QUALITY_ORDER.indexOf(candidate.quality)
       if (candidateIndex >= minIndex) {
         character = { ...candidate, investedSpiritStone: stoneCost }
         break
