@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import type { Character } from '../../types/character'
 import type { BuildingType, OfflineAccumulator } from '../../types'
+import { useGameStore } from '../gameStore'
 import { calcSectLevel } from '../../systems/character/CharacterEngine'
 import { calcResourceRates, clampResources, calcTaxRate } from '../../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../../systems/economy/ResourceEngine'
@@ -28,12 +29,17 @@ import { getTechniqueById } from '../../data/techniquesTable'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { resolveSuccessfulBreakthroughFates } from '../../systems/character/FateSystem'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
+import { tickRecoveryDays } from '../../systems/character/DiscipleRecoverySystem'
+import { shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 
 export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   tickAll: (deltaSec: number) => {
     const { sect } = get()
+    const gameState = useGameStore.getState()
+    const totalDayProgress = gameState.dayProgressSec + deltaSec
+    const elapsedDays = Math.floor(totalDayProgress / 60)
 
     // 1. Calculate building levels
     const sfLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
@@ -371,6 +377,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         return { ...char, injuryTimer: newTimer }
       }
 
+      if (char.status === 'recovering') {
+        return char
+      }
+
       // training, adventuring, patrolling — return unchanged
       return char
     })
@@ -449,6 +459,54 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     set({
       sect: newSect,
     })
+
+    useGameStore.setState({
+      currentGameDay: gameState.currentGameDay + elapsedDays,
+      dayProgressSec: totalDayProgress % 60,
+    })
+
+    if (elapsedDays > 0) {
+      for (let day = 0; day < elapsedDays; day++) {
+        set((state) => ({
+          sect: {
+            ...state.sect,
+            characters: state.sect.characters.map((character) => {
+              if (character.status !== 'recovering') return character
+
+              const result = tickRecoveryDays(character.recoveryDaysRemaining ?? 0, 1)
+              return result.recovered
+                ? {
+                    ...character,
+                    status: 'idle',
+                    recoveryDaysRemaining: 0,
+                    injuryTimer: 0,
+                  }
+                : {
+                    ...character,
+                    recoveryDaysRemaining: result.remainingDays,
+                  }
+            }),
+          },
+        }))
+
+        let currentState = get()
+        while (
+          currentState.sect.automationSettings.enabled &&
+          shouldAutoRecruit({
+            poolSize: currentState.sect.characters.length,
+            targetPoolSize: currentState.sect.automationSettings.targetPoolSize,
+            spiritStone: currentState.sect.resources.spiritStone,
+            reserveSpiritStone: currentState.sect.automationSettings.reserveSpiritStone,
+            spiritEnergy: currentState.sect.resources.spiritEnergy,
+            reserveSpiritEnergy: currentState.sect.automationSettings.reserveSpiritEnergy,
+          })
+        ) {
+          const recruited = currentState.addCharacter(currentState.sect.automationSettings.recruitQualityFloor)
+          if (!recruited) break
+          currentState = get()
+        }
+      }
+    }
 
     for (const character of breakthroughDeaths) {
       get().sacrificeCharacter(character.id, { source: 'breakthrough', reason: '突破失败，身死道消' })

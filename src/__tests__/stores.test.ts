@@ -1,5 +1,6 @@
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
+import { useGameStore } from '../stores/gameStore'
 import type { Character, Equipment, Consumable, ItemStack } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 
@@ -54,6 +55,7 @@ function makePet(id: string, overrides?: Partial<Pet>): Pet {
 
 function resetStore() {
   useSectStore.getState().reset()
+  useGameStore.getState().reset()
 }
 
 function getStore() {
@@ -1794,6 +1796,40 @@ describe('AdventureStore - selectRoute', () => {
     const updatedRun = getAdventureStore().getRun(run!.id)
     expect(updatedRun?.blessings).toContain('battleFocus')
     expect(updatedRun?.pendingBlessingOptions).toEqual([])
+  })
+})
+
+describe('SectStore - Daily automation', () => {
+  beforeEach(() => resetStore())
+
+  it('tickAll should advance the game day every 60 seconds', () => {
+    expect(useGameStore.getState().currentGameDay).toBe(1)
+
+    getStore().tickAll(60)
+
+    expect(useGameStore.getState().currentGameDay).toBe(2)
+    expect(useGameStore.getState().dayProgressSec).toBe(0)
+  })
+
+  it('should auto-recruit when the pool is below target and reserve thresholds are satisfied', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        resources: { ...s.sect.resources, spiritStone: 1200, spiritEnergy: 400 },
+        automationSettings: {
+          ...s.sect.automationSettings,
+          enabled: true,
+          targetPoolSize: 2,
+          reserveSpiritStone: 200,
+          reserveSpiritEnergy: 100,
+          recruitQualityFloor: 'common',
+        },
+      },
+    }))
+
+    getStore().tickAll(60)
+
+    expect(getStore().sect.characters.length).toBeGreaterThanOrEqual(2)
   })
 })
 

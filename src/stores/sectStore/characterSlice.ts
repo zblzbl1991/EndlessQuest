@@ -155,6 +155,36 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     }))
   },
 
+  setCharacterRecovering: (id: string, recoveryDays: number) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) =>
+          c.id === id
+            ? {
+                ...c,
+                status: 'recovering',
+                injuryTimer: 0,
+                recoveryDaysRemaining: Math.max(0, recoveryDays),
+              }
+            : c
+        ),
+      },
+    }))
+  },
+
+  setAutomationSettings: (patch) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        automationSettings: {
+          ...s.sect.automationSettings,
+          ...patch,
+        },
+      },
+    }))
+  },
+
   chooseCultivationPath: (id: string, path: Exclude<CultivationPath, 'none'>) => {
     let changed = false
 

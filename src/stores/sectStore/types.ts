@@ -5,7 +5,16 @@ import type {
   CharacterStatus,
   CultivationPath,
 } from '../../types/character'
-import type { SectPath, BuildingType, Resources, ResourceType, Sect, AnyItem, ItemStack } from '../../types'
+import type {
+  SectPath,
+  BuildingType,
+  Resources,
+  ResourceType,
+  Sect,
+  AnyItem,
+  ItemStack,
+  SectAutomationSettings,
+} from '../../types'
 import type { ShopState } from '../../systems/trade/TradeSystem'
 import type { SectRouteDef, SectRouteId } from '../../data/sectRoutes'
 
@@ -34,7 +43,9 @@ export interface SectStore {
   sacrificeCharacter(id: string, context: CharacterSacrificeContext): boolean
   promoteCharacter(id: string, newTitle: CharacterTitle): void
   setCharacterStatus(id: string, status: CharacterStatus, opts?: { injuryTimer?: number }): void
+  setCharacterRecovering(id: string, recoveryDays: number): void
   chooseCultivationPath(id: string, path: Exclude<CultivationPath, 'none'>): boolean
+  setAutomationSettings(patch: Partial<SectAutomationSettings>): void
 
   // Technique management
   unlockCodexEntry(techniqueId: string): boolean
