@@ -566,13 +566,6 @@ function RecruitTab() {
 
   return (
     <div className={styles.recruitPanel}>
-      <section className={styles.panelLeadCard}>
-        <div className={styles.panelLeadTitle}>招募概览</div>
-        <div className={styles.panelLeadText}>
-          先看宗门余量与今日愿纳之材。折损之后也能续上门中人手，关键是补得及时、补得合用。
-        </div>
-      </section>
-
       <div className={styles.recruitInfo}>
         <span className={styles.recruitCount}>
           弟子数量: {sect.characters.length} / {maxChars}
@@ -813,11 +806,6 @@ function VaultTab() {
 
   return (
     <div className={styles.vaultPanel}>
-      <section className={styles.panelLeadCard}>
-        <div className={styles.panelLeadTitle}>藏物去向</div>
-        <div className={styles.panelLeadText}>仓中之物先分清留用、转交与换石，再决定下一步的去处。</div>
-      </section>
-
       <div className={styles.vaultCapacity}>
         仓库容量: {sect.vault.length} / {sect.maxVaultSlots}
       </div>

@@ -27,12 +27,11 @@ describe('BuildingsPage', () => {
 
     fireEvent.click(screen.getByText('招收'))
     expect(screen.getByTestId('building-subpanel')).toBeInTheDocument()
-    expect(screen.getByText('招募概览')).toBeInTheDocument()
-    expect(screen.getByText(/折损之后也能续上门中人手/)).toBeInTheDocument()
+    expect(screen.getByText(/弟子数量:/)).toBeInTheDocument()
     expect(screen.queryByText('宗门生态')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('仓库'))
-    expect(screen.getByText('藏物去向')).toBeInTheDocument()
+    expect(screen.getByText(/仓库容量:/)).toBeInTheDocument()
 
     fireEvent.click(screen.getByText('炼丹'))
     expect(screen.getByTestId('building-subpanel')).toBeInTheDocument()

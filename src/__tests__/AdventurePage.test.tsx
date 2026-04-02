@@ -97,10 +97,11 @@ describe('AdventurePage', () => {
 
     fireEvent.click(screen.getAllByText('手动发起')[0]!)
 
+    expect(screen.getAllByText('手动发起').length).toBeGreaterThan(1)
     expect(screen.getByText('本局意图')).toBeInTheDocument()
     expect(screen.getByText('战术')).toBeInTheDocument()
     expect(screen.getByText('出战弟子')).toBeInTheDocument()
-    expect(screen.getByText(/本次探索可能折损弟子/)).toBeInTheDocument()
+    expect(screen.getByText(/已选 0 \/ 5 名/)).toBeInTheDocument()
   })
 
   it('renders player-facing adventure copy in Chinese and normalizes legacy route text', () => {

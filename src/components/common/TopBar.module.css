@@ -16,9 +16,21 @@
 
 @media (max-width: 1023px) {
   .topBar {
-    max-width: 480px;
-    margin: 0 auto;
     border-radius: 0 0 18px 18px;
+  }
+}
+
+@media (max-width: 639px) {
+  .topBar {
+    padding-inline: 12px;
+  }
+
+  .titleRow {
+    flex-wrap: wrap;
+  }
+
+  .resources {
+    gap: 6px;
   }
 }
 

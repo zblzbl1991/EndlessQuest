@@ -202,7 +202,7 @@ export default function AdventurePage() {
       <section className={styles.section}>
         <div className={styles.sectionTitle}>最近探索记录</div>
         {reports.length === 0 ? (
-          <div className={styles.empty}>还没有探索战报，挑选一处秘境开始第一次托管吧。</div>
+          <div className={styles.empty}>还没有探索战报。</div>
         ) : (
           <div className={styles.reportList}>
             {reports.map((report) => {
@@ -386,10 +386,7 @@ function TeamBuilder({
     <div className={styles.overlay}>
       <div className={styles.teamBuilder}>
         <div className={styles.teamBuilderHeader}>
-          <div className={styles.teamBuilderLead}>
-            <span className={styles.teamBuilderTitle}>启程前定意</span>
-            <span className={styles.teamBuilderHintLine}>托管会即时结算整次秘境，并保留完整战报供你复盘。</span>
-          </div>
+          <span className={styles.teamBuilderTitle}>手动发起</span>
           <span className={styles.dungeonTarget}>{dungeon?.name ?? dungeonId}</span>
         </div>
 
@@ -397,9 +394,8 @@ function TeamBuilder({
           <div className={styles.sectionLabel}>目标秘境</div>
           <div className={styles.targetCard}>
             <span className={styles.targetName}>{dungeon?.name ?? dungeonId}</span>
-            <span className={styles.targetMeta}>先定去处，再决定这局是守、是争，还是寻机。</span>
+            <span className={styles.targetMeta}>将即时结算并生成战报。</span>
           </div>
-          <div className={styles.teamBuilderHint}>本次探索可能折损弟子，若身死道消，将仅返还部分灵石。</div>
         </div>
 
         <div className={styles.teamBuilderSection}>
@@ -444,7 +440,7 @@ function TeamBuilder({
               )
             })}
           </div>
-          <div className={styles.teamBuilderHint}>已选 {selectedIds.length} / 5 名，可随心保守、冲层或寻机。</div>
+          <div className={styles.teamBuilderHint}>已选 {selectedIds.length} / 5 名</div>
         </div>
 
         <div className={styles.teamActions}>
