@@ -267,6 +267,11 @@ export default function AdventurePage() {
                   </div>
 
                   <div className={styles.reportRewardLine}>
+                    <span className={styles.rewardLabel}>归宗结果</span>
+                    <span className={styles.rewardValues}>{insight?.returnOutcome.summary ?? '暂无记录'}</span>
+                  </div>
+
+                  <div className={styles.reportRewardLine}>
                     <span className={styles.rewardLabel}>异变</span>
                     <span className={styles.rewardValues}>
                       {insight?.mutationHighlights?.length ? insight.mutationHighlights.join(' · ') : '暂无异变'}

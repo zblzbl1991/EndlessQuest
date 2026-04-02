@@ -11,6 +11,7 @@ import type {
   AdventureRunConfig,
   AdventureReport,
   AdventureReportSummary,
+  AdventureMemberReturnRecord,
 } from '../types'
 import { SUPPLY_COSTS } from '../types/adventure'
 import type { SupplyLevel } from '../types/adventure'
@@ -87,11 +88,11 @@ export interface AdventureStore {
   selectRoute(runId: string, routeIndex: number): boolean
   chooseBlessing(runId: string, blessingId: BlessingId): boolean
   advanceFloor(runId: string): { success: boolean; message: string }
-  retreat(runId: string): void
+  retreat(runId: string): Record<string, AdventureMemberReturnRecord> | null
   idleTick(runId: string, deltaSec: number): void
   tickAllIdle(deltaSec: number): void
-  completeRun(runId: string, eventData?: Record<string, unknown>): void
-  failRun(runId: string, eventData?: Record<string, unknown>): void
+  completeRun(runId: string, eventData?: Record<string, unknown>): Record<string, AdventureMemberReturnRecord> | null
+  failRun(runId: string, eventData?: Record<string, unknown>): Record<string, AdventureMemberReturnRecord> | null
   getRun(id: string): DungeonRun | undefined
   getReport(id: string): AdventureReport | undefined
   getMaxSimultaneousRuns(): number
@@ -221,8 +222,9 @@ function depositFractionResourcesToSect(resources: Resources, fraction: number):
   }
 }
 
-function settleRunMembers(run: DungeonRun): void {
+function settleRunMembers(run: DungeonRun): Record<string, AdventureMemberReturnRecord> {
   const sectStore = useSectStore.getState()
+  const outcomes: Record<string, AdventureMemberReturnRecord> = {}
 
   for (const charId of run.teamCharacterIds) {
     const memberState = run.memberStates[charId]
@@ -230,15 +232,20 @@ function settleRunMembers(run: DungeonRun): void {
 
     if (memberState.status === 'dead') {
       sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '缂備礁顦伴敋妞わ絻鍔戦獮瀣熷ú璇插Г' })
+      outcomes[charId] = { outcome: 'sacrificed' }
     } else {
       sectStore.setCharacterStatus(charId, 'idle')
+      outcomes[charId] = { outcome: 'returned' }
     }
   }
+
+  return outcomes
 }
 
-function settleFailedRunMembers(run: DungeonRun): void {
+function settleFailedRunMembers(run: DungeonRun): Record<string, AdventureMemberReturnRecord> {
   const sectStore = useSectStore.getState()
   const casualtyTolerance = sectStore.sect.automationSettings.casualtyTolerance
+  const outcomes: Record<string, AdventureMemberReturnRecord> = {}
 
   for (const charId of run.teamCharacterIds) {
     const memberState = run.memberStates[charId]
@@ -247,12 +254,14 @@ function settleFailedRunMembers(run: DungeonRun): void {
 
     if (memberState.status === 'dead') {
       sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境中陨落' })
+      outcomes[charId] = { outcome: 'sacrificed' }
       continue
     }
 
     const failureOutcome = resolveAdventureFailureOutcome(character.quality, casualtyTolerance)
     if (failureOutcome.outcome === 'recovering') {
       sectStore.setCharacterRecovering(charId, failureOutcome.recoveryDays)
+      outcomes[charId] = { outcome: 'recovering', recoveryDays: failureOutcome.recoveryDays }
       emitEvent('adventure_fail', `${character.name}重伤归宗，需休养 ${failureOutcome.recoveryDays} 天`, {
         characterId: charId,
         recoveryDays: failureOutcome.recoveryDays,
@@ -261,7 +270,10 @@ function settleFailedRunMembers(run: DungeonRun): void {
     }
 
     sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境失利后未能归来' })
+    outcomes[charId] = { outcome: 'sacrificed' }
   }
+
+  return outcomes
 }
 
 /** Deposit item rewards into sectStore vault */
@@ -547,22 +559,31 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       floorsCleared: report.floorsCleared,
     }
 
+    let postRunMemberOutcomes: Record<string, AdventureMemberReturnRecord> | null = null
+
     if (report.result === 'completed') {
-      get().completeRun(startedRun.id, reportEventData)
+      postRunMemberOutcomes = get().completeRun(startedRun.id, reportEventData)
     } else if (report.result === 'failed') {
-      get().failRun(startedRun.id, reportEventData)
+      postRunMemberOutcomes = get().failRun(startedRun.id, reportEventData)
     } else {
-      get().retreat(startedRun.id)
+      postRunMemberOutcomes = get().retreat(startedRun.id)
       emitEvent('adventure_fail', `Dungeon ${dungeon.name} retreat`, reportEventData)
     }
 
-    const summary = summarizeReport(report)
+    const finalizedReport: AdventureReport = postRunMemberOutcomes
+      ? {
+          ...report,
+          postRunMemberOutcomes,
+        }
+      : report
+
+    const summary = summarizeReport(finalizedReport)
     set((s) => {
       const nextReports = [summary, ...s.reports.filter((existing) => existing.id !== summary.id)].slice(
         0,
         REPORT_LIMIT
       )
-      const nextDetails = { ...s.reportDetails, [report.id]: report }
+      const nextDetails = { ...s.reportDetails, [finalizedReport.id]: finalizedReport }
       const keepIds = new Set(nextReports.map((item) => item.id))
       for (const id of Object.keys(nextDetails)) {
         if (!keepIds.has(id)) delete nextDetails[id]
@@ -574,7 +595,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }
     })
 
-    return report
+    return finalizedReport
   },
 
   selectRoute: (runId, routeIndex) => {
@@ -885,7 +906,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   retreat: (runId) => {
     const state = get()
     const run = state.activeRuns[runId]
-    if (!run || run.status !== 'active') return
+    if (!run || run.status !== 'active') return null
 
     // 1. Deposit 50% of totalRewards
     depositFractionResourcesToSect(run.totalRewards, 0.5)
@@ -894,7 +915,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     depositItemsToVault(run.itemRewards)
 
     // 3. Survivors return to idle; dead disciples are removed with partial refund
-    settleRunMembers(run)
+    const outcomes = settleRunMembers(run)
 
     // 4. Remove run
     set((s) => {
@@ -902,6 +923,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       delete newRuns[runId]
       return { activeRuns: newRuns }
     })
+
+    return outcomes
   },
 
   idleTick: (runId, deltaSec) => {
@@ -976,7 +999,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   completeRun: (runId, eventData = {}) => {
     const state = get()
     const run = state.activeRuns[runId]
-    if (!run || run.status !== 'active') return
+    if (!run || run.status !== 'active') return null
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_complete', `Dungeon ${dungeonName} cleared`, eventData)
@@ -1000,7 +1023,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     depositItemsToVault(run.itemRewards)
 
     // 3. Survivors return to idle; dead disciples are removed with partial refund
-    settleRunMembers(run)
+    const outcomes = settleRunMembers(run)
 
     // 4. Add to completed dungeons
     set((s) => {
@@ -1013,12 +1036,14 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           : [...s.completedDungeons, run.dungeonId],
       }
     })
+
+    return outcomes
   },
 
   failRun: (runId, eventData = {}) => {
     const state = get()
     const run = state.activeRuns[runId]
-    if (!run || run.status !== 'active') return
+    if (!run || run.status !== 'active') return null
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
     emitEvent('adventure_fail', `Dungeon ${dungeonName} failed`, eventData)
@@ -1041,7 +1066,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     depositItemsToVault(run.itemRewards)
 
     // 3. Failed runs resolve into sacrifice or recovery
-    settleFailedRunMembers(run)
+    const outcomes = settleFailedRunMembers(run)
 
     // 4. Remove run
     set((s) => {
@@ -1049,6 +1074,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       delete newRuns[runId]
       return { activeRuns: newRuns }
     })
+
+    return outcomes
   },
 
   startDispatch: (characterId, missionId) => {

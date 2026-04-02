@@ -1,12 +1,20 @@
 import { getDiscipleMutationDef } from '../../data/discipleMutations'
 import type { AdventureReport, AdventureReportStep } from '../../types'
 
+export interface AdventureReturnOutcomeInsight {
+  summary: string
+  sacrificedNames: string[]
+  recoveringNames: string[]
+  returnedNames: string[]
+}
+
 export interface AdventureReportInsight {
   coreName: string
   keyBuild: string
   mutationHighlights: string[]
   turningPoint: string
   cause: string
+  returnOutcome: AdventureReturnOutcomeInsight
 }
 
 function getLastStepOfTypes(report: AdventureReport, types: AdventureReportStep['type'][]) {
@@ -18,6 +26,27 @@ function getLastStepOfTypes(report: AdventureReport, types: AdventureReportStep[
 
 function getDiscipleName(report: AdventureReport, nameMap: Map<string, string>, charId: string): string {
   return report.teamSnapshot?.[charId]?.name ?? nameMap.get(charId) ?? charId
+}
+
+function formatReturnOutcomeSummary(
+  report: AdventureReport,
+  sacrificedNames: string[],
+  recoveringNames: string[],
+  returnedNames: string[]
+): string {
+  const parts: string[] = []
+
+  if (sacrificedNames.length > 0) {
+    parts.push(`未归：${sacrificedNames.join('、')}`)
+  }
+
+  if (recoveringNames.length > 0) {
+    parts.push(`重伤：${recoveringNames.join('、')}`)
+  }
+
+  if (parts.length > 0) return parts.join(' · ')
+  if (returnedNames.length > 0) return report.result === 'completed' ? '全员归宗' : `归宗：${returnedNames.join('、')}`
+  return '暂无记录'
 }
 
 export function buildAdventureReportInsight(
@@ -60,6 +89,20 @@ export function buildAdventureReportInsight(
       return mutationIds.map((mutationId) => `${discipleName} · ${getDiscipleMutationDef(mutationId).name}`)
     })
     .slice(0, 3)
+  const returnOutcomes = report.teamCharacterIds.map((charId) => {
+    const outcome = report.postRunMemberOutcomes?.[charId]
+    const fallbackState = finalMemberStates[charId]
+    return {
+      name: getDiscipleName(report, nameMap, charId),
+      outcome: outcome?.outcome ?? (fallbackState?.status === 'dead' ? 'sacrificed' : 'returned'),
+      recoveryDays: outcome?.recoveryDays,
+    }
+  })
+  const sacrificedNames = returnOutcomes.filter((item) => item.outcome === 'sacrificed').map((item) => item.name)
+  const recoveringNames = returnOutcomes
+    .filter((item) => item.outcome === 'recovering')
+    .map((item) => (typeof item.recoveryDays === 'number' ? `${item.name}（${item.recoveryDays}天）` : item.name))
+  const returnedNames = returnOutcomes.filter((item) => item.outcome === 'returned').map((item) => item.name)
 
   const keyBuild = [blessingStep?.summary, relicStep?.summary].filter(Boolean).join(' / ')
 
@@ -80,5 +123,11 @@ export function buildAdventureReportInsight(
     mutationHighlights,
     turningPoint: turningStep?.summary ?? (report.result === 'completed' ? '稳定推进到终局' : '未出现明确转折点'),
     cause,
+    returnOutcome: {
+      summary: formatReturnOutcomeSummary(report, sacrificedNames, recoveringNames, returnedNames),
+      sacrificedNames,
+      recoveringNames,
+      returnedNames,
+    },
   }
 }

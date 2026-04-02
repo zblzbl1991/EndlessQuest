@@ -109,6 +109,13 @@ export interface AdventureReportStep {
   meta?: Record<string, unknown>
 }
 
+export type AdventureMemberReturnOutcome = 'returned' | 'recovering' | 'sacrificed'
+
+export interface AdventureMemberReturnRecord {
+  outcome: AdventureMemberReturnOutcome
+  recoveryDays?: number
+}
+
 export interface AdventureReport {
   id: string
   config: AdventureRunConfig
@@ -123,6 +130,7 @@ export interface AdventureReport {
   finalMemberStates: Record<string, MemberState>
   teamSnapshot: Record<string, { name: string; quality: CharacterQuality; realm: number; realmStage: RealmStage }>
   discipleMutations: Record<string, DiscipleMutationId[]>
+  postRunMemberOutcomes?: Record<string, AdventureMemberReturnRecord>
   steps: AdventureReportStep[]
 }
 

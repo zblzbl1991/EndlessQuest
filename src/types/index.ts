@@ -50,6 +50,8 @@ export type {
   AdventureReportResult,
   AdventureReportStepType,
   AdventureReportStep,
+  AdventureMemberReturnOutcome,
+  AdventureMemberReturnRecord,
   AdventureReport,
   AdventureReportSummary,
   Enemy,

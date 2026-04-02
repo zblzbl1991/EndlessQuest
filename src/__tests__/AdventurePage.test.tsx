@@ -136,4 +136,67 @@ describe('AdventurePage', () => {
     expect(screen.getByText('稳定')).toBeInTheDocument()
     expect(screen.getByText('战斗')).toBeInTheDocument()
   })
+
+  it('surfaces return outcomes for failed automatic runs', () => {
+    useAdventureStore.setState({
+      reports: [
+        {
+          id: 'report_failed',
+          dungeonId: 'luoYunCave',
+          teamCharacterIds: ['hero_1', 'hero_2'],
+          strategy: 'steady',
+          tacticalPreset: 'balanced',
+          startedAt: 5,
+          finishedAt: 6,
+          result: 'failed',
+          floorsCleared: 2,
+          rewards: { spiritStone: 40, spiritEnergy: 0, herb: 0, ore: 2 },
+          itemRewardCount: 0,
+        },
+      ],
+      reportDetails: {
+        report_failed: {
+          id: 'report_failed',
+          config: {
+            dungeonId: 'luoYunCave',
+            teamCharacterIds: ['hero_1', 'hero_2'],
+            supplyLevel: 'basic',
+            tacticalPreset: 'balanced',
+            automationStrategy: 'steady',
+          },
+          dungeonId: 'luoYunCave',
+          teamCharacterIds: ['hero_1', 'hero_2'],
+          startedAt: 5,
+          finishedAt: 6,
+          result: 'failed',
+          floorsCleared: 2,
+          rewards: { spiritStone: 40, spiritEnergy: 0, herb: 0, ore: 2 },
+          itemRewards: [],
+          finalMemberStates: {
+            hero_1: { currentHp: 0, maxHp: 100, status: 'dead' },
+            hero_2: { currentHp: 12, maxHp: 100, status: 'wounded' },
+          },
+          teamSnapshot: {
+            hero_1: { name: '顾长风', quality: 'common', realm: 4, realmStage: 3 },
+            hero_2: { name: '柳沉烟', quality: 'spirit', realm: 3, realmStage: 2 },
+          },
+          discipleMutations: {},
+          postRunMemberOutcomes: {
+            hero_1: { outcome: 'sacrificed' },
+            hero_2: { outcome: 'recovering', recoveryDays: 3 },
+          },
+          steps: [],
+        },
+      },
+    })
+
+    render(
+      <MemoryRouter>
+        <AdventurePage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('归宗结果')).toBeInTheDocument()
+    expect(screen.getByText('未归：顾长风 · 重伤：柳沉烟（3天）')).toBeInTheDocument()
+  })
 })

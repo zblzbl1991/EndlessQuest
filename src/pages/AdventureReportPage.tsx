@@ -163,6 +163,33 @@ export default function AdventureReportPage() {
               <strong>{insight?.mutationHighlights?.join(' · ') ?? '暂无异变'}</strong>
             </div>
           </div>
+
+          <div className={styles.highlightPanel}>
+            <div className={styles.highlightPanelTitle}>归宗结果</div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="eventBoss" size={16} className={styles.inlineIcon} aria-label="未归" />
+                未归
+              </span>
+              <strong>{insight?.returnOutcome.sacrificedNames.join('、') || '无'}</strong>
+            </div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="eventRest" size={16} className={styles.inlineIcon} aria-label="重伤归宗" />
+                重伤归宗
+              </span>
+              <strong>{insight?.returnOutcome.recoveringNames.join('、') || '无'}</strong>
+            </div>
+            {insight?.returnOutcome.returnedNames.length ? (
+              <div className={styles.summaryRow}>
+                <span className={styles.summaryLabel}>
+                  <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="平安归宗" />
+                  平安归宗
+                </span>
+                <strong>{insight.returnOutcome.returnedNames.join('、')}</strong>
+              </div>
+            ) : null}
+          </div>
         </div>
       </section>
 

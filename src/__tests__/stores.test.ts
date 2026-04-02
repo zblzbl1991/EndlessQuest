@@ -1,6 +1,8 @@
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
+import * as autoRunEngine from '../systems/roguelike/AutoRunEngine'
+import * as recoverySystem from '../systems/character/DiscipleRecoverySystem'
 import type { Character, Equipment, Consumable, ItemStack } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 
@@ -1672,6 +1674,72 @@ describe('AdventureStore - runAutomation', () => {
     expect(getAdventureStore().selectRoute(run!.id, 0)).toBe(true)
     expect(getStore().sect.resources.spiritStone).toBe(555)
     expect(getStore().sect.resources.herb).toBe(11)
+  })
+
+  it('should persist failed member return outcomes on automation reports', () => {
+    const first = getStore().sect.characters[0]
+    const second = getStore().addCharacter('common')
+    expect(second).not.toBeNull()
+
+    const resolveSpy = vi.spyOn(autoRunEngine, 'resolveAutomatedRun').mockReturnValue({
+      id: 'report_scripted_failure',
+      config: {
+        dungeonId: 'lingCaoValley',
+        teamCharacterIds: [first.id, second!.id],
+        supplyLevel: 'basic',
+        tacticalPreset: 'balanced',
+        automationStrategy: 'steady',
+      },
+      dungeonId: 'lingCaoValley',
+      teamCharacterIds: [first.id, second!.id],
+      startedAt: 1,
+      finishedAt: 2,
+      result: 'failed',
+      floorsCleared: 2,
+      rewards: { spiritStone: 90, spiritEnergy: 0, herb: 4, ore: 0 },
+      itemRewards: [],
+      finalMemberStates: {
+        [first.id]: { currentHp: 20, maxHp: 100, status: 'wounded' },
+        [second!.id]: { currentHp: 40, maxHp: 100, status: 'alive' },
+      },
+      teamSnapshot: {
+        [first.id]: { name: first.name, quality: first.quality, realm: first.realm, realmStage: first.realmStage },
+        [second!.id]: {
+          name: second!.name,
+          quality: second!.quality,
+          realm: second!.realm,
+          realmStage: second!.realmStage,
+        },
+      },
+      discipleMutations: {},
+      steps: [],
+    })
+
+    const recoverySpy = vi
+      .spyOn(recoverySystem, 'resolveAdventureFailureOutcome')
+      .mockReturnValueOnce({ outcome: 'recovering', recoveryDays: 2 })
+      .mockReturnValueOnce({ outcome: 'sacrificed' })
+
+    const report = getAdventureStore().runAutomation({
+      dungeonId: 'lingCaoValley',
+      teamCharacterIds: [first.id, second!.id],
+      supplyLevel: 'basic',
+      tacticalPreset: 'balanced',
+      automationStrategy: 'steady',
+    })
+
+    expect(report).not.toBeNull()
+    expect(report?.postRunMemberOutcomes?.[first.id]).toEqual({
+      outcome: 'recovering',
+      recoveryDays: 2,
+    })
+    expect(report?.postRunMemberOutcomes?.[second!.id]).toEqual({
+      outcome: 'sacrificed',
+    })
+    expect(getAdventureStore().getReport(report!.id)?.postRunMemberOutcomes?.[first.id]?.outcome).toBe('recovering')
+
+    recoverySpy.mockRestore()
+    resolveSpy.mockRestore()
   })
 })
 

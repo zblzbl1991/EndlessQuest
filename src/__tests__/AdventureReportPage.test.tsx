@@ -157,7 +157,7 @@ describe('Adventure report pages', () => {
 
     expect(screen.getByText('探索过程')).toBeInTheDocument()
     expect(screen.getByTestId('report-highlight')).toBeInTheDocument()
-    expect(screen.getByText('测试弟子')).toBeInTheDocument()
+    expect(screen.getAllByText('测试弟子').length).toBeGreaterThan(0)
     expect(screen.getByText('选择祝福：战斗专注')).toBeInTheDocument()
     expect(screen.getByText('获得遗物：战旗')).toBeInTheDocument()
     expect(screen.getByText('异变')).toBeInTheDocument()
@@ -179,7 +179,7 @@ describe('Adventure report pages', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('平衡')).toBeInTheDocument()
+    expect(screen.getAllByText('平衡').length).toBeGreaterThan(0)
     expect(screen.getByText('关键构筑')).toBeInTheDocument()
     expect(screen.queryByText(/build/i)).not.toBeInTheDocument()
   })
@@ -200,7 +200,84 @@ describe('Adventure report pages', () => {
       </MemoryRouter>
     )
 
+    expect(screen.getAllByText('测试弟子').length).toBeGreaterThan(0)
+  })
+
+  it('renders return outcomes for failed runs on the detail page', () => {
+    useAdventureStore.setState({
+      reports: [
+        {
+          id: 'report_failed',
+          dungeonId: 'luoYunCave',
+          teamCharacterIds: ['c1', 'c2'],
+          strategy: 'steady',
+          tacticalPreset: 'balanced',
+          startedAt: 3,
+          finishedAt: 4,
+          result: 'failed',
+          floorsCleared: 2,
+          rewards: { spiritStone: 40, spiritEnergy: 0, herb: 0, ore: 2 },
+          itemRewardCount: 0,
+        },
+      ],
+      reportDetails: {
+        report_failed: {
+          id: 'report_failed',
+          config: {
+            dungeonId: 'luoYunCave',
+            teamCharacterIds: ['c1', 'c2'],
+            supplyLevel: 'basic',
+            tacticalPreset: 'balanced',
+            automationStrategy: 'steady',
+          },
+          dungeonId: 'luoYunCave',
+          teamCharacterIds: ['c1', 'c2'],
+          startedAt: 3,
+          finishedAt: 4,
+          result: 'failed',
+          floorsCleared: 2,
+          rewards: { spiritStone: 40, spiritEnergy: 0, herb: 0, ore: 2 },
+          itemRewards: [],
+          finalMemberStates: {
+            c1: { currentHp: 0, maxHp: 100, status: 'dead' },
+            c2: { currentHp: 18, maxHp: 100, status: 'wounded' },
+          },
+          teamSnapshot: {
+            c1: { name: '测试弟子', quality: 'common', realm: 0, realmStage: 0 },
+            c2: { name: '林清河', quality: 'spirit', realm: 1, realmStage: 1 },
+          },
+          discipleMutations: {},
+          postRunMemberOutcomes: {
+            c1: { outcome: 'sacrificed' },
+            c2: { outcome: 'recovering', recoveryDays: 4 },
+          },
+          steps: [
+            {
+              id: 'step_failed',
+              type: 'run_failed',
+              timestamp: 4,
+              floor: 2,
+              summary: '探索失败',
+              detail: '队伍在洞窟深处溃散。',
+            },
+          ],
+        },
+      },
+    })
+
+    render(
+      <MemoryRouter initialEntries={['/adventure/report/report_failed']}>
+        <Routes>
+          <Route path="/adventure/report/:reportId" element={<AdventureReportPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('归宗结果')).toBeInTheDocument()
+    expect(screen.getByText('未归')).toBeInTheDocument()
     expect(screen.getByText('测试弟子')).toBeInTheDocument()
+    expect(screen.getByText('重伤归宗')).toBeInTheDocument()
+    expect(screen.getByText('林清河（4天）')).toBeInTheDocument()
   })
 
   it('removes dead disciples from the sect roster when an adventure resolves', () => {
