@@ -9,7 +9,6 @@ import {
 } from '../systems/sect/SectRouteSystem'
 import { useSectStore } from '../stores/sectStore'
 import type { Building } from '../types'
-import type { Character } from '../types/character'
 import { generateCharacter } from '../systems/character/CharacterEngine'
 
 // --- Test helpers ---

@@ -1,7 +1,6 @@
 import { simulateCombat } from '../systems/combat/CombatEngine'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { calcUnitPowerRating, calcTeamPowerRating, adjustEnemyByTeamPower } from '../data/enemies'
-import type { TacticPreset } from '../types/runBuild'
 
 function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; team: 'ally' | 'enemy' }): CombatUnit {
   return {

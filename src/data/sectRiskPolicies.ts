@@ -1,4 +1,5 @@
 import type { SectRiskPolicyProfile, SectRiskPolicyId } from '../types/destiny'
+import { SECT_RISK_POLICY_ORDER } from '../types/destiny'
 
 export const SECT_RISK_POLICIES: Record<SectRiskPolicyId, SectRiskPolicyProfile> = {
   lianfeng: {
@@ -143,5 +144,5 @@ export function getPolicyProfile(id: SectRiskPolicyId): SectRiskPolicyProfile {
 }
 
 export function getPolicyIndex(id: SectRiskPolicyId): number {
-  return ['lianfeng', 'shouheng', 'shenji', 'zhuxi', 'yapo', 'niejie', 'fenming'].indexOf(id)
+  return SECT_RISK_POLICY_ORDER.indexOf(id)
 }

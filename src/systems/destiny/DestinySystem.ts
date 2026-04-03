@@ -6,7 +6,7 @@ import type {
   DestinyAmplifierId,
   DestinyEventRecord,
 } from '../../types/destiny'
-import { DESTINY_STAGE_THRESHOLDS, DESTINY_RISK_THRESHOLDS } from '../../types/destiny'
+import { DESTINY_STAGE_THRESHOLDS, DESTINY_RISK_THRESHOLDS, DESTINY_STAGE_NAMES } from '../../types/destiny'
 import { getSeedDef } from '../../data/destinySeeds'
 import { getPolicyProfile, getPolicyIndex } from '../../data/sectRiskPolicies'
 import { getAmplifierProfile } from '../../data/destinyAmplifiers'
@@ -105,19 +105,11 @@ export function checkStageTransition(
   const type = transitionMap[key]
   if (!type) return null
 
-  const stageNames: Record<DestinyStage, string> = {
-    seed: '命苗',
-    stirring: '萌动',
-    formed: '成格',
-    mutated: '异变',
-    heavenmarked: '天命',
-  }
-
   return {
     type,
     characterId: '',
     timestamp,
-    detail: `${stageNames[prevState.stage]} → ${stageNames[newState.stage]}`,
+    detail: `${DESTINY_STAGE_NAMES[prevState.stage]} → ${DESTINY_STAGE_NAMES[newState.stage]}`,
     before: { stage: prevState.stage, exposure: prevState.exposure },
     after: { stage: newState.stage, exposure: newState.exposure },
   }
@@ -218,7 +210,7 @@ export function applyShockToState(
 
 export const TIANMING_BASE_CHANCE = 0.0015
 
-export const SEED_RARITY_TIANNMING_FACTOR: Record<number, number> = {
+export const SEED_RARITY_TIANMING_FACTOR: Record<number, number> = {
   1: 1.0,
   2: 1.2,
   3: 1.5,
@@ -242,7 +234,7 @@ export function checkTianming(character: Character, policyId: SectRiskPolicyId, 
 
   // Seed rarity factor
   const rarity = character.seedRarity ?? 1
-  const rarityFactor = SEED_RARITY_TIANNMING_FACTOR[rarity] ?? 1.0
+  const rarityFactor = SEED_RARITY_TIANMING_FACTOR[rarity] ?? 1.0
 
   // Policy multiplier
   const policy = getPolicyProfile(policyId)
