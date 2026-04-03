@@ -6,7 +6,9 @@
 
 ## Overview
 
-EndlessQuest is a pure client-side SPA using React 19 + TypeScript + Zustand + CSS Modules. All code lives under `src/`. There is no backend — all data is persisted to IndexedDB.
+The project uses a flat, domain-driven structure under `src/`. Each domain (combat, economy, character, etc.) is a self-contained directory with its own logic files. There are no nested feature folders — depth is limited to 2 levels under `src/`.
+
+All paths below are relative to `src/`.
 
 ---
 
@@ -14,85 +16,117 @@ EndlessQuest is a pure client-side SPA using React 19 + TypeScript + Zustand + C
 
 ```
 src/
-├── App.tsx                    # Root component: routing, save/load, idle engine
-├── main.tsx                   # Entry point: renders <App /> into #root
-├── components/                # Reusable UI components (grouped by feature domain)
-│   ├── adventure/             # Adventure-related (RunBuildSummary, TacticPresetPicker)
-│   ├── building/              # Building panels (AlchemyPanel, ForgePanel, etc.)
-│   ├── common/                # Shared UI (CharacterCard, StatusBadge, Sidebar, TopBar, etc.)
-│   ├── cultivation/           # Cultivation UI (BreakthroughPanel)
-│   ├── inventory/             # Inventory UI (EquipPanel, EnhancePanel, ItemCard)
-│   └── sect/                  # Sect overview components (StatsPanel, LegacyPanel, etc.)
-├── data/                      # Static data tables and game balance constants (28 files)
-│   └── icons/                 # SVG icon data
-├── pages/                     # Route-level page components (7 pages)
-├── stores/                    # Zustand state management
-│   └── sectStore/             # Main store composed of 13 slices
-├── styles/                    # Global styles
-│   ├── globals.css            # Reset, global styles
-│   └── theme.css              # Design tokens (CSS custom properties)
-├── systems/                   # Pure-function game logic (16 domain modules)
-│   ├── character/             # Character generation, specialty, cultivation path
-│   ├── combat/                # Combat engine, targeting, affixes
-│   ├── cultivation/           # Cultivation rate calculation, display
-│   ├── economy/               # Building effects, resource exchange
-│   ├── equipment/             # Equipment stats, enhancement
-│   ├── idle/                  # IdleEngine, tick-driven game loop
-│   ├── item/                  # Item generation, affixes
-│   ├── pet/                   # Pet system
-│   ├── roguelike/             # Dungeon generation, report analysis
-│   ├── save/                  # IndexedDB persistence, auto-save, history
-│   ├── sect/                  # Sect level, legacy, ascension
-│   ├── skill/                 # Active skill definitions
-│   ├── technique/             # Technique learning, comprehension
-│   └── trade/                 # Shop system
-├── types/                     # TypeScript type definitions (9 files + barrel index.ts)
-├── utils/                     # Shared utilities (format.ts, etc.)
-└── __tests__/                 # Test files (co-located setup, not per-component)
-    ├── setup.ts               # Vitest setup: fake-indexeddb, jest-dom
-    └── *.test.ts(x)           # Test files
+├── main.tsx                          # Vite entry point
+├── App.tsx                           # Root component (router, idle engine, save/load)
+│
+├── pages/                            # Route-level page components (7 total)
+│   ├── SectPage.tsx / .module.css
+│   ├── CharactersPage.tsx / .module.css
+│   ├── BuildingsPage.tsx / .module.css
+│   ├── AdventurePage.tsx / .module.css
+│   ├── AdventureReportPage.tsx / .module.css
+│   ├── VaultPage.tsx / .module.css
+│   └── EventLogPage.tsx / .module.css
+│
+├── components/                       # Reusable UI components, grouped by domain
+│   ├── common/                       # Shared: TopBar, BottomNav, Sidebar, PageHeader,
+│   │                                 #   CharacterCard, ProgressBar, ResourceRate,
+│   │                                 #   PixelIcon, StatusBadge, ErrorBoundary,
+│   │                                 #   OfflineReportModal
+│   ├── building/                     # ForgePanel, AlchemyPanel, MarketPanel, CodexPanel, StudyPanel
+│   ├── inventory/                    # ItemCard, EquipPanel, EnhancePanel
+│   ├── sect/                         # ActionAgenda, SectPathPanel, LegacyPanel, StatsPanel
+│   ├── cultivation/                  # BreakthroughPanel
+│   └── adventure/                    # RunBuildSummary, TacticPresetPicker
+│
+├── stores/                           # Zustand stores
+│   ├── gameStore.ts                  # Meta state (saveSlot, isPaused, dayProgress)
+│   ├── adventureStore.ts             # Roguelike/dungeon run store
+│   ├── eventLogStore.ts              # Event log store + standalone emitEvent helper
+│   └── sectStore/                    # Main game state (sliced pattern)
+│       ├── index.ts                  # Composes all slices via spread
+│       ├── types.ts                  # SectStore interface (127 lines)
+│       ├── initial.ts                # Initial state factory + helpers
+│       ├── tickSlice.ts              # Main game loop (tickAll)
+│       ├── characterSlice.ts
+│       ├── buildingSlice.ts
+│       ├── resourceSlice.ts
+│       ├── itemSlice.ts
+│       ├── techniqueSlice.ts
+│       ├── petSlice.ts
+│       ├── shopSlice.ts
+│       ├── sectPathSlice.ts
+│       ├── legacySlice.ts
+│       └── miscSlice.ts
+│
+├── systems/                          # Pure logic / game engine modules (no React)
+│   ├── idle/                         # IdleEngine (setInterval-based tick loop)
+│   ├── combat/                       # CombatEngine, AffixSystem, TargetingSystem, SkillAI
+│   ├── economy/                      # ResourceEngine, AlchemySystem, ForgeSystem, SynergySystem
+│   ├── building/                     # ProductionSystem
+│   ├── character/                    # CharacterEngine, FateSystem, SpecialtySystem, etc.
+│   ├── cultivation/                  # CultivationEngine, BreakthroughCoordinator, TribulationSystem
+│   ├── equipment/                    # EquipmentEngine
+│   ├── item/                         # ItemGenerator, ItemStackUtils
+│   ├── pet/                          # PetSystem
+│   ├── roguelike/                    # MapGenerator, EventSystem, LootSystem, AutoRunEngine, etc.
+│   ├── save/                         # SaveSystem, HistoryStore, ResourceCache, db (IndexedDB)
+│   ├── sect/                         # SectEngine, BuildingSystem, SectPathSystem, etc.
+│   ├── skill/                        # SkillSystem
+│   ├── technique/                    # TechniqueSystem
+│   └── trade/                        # TradeSystem
+│
+├── types/                            # TypeScript type definitions
+│   ├── index.ts                      # Barrel re-exports
+│   ├── character.ts
+│   ├── sect.ts
+│   ├── item.ts
+│   ├── adventure.ts
+│   ├── skill.ts
+│   ├── talent.ts
+│   ├── technique.ts
+│   └── runBuild.ts
+│
+├── data/                             # Static game data tables
+│   ├── buildings.ts, recipes.ts, items.ts, skills.ts, affixes.ts, ...
+│   └── icons/                        # Icon name maps (buildings, characters, items, etc.)
+│
+├── utils/
+│   └── format.ts                     # formatCultivationValue helper
+│
+├── styles/
+│   ├── theme.css                     # CSS custom properties (colors, spacing, typography)
+│   └── globals.css                   # Reset, body, scrollbar, page-content layout
+│
+└── __tests__/                        # Vitest test files (~60 files)
+    ├── setup.ts                      # Global test setup
+    ├── CombatEngine.test.ts
+    ├── CharacterCard.test.tsx
+    └── ...
 ```
 
 ---
 
 ## Module Organization
 
-### Pages (`src/pages/`)
+### Where new code goes
 
-One file per route. Each page is lazy-loaded via `React.lazy()` in `App.tsx`. A page component reads state from stores and delegates rendering to feature components.
+| Type | Location | Example |
+|------|----------|---------|
+| New page | `src/pages/NewPage.tsx` + `NewPage.module.css` | `VaultPage.tsx` |
+| New feature component | `src/components/<domain>/Panel.tsx` + `Panel.module.css` | `components/building/ForgePanel.tsx` |
+| New shared component | `src/components/common/Widget.tsx` + `Widget.module.css` | `components/common/ProgressBar.tsx` |
+| New game logic | `src/systems/<domain>/Engine.ts` | `systems/combat/CombatEngine.ts` |
+| New store slice | `src/stores/sectStore/newSlice.ts` | `stores/sectStore/petSlice.ts` |
+| New types | `src/types/entity.ts` + re-export in `index.ts` | `types/pet.ts` |
+| New data tables | `src/data/tableName.ts` | `data/realms.ts` |
+| New tests | `src/__tests__/ModuleName.test.ts` | `__tests__/CombatEngine.test.ts` |
 
-- `SectPage.tsx` — Sect overview (main page)
-- `CharactersPage.tsx` — Disciple management
-- `BuildingsPage.tsx` — Building upgrades and production
-- `AdventurePage.tsx` — Dungeon run configuration and launch
-- `AdventureReportPage.tsx` — Post-run report with insights
-- `VaultPage.tsx` — Shared sect inventory
-- `EventLogPage.tsx` — Event history
+### Co-location rules
 
-### Components (`src/components/`)
-
-Grouped by feature domain (not by type). Each component has a co-located `.module.css` file.
-
-| Group | Contents | Example |
-|-------|----------|---------|
-| `common/` | Shared UI primitives used across pages | `CharacterCard`, `StatusBadge`, `ProgressBar`, `Sidebar`, `BottomNav` |
-| `adventure/` | Adventure-specific UI | `RunBuildSummary`, `TacticPresetPicker` |
-| `building/` | Building feature panels | `AlchemyPanel`, `ForgePanel`, `StudyPanel` |
-| `cultivation/` | Cultivation UI | `BreakthroughPanel` |
-| `inventory/` | Equipment and item management | `EquipPanel`, `EnhancePanel`, `ItemCard` |
-| `sect/` | Sect overview panels | `StatsPanel`, `LegacyPanel`, `SectPathPanel` |
-
-### Systems (`src/systems/`)
-
-Stateless pure functions implementing game rules. Never import stores or React. Each system is a directory containing 1-7 `.ts` files.
-
-### Data (`src/data/`)
-
-Static game balance data: realm definitions, item tables, enemy definitions, technique tables, etc. No logic, only constants and lookup functions.
-
-### Types (`src/types/`)
-
-Shared TypeScript interfaces. `index.ts` re-exports everything — this is the only barrel file in the project.
+- **One CSS Module per component**: `ComponentName.module.css` in the same directory
+- **One page per route**: page + CSS module pair in `pages/`
+- **Systems are directory-based**: each domain has its own folder under `systems/`
 
 ---
 
@@ -100,23 +134,21 @@ Shared TypeScript interfaces. `index.ts` re-exports everything — this is the o
 
 | Category | Pattern | Example |
 |----------|---------|---------|
-| Pages | PascalCase `.tsx` | `AdventureReportPage.tsx` |
-| Components | PascalCase `.tsx` | `CharacterCard.tsx` |
-| Systems | PascalCase directories, camelCase functions | `combat/CombatEngine.ts`, `simulateCombat()` |
-| Stores | camelCase directory, named hook export | `sectStore/index.ts`, `useSectStore` |
-| Store slices | camelCase `*Slice.ts` | `characterSlice.ts`, `tickSlice.ts` |
-| Types | camelCase `.ts`, PascalCase interfaces | `character.ts`, `Character` |
-| Data tables | camelCase `.ts` | `realms.ts`, `techniquesTable.ts` |
-| CSS Modules | PascalCase `.module.css` (co-located) | `CharacterCard.module.css` |
-| Tests | PascalCase `.test.ts(x)` | `CombatEngine.test.ts`, `StatusBadge.test.tsx` |
-| Utils | camelCase `.ts` | `format.ts` |
+| Page components | PascalCase `.tsx` | `SectPage.tsx` |
+| Feature components | PascalCase `.tsx` | `ForgePanel.tsx` |
+| CSS Modules | PascalCase `.module.css` co-located | `ForgePanel.module.css` |
+| Store slices | camelCase `Slice.ts` | `characterSlice.ts` |
+| System modules | PascalCase `.ts` | `CombatEngine.ts` |
+| Type files | camelCase `.ts` | `character.ts` |
+| Data tables | camelCase `.ts` | `buildings.ts` |
+| Test files | Mirrors source path | `CombatEngine.test.ts` |
+| Barrel files | `index.ts` | `types/index.ts` |
 
 ---
 
-## Key Rules
+## Anti-Patterns
 
-1. **No barrel files** except `src/types/index.ts` — import directly with relative paths
-2. **One component per file** — always `export default function Name()`
-3. **CSS Modules are co-located** — `Foo.tsx` + `Foo.module.css` in the same directory
-4. **Systems never import stores** — they receive data and return results
-5. **Pages are lazy-loaded** — via `React.lazy()` in `App.tsx`
+- **No nested feature folders**: components are flat within their domain directory (e.g., `components/building/ForgePanel.tsx`, not `components/building/forge/ForgePanel.tsx`)
+- **No barrel files for components or systems**: import directly, not through index files
+- **No custom hook files**: hook logic is inlined in components or extracted to store actions
+- **No shared utility modules**: utilities are domain-specific and live in their system directory

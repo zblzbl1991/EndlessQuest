@@ -6,44 +6,41 @@
 
 ## Overview
 
-Zustand 5 is the sole state management solution. All mutable game state lives in Zustand stores. No Redux, no Context API for state, no React Query (no server). The architecture follows a **pure-function systems + mutable stores** pattern: systems compute results, stores apply them.
+State is managed with **Zustand** using a sliced store pattern. There is no server state (pure client-side app with IndexedDB persistence). All game state flows from a single `Sect` aggregate root.
 
 ---
 
-## State Categories
-
-### Global State (Zustand Stores)
-
-All game state is global and lives in 4 stores:
+## Store Inventory
 
 | Store | File | Purpose |
 |-------|------|---------|
-| `SectStore` | `src/stores/sectStore/` | Main game state — sect, characters, buildings, resources, pets, vault, tick |
-| `AdventureStore` | `src/stores/adventureStore.ts` | Dungeon run lifecycle — active runs, report data |
-| `GameStore` | `src/stores/gameStore.ts` | Session state — loaded flag, online time, game started |
-| `EventLogStore` | `src/stores/eventLogStore.ts` | Event log (capped at 200 entries) |
-
-### Local State (React useState)
-
-Used only for ephemeral UI state within a single component:
-
-- Modal visibility (`showModal: boolean`)
-- Loading states (`isLoaded: boolean`)
-- Form inputs (draft values before committing to store)
-
-**Rule**: If state persists across page navigation or affects game logic, it belongs in a store.
-
-### No Server State
-
-Pure client-side SPA. All data in IndexedDB. No API calls, no caching layer, no React Query.
+| `useSectStore` | `src/stores/sectStore/index.ts` | Main game state (characters, buildings, resources, items, pets, vault) |
+| `useAdventureStore` | `src/stores/adventureStore.ts` | Dungeon runs, reports, dispatches |
+| `useGameStore` | `src/stores/gameStore.ts` | Meta state (saveSlot, isPaused, dayProgress) |
+| `useEventLogStore` | `src/stores/eventLogStore.ts` | Event log (200 events max, newest first) |
 
 ---
 
-## SectStore Architecture (Main Store)
+## SectStore Slice Architecture
 
-### Slice Pattern
+The main store (`useSectStore`) is decomposed into 12 slices composed via object spread:
 
-SectStore is composed from 13 slices using Zustand's `StateCreator` pattern:
+| Slice | File | Key Actions |
+|-------|------|-------------|
+| `createInitialSlice` | `initial.ts` | Owns `sect` and `shopState` base state |
+| `createCharacterSlice` | `characterSlice.ts` | addCharacter, removeCharacter, sacrificeCharacter, promoteCharacter, setCharacterStatus, chooseCultivationPath |
+| `createBuildingSlice` | `buildingSlice.ts` | upgradeBuilding, expandBuilding, setProductionRecipe, assignToBuilding, autoAssignToBuilding |
+| `createResourceSlice` | `resourceSlice.ts` | spendResource, addResource, exchangeResources |
+| `createItemSlice` | `itemSlice.ts` | transferItemToCharacter, transferItemToVault, addToVault, sellItem, equipItem, unequipItem, enhanceItem |
+| `createTechniqueSlice` | `techniqueSlice.ts` | unlockCodexEntry, unlockCodexAndLearn, craftPotion, forgeEquipment, studyTechnique |
+| `createPetSlice` | `petSlice.ts` | addPet, removePet, assignPet, unassignPet |
+| `createTickSlice` | `tickSlice.ts` | tickAll (main game loop — cultivation, production, breakthroughs) |
+| `createShopSlice` | `shopSlice.ts` | initShop, buyFromShop, refreshDailyShop |
+| `createSectPathSlice` | `sectPathSlice.ts` | chooseSectPath, unlockPathNode, resetSectPath, setActiveRoute |
+| `createLegacySlice` | `legacySlice.ts` | performAscension |
+| `createMiscSlice` | `miscSlice.ts` | healCharacter, clearOfflineAccumulator, reset |
+
+### Slice Composition
 
 ```tsx
 // src/stores/sectStore/index.ts
@@ -53,167 +50,140 @@ export const useSectStore = create<SectStore>()(
       ...createInitialSlice(...a),
       ...createCharacterSlice(...a),
       ...createBuildingSlice(...a),
-      ...createResourceSlice(...a),
-      ...createItemSlice(...a),
-      ...createTechniqueSlice(...a),
-      ...createPetSlice(...a),
-      ...createTickSlice(...a),
-      ...createShopSlice(...a),
-      ...createSectPathSlice(...a),
-      ...createLegacySlice(...a),
-      ...createMiscSlice(...a),
+      // ... all 12 slices
     }) as SectStore
 )
 ```
 
-### Slices
-
-| Slice | File | Responsibilities |
-|-------|------|-----------------|
-| `initial` | `initial.ts` | Initial state factory |
-| `character` | `characterSlice.ts` | Add/remove/promote characters |
-| `building` | `buildingSlice.ts` | Upgrade buildings, assign characters |
-| `resource` | `resourceSlice.ts` | Spend/add resources, exchange |
-| `item` | `itemSlice.ts` | Vault ops, equip/unequip, enhance |
-| `technique` | `techniqueSlice.ts` | Codex unlock, technique learning |
-| `pet` | `petSlice.ts` | Pet management, assignment |
-| `tick` | `tickSlice.ts` | Main game loop tick (1-second interval) |
-| `shop` | `shopSlice.ts` | Shop init, buy, refresh |
-| `sectPath` | `sectPathSlice.ts` | Sect path selection, node unlock |
-| `legacy` | `legacySlice.ts` | Ascension logic |
-| `misc` | `miscSlice.ts` | Automation settings, offline accumulator |
-
 ### Slice Type Signature
 
-Each slice follows this type:
+Every slice follows this type:
 
 ```tsx
-import type { StateCreator } from 'zustand'
-import type { SectStore } from './types'
-
-export const createXxxSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
-  // actions...
+export const createXxxSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, _get) => ({
+  actionName: (param: Type) => {
+    // validation
+    // mutation via set()
+    // return value
+  },
 })
 ```
 
-All slices share the same `SectStore` type defined in `src/stores/sectStore/types.ts`.
-
 ---
 
-## When to Use Global State
+## State Mutation Pattern
 
-State belongs in a store when:
+Store actions use Zustand's `set()` with immutable updates:
 
-1. **Multiple components** need the same data
-2. **Game logic** depends on it (tick loop, systems)
-3. **Persistence** is needed (auto-saved to IndexedDB)
-4. **Cross-page** access is required
+```tsx
+spendResource: (type: keyof Resources, amount: number) => {
+  const { sect } = _get()
+  if (sect.resources[type] < amount) return false
+  set((s) => ({
+    sect: {
+      ...s.sect,
+      resources: { ...s.sect.resources, [type]: s.sect.resources[type] - amount },
+    },
+  }))
+  return true
+},
+```
 
----
-
-## Store Action Conventions
-
-### Return Types
+### Return value conventions
 
 | Scenario | Return Type | Example |
 |----------|-------------|---------|
-| Simple success/failure | `boolean` | `upgradeBuilding(type): boolean` |
-| Detailed outcome | `{ success: boolean; reason: string }` | `buyFromShop(index, isDaily)` |
-| Created entity | `Entity \| null` | `addCharacter(quality): Character \| null` |
-| Complex result | Structured object | `enhanceItem(...): { success: boolean; newLevel: number; cost: ... }` |
-| No meaningful return | `void` | `setCharacterStatus(id, status)` |
+| Simple success/failure | `boolean` | `spendResource()` returns `true`/`false` |
+| Create with result | `Entity \| null` | `addCharacter()` returns `Character` or `null` |
+| Detailed outcome | `{ success: boolean; reason: string }` | UI-facing operations |
+| No meaningful result | `void` | `tickAll()`, `reset()` |
 
-### Mutation Pattern
+### Validation pattern
 
 Check conditions sequentially, return early on failure, mutate only after all validation passes:
 
 ```tsx
 addCharacter: (quality) => {
-  const { sect } = get()
-
-  // 1. Guard: check quality unlock
-  if (!isQualityUnlocked(quality, sect.level)) return null
-
-  // 2. Guard: check character cap
-  if (sect.characters.length >= getMaxCharacters(sect.level)) return null
-
-  // 3. Guard: check cost
+  const { sect } = _get()
+  // 1. Check quality unlock
+  if (!isQualityUnlocked(quality, sect.sectPath)) return null
+  // 2. Check character cap
+  if (sect.characters.length >= maxCharacters) return null
+  // 3. Check cost
   if (sect.resources.spiritStone < cost) return null
-
-  // 4. All checks passed — mutate state
-  set((s) => ({
-    sect: {
-      ...s.sect,
-      characters: [...s.sect.characters, character],
-      resources: { ...s.sect.resources, spiritStone: s.sect.resources.spiritStone - cost },
-    },
-  }))
-
+  // 4. All validation passed — mutate
+  const character = generateCharacter(quality, sect.activeRoute)
+  set((s) => ({ sect: { ...s.sect, characters: [...s.sect.characters, character] } }))
   return character
+},
+```
+
+---
+
+## Cross-Store Communication
+
+Stores communicate by calling `.getState()` on other stores:
+
+```tsx
+// In tickSlice.ts
+const gameState = useGameStore.getState()
+useAdventureStore.getState().runAutomation(autoRunConfig)
+
+// In adventureStore.ts
+const { sect } = useSectStore.getState()
+useSectStore.setState((s) => ({ sect: { ...s.sect, stats: { ... } } }))
+```
+
+---
+
+## State Categories
+
+| Category | Where | Example |
+|----------|-------|---------|
+| Global game state | `useSectStore` | `sect.characters`, `sect.buildings`, `sect.resources` |
+| Session/adventure state | `useAdventureStore` | `runs`, `reports` |
+| Meta/session state | `useGameStore` | `isPaused`, `dayProgress` |
+| Event history | `useEventLogStore` | `events` (capped at 200) |
+| Local UI state | Component `useState` | Modal visibility, toast messages |
+| Derived state | Component `useMemo` | Aggregated stats, filtered lists |
+
+### No server state
+
+This is a pure client-side app. There is no server, no API calls, no React Query / SWR. All data lives in IndexedDB via the save system.
+
+---
+
+## Store Interface
+
+All state and action types are defined in one place:
+
+```tsx
+// src/stores/sectStore/types.ts (127 lines)
+export interface SectStore {
+  // State
+  sect: Sect
+  shopState: ShopState
+  offlineAccumulator: number
+
+  // Actions (grouped by domain)
+  addCharacter(quality: CharacterQuality): Character | null
+  spendResource(type: keyof Resources, amount: number): boolean
+  // ...
 }
 ```
 
-### Immutable Updates
-
-Always spread when updating nested objects:
-
-```tsx
-set((s) => ({
-  sect: {
-    ...s.sect,
-    characters: [...s.sect.characters, newChar],  // array spread
-    resources: { ...s.sect.resources, spiritStone: newVal },  // object spread
-  },
-}))
-```
-
 ---
 
-## Persistence
+## Auto-Save
 
-### Auto-Save
-
-Zustand subscription detects `sect` reference changes, debounces 500ms, writes to IndexedDB:
-
-```tsx
-// src/systems/save/startAutoSave.ts
-const unsubscribe = useSectStore.subscribe(() => {
-  // debounced write to IndexedDB
-})
-```
-
-### Save Triggers
-
-- Store mutation (debounced 500ms)
-- `visibilitychange` (tab switch)
-- `beforeunload` (page close)
-
-### Each Store Has `reset()`
-
-All stores provide a `reset()` action that restores initial state.
-
----
-
-## Event Logging
-
-Game events are emitted via `emitEvent()` (standalone function usable outside React):
-
-```tsx
-import { emitEvent } from '../eventLogStore'
-
-emitEvent('recruit', `招收弟子 ${character.name}`)
-emitEvent('breakthrough_success', `${name} 突破至 ${realmName}`)
-```
-
-Events are stored in `useEventLogStore` (cap 200, newest first) and also persisted to history.
+A Zustand subscription detects `sect` reference changes, debounces 500ms, then writes all entity stores to IndexedDB in a single transaction. Triggers on: state change, `visibilitychange`, `beforeunload`.
 
 ---
 
 ## Common Mistakes
 
-1. **Don't mutate state directly** — Always use `set()` with spread
-2. **Don't read store without selector** — Use `useSectStore((s) => s.field)` in components
-3. **Don't put game logic in store actions** — Delegate to pure functions in `src/systems/`
-4. **Don't create new stores without reason** — Most state belongs in `SectStore`
-5. **Don't forget to call `reset()`** when starting a new game
-6. **Don't mix concerns** — Resources have a single global source in SectStore (no duplication)
+1. **Mutating state directly** — Always use `set()` with immutable spread patterns
+2. **Reading state without selectors** — Components must use `useSectStore((s) => s.field)`
+3. **Putting logic in components** — Business logic belongs in store actions or system functions
+4. **Creating new stores for small state** — Add a slice to SectStore or use local `useState`
+5. **Forgetting to update `types.ts`** — Every new slice action must be added to the `SectStore` interface

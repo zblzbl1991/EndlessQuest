@@ -6,192 +6,194 @@
 
 ## Overview
 
-TypeScript 5.9 in strict mode. All source code is TypeScript (`ts`/`tsx`). The type system is used extensively — union types for enums, interfaces for entities, `Record<K, V>` for maps. No runtime validation library (no Zod/Yup) — runtime validation is done via guard clauses and early returns.
+TypeScript strict mode is enabled with `noUnusedLocals` and `noUnusedParameters`. All types are centralized in `src/types/` with a barrel re-export. Type-only imports are used consistently throughout the codebase.
 
 ---
 
 ## Type Organization
 
-### Location
-
-All shared types live in `src/types/`:
+### Directory structure
 
 ```
-types/
+src/types/
+├── index.ts          # Barrel re-exports (export type + export)
 ├── character.ts      # Character, CharacterQuality, CharacterStatus, etc.
-├── technique.ts      # Technique, TechniqueTier
-├── skill.ts          # ActiveSkill, Element, SkillCategory
-├── item.ts           # Item, Equipment, Consumable, AnyItem, ItemStack
-├── sect.ts           # Sect, Building, Resources, ResourceType
-├── adventure.ts      # DungeonRun, AdventureReport, Enemy, etc.
-├── talent.ts         # Talent, TalentEffect
-├── runBuild.ts       # AdventureRunConfig
-└── index.ts          # Barrel re-export (ONLY barrel file in the project)
+├── sect.ts           # Sect, Resources, BuildingType, etc.
+├── item.ts           # Item, Equipment, Consumable, AnyItem, etc.
+├── adventure.ts      # DungeonRun, AdventureReport, etc.
+├── skill.ts          # Skill, Element, active skill definitions
+├── talent.ts         # Talent definitions
+├── technique.ts      # Technique, TechniqueScroll
+└── runBuild.ts       # RunBuild types
 ```
 
-### Barrel Re-export
+### Barrel re-export pattern
 
-`src/types/index.ts` re-exports everything. This is the **only barrel file** — no other barrel files exist:
+`src/types/index.ts` uses `export type` for type-only re-exports and `export` for runtime values:
 
-```tsx
+```ts
 export type { Character, CharacterQuality, CharacterStatus } from './character'
-export type { Technique, TechniqueTier } from './technique'
-export { TECHNIQUE_TIER_NAMES } from './technique'  // value exports alongside types
+export type { Sect, Resources, BuildingType } from './sect'
+export { ELEMENT_NAMES, COUNTER_MAP } from './skill'
+export { SUPPLY_COSTS } from './adventure'
 ```
 
-### Import Conventions
+### Store types are separate
 
-- Use `import type { ... }` for type-only imports
-- Prefer relative paths over `@/*` alias
-- Inline `import type` for single types mixed with value imports:
+Store interfaces live alongside the store, not in `src/types/`:
 
-```tsx
-import type { CharacterQuality } from '../../types/character'
-import { getRealmName } from '../../data/realms'
+```ts
+// src/stores/sectStore/types.ts
+export interface SectStore { ... }
 ```
 
 ---
 
-## Common Patterns
+## Type-Only Imports
 
-### Union Types for Enums
+Always use `import type` for type-only imports:
 
-Use string literal union types instead of TypeScript `enum`:
+```ts
+// Good — type-only import
+import type { Character } from '../../types/character'
 
-```tsx
+// Good — inline type import when mixing with values
+import { generateCharacter, type CharacterQuality } from '../../systems/character/CharacterEngine'
+
+// Bad — importing type as value
+import { Character } from '../../types/character'
+```
+
+### Lazy type imports for circular dependency avoidance
+
+```ts
+// src/stores/sectStore/types.ts
+addPet(pet: import('../../systems/pet/PetSystem').Pet): void
+```
+
+---
+
+## Common Type Patterns
+
+### Union types with string literals
+
+Used extensively for domain enumerations:
+
+```ts
 export type CharacterQuality = 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
 export type CharacterStatus = 'idle' | 'adventuring' | 'patrolling' | 'resting' | 'injured' | 'training' | 'recovering'
-export type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
-export type BuildingType = 'mainHall' | 'spiritField' | 'library' | 'alchemyLab' | 'forge' | 'market'
+export type EquipSlot = 'head' | 'armor' | 'bracer' | 'belt' | 'boots' | 'weapon' | 'accessory1' | 'accessory2' | 'talisman'
 export type RealmStage = 0 | 1 | 2 | 3
 ```
 
-### Interfaces for Entities
+### Discriminated union types
 
-Use `interface` for domain entities:
+Item hierarchy uses a `type` discriminant:
 
-```tsx
-export interface Character {
+```ts
+export interface Item {
   id: string
   name: string
-  title: CharacterTitle
-  quality: CharacterQuality
-  realm: number
-  // ... 20+ fields
+  quality: ItemQuality
+  type: 'equipment' | 'consumable' | 'material' | 'techniqueScroll'
+  // ...
+}
+
+export interface Equipment extends Item { type: 'equipment'; slot: EquipSlot; stats: ItemStats }
+export interface Consumable extends Item { type: 'consumable'; effect: { type: string; value: number } }
+export interface Material extends Item { type: 'material'; category: 'herb' | 'ore' | 'other' }
+export interface TechniqueScroll extends Item { type: 'techniqueScroll'; techniqueId: string }
+
+export type AnyItem = Equipment | Consumable | Material | TechniqueScroll
+```
+
+### Constant maps alongside types
+
+Runtime maps are co-located with their type definitions:
+
+```ts
+export type Element = 'fire' | 'ice' | 'lightning' | 'healing' | 'neutral'
+
+export const ELEMENT_NAMES: Record<Element, string> = {
+  fire: '火', ice: '冰', lightning: '雷', healing: '治愈', neutral: '无'
 }
 ```
 
-### Record for Mappings
+### Override pattern for test factories
 
-Use `Record<K, V>` for style maps, label maps, and data lookups:
-
-```tsx
-const QUALITY_NAMES: Record<CharacterQuality, string> = {
-  common: '凡',
-  spirit: '灵',
-  immortal: '仙',
-  divine: '神',
-  chaos: '混沌',
-}
-```
-
-### Result Objects for Operations
-
-Store actions and system functions return structured result objects:
-
-```tsx
-interface OpResult {
-  success: boolean
-  reason: string
-}
-
-// Or with additional data
-interface EnhanceResult {
-  success: boolean
-  newLevel: number
-  cost: { spiritStone: number; ore: number }
-}
-```
-
-### Override Pattern for Test Helpers
-
-Use `Partial<T> & Required<Pick<T, ...>>` for test factory overrides:
-
-```tsx
+```ts
 function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; team: 'ally' | 'enemy' }): CombatUnit {
   return {
-    hp: 100,
-    maxHp: 100,
-    // ... defaults
+    maxHp: 100, hp: 100, atk: 15, def: 8, spd: 10,
     ...overrides,
   }
 }
 ```
 
+Uses `Partial<T> & Required<Pick<T, ...>>` to require essential fields while making others optional.
+
 ---
 
-## Store Types
+## Validation
 
-### SectStore Type
+- **No runtime validation library** (no Zod, Yup, etc.)
+- **Validation in store actions**: guard clauses check conditions and return early
+- **Type guards**: `isEquipment(item)`, `isConsumable(item)` based on discriminant
+- **Boundary validation**: only at system boundaries (user input in components, external data on load)
+- **Internal code trusts types**: no redundant runtime checks between trusted modules
 
-All slices share the `SectStore` interface defined in `src/stores/sectStore/types.ts`:
+### Normalization on load
 
-```tsx
+Save data is normalized on load to prevent corruption:
+
+```ts
+normalizeFiniteNumber(value)   // prevents NaN/Infinity
+normalizeResources(resources)  // ensures all resource fields are valid numbers
+```
+
+---
+
+## Store Type Definition
+
+The `SectStore` interface defines all state shape and action signatures in one file:
+
+```ts
+// src/stores/sectStore/types.ts
+import type { Character, CharacterQuality, CharacterStatus } from '../../types/character'
+import type { Sect, Resources, BuildingType, AnyItem } from '../../types'
+
 export interface SectStore {
+  // State
   sect: Sect
-  shopState: ShopState | null
+  shopState: ShopState
 
-  // Character management
+  // Character actions
   addCharacter(quality: CharacterQuality): Character | null
-  removeCharacter(id: string): void
-  // ...
+  removeCharacter(id: string): boolean
 
-  reset(): void
+  // Resource actions
+  spendResource(type: keyof Resources, amount: number): boolean
+  addResource(type: keyof Resources, amount: number): void
+
+  // ... all actions from all slices
 }
-```
-
-### Slice Type
-
-Each slice has this signature:
-
-```tsx
-StateCreator<SectStore, [], [], Partial<SectStore>>
-```
-
----
-
-## Runtime Validation
-
-No validation library. Validation is done via:
-
-1. **Guard clauses** — Check conditions, return early
-2. **Type narrowing** — `if` checks on discriminated unions
-3. **Boundary validation** — Only validate at system boundaries (user input, external data)
-4. **No internal validation** — Trust internal code and framework guarantees
-
-### Save Data Integrity
-
-On load, data is normalized to prevent corruption:
-
-```tsx
-normalizeFiniteNumber(value)
-normalizeResources(resources)
 ```
 
 ---
 
 ## Forbidden Patterns
 
-1. **No `any`** — Use unknown or proper types
-2. **No `enum`** — Use string literal union types
-3. **No type assertions (`as`)** — Use type guards or narrow properly (except the one `as SectStore` in store composition)
-4. **No non-null assertions (`!`)** — Use optional chaining or guard clauses
-5. **No `@ts-ignore` / `@ts-expect-error`** — Fix the type error properly
-6. **No barrel files** except `src/types/index.ts`
+1. **`any` type** — Never use `any`. Use `unknown` if type is truly unknown, or define a proper type
+2. **Type assertions (`as`)** — Avoid except in test helpers with `as const`
+3. **Non-null assertions (`!`)** — Avoid; use proper null checks or optional chaining
+4. **`@ts-ignore` / `@ts-expect-error`** — Not used; fix the type instead
+5. **Runtime type checks in internal code** — Trust TypeScript; only validate at boundaries
+6. **Enums** — Use string literal union types instead (e.g., `'common' | 'spirit'`)
+7. **Namespace imports** — Not used; use ES module imports
 
 ---
 
-## tsconfig Settings
+## tsconfig Strictness
 
 ```json
 {
@@ -205,4 +207,4 @@ normalizeResources(resources)
 }
 ```
 
-Tests are excluded from compilation: `"exclude": ["src/__tests__"]`
+Type checking command: `npx tsc -b`

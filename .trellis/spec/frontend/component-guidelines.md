@@ -6,101 +6,103 @@
 
 ## Overview
 
-All components are functional React components using TypeScript. One component per file, always `export default function`. CSS Modules for styling, co-located in the same directory. No UI framework (no MUI, no Shadcn) — all UI is hand-built with the ink-wash design system.
+All components are functional React components with default exports. CSS Modules provide styling with theme variables from `src/styles/theme.css`. Components read state from Zustand stores using granular selectors. There are no class components, no render props, and no HOCs.
 
 ---
 
 ## Component Structure
 
-Standard file layout:
+Standard component file layout:
 
 ```tsx
-// 1. Type-only imports first
-import type { CharacterStatus } from '../../types/character'
+// 1. Imports (types first, then values)
+import type { Character, CharacterQuality } from '../../types/character'
+import { useMemo } from 'react'
+import styles from './ComponentName.module.css'
+import { useSectStore } from '../stores/sectStore'
 
-// 2. Value imports
-import styles from './StatusBadge.module.css'
-
-// 3. Module-level constants (UPPER_SNAKE_CASE Records for style/label maps)
-const STATUS_LABELS: Record<CharacterStatus, string> = {
-  idle: '修炼中',
-  adventuring: '秘境中',
+// 2. Constants (helper maps, lookup tables)
+const QUALITY_BORDER: Record<CharacterQuality, string> = {
+  common: styles.qualityCommon,
+  spirit: styles.qualitySpirit,
   // ...
 }
 
-// 4. Interface for props (inline, not exported unless needed externally)
-interface StatusBadgeProps {
-  status: CharacterStatus
-  className?: string
+// 3. Props interface (inline, above component)
+interface ComponentNameProps {
+  character: Character
+  onClick?: () => void
 }
 
-// 5. Default export component function
-export default function StatusBadge({ status, className }: StatusBadgeProps) {
-  return (
-    <span className={`${styles.badge} ${STATUS_STYLES[status] ?? ''} ${className ?? ''}`}>
-      {STATUS_LABELS[status] ?? status}
-    </span>
-  )
+// 4. Component (default export, destructured props)
+export default function ComponentName({ character, onClick }: ComponentNameProps) {
+  // Zustand selectors
+  const sect = useSectStore((s) => s.sect)
+  // Derived state
+  const stats = useMemo(() => deriveStats(character), [character])
+  // JSX return
+  return <div className={styles.container}>...</div>
+}
+
+// 5. Helper sub-components (private, no export)
+function StatRow({ label, value }: { label: string; value: string }) {
+  return <div className={styles.statRow}>...</div>
 }
 ```
 
-### Real Examples
-
-- `src/components/common/StatusBadge.tsx` — Small presentational component with style maps
-- `src/components/common/CharacterCard.tsx` — Complex component reading from store, multiple sections
-- `src/components/cultivation/BreakthroughPanel.tsx` — Panel with conditional rendering and store actions
+Examples:
+- Page component: `src/pages/SectPage.tsx`
+- Feature component: `src/components/building/ForgePanel.tsx`
+- Shared component: `src/components/common/CharacterCard.tsx`
 
 ---
 
 ## Props Conventions
 
-### Destructured Parameters
+### Definition
 
-Always destructure props in the function signature:
+- Define props interface inline above the component (not in a separate file)
+- Use destructuring in the function signature
+- Optional props use `?` with sensible defaults
 
 ```tsx
 // Good
-export default function CharacterCard({ character, onClick }: CharacterCardProps) {
+interface ProgressBarProps {
+  value: number
+  max: number
+  variant?: 'default' | 'ink'
+  className?: string
+}
 
-// Bad — don't use `props.character`
-export default function CharacterCard(props: CharacterCardProps) {
+export default function ProgressBar({ value, max, variant = 'default', className }: ProgressBarProps) {
 ```
 
-### Interface Definition
+### Props + Store combination
 
-Define props interface inline in the same file. Use `interface` not `type` for props:
+Components can receive data via props AND read from stores simultaneously. This is used when a component needs both instance-specific data (via props) and global context (via store):
 
 ```tsx
+// src/components/common/CharacterCard.tsx
 interface CharacterCardProps {
   character: Character
   onClick?: () => void
 }
-```
 
-### Optional Props
-
-Use `?` for optional props, not defaults in the interface:
-
-```tsx
-interface StatusBadgeProps {
-  status: CharacterStatus
-  className?: string        // optional, no default needed
+export default function CharacterCard({ character, onClick }: CharacterCardProps) {
+  const sect = useSectStore((s) => s.sect)  // global context from store
+  // use character prop for instance-specific data
 }
 ```
 
-Handle defaults inside the component:
+### No props for pages
+
+Page components receive no props — they get all data from stores and route params:
 
 ```tsx
-className={`${styles.badge} ${className ?? ''}`}
-```
-
-### Callback Props
-
-Event callbacks are optional with `?`. The component should check before calling:
-
-```tsx
-role={onClick ? 'button' : undefined}
-tabIndex={onClick ? 0 : undefined}
+export default function SectPage() {
+  const sect = useSectStore((s) => s.sect)
+  // ...
+}
 ```
 
 ---
@@ -109,41 +111,40 @@ tabIndex={onClick ? 0 : undefined}
 
 ### CSS Modules
 
-One `.module.css` file per component, co-located:
-
-```
-common/
-├── CharacterCard.tsx
-├── CharacterCard.module.css
-├── StatusBadge.tsx
-└── StatusBadge.module.css
-```
-
-Import as `styles` and reference via `styles.className`:
+Every component has a co-located `.module.css` file. Import as `styles` and reference via `styles.className`:
 
 ```tsx
-import styles from './StatusBadge.module.css'
-// ...
-<span className={`${styles.badge} ${STATUS_STYLES[status] ?? ''}`}>
+import styles from './ForgePanel.module.css'
+
+// Usage
+<div className={styles.container}>
+  <span className={styles.title}>Title</span>
+</div>
 ```
 
-### Theme Variables
+### Theme variables
 
 Use CSS custom properties from `src/styles/theme.css`:
 
 ```css
-.characterCard {
-  background: var(--color-bg);
-  color: var(--color-text);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-md);
+/* ProgressBar.module.css */
+.fill {
+  background: linear-gradient(90deg, var(--color-border), var(--color-accent));
+  transition: width var(--transition-normal);
 }
 ```
 
-### Style Maps for Variants
+### Conditional class merging
 
-Use `Record<Type, string>` constants mapping domain values to CSS module class names:
+Use template literals for conditional classes (no classnames library):
+
+```tsx
+<div className={`${styles.fill} ${variant === 'ink' ? styles.fillInk : ''}`}>
+```
+
+### Quality/style maps
+
+Use `Record<XQuality, string>` pattern to map domain values to CSS classes:
 
 ```tsx
 const QUALITY_BORDER: Record<CharacterQuality, string> = {
@@ -155,63 +156,82 @@ const QUALITY_BORDER: Record<CharacterQuality, string> = {
 }
 ```
 
-Then use with null-safe fallback:
+---
+
+## Helper Sub-Components
+
+Small private helper components are defined at the bottom of the same file with no export:
 
 ```tsx
-className={`${styles.card} ${QUALITY_BORDER[character.quality] ?? ''}`}
+// src/components/sect/StatsPanel.tsx (bottom of file)
+function StatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.statRow}>
+      <span className={styles.statLabel}>{label}</span>
+      <span className={styles.statValue}>{value}</span>
+    </div>
+  )
+}
 ```
 
-### Conditional Classes
-
-Use template literals with `?? ''` for safety:
-
-```tsx
-className={`${styles.badge} ${STATUS_STYLES[status] ?? ''} ${className ?? ''}`}
-```
-
-### Design Principles
-
-- **Ink-wash style** — Follow the `清墨轻岚` design system in `theme.css`
-- **No inline styles** — All styles go in CSS Modules
-- **Mobile-first** — Base styles for mobile, `@media (min-width: 640px)` for tablet, `@media (min-width: 1024px)` for desktop
-- **44px minimum touch targets** on mobile
-- **Theme variables** — Always use `var(--color-*)`, `var(--space-*)`, `var(--radius-*)` — never hardcode colors or spacing
+These are for simple, repeated JSX patterns within the same file. Do NOT extract to separate files unless reused across components.
 
 ---
 
-## Component Categories
+## State in Components
 
-### Common Components (`components/common/`)
+### Zustand selectors
 
-Shared UI primitives used across multiple pages. These should be generic and reusable:
+Always use a selector function — never call `useStore()` without one:
 
-- `CharacterCard` — Displays character info, used in CharactersPage and adventure team selection
-- `StatusBadge` — Status indicator badge, used inside CharacterCard
-- `ProgressBar` — Animated progress bar with variants
-- `PixelIcon` — SVG pixel icon component
-- `PageHeader` — Page title header
-- `Sidebar` / `BottomNav` / `TopBar` — Navigation shell
-- `ErrorBoundary` — Error recovery wrapper
+```tsx
+// Good — granular selector
+const sect = useSectStore((s) => s.sect)
+const forgeEquipment = useSectStore((s) => s.forgeEquipment)
 
-### Feature Components (`components/<domain>/`)
+// Bad — subscribes to entire store
+const store = useSectStore()
+```
 
-Domain-specific panels tied to a particular feature area. These may read from stores and call store actions.
+### Local UI state
 
-### Pages (`pages/`)
+Use `useState` sparingly for transient UI state (messages, form inputs):
 
-Route-level components. Lazy-loaded. Responsible for:
-- Reading state from stores
-- Orchestrating feature components
-- Handling navigation
+```tsx
+const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
+```
+
+### Derived state
+
+Use `useMemo` for expensive computations:
+
+```tsx
+const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
+```
+
+### Event handlers
+
+Define inline — no `useCallback` anywhere in the codebase:
+
+```tsx
+<button onClick={() => forgeEquipment(recipe)}>Forge</button>
+```
+
+---
+
+## Accessibility
+
+- Game UI with minimal a11y requirements
+- Semantic HTML where appropriate (`<button>`, `<nav>`, `<main>`)
+- Text content is primary (no icon-only controls without labels)
+- Touch targets must be at least 44px on mobile (enforced in CSS)
 
 ---
 
 ## Common Mistakes
 
-1. **Don't create barrel files for components** — Import directly with relative paths
-2. **Don't use inline styles** — Always use CSS Modules
-3. **Don't hardcode colors** — Use `var(--color-*)` from `theme.css`
-4. **Don't forget null-safe class fallbacks** — Use `?? ''` when mapping styles
-5. **Don't import stores in common components that don't need them** — `StatusBadge` receives props, `CharacterCard` reads from store (intentional)
-6. **Don't use `React.memo` or `useMemo` without reason** — Premature optimization
-7. **Don't add `key` prop to style maps** — Keys are for lists, not conditional styling
+1. **Subscribing to entire store** — Always use selectors: `useSectStore((s) => s.field)`
+2. **Importing from barrel for components** — Import directly from the component file, not an index
+3. **Using inline styles** — Always use CSS Modules and theme variables
+4. **Adding useCallback/useMemo unnecessarily** — Only useMemo for expensive derivations; no useCallback
+5. **Creating separate files for one-off helper components** — Keep them in the same file
