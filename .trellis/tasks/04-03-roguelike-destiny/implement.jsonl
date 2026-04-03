@@ -1,0 +1,13 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "docs/superpowers/specs/2026-04-03-roguelike-destiny-automation-design.md", "reason": "Main design doc - high level product vision"}
+{"file": "docs/superpowers/specs/2026-04-03-roguelike-destiny-rules-and-mapping.md", "reason": "Rules and mapping doc - detailed implementation rules"}
+{"file": "src/types/character.ts", "reason": "Character type - needs destiny fields added"}
+{"file": "src/types/sect.ts", "reason": "Sect type - needs strategy and dark current fields"}
+{"file": "src/types/adventure.ts", "reason": "Adventure type - needs policy snapshot fields"}
+{"file": "src/types/index.ts", "reason": "Type barrel - needs re-exports"}
+{"file": "src/systems/roguelike/AutoRunEngine.ts", "reason": "Existing auto run engine to extend"}
+{"file": "src/systems/roguelike/AutoRunPolicy.ts", "reason": "Existing auto run policy to extend"}
+{"file": "src/systems/character/CharacterDispositionSystem.ts", "reason": "Character scoring system to reuse"}
+{"file": "src/stores/sectStore/index.ts", "reason": "Main store - needs new slices"}
+{"file": "src/stores/sectStore/types.ts", "reason": "Store types - needs new fields"}

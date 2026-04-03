@@ -1,4 +1,0 @@
-{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
-{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": ".trellis/spec/frontend/state-management.md", "reason": "Store mutation patterns"}
-{"file": ".trellis/spec/frontend/type-safety.md", "reason": "Type patterns and forbidden patterns"}
