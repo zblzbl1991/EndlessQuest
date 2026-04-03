@@ -155,12 +155,12 @@ describe('CultivationEngine', () => {
 
     it('should return false when spirit stones insufficient', () => {
       const character = createCharacter({ cultivation: 100 })
-      expect(canBreakthrough(character, 200, 50)).toBe(false)
+      expect(canBreakthrough(character, { spiritStone: 200 }, { spiritStone: 50, spiritEnergy: 9999 })).toBe(false)
     })
 
     it('should return true when spirit stones sufficient', () => {
       const character = createCharacter({ cultivation: 100 })
-      expect(canBreakthrough(character, 50, 200)).toBe(true)
+      expect(canBreakthrough(character, { spiritStone: 50 }, { spiritStone: 200, spiritEnergy: 0 })).toBe(true)
     })
 
     it('should ignore spirit stone check when cost undefined', () => {

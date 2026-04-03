@@ -1,4 +1,5 @@
 import type { Sect, SectStats, Resources } from '../../types'
+import type { SectStrategySettings, SectDarkCurrent } from '../../types/destiny'
 import type { DungeonRun, AdventureReport } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
@@ -38,6 +39,8 @@ interface SaveMeta {
   stats: SectStats
   archiveMilestones: Sect['archiveMilestones']
   automationSettings?: Sect['automationSettings']
+  strategySettings?: SectStrategySettings
+  darkCurrent?: SectDarkCurrent
   currentGameDay?: number
   dayProgressSec?: number
 }
@@ -102,8 +105,6 @@ const DEFAULT_RESOURCES: Resources = {
 }
 
 const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
-  enabled: true,
-  targetPoolSize: 8,
   reserveSpiritStone: 300,
   reserveSpiritEnergy: 120,
   preferredDungeonId: 'lingCaoValley',
@@ -138,7 +139,8 @@ function normalizeBuildings(buildings: Partial<Sect['buildings'][number]>[] | un
 
   return BUILDING_DEFS.map((def) => {
     const saved = buildingMap.get(def.type)
-    const unlocked = saved?.unlocked ?? (def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField')
+    const unlocked =
+      saved?.unlocked ?? (def.type === 'mainHall' || def.type === 'spiritMine' || def.type === 'spiritField')
     const level =
       typeof saved?.level === 'number'
         ? saved.level
@@ -194,6 +196,8 @@ export async function saveGame(): Promise<void> {
       stats: sect.stats,
       archiveMilestones: sect.archiveMilestones,
       automationSettings: sect.automationSettings,
+      strategySettings: sect.strategySettings,
+      darkCurrent: sect.darkCurrent,
       currentGameDay: gameState.currentGameDay,
       dayProgressSec: gameState.dayProgressSec,
     })
@@ -379,6 +383,22 @@ export async function loadGame(): Promise<boolean> {
       archiveMilestones: meta.archiveMilestones ?? [],
       automationSettings: normalizeAutomationSettings(meta.automationSettings),
       stats: meta.stats ?? DEFAULT_STATS,
+      strategySettings: meta.strategySettings ?? {
+        activePolicy: 'shenji',
+        activeAmplifiers: [],
+        switchCooldownDays: 3,
+        lastSwitchedAt: null,
+      },
+      darkCurrent: meta.darkCurrent ?? {
+        fortune: 0,
+        tribulation: 0,
+        abyss: 0,
+        guardian: 0,
+        plunder: 0,
+        afterglow: 0,
+        anomaly: 0,
+        lastShiftAt: null,
+      },
     }
 
     useSectStore.setState({ sect })

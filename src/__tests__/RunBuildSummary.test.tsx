@@ -8,7 +8,7 @@ describe('RunBuildSummary', () => {
     )
 
     expect(screen.getByText('本次构筑')).toBeInTheDocument()
-    expect(screen.getByText('战术: 平衡')).toBeInTheDocument()
+    expect(screen.getByText('战术：平衡')).toBeInTheDocument()
     expect(screen.getByText('祝福')).toBeInTheDocument()
     expect(screen.getByText('尚未获得祝福')).toBeInTheDocument()
     expect(screen.getByText('遗物')).toBeInTheDocument()

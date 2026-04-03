@@ -1,10 +1,5 @@
 // src/__tests__/SectEngine.test.ts
-import {
-  calcSectLevel,
-  canRecruitCharacter,
-  getMaxCharacters,
-  getMaxSimultaneousRuns,
-} from '../systems/sect/SectEngine'
+import { calcSectLevel, getMaxSimultaneousRuns, calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
 import {
   getActiveRoute,
   calcBuildingRouteBonus,
@@ -13,6 +8,38 @@ import {
   calcPetCaptureRouteBonus,
 } from '../systems/sect/SectRouteSystem'
 import { useSectStore } from '../stores/sectStore'
+import type { Building } from '../types'
+import type { Character } from '../types/character'
+import { generateCharacter } from '../systems/character/CharacterEngine'
+
+// --- Test helpers ---
+
+function makeBuilding(type: string, level: number, count = 1): Building {
+  return {
+    type: type as Building['type'],
+    level,
+    count,
+    unlocked: level > 0,
+    productionQueue: { recipeId: null, progress: 0 },
+  }
+}
+
+function makeBuildings(overrides: Partial<Record<string, { level: number; count?: number }>> = {}): Building[] {
+  const defaults: Record<string, { level: number; count: number }> = {
+    mainHall: { level: 1, count: 1 },
+    spiritField: { level: 1, count: 1 },
+    spiritMine: { level: 1, count: 1 },
+    market: { level: 0, count: 0 },
+    alchemyFurnace: { level: 0, count: 0 },
+    forge: { level: 0, count: 0 },
+    scriptureHall: { level: 0, count: 0 },
+    recruitmentPavilion: { level: 0, count: 0 },
+  }
+  const merged = { ...defaults, ...overrides }
+  return Object.entries(merged).map(([type, cfg]) => makeBuilding(type, cfg.level, cfg.count))
+}
+
+// --- Tests ---
 
 describe('SectEngine', () => {
   describe('calcSectLevel', () => {
@@ -34,28 +61,6 @@ describe('SectEngine', () => {
     })
   })
 
-  describe('getMaxCharacters', () => {
-    it('should return 10 for sect level 1 (5 + 1*5)', () => {
-      expect(getMaxCharacters(1)).toBe(10)
-    })
-
-    it('should return 15 for sect level 2 (5 + 2*5)', () => {
-      expect(getMaxCharacters(2)).toBe(15)
-    })
-
-    it('should return 20 for sect level 3 (5 + 3*5)', () => {
-      expect(getMaxCharacters(3)).toBe(20)
-    })
-
-    it('should return 25 for sect level 4 (5 + 4*5)', () => {
-      expect(getMaxCharacters(4)).toBe(25)
-    })
-
-    it('should return 30 for sect level 5 (5 + 5*5)', () => {
-      expect(getMaxCharacters(5)).toBe(30)
-    })
-  })
-
   describe('getMaxSimultaneousRuns', () => {
     it('should return 1 for sect level 1', () => {
       expect(getMaxSimultaneousRuns(1)).toBe(1)
@@ -70,23 +75,73 @@ describe('SectEngine', () => {
     })
   })
 
-  describe('canRecruitCharacter', () => {
-    it('should return true when under the limit', () => {
-      expect(canRecruitCharacter(1, 0)).toBe(true)
-      expect(canRecruitCharacter(1, 9)).toBe(true)
+  describe('calcMaxDisciplesByResources', () => {
+    it('should return 1 when no spirit fields exist', () => {
+      const buildings = makeBuildings({ spiritField: { level: 0, count: 0 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(1)
     })
 
-    it('should return false when at the limit', () => {
-      expect(canRecruitCharacter(1, 10)).toBe(false)
+    it('should return 1 when spirit field level 0', () => {
+      const buildings = makeBuildings({ spiritField: { level: 0 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(1)
     })
 
-    it('should return false when over the limit', () => {
-      expect(canRecruitCharacter(1, 15)).toBe(false)
+    it('should calculate based on spirit field rate: level 1 = 3/sec, floor(3/2) = 1', () => {
+      const buildings = makeBuildings({ spiritField: { level: 1 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(1)
     })
 
-    it('should allow more characters at higher sect levels', () => {
-      expect(canRecruitCharacter(2, 10)).toBe(true)
-      expect(canRecruitCharacter(2, 15)).toBe(false)
+    it('should calculate based on spirit field rate: level 3 = 7/sec, floor(7/2) = 3', () => {
+      const buildings = makeBuildings({ spiritField: { level: 3 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(3)
+    })
+
+    it('should calculate based on spirit field rate: level 5 = 11/sec, floor(11/2) = 5', () => {
+      const buildings = makeBuildings({ spiritField: { level: 5 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(5)
+    })
+
+    it('should multiply by spirit field count: 2x level 5 = 22/sec, floor(22/2) = 11', () => {
+      const buildings = makeBuildings({ spiritField: { level: 5, count: 2 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(11)
+    })
+
+    it('should scale with building level: level 10 = 21/sec, floor(21/2) = 10', () => {
+      const buildings = makeBuildings({ spiritField: { level: 10 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(10)
+    })
+
+    it('should scale with 4x spirit field level 10: 84/sec, floor(84/2) = 42', () => {
+      const buildings = makeBuildings({ spiritField: { level: 10, count: 4 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBe(42)
+    })
+
+    it('should return at least 1 (minimum)', () => {
+      const buildings = makeBuildings({ spiritField: { level: 1 } })
+      const result = calcMaxDisciplesByResources(buildings, [], null)
+      expect(result).toBeGreaterThanOrEqual(1)
+    })
+
+    it('should account for characters with techniques providing bonuses', () => {
+      const buildings = makeBuildings({ spiritField: { level: 3 } })
+      // Without characters: level 3 spirit field = 7/sec → floor(7/2) = 3
+      const withoutChars = calcMaxDisciplesByResources(buildings, [], null)
+      expect(withoutChars).toBe(3)
+
+      // With an idle character with learned techniques (technique multiplier > 1)
+      const char = generateCharacter('common')
+      char.status = 'idle'
+      const withChars = calcMaxDisciplesByResources(buildings, [char], null)
+      // Technique multiplier should increase production, allowing more disciples
+      expect(withChars).toBeGreaterThanOrEqual(withoutChars)
     })
   })
 })

@@ -14,6 +14,7 @@ import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySyst
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus } from '../types/character'
 import { CHAR_QUALITY_SHORT } from '../data/uiCopy'
+import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
 import { PixelIcon } from '../components/common/PixelIcon'
 import CharacterCard from '../components/common/CharacterCard'
 import PageHeader from '../components/common/PageHeader'
@@ -149,6 +150,8 @@ export default function CharactersPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
 
   const characters = useSectStore((s) => s.sect.characters)
+  const buildings = useSectStore((s) => s.sect.buildings)
+  const activeRoute = useSectStore((s) => s.sect.activeRoute)
   const automationSettings = useSectStore((s) => s.sect.automationSettings)
   const setAutomationSettings = useSectStore((s) => s.setAutomationSettings)
   const dayProgressSec = useGameStore((s) => s.dayProgressSec)
@@ -170,7 +173,11 @@ export default function CharactersPage() {
   )
 
   const nextDayCountdown = Math.max(0, 60 - dayProgressSec)
-  const automationSummary = `维持 ${automationSettings.targetPoolSize} 人弟子池，保留 ${automationSettings.reserveSpiritStone} 灵石 / ${automationSettings.reserveSpiritEnergy} 灵气`
+  const maxDisciples = useMemo(
+    () => calcMaxDisciplesByResources(buildings, characters, activeRoute),
+    [buildings, characters, activeRoute]
+  )
+  const automationSummary = `资源可养 ${maxDisciples} 人，保留 ${automationSettings.reserveSpiritStone} 灵石 / ${automationSettings.reserveSpiritEnergy} 灵气`
 
   if (selectedId) {
     return (
@@ -188,7 +195,7 @@ export default function CharactersPage() {
         metrics={[
           {
             label: '弟子池',
-            value: `${characters.length}/${automationSettings.targetPoolSize}`,
+            value: `${characters.length}/${maxDisciples}`,
             detail: `${automationSettings.reserveSpiritStone} 灵石 · ${automationSettings.reserveSpiritEnergy} 灵气保底`,
           },
           { label: '可出战', value: counts.idle, detail: `派遣 ${counts.dispatching} · 秘境 ${counts.adventuring}` },
@@ -204,43 +211,15 @@ export default function CharactersPage() {
               <h2 className={styles.panelTitle}>宗门自动运转</h2>
               <p className={styles.panelMeta}>{automationSummary}</p>
             </div>
-            <div className={styles.togglePair}>
-              <button
-                type="button"
-                className={`${styles.toggleBtn} ${automationSettings.enabled ? styles.toggleActive : ''}`}
-                onClick={() => setAutomationSettings({ enabled: true })}
-              >
-                自动开
-              </button>
-              <button
-                type="button"
-                className={`${styles.toggleBtn} ${!automationSettings.enabled ? styles.toggleActive : ''}`}
-                onClick={() => setAutomationSettings({ enabled: false })}
-              >
-                自动关
-              </button>
-            </div>
           </div>
 
           <details className={styles.automationDetails}>
             <summary className={styles.automationSummary}>
-              <span>补员、保底与突破</span>
+              <span>保底与突破</span>
               <span className={styles.automationSummaryMeta}>展开设置</span>
             </summary>
 
             <div className={styles.settingGrid}>
-              <label className={styles.settingField}>
-                <span className={styles.settingLabel}>目标弟子池</span>
-                <input
-                  className={styles.settingInput}
-                  type="number"
-                  min={1}
-                  value={automationSettings.targetPoolSize}
-                  onChange={(event) =>
-                    setAutomationSettings({ targetPoolSize: Math.max(1, Number(event.target.value) || 1) })
-                  }
-                />
-              </label>
               <label className={styles.settingField}>
                 <span className={styles.settingLabel}>最低保留灵石</span>
                 <input
@@ -620,7 +599,12 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
           <section className={styles.section}>
             <div className={styles.sectionTitle}>
-              <PixelIcon name={DETAIL_SECTION_ICONS.equipment} size={16} className={styles.inlineIcon} aria-label="装备" />
+              <PixelIcon
+                name={DETAIL_SECTION_ICONS.equipment}
+                size={16}
+                className={styles.inlineIcon}
+                aria-label="装备"
+              />
               装备
             </div>
             <EquipPanel
@@ -668,7 +652,8 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                 <div className={styles.buildStyleHeader}>
                   <span className={styles.buildStyleLabel}>{buildStyle.label}</span>
                   <span className={styles.buildStyleCount}>
-                    主动技 {activeSkills.length}/{MAX_CHARACTER_SKILL_SLOTS} · 功法 {character.learnedTechniques.length} 门
+                    主动技 {activeSkills.length}/{MAX_CHARACTER_SKILL_SLOTS} · 功法 {character.learnedTechniques.length}{' '}
+                    门
                   </span>
                 </div>
                 <div className={styles.buildStyleDesc}>{buildStyle.description}</div>
@@ -734,7 +719,9 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                           aria-label={tech.name}
                         />
                         {tech.name}
-                        <span className={`${styles.techniqueTier} ${tierClass}`}>{TECHNIQUE_TIER_NAMES[tech.tier]}</span>
+                        <span className={`${styles.techniqueTier} ${tierClass}`}>
+                          {TECHNIQUE_TIER_NAMES[tech.tier]}
+                        </span>
                       </div>
                       <div className={styles.bonuses}>
                         {tech.bonuses.map((bonus, index) => (

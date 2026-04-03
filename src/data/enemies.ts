@@ -8,6 +8,73 @@ import { buildCharacterSkillLoadout, getActiveSkillById } from './activeSkills'
 import { rollAffixes } from './affixes'
 import { applyPathStatBonuses } from '../systems/character/CultivationPathSystem'
 
+// ─── Power Rating System ──────────────────────────────────────────────
+
+/**
+ * Evaluate a single CombatUnit's combat power rating.
+ * Weights reflect each stat's contribution to combat outcome:
+ * - atk: primary damage source
+ * - def: damage reduction
+ * - maxHp: sustain / survivability
+ * - spd: turn order priority
+ * - crit: burst chance
+ * - critDmg: burst magnitude
+ */
+export function calcUnitPowerRating(unit: CombatUnit): number {
+  return unit.atk * 1.0 + unit.def * 0.8 + unit.maxHp * 0.15 + unit.spd * 0.4 + unit.crit * 30 + (unit.critDmg - 1) * 20
+}
+
+/** Evaluate a team's total combat power rating. */
+export function calcTeamPowerRating(units: CombatUnit[]): number {
+  return units.reduce((sum, unit) => sum + calcUnitPowerRating(unit), 0)
+}
+
+/**
+ * Adjust enemy stats so difficulty matches team power within ±20%.
+ * Layer-based scaling remains the primary factor; this is a secondary calibration.
+ *
+ * Target: enemy power ≈ 60-100% of team power for regular enemies.
+ * Boss target: 1.0-1.8x team power depending on floor depth.
+ */
+export function adjustEnemyByTeamPower(
+  enemy: CombatUnit,
+  team: CombatUnit[],
+  options?: { isBoss?: boolean; floor?: number }
+): void {
+  if (team.length === 0) return
+
+  const teamPower = calcTeamPowerRating(team)
+  const enemyPower = calcUnitPowerRating(enemy)
+  if (teamPower <= 0 || enemyPower <= 0) return
+
+  const isBoss = options?.isBoss ?? false
+  const floor = options?.floor ?? 1
+
+  // Determine target enemy power relative to team
+  let targetRatio: number
+  if (isBoss) {
+    // Boss: 1.0-1.8x team power, scaling with floor depth
+    targetRatio = Math.min(1.8, 1.0 + floor * 0.05)
+  } else {
+    // Regular enemy: 60-100% of team power
+    targetRatio = 0.6 + Math.random() * 0.4
+  }
+
+  const targetEnemyPower = teamPower * targetRatio
+  const adjustment = targetEnemyPower / enemyPower
+
+  // Clamp adjustment to ±20% (layer-based scaling is still primary)
+  const clamped = Math.max(0.8, Math.min(1.2, adjustment))
+
+  enemy.hp = Math.max(1, Math.floor(enemy.hp * clamped))
+  enemy.maxHp = Math.max(1, Math.floor(enemy.maxHp * clamped))
+  enemy.atk = Math.max(1, Math.floor(enemy.atk * clamped))
+  enemy.def = Math.max(1, Math.floor(enemy.def * clamped))
+  enemy.spd = Math.max(1, Math.floor(enemy.spd * clamped))
+}
+
+// ─── Loot System ──────────────────────────────────────────────────────
+
 export type LootType = 'spiritStone' | 'herb' | 'ore' | 'equipment' | 'consumable' | 'petCapture'
 
 export interface LootEntry {

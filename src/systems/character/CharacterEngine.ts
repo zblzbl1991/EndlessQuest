@@ -7,6 +7,8 @@ import { getTechniqueById } from '../../data/techniquesTable'
 import type { SectRouteId } from '../../data/sectRoutes'
 import { rollSpecialties } from './SpecialtySystem'
 import { applyPathStatBonuses } from './CultivationPathSystem'
+import { DESTINY_SEED_LIST, rollSeedRarity } from '../../data/destinySeeds'
+import { createDestinyState } from '../../systems/destiny/DestinySystem'
 
 // ---------------------------------------------------------------------------
 // Quality stat table
@@ -371,6 +373,11 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
   const learnedTechniques = ['qingxin']
   const specialties = applyRouteIdentityBiases(rollSpecialties(quality), activeRoute)
 
+  // Assign destiny seed
+  const seedId = DESTINY_SEED_LIST[Math.floor(Math.random() * DESTINY_SEED_LIST.length)].id
+  const seedRarity = rollSeedRarity()
+  const destinyState = createDestinyState(seedId)
+
   return syncCharacterSkillLoadout({
     id: 'char_' + Date.now() + '_' + ++_idCounter,
     name: generateName(),
@@ -398,6 +405,9 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     cultivationPath: 'none',
     fateTags: [],
     investedSpiritStone: getRecruitCost(quality),
+    destinyState,
+    seedRarity,
+    seedId,
   })
 }
 

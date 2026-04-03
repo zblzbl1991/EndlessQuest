@@ -2,6 +2,7 @@ import type { Character } from './character'
 import type { ItemStack } from './item'
 import type { Pet } from '../systems/pet/PetSystem'
 import type { SectRouteId } from '../data/sectRoutes'
+import type { SectStrategySettings, SectDarkCurrent } from './destiny'
 
 export type SectPath = 'none' | 'pill' | 'sword' | 'beast'
 export type ArchiveMilestoneId = 'firstRareRecruit' | 'firstTribulationSuccess' | 'firstDungeonClear'
@@ -88,8 +89,6 @@ export interface SectStats {
 }
 
 export interface SectAutomationSettings {
-  enabled: boolean
-  targetPoolSize: number
   reserveSpiritStone: number
   reserveSpiritEnergy: number
   preferredDungeonId: string | null
@@ -119,4 +118,6 @@ export interface Sect {
   stats: SectStats
   archiveMilestones: ArchiveMilestoneEntry[]
   automationSettings: SectAutomationSettings
+  strategySettings: SectStrategySettings
+  darkCurrent: SectDarkCurrent
 }

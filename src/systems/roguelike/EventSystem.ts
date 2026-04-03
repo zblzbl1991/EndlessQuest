@@ -1,6 +1,11 @@
 import type { DungeonEvent } from '../../types/adventure'
 import type { AnyItem } from '../../types/item'
-import { ENEMY_TEMPLATES, createCombatUnitFromEnemy, type EnemyTemplate } from '../../data/enemies'
+import {
+  ENEMY_TEMPLATES,
+  createCombatUnitFromEnemy,
+  adjustEnemyByTeamPower,
+  type EnemyTemplate,
+} from '../../data/enemies'
 import { EQUIP_SLOTS } from '../../data/items'
 import { getTechniqueById } from '../../data/techniquesTable'
 import type { Resources } from '../../types/sect'
@@ -128,6 +133,9 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
       const enemyTemplate = templates[Math.floor(Math.random() * templates.length)] as EnemyTemplate
       const enemyUnit = createCombatUnitFromEnemy(enemyTemplate, floorNumber)
 
+      // Adjust enemy difficulty based on team power (±20%)
+      adjustEnemyByTeamPower(enemyUnit, aliveTeam, { floor: floorNumber })
+
       if (hasAffix(enemyUnit.affixes, 'shield')) {
         enemyUnit.shield = calcShield(enemyUnit.maxHp, true)
       }
@@ -248,9 +256,9 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
 
       const bossTemplate = ENEMY_TEMPLATES.find((enemy) => enemy.isBoss) as EnemyTemplate
       const bossUnit = createCombatUnitFromEnemy(bossTemplate, floorNumber)
-      bossUnit.hp = Math.floor(bossUnit.hp * 2)
-      bossUnit.maxHp = bossUnit.hp
-      bossUnit.atk = Math.floor(bossUnit.atk * 1.5)
+
+      // Dynamic boss scaling: replace fixed 2x HP / 1.5x ATK with power-based adjustment
+      adjustEnemyByTeamPower(bossUnit, aliveTeam, { isBoss: true, floor: floorNumber })
 
       if (hasAffix(bossUnit.affixes, 'shield')) {
         bossUnit.shield = calcShield(bossUnit.maxHp, true)

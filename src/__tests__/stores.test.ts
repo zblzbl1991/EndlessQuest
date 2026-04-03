@@ -60,6 +60,16 @@ function resetStore() {
   useGameStore.getState().reset()
 }
 
+/** Upgrade spirit field so resource-based disciple cap is generous for tests. */
+function boostSpiritField(level = 10, count = 4) {
+  useSectStore.setState((s) => ({
+    sect: {
+      ...s.sect,
+      buildings: s.sect.buildings.map((b) => (b.type === 'spiritField' ? { ...b, level, count } : b)),
+    },
+  }))
+}
+
 function getStore() {
   return useSectStore.getState()
 }
@@ -137,7 +147,10 @@ describe('SectStore - Initialization', () => {
 // ---------------------------------------------------------------------------
 
 describe('SectStore - Character Management', () => {
-  beforeEach(() => resetStore())
+  beforeEach(() => {
+    resetStore()
+    boostSpiritField()
+  })
 
   it('addCharacter should add a new character', () => {
     const char = getStore().addCharacter()
@@ -146,18 +159,16 @@ describe('SectStore - Character Management', () => {
     expect(char!.quality).toBe('common')
   })
 
-  it('addCharacter should return null when at max', () => {
-    // Sect level 1 -> maxCharacters 10, initial 1, add 9 more
-    // Need enough spirit stones for 9 recruits (80 each = 720)
+  it('addCharacter should return null when at resource cap', () => {
+    // Spirit field level 3 → 7/sec, max = floor(7/2) = 3 disciples
+    boostSpiritField(3, 1)
     getStore().addResource('spiritStone', 1000)
-    for (let i = 0; i < 9; i++) {
-      const char = getStore().addCharacter()
-      expect(char).not.toBeNull()
-    }
-    // 11th should fail
-    const char = getStore().addCharacter()
-    expect(char).toBeNull()
-    expect(getStore().sect.characters).toHaveLength(10)
+    // Add 2 more (total 3)
+    expect(getStore().addCharacter()).not.toBeNull()
+    expect(getStore().addCharacter()).not.toBeNull()
+    // 4th should fail (resource cap reached)
+    expect(getStore().addCharacter()).toBeNull()
+    expect(getStore().sect.characters).toHaveLength(3)
   })
 
   it('removeCharacter should remove a character by id', () => {
@@ -1213,6 +1224,7 @@ describe('SectStore - Reset', () => {
 function resetAdventureStore() {
   useAdventureStore.getState().reset()
   useSectStore.getState().reset()
+  boostSpiritField()
 }
 
 function getAdventureStore() {
@@ -1799,7 +1811,10 @@ describe('AdventureStore - advanceFloor', () => {
 // ---------------------------------------------------------------------------
 
 describe('SectStore - Recruit Cost', () => {
-  beforeEach(() => resetStore())
+  beforeEach(() => {
+    resetStore()
+    boostSpiritField()
+  })
 
   it('addCharacter should deduct spirit stones', () => {
     const before = getStore().sect.resources.spiritStone
@@ -1821,11 +1836,14 @@ describe('SectStore - Recruit Cost', () => {
   })
 
   it('canRecruit should report characters full', () => {
+    // Spirit field level 3 → max 3 disciples
+    boostSpiritField(3, 1)
     getStore().addResource('spiritStone', 1000)
-    for (let i = 0; i < 9; i++) getStore().addCharacter()
+    getStore().addCharacter() // total 2
+    getStore().addCharacter() // total 3 = max
     const result = getStore().canRecruit()
     expect(result.allowed).toBe(false)
-    expect(result.reason).toBe('弟子已满')
+    expect(result.reason).toBe('灵气不足以供养更多弟子')
   })
 
   it('canRecruit should allow when conditions met', () => {
@@ -1896,6 +1914,7 @@ describe('AdventureStore - selectRoute', () => {
 describe('SectStore - Daily automation', () => {
   beforeEach(() => {
     resetStore()
+    boostSpiritField()
     useAdventureStore.getState().reset()
   })
 
@@ -1915,8 +1934,6 @@ describe('SectStore - Daily automation', () => {
         resources: { ...s.sect.resources, spiritStone: 1200, spiritEnergy: 400 },
         automationSettings: {
           ...s.sect.automationSettings,
-          enabled: true,
-          targetPoolSize: 2,
           reserveSpiritStone: 200,
           reserveSpiritEnergy: 100,
         },
@@ -1928,16 +1945,14 @@ describe('SectStore - Daily automation', () => {
     expect(getStore().sect.characters.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('should auto-run the preferred dungeon once per elapsed day when automation is enabled', () => {
+  it('should auto-run the preferred dungeon once per elapsed day when resources are sufficient', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((character) => ({ ...character, realmStage: 3 })),
-        resources: { ...s.sect.resources, spiritStone: 900, spiritEnergy: 240 },
+        resources: { ...s.sect.resources, spiritStone: 50000, spiritEnergy: 5000 },
         automationSettings: {
           ...s.sect.automationSettings,
-          enabled: true,
-          targetPoolSize: 1,
           reserveSpiritStone: 200,
           reserveSpiritEnergy: 100,
           preferredDungeonId: 'lingCaoValley',
@@ -1959,8 +1974,6 @@ describe('SectStore - Daily automation', () => {
         resources: { ...s.sect.resources, spiritStone: 300, spiritEnergy: 100 },
         automationSettings: {
           ...s.sect.automationSettings,
-          enabled: true,
-          targetPoolSize: 1,
           reserveSpiritStone: 300,
           reserveSpiritEnergy: 100,
           preferredDungeonId: 'lingCaoValley',

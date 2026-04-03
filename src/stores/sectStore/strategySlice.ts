@@ -1,0 +1,127 @@
+import type { StateCreator } from 'zustand'
+import type { SectStore } from './types'
+import type { SectRiskPolicyId, DestinyAmplifierId } from '../../types/destiny'
+import { getPolicyProfile } from '../../data/sectRiskPolicies'
+import { calculateShock, applyShockToState, calculateMatchedAmplifiers } from '../../systems/destiny/DestinySystem'
+import { getCoreDiscipleIds as getCoreIds } from '../../systems/sect/CoreDiscipleSystem'
+import { getCharacterDisposition } from '../../systems/character/CharacterDispositionSystem'
+import { findEquipmentById } from './initial'
+import { getEffectiveStats } from '../../systems/equipment/EquipmentEngine'
+
+// ---...--- Helper: sum gear stat value for a character ---...---
+
+function sumGearValue(equippedGear: (string | null)[], sect: import('../../types').Sect): number {
+  let total = 0
+  for (const gearId of equippedGear) {
+    if (!gearId) continue
+    const item = findEquipmentById(sect, gearId)
+    if (!item) continue
+    const eff = getEffectiveStats(item)
+    total += eff.hp + eff.atk + eff.def + eff.spd + eff.crit + eff.critDmg
+  }
+  return total
+}
+
+// ---...--- Helper: days between two timestamps ---...---
+
+function daysBetween(a: number, b: number): number {
+  return Math.abs(b - a) / (1000 * 60 * 60 * 24)
+}
+
+export const createStrategySlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
+  setPolicy(policyId: SectRiskPolicyId): { success: boolean; reason: string } {
+    const { sect } = get()
+    const { strategySettings } = sect
+    const now = Date.now()
+
+    // Cooldown check
+    if (strategySettings.lastSwitchedAt !== null) {
+      const elapsed = daysBetween(strategySettings.lastSwitchedAt, now)
+      if (elapsed < strategySettings.switchCooldownDays) {
+        return { success: false, reason: '方针切换冷却中' }
+      }
+    }
+
+    // No-op if same policy
+    if (strategySettings.activePolicy === policyId) {
+      set((s) => ({
+        sect: {
+          ...s.sect,
+          strategySettings: {
+            ...s.sect.strategySettings,
+            lastSwitchedAt: now,
+          },
+        },
+      }))
+      return { success: true, reason: '' }
+    }
+
+    // Calculate shock for all characters with destiny state
+    const prevPolicyId = strategySettings.activePolicy
+    const updatedCharacters = sect.characters.map((char) => {
+      if (!char.destinyState) return char
+      const { shockImpact } = calculateShock(prevPolicyId, policyId, char.destinyState)
+      const { state: newState } = applyShockToState(char.destinyState, shockImpact, now)
+      return { ...char, destinyState: newState }
+    })
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: updatedCharacters,
+        strategySettings: {
+          ...s.sect.strategySettings,
+          activePolicy: policyId,
+          lastSwitchedAt: now,
+        },
+      },
+    }))
+
+    return { success: true, reason: '' }
+  },
+
+  setAmplifiers(amplifierIds: DestinyAmplifierId[]): void {
+    set((s) => {
+      const updatedCharacters = s.sect.characters.map((char) => {
+        if (!char.destinyState) return char
+        const matchedAmplifiers = calculateMatchedAmplifiers(char.destinyState.seedId, amplifierIds)
+        return {
+          ...char,
+          destinyState: { ...char.destinyState, matchedAmplifiers },
+        }
+      })
+
+      return {
+        sect: {
+          ...s.sect,
+          characters: updatedCharacters,
+          strategySettings: {
+            ...s.sect.strategySettings,
+            activeAmplifiers: amplifierIds,
+          },
+        },
+      }
+    })
+  },
+
+  getActivePolicy() {
+    return getPolicyProfile(get().sect.strategySettings.activePolicy)
+  },
+
+  getCoreDiscipleIds(): string[] {
+    const { sect } = get()
+    const { activePolicy, activeAmplifiers } = sect.strategySettings
+
+    return getCoreIds(
+      sect.characters,
+      activePolicy,
+      activeAmplifiers,
+      (char) => {
+        const disposition = getCharacterDisposition(char)
+        return { adventure: disposition.adventure.score, risk: disposition.risk.score }
+      },
+      (char) => sumGearValue(char.equippedGear, sect),
+      () => 0
+    )
+  },
+})

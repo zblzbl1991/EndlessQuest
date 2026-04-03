@@ -13,11 +13,9 @@ function makeCharacter(id: string, overrides?: Partial<Character>): Character {
 }
 
 describe('SectAutomationSystem', () => {
-  it('recruits only when the pool is below target and reserve thresholds are satisfied', () => {
+  it('recruits when reserve thresholds are satisfied', () => {
     expect(
       shouldAutoRecruit({
-        poolSize: 6,
-        targetPoolSize: 8,
         spiritStone: 500,
         reserveSpiritStone: 300,
         spiritEnergy: 200,
@@ -27,9 +25,7 @@ describe('SectAutomationSystem', () => {
 
     expect(
       shouldAutoRecruit({
-        poolSize: 8,
-        targetPoolSize: 8,
-        spiritStone: 500,
+        spiritStone: 300,
         reserveSpiritStone: 300,
         spiritEnergy: 200,
         reserveSpiritEnergy: 120,

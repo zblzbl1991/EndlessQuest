@@ -133,17 +133,11 @@ describe('Adventure report pages', () => {
     expect(
       screen.getAllByText((_, node) => {
         const text = node?.textContent ?? ''
-        return text.includes('核心弟子') && text.includes('测试弟子')
+        return text.includes('核心') && text.includes('测试弟子')
       }).length
     ).toBeGreaterThan(0)
-    expect(screen.getByText('转折点')).toBeInTheDocument()
-    expect(screen.getByText('异变')).toBeInTheDocument()
-    expect(
-      screen.getAllByText((_, node) => {
-        const text = node?.textContent ?? ''
-        return text.includes('测试弟子') && text.includes(getDiscipleMutationDef('sword_intent').name)
-      }).length
-    ).toBeGreaterThan(0)
+    expect(screen.getByText('构筑与转折')).toBeInTheDocument()
+    expect(screen.getByText('构筑')).toBeInTheDocument()
   })
 
   it('renders the dedicated exploration report detail route', () => {

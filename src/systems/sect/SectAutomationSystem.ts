@@ -3,20 +3,15 @@ import type { AdventureRunConfig, Dungeon, SectAutomationSettings } from '../../
 import type { Character } from '../../types'
 
 export interface AutoRecruitCheckInput {
-  poolSize: number
-  targetPoolSize: number
   spiritStone: number
   reserveSpiritStone: number
   spiritEnergy: number
   reserveSpiritEnergy: number
 }
 
+/** 资源超过保底线即允许自动补员，上限由 addCharacter 中的 calcMaxDisciplesByResources 控制 */
 export function shouldAutoRecruit(input: AutoRecruitCheckInput): boolean {
-  return (
-    input.poolSize < input.targetPoolSize &&
-    input.spiritStone > input.reserveSpiritStone &&
-    input.spiritEnergy > input.reserveSpiritEnergy
-  )
+  return input.spiritStone > input.reserveSpiritStone && input.spiritEnergy > input.reserveSpiritEnergy
 }
 
 export function pickAutomationTeam(characters: Character[], maxTeamSize = 5): string[] {
@@ -71,7 +66,7 @@ export function buildAutomationRunConfig(input: {
   playerRealm: number
   playerStage: number
 }): AdventureRunConfig | null {
-  if (!input.settings.enabled || !input.settings.preferredDungeonId) return null
+  if (!input.settings.preferredDungeonId) return null
   if (
     input.spiritStone <= input.settings.reserveSpiritStone ||
     input.spiritEnergy <= input.settings.reserveSpiritEnergy

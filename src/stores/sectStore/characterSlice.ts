@@ -1,14 +1,10 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import type { CharacterQuality, CultivationPath } from '../../types/character'
-import {
-  generateCharacter,
-  getMaxCharacters,
-  getRecruitCost,
-  rollRecruitQuality,
-} from '../../systems/character/CharacterEngine'
+import { generateCharacter, getRecruitCost, rollRecruitQuality } from '../../systems/character/CharacterEngine'
 import { calcDiscipleDeathRefund } from '../../systems/character/DiscipleSacrificeSystem'
 import { getRecruitCostMult } from '../../systems/economy/BuildingEffects'
+import { calcMaxDisciplesByResources } from '../../systems/sect/SectEngine'
 import { emitEvent } from '../eventLogStore'
 import { CHAR_QUALITY_NAMES, CHAR_QUALITY_ORDER } from '../../data/uiCopy'
 import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
@@ -27,8 +23,9 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
   addCharacter: () => {
     const { sect } = get()
 
-    // Check character cap
-    if (sect.characters.length >= getMaxCharacters(sect.level)) return null
+    // Check character cap (resource-based)
+    if (sect.characters.length >= calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute))
+      return null
 
     // Roll quality based on sect level
     const quality = rollRecruitQuality(sect.level)
@@ -78,8 +75,8 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
   canRecruit: () => {
     const { sect } = get()
 
-    if (sect.characters.length >= getMaxCharacters(sect.level)) {
-      return { allowed: false, reason: '弟子已满' }
+    if (sect.characters.length >= calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute)) {
+      return { allowed: false, reason: '灵气不足以供养更多弟子' }
     }
     const cost = getAdjustedRecruitCost(getRecruitCost('common'), getRecruitCostMult(sect.buildings))
     if (sect.resources.spiritStone < cost) {
@@ -205,8 +202,8 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     const recruitmentPavilion = sect.buildings.find((b) => b.type === 'recruitmentPavilion')
     if (!recruitmentPavilion || recruitmentPavilion.level < 3) return null
 
-    // Check character cap
-    const maxChars = getMaxCharacters(sect.level)
+    // Check character cap (resource-based)
+    const maxChars = calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute)
     if (sect.characters.length >= maxChars) return null
 
     // Quality ordering for comparison

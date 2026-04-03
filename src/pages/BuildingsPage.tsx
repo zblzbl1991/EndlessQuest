@@ -14,11 +14,8 @@ import { getAutoRecipesForBuilding, getAutoRecipeById } from '../data/recipes'
 import { SPECIALTY_BUILDING_MAP } from '../data/specialties'
 import { getRecommendedAssignment, getRoleLabel } from '../systems/character/SpecialtySystem'
 import type { AutoRecipe } from '../data/recipes'
-import {
-  getMaxCharacters,
-  getRecruitCost,
-  getQualityStats,
-} from '../systems/character/CharacterEngine'
+import { getRecruitCost, getQualityStats } from '../systems/character/CharacterEngine'
+import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
 import type { BuildingType, CharacterQuality } from '../types'
 import type { ItemStack } from '../types/item'
 import type { Character } from '../types/character'
@@ -62,7 +59,6 @@ const BUILDING_ICON_NAMES: Partial<Record<BuildingType, string>> = {
   market: 'marketTrade',
   recruitmentPavilion: 'recruitmentPavilion',
 }
-
 
 /** Base combat stats before variance -- used for stat coloring comparison. */
 const BASE_COMBAT_STATS = { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 }
@@ -540,7 +536,7 @@ function RecruitTab() {
   const [targetedQuality, setTargetedQuality] = useState<CharacterQuality>('spirit')
   const [targetedMessage, setTargetedMessage] = useState<string | null>(null)
 
-  const maxChars = getMaxCharacters(sect.level)
+  const maxChars = calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute)
 
   const recruitmentPavilionLevel = sect.buildings.find((b) => b.type === 'recruitmentPavilion')?.level ?? 0
   const hasTargetedRecruit = recruitmentPavilionLevel >= 3

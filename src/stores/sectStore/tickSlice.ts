@@ -7,7 +7,11 @@ import { useAdventureStore } from '../adventureStore'
 import { calcSectLevel } from '../../systems/character/CharacterEngine'
 import { calcResourceRates, clampResources, calcTaxRate } from '../../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../../systems/economy/ResourceEngine'
-import { tick as cultivationTick, canBreakthrough, calcCultivationRate } from '../../systems/cultivation/CultivationEngine'
+import {
+  tick as cultivationTick,
+  canBreakthrough,
+  calcCultivationRate,
+} from '../../systems/cultivation/CultivationEngine'
 import { processBreakthrough } from '../../systems/cultivation/BreakthroughCoordinator'
 import { calcResourceCaps } from '../../data/buildings'
 import { tickProductionQueue, calcOfflineProduction } from '../../systems/building/ProductionSystem'
@@ -350,10 +354,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
         let currentState = get()
         while (
-          currentState.sect.automationSettings.enabled &&
           shouldAutoRecruit({
-            poolSize: currentState.sect.characters.length,
-            targetPoolSize: currentState.sect.automationSettings.targetPoolSize,
             spiritStone: currentState.sect.resources.spiritStone,
             reserveSpiritStone: currentState.sect.automationSettings.reserveSpiritStone,
             spiritEnergy: currentState.sect.resources.spiritEnergy,

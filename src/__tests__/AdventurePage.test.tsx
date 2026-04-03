@@ -101,7 +101,7 @@ describe('AdventurePage', () => {
     expect(screen.getByText('本局意图')).toBeInTheDocument()
     expect(screen.getByText('战术')).toBeInTheDocument()
     expect(screen.getByText('出战弟子')).toBeInTheDocument()
-    expect(screen.getByText(/已选 0 \/ 5 名/)).toBeInTheDocument()
+    expect(screen.getByText(/已选 0 \/ 5/)).toBeInTheDocument()
   })
 
   it('renders player-facing adventure copy in Chinese and normalizes legacy route text', () => {
@@ -131,7 +131,7 @@ describe('AdventurePage', () => {
     )
 
     expect(screen.getAllByText('战术：平衡').length).toBeGreaterThan(0)
-    expect(screen.getByText(/关键构筑：/)).toBeInTheDocument()
+    expect(screen.getByText(/本次构筑/)).toBeInTheDocument()
     expect(screen.queryByText(/build/i)).not.toBeInTheDocument()
     expect(screen.getByText('稳定')).toBeInTheDocument()
     expect(screen.getByText('战斗')).toBeInTheDocument()
@@ -196,7 +196,7 @@ describe('AdventurePage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('归宗结果')).toBeInTheDocument()
+    expect(screen.getByText('回宗')).toBeInTheDocument()
     expect(screen.getByText('未归：顾长风 · 重伤：柳沉烟（3天）')).toBeInTheDocument()
   })
 })

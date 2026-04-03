@@ -67,8 +67,6 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     productionQueue: { recipeId: null, progress: 0 },
   }))
   const automationSettings: Sect['automationSettings'] = {
-    enabled: true,
-    targetPoolSize: 8,
     reserveSpiritStone: 300,
     reserveSpiritEnergy: 120,
     preferredDungeonId: 'lingCaoValley',
@@ -117,6 +115,9 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     stats: sect.stats,
     archiveMilestones: sect.archiveMilestones,
     automationSettings,
+    // Preserve strategy settings across ascensions
+    strategySettings: sect.strategySettings,
+    darkCurrent: sect.darkCurrent,
   }
 
   const report: AscensionReport = {

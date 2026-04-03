@@ -47,11 +47,10 @@ describe('checkBuildingUnlock', () => {
     expect(result.unlocked).toBe(true)
   })
 
-  it('spiritField should not unlock when mainHall is Lv0', () => {
+  it('spiritField should always be unlocked (初始)', () => {
     const buildings = createBuildings({ mainHall: { level: 0, unlocked: true } })
     const result = checkBuildingUnlock('spiritField', buildings)
-    expect(result.unlocked).toBe(false)
-    expect(result.reason).toContain('大殿')
+    expect(result.unlocked).toBe(true)
   })
 
   it('alchemyFurnace should require mainHall Lv2 and spiritField Lv2', () => {
@@ -69,7 +68,7 @@ describe('checkBuildingUnlock', () => {
     })
     const result = checkBuildingUnlock('alchemyFurnace', buildings)
     expect(result.unlocked).toBe(false)
-    expect(result.reason).toContain('大殿')
+    expect(result.reason).toContain('主殿')
   })
 
   it('alchemyFurnace should unlock with mainHall Lv2 + spiritField Lv2', () => {
@@ -85,7 +84,7 @@ describe('checkBuildingUnlock', () => {
     const buildings = createBuildings({ mainHall: { level: 2, unlocked: true } })
     const result = checkBuildingUnlock('scriptureHall', buildings)
     expect(result.unlocked).toBe(false)
-    expect(result.reason).toContain('大殿')
+    expect(result.reason).toContain('主殿')
   })
 
   it('scriptureHall should unlock at mainHall Lv3', () => {

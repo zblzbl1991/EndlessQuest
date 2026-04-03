@@ -102,7 +102,7 @@ export default function AdventurePage() {
           {
             label: '优先秘境',
             value: preferredDungeon?.name ?? '未设置',
-            detail: sect.automationSettings.enabled ? '每日结算后自动尝试' : '当前仅保留手动发起',
+            detail: '每日结算后自动尝试',
           },
           {
             label: '可出战',
@@ -126,27 +126,7 @@ export default function AdventurePage() {
         <div className={styles.automationHeader}>
           <div>
             <h2 className={styles.panelTitle}>自动运转</h2>
-            <p className={styles.panelMeta}>
-              {sect.automationSettings.enabled
-                ? `每日结算后自动尝试 ${preferredDungeon?.name ?? '首个可用秘境'}`
-                : '关闭后仅保留手动发起。'}
-            </p>
-          </div>
-          <div className={styles.togglePair}>
-            <button
-              type="button"
-              className={`${styles.toggleBtn} ${sect.automationSettings.enabled ? styles.toggleActive : ''}`}
-              onClick={() => setAutomationSettings({ enabled: true })}
-            >
-              自动开
-            </button>
-            <button
-              type="button"
-              className={`${styles.toggleBtn} ${!sect.automationSettings.enabled ? styles.toggleActive : ''}`}
-              onClick={() => setAutomationSettings({ enabled: false })}
-            >
-              自动关
-            </button>
+            <p className={styles.panelMeta}>{`每日结算后自动尝试 ${preferredDungeon?.name ?? '首个可用秘境'}`}</p>
           </div>
         </div>
 
@@ -257,7 +237,9 @@ export default function AdventurePage() {
 
                     <div className={styles.reportRewardLine}>
                       <span className={styles.rewardLabel}>所得</span>
-                      <span className={styles.rewardValues}>{rewardBits.length > 0 ? rewardBits.join(' · ') : '暂无收获'}</span>
+                      <span className={styles.rewardValues}>
+                        {rewardBits.length > 0 ? rewardBits.join(' · ') : '暂无收获'}
+                      </span>
                     </div>
 
                     <div className={styles.reportRewardLine}>
@@ -313,7 +295,9 @@ export default function AdventurePage() {
             <div className={styles.launchPanel}>
               <div className={styles.launchSummary}>
                 <span className={styles.launchLabel}>当前候选</span>
-                <span className={styles.launchValue}>{preferredDungeon?.name ?? unlockedDungeons[0]?.name ?? '暂无可用秘境'}</span>
+                <span className={styles.launchValue}>
+                  {preferredDungeon?.name ?? unlockedDungeons[0]?.name ?? '暂无可用秘境'}
+                </span>
               </div>
               <button
                 className={`${styles.startBtn} ${!manualLaunchDungeonId ? styles.btnDisabled : ''}`}
@@ -354,9 +338,7 @@ export default function AdventurePage() {
                       <span>层数：{dungeon.totalLayers}</span>
                       <span>推荐：{unlockRealmName}</span>
                     </div>
-                    <div className={styles.dungeonHint}>
-                      {unlocked ? '手动发起并保留完整战报。' : '当前境界不足。'}
-                    </div>
+                    <div className={styles.dungeonHint}>{unlocked ? '手动发起并保留完整战报。' : '当前境界不足。'}</div>
                     <button
                       className={`${styles.startBtn} ${launchDisabled ? styles.btnDisabled : ''}`}
                       disabled={launchDisabled}

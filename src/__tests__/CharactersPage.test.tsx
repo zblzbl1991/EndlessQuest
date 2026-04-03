@@ -72,14 +72,14 @@ describe('CharactersPage', () => {
     expect(screen.getByRole('button', { name: '网格' })).toBeInTheDocument()
   })
 
-  it('shows zero effective cultivation rate when there is no spirit supply', () => {
+  it('shows cultivation rate with spirit supply from spirit field', () => {
     const character = useSectStore.getState().sect.characters[0]
 
     render(<CharactersPage />)
 
     fireEvent.click(screen.getByText(character.name))
 
-    expect(getCultivationHeaderText()).toContain('(+0.0/s)')
+    expect(getCultivationHeaderText()).toMatch(/\(\+\d+\.\d\/s\)/)
   })
 
   it('updates cultivation text over time when the idle engine is running', () => {
@@ -130,9 +130,9 @@ describe('CharactersPage', () => {
     fireEvent.click(screen.getByText(character.name))
 
     expect(screen.getByTestId('character-identity')).toBeInTheDocument()
-    expect(screen.getByText('当前去向')).toBeInTheDocument()
-    expect(screen.getByText('能力与成型')).toBeInTheDocument()
-    expect(screen.getByText('装备与背包')).toBeInTheDocument()
+    expect(screen.getByText('战斗画像')).toBeInTheDocument()
+    expect(screen.getByText('装备')).toBeInTheDocument()
+    expect(screen.getByText('背包')).toBeInTheDocument()
     expect(screen.queryByText('留守价值')).not.toBeInTheDocument()
     expect(screen.queryByText('出战价值')).not.toBeInTheDocument()
     expect(screen.queryByText('承险能力')).not.toBeInTheDocument()

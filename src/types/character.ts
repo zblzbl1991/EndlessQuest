@@ -1,5 +1,6 @@
 import type { ItemStack } from './item'
 import type { Talent } from './talent'
+import type { DestinyState, DestinySeedId } from './destiny'
 
 export type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
 export type FateTag = 'tribulationScar' | 'heartDevilSeed' | 'suddenInsight' | 'stableDaoHeart'
@@ -73,4 +74,7 @@ export interface Character {
   cultivationPath: CultivationPath
   fateTags: FateTag[]
   investedSpiritStone: number
+  destinyState?: DestinyState
+  seedRarity?: 1 | 2 | 3 | 4 | 5
+  seedId?: DestinySeedId
 }

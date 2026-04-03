@@ -213,8 +213,6 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     const characterId = useSectStore.getState().sect.characters[0].id
 
     useSectStore.getState().setAutomationSettings({
-      enabled: false,
-      targetPoolSize: 12,
       reserveSpiritStone: 640,
       reserveSpiritEnergy: 260,
       recruitQualityFloor: 'spirit',
@@ -241,8 +239,6 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     expect(loadedCharacter?.status).toBe('recovering')
     expect(loadedCharacter?.recoveryDaysRemaining).toBe(4)
     expect(useSectStore.getState().sect.automationSettings).toMatchObject({
-      enabled: false,
-      targetPoolSize: 12,
       reserveSpiritStone: 640,
       reserveSpiritEnergy: 260,
       recruitQualityFloor: 'spirit',

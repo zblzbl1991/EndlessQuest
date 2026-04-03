@@ -210,7 +210,7 @@ describe('performAscension', () => {
     })
     const { newSect } = performAscension(sect)
     for (const b of newSect.buildings) {
-      if (b.type === 'mainHall') {
+      if (b.type === 'mainHall' || b.type === 'spiritField' || b.type === 'spiritMine') {
         expect(b.level).toBe(1)
       } else {
         expect(b.level).toBe(0)
@@ -311,9 +311,9 @@ describe('performAscension', () => {
     const sect = makeSect()
     const { newSect } = performAscension(sect)
 
-    expect(newSect.automationSettings.enabled).toBe(true)
-    expect(newSect.automationSettings.targetPoolSize).toBe(8)
     expect(newSect.automationSettings.preferredDungeonId).toBe('lingCaoValley')
+    expect(newSect.automationSettings.reserveSpiritStone).toBe(300)
+    expect(newSect.automationSettings.autoBreakthrough).toBe(true)
   })
 
   it('should apply starting spirit stone bonus for first ascension', () => {

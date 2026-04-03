@@ -90,8 +90,6 @@ export function createInitialState(): { sect: Sect } {
       legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
       archiveMilestones: [],
       automationSettings: {
-        enabled: true,
-        targetPoolSize: 8,
         reserveSpiritStone: 300,
         reserveSpiritEnergy: 120,
         preferredDungeonId: 'lingCaoValley',
@@ -115,6 +113,22 @@ export function createInitialState(): { sect: Sect } {
         totalPetCaptures: 0,
         totalPlayTime: 0,
         longestOfflineSeconds: 0,
+      },
+      strategySettings: {
+        activePolicy: 'shenji',
+        activeAmplifiers: [],
+        switchCooldownDays: 3,
+        lastSwitchedAt: null,
+      },
+      darkCurrent: {
+        fortune: 0,
+        tribulation: 0,
+        abyss: 0,
+        guardian: 0,
+        plunder: 0,
+        afterglow: 0,
+        anomaly: 0,
+        lastShiftAt: null,
       },
     },
   }

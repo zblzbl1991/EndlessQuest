@@ -11,6 +11,7 @@ import { createTickSlice } from './tickSlice'
 import { createShopSlice } from './shopSlice'
 import { createSectPathSlice } from './sectPathSlice'
 import { createLegacySlice } from './legacySlice'
+import { createStrategySlice } from './strategySlice'
 import { createMiscSlice } from './miscSlice'
 
 export type { SectStore } from './types'
@@ -29,6 +30,7 @@ export const useSectStore = create<SectStore>()(
       ...createShopSlice(...a),
       ...createSectPathSlice(...a),
       ...createLegacySlice(...a),
+      ...createStrategySlice(...a),
       ...createMiscSlice(...a),
     }) as SectStore
 )

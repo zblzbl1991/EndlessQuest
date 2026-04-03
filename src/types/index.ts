@@ -72,3 +72,26 @@ export type {
 export { SUPPLY_COSTS } from './adventure'
 export type { Talent, TalentEffect, TalentStat, TalentRarity, TalentId } from './talent'
 export { TALENT_RARITY_NAMES } from './talent'
+export type {
+  SectRiskPolicyId,
+  DestinyAmplifierId,
+  DestinySeedId,
+  DestinyStage,
+  DestinyRiskLevel,
+  DestinyState,
+  SectDarkCurrent,
+  SectStrategySettings,
+  SectRiskPolicyProfile,
+  DestinyAmplifierProfile,
+  DestinySeedDef,
+  AutoCultivationProfile,
+  RunExecutorBias,
+  DestinyEventRecord,
+} from './destiny'
+export {
+  SECT_RISK_POLICY_ORDER,
+  DESTINY_STAGE_THRESHOLDS,
+  DESTINY_RISK_THRESHOLDS,
+  DESTINY_STAGE_NAMES,
+  DESTINY_RISK_NAMES,
+} from './destiny'

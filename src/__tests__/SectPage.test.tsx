@@ -31,7 +31,7 @@ describe('SectPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('当前安排')).toBeInTheDocument()
+    expect(screen.getByText('要务')).toBeInTheDocument()
     expect(screen.getByTestId('sect-hero')).toBeInTheDocument()
     expect(screen.getByTestId('sect-midground-grid')).toBeInTheDocument()
     expect(screen.queryByText('行动指引')).not.toBeInTheDocument()
@@ -76,7 +76,7 @@ describe('SectPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('最近探险')).toBeInTheDocument()
+    expect(screen.getByText('战报')).toBeInTheDocument()
     expect(screen.queryByText(/进行中的秘境/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '查看详情' })).toHaveAttribute('href', '/adventure/report/report_1')
   })
@@ -88,7 +88,7 @@ describe('SectPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('弟子概况')).toBeInTheDocument()
+    expect(screen.getAllByText('弟子').length).toBeGreaterThan(0)
     expect(screen.queryByText('弟子列表')).not.toBeInTheDocument()
     expect(screen.queryByText(useSectStore.getState().sect.characters[0]!.name)).not.toBeInTheDocument()
   })

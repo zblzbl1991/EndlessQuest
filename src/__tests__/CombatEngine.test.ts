@@ -1,5 +1,6 @@
 import { simulateCombat } from '../systems/combat/CombatEngine'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
+import { calcUnitPowerRating, calcTeamPowerRating, adjustEnemyByTeamPower } from '../data/enemies'
 import type { TacticPreset } from '../types/runBuild'
 
 function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; team: 'ally' | 'enemy' }): CombatUnit {
@@ -463,5 +464,131 @@ describe('CombatEngine - Tactic Presets', () => {
     expect(result.victory).toBe(true)
     const skillActions = result.actions.filter((a) => a.actionType === 'skill')
     expect(skillActions.length).toBeGreaterThan(0)
+  })
+})
+
+// ─── Power Rating & Enemy Adjustment Tests ──────────────────────────────
+
+describe('Power Rating System', () => {
+  it('should calculate unit power rating consistently', () => {
+    const unit = makeUnit({
+      id: 'u1',
+      name: 'Test',
+      team: 'ally',
+      atk: 20,
+      def: 10,
+      hp: 100,
+      maxHp: 100,
+      spd: 12,
+      crit: 0.1,
+      critDmg: 1.5,
+    })
+    const rating = calcUnitPowerRating(unit)
+    // atk*1.0 + def*0.8 + maxHp*0.15 + spd*0.4 + crit*30 + (critDmg-1)*20
+    // = 20 + 8 + 15 + 4.8 + 3 + 10 = 60.8
+    expect(rating).toBeCloseTo(60.8, 1)
+  })
+
+  it('should sum team power from all members', () => {
+    const team = [
+      makeUnit({ id: 'p1', name: 'A', team: 'ally', atk: 20 }),
+      makeUnit({ id: 'p2', name: 'B', team: 'ally', atk: 30 }),
+    ]
+    const teamPower = calcTeamPowerRating(team)
+    const expected = calcUnitPowerRating(team[0]) + calcUnitPowerRating(team[1])
+    expect(teamPower).toBeCloseTo(expected, 1)
+  })
+
+  it('should return 0 for empty team', () => {
+    expect(calcTeamPowerRating([])).toBe(0)
+  })
+
+  it('should give higher rating to stronger units', () => {
+    const weak = makeUnit({ id: 'w', name: 'Weak', team: 'ally', atk: 5, def: 2, hp: 30, maxHp: 30, spd: 3 })
+    const strong = makeUnit({ id: 's', name: 'Strong', team: 'ally', atk: 50, def: 20, hp: 200, maxHp: 200, spd: 15 })
+    expect(calcUnitPowerRating(strong)).toBeGreaterThan(calcUnitPowerRating(weak))
+  })
+})
+
+describe('adjustEnemyByTeamPower', () => {
+  it('should reduce an overpowered enemy', () => {
+    const team = [makeUnit({ id: 'p1', name: 'Player', team: 'ally', atk: 10, hp: 50, maxHp: 50, def: 5 })]
+    const enemy = makeUnit({
+      id: 'e1',
+      name: 'Boss',
+      team: 'enemy',
+      atk: 200,
+      hp: 2000,
+      maxHp: 2000,
+      def: 100,
+      spd: 50,
+    })
+    const originalAtk = enemy.atk
+
+    adjustEnemyByTeamPower(enemy, team)
+
+    expect(enemy.atk).toBeLessThanOrEqual(originalAtk)
+  })
+
+  it('should boost a weak enemy against a strong team', () => {
+    const team = [makeUnit({ id: 'p1', name: 'Hero', team: 'ally', atk: 100, hp: 500, maxHp: 500, def: 50, spd: 30 })]
+    const enemy = makeUnit({ id: 'e1', name: 'Rat', team: 'enemy', atk: 3, hp: 20, maxHp: 20, def: 1, spd: 2 })
+    const originalAtk = enemy.atk
+
+    adjustEnemyByTeamPower(enemy, team)
+
+    expect(enemy.atk).toBeGreaterThanOrEqual(originalAtk)
+  })
+
+  it('should not crash with empty team', () => {
+    const enemy = makeUnit({ id: 'e1', name: 'Enemy', team: 'enemy', atk: 10, hp: 50, maxHp: 50, def: 5, spd: 5 })
+    expect(() => adjustEnemyByTeamPower(enemy, [])).not.toThrow()
+  })
+
+  it('should keep enemy stats at least 1', () => {
+    const team = [
+      makeUnit({ id: 'p1', name: 'God', team: 'ally', atk: 9999, hp: 99999, maxHp: 99999, def: 9999, spd: 999 }),
+    ]
+    const enemy = makeUnit({ id: 'e1', name: 'Ant', team: 'enemy', atk: 1, hp: 1, maxHp: 1, def: 1, spd: 1 })
+
+    adjustEnemyByTeamPower(enemy, team)
+
+    expect(enemy.atk).toBeGreaterThanOrEqual(1)
+    expect(enemy.hp).toBeGreaterThanOrEqual(1)
+    expect(enemy.def).toBeGreaterThanOrEqual(1)
+    expect(enemy.spd).toBeGreaterThanOrEqual(1)
+  })
+
+  it('boss should be allowed to be stronger than regular enemies', () => {
+    const team = [makeUnit({ id: 'p1', name: 'Player', team: 'ally', atk: 30, hp: 150, maxHp: 150, def: 15, spd: 10 })]
+
+    const regularEnemy = makeUnit({
+      id: 'e1',
+      name: 'Mob',
+      team: 'enemy',
+      atk: 30,
+      hp: 150,
+      maxHp: 150,
+      def: 15,
+      spd: 10,
+    })
+    const bossEnemy = makeUnit({
+      id: 'e2',
+      name: 'Boss',
+      team: 'enemy',
+      atk: 30,
+      hp: 150,
+      maxHp: 150,
+      def: 15,
+      spd: 10,
+    })
+
+    adjustEnemyByTeamPower(regularEnemy, team)
+    adjustEnemyByTeamPower(bossEnemy, team, { isBoss: true, floor: 5 })
+
+    // Boss should be at least as strong as (or stronger than) a regular enemy at same base stats
+    const bossPower = calcUnitPowerRating(bossEnemy)
+    const regularPower = calcUnitPowerRating(regularEnemy)
+    expect(bossPower).toBeGreaterThanOrEqual(regularPower)
   })
 })

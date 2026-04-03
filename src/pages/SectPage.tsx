@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
+import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
 import { PixelIcon } from '../components/common/PixelIcon'
 import PageHeader from '../components/common/PageHeader'
 import ResourceRate from '../components/common/ResourceRate'
@@ -105,8 +106,8 @@ export default function SectPage() {
           { label: '宗门等级', value: sect.level, detail: `${sect.characters.length} 弟子 · ${sect.pets.length} 灵宠` },
           {
             label: '自动运转',
-            value: sect.automationSettings.enabled ? '运行中' : '已关闭',
-            detail: `目标 ${sect.automationSettings.targetPoolSize} 人`,
+            value: '运行中',
+            detail: `资源可养 ${calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute)} 人`,
           },
           {
             label: '优先秘境',
