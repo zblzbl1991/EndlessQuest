@@ -1,4 +1,3 @@
 {"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
 {"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": "src/systems/roguelike/EventSystem.ts", "reason": "检查战斗难度匹配逻辑"}
-{"file": "src/data/enemies.ts", "reason": "检查战力评估函数"}
+{"file": "src/__tests__/CombatEngine.test.ts", "reason": "Existing combat tests"}

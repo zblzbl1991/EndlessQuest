@@ -1,6 +1,6 @@
 import type { Enemy } from '../types/adventure'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
-import type { Character } from '../types/character'
+import type { Character, CharacterQuality } from '../types/character'
 import { TECHNIQUE_TIER_ORDER } from '../types/technique'
 import { getTechniqueById } from './techniquesTable'
 import type { ActiveSkill } from '../types/skill'
@@ -8,20 +8,31 @@ import { buildCharacterSkillLoadout, getActiveSkillById } from './activeSkills'
 import { rollAffixes } from './affixes'
 import { applyPathStatBonuses } from '../systems/character/CultivationPathSystem'
 
+// ─── Quality Combat Multiplier ──────────────────────────────────────────
+
+/** Quality-based combat stat multiplier applied when creating CombatUnit from Character. */
+const QUALITY_COMBAT_MULTIPLIER: Record<CharacterQuality, number> = {
+  common: 1.0,
+  spirit: 1.1,
+  immortal: 1.2,
+  divine: 1.3,
+  chaos: 1.5,
+}
+
 // ─── Power Rating System ──────────────────────────────────────────────
 
 /**
  * Evaluate a single CombatUnit's combat power rating.
  * Weights reflect each stat's contribution to combat outcome:
  * - atk: primary damage source
- * - def: damage reduction
- * - maxHp: sustain / survivability
- * - spd: turn order priority
- * - crit: burst chance
- * - critDmg: burst magnitude
+ * - def: damage reduction (weighted 0.8)
+ * - maxHp: sustain / survivability (weighted 0.2 = hp/5)
+ * - spd: turn order priority (weighted 0.5)
+ * - crit: burst chance (weighted 100)
+ * - critDmg: burst magnitude (weighted 50)
  */
 export function calcUnitPowerRating(unit: CombatUnit): number {
-  return unit.atk * 1.0 + unit.def * 0.8 + unit.maxHp * 0.15 + unit.spd * 0.4 + unit.crit * 30 + (unit.critDmg - 1) * 20
+  return unit.atk * 1.0 + unit.def * 0.8 + unit.maxHp * 0.2 + unit.spd * 0.5 + unit.crit * 100 + unit.critDmg * 50
 }
 
 /** Evaluate a team's total combat power rating. */
@@ -30,11 +41,11 @@ export function calcTeamPowerRating(units: CombatUnit[]): number {
 }
 
 /**
- * Adjust enemy stats so difficulty matches team power within ±20%.
+ * Adjust enemy stats so difficulty matches team power within +/-20%.
  * Layer-based scaling remains the primary factor; this is a secondary calibration.
  *
- * Target: enemy power ≈ 60-100% of team power for regular enemies.
- * Boss target: 1.0-1.8x team power depending on floor depth.
+ * Regular enemy: target power is 60-100% of team power (randomly chosen).
+ * Boss: base stats are already 2.5x scaled before this function; then +/-20% team power adjustment.
  */
 export function adjustEnemyByTeamPower(
   enemy: CombatUnit,
@@ -48,13 +59,12 @@ export function adjustEnemyByTeamPower(
   if (teamPower <= 0 || enemyPower <= 0) return
 
   const isBoss = options?.isBoss ?? false
-  const floor = options?.floor ?? 1
 
   // Determine target enemy power relative to team
   let targetRatio: number
   if (isBoss) {
-    // Boss: 1.0-1.8x team power, scaling with floor depth
-    targetRatio = Math.min(1.8, 1.0 + floor * 0.05)
+    // Boss: 1.0-1.5x team power for a challenging but fair fight
+    targetRatio = 1.0 + Math.random() * 0.5
   } else {
     // Regular enemy: 60-100% of team power
     targetRatio = 0.6 + Math.random() * 0.4
@@ -63,7 +73,7 @@ export function adjustEnemyByTeamPower(
   const targetEnemyPower = teamPower * targetRatio
   const adjustment = targetEnemyPower / enemyPower
 
-  // Clamp adjustment to ±20% (layer-based scaling is still primary)
+  // Clamp adjustment to +/-20% (layer-based scaling is still primary)
   const clamped = Math.max(0.8, Math.min(1.2, adjustment))
 
   enemy.hp = Math.max(1, Math.floor(enemy.hp * clamped))
@@ -155,6 +165,21 @@ export function scaleEnemy(baseStats: { hp: number; atk: number; def: number; sp
     atk: Math.floor(baseStats.atk * mult),
     def: Math.floor(baseStats.def * mult),
     spd: Math.floor(baseStats.spd * mult),
+  }
+}
+
+/** Scale enemy stats by the boss multiplier (2.5x base). */
+export function scaleBossStats(baseStats: { hp: number; atk: number; def: number; spd: number }): {
+  hp: number
+  atk: number
+  def: number
+  spd: number
+} {
+  return {
+    hp: Math.floor(baseStats.hp * 2.5),
+    atk: Math.floor(baseStats.atk * 2.5),
+    def: Math.floor(baseStats.def * 2.5),
+    spd: Math.floor(baseStats.spd * 2.5),
   }
 }
 
@@ -259,7 +284,29 @@ export function createCharacterCombatUnit(character: Character, learnedTechnique
     }
   }
 
-  const totalStats = applyPathStatBonuses({ hp, atk, def, spd, crit, critDmg }, character.cultivationPath)
+  const pathStats = applyPathStatBonuses({ hp, atk, def, spd, crit, critDmg }, character.cultivationPath)
+
+  // Realm bonus: each realm level +3% all stats, each realmStage +1% all stats
+  const realmMultiplier = 1 + character.realm * 0.03 + character.realmStage * 0.01
+
+  // Quality bonus multiplier
+  const qualityMultiplier = QUALITY_COMBAT_MULTIPLIER[character.quality] ?? 1
+
+  // Combat specialty bonus: each level +5%
+  const combatSpecialtyLevel = character.specialties.find((s) => s.type === 'combat')?.level ?? 0
+  const specialtyMultiplier = 1 + combatSpecialtyLevel * 0.05
+
+  const totalMultiplier = realmMultiplier * qualityMultiplier * specialtyMultiplier
+
+  const totalStats = {
+    hp: Math.floor(pathStats.hp * totalMultiplier),
+    atk: Math.floor(pathStats.atk * totalMultiplier),
+    def: Math.floor(pathStats.def * totalMultiplier),
+    spd: Math.floor(pathStats.spd * totalMultiplier),
+    crit: Math.round(pathStats.crit * totalMultiplier * 10000) / 10000,
+    critDmg: Math.round(pathStats.critDmg * totalMultiplier * 100) / 100,
+  }
+
   const resolvedLoadout =
     character.equippedSkills.length > 0 && character.equippedSkills.some((skillId) => skillId !== null)
       ? character.equippedSkills

@@ -4,6 +4,7 @@ import {
   ENEMY_TEMPLATES,
   createCombatUnitFromEnemy,
   adjustEnemyByTeamPower,
+  scaleBossStats,
   type EnemyTemplate,
 } from '../../data/enemies'
 import { EQUIP_SLOTS } from '../../data/items'
@@ -121,7 +122,12 @@ function makeNoTeamResult(type: DungeonEvent['type']): EventResult {
   }
 }
 
-export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumber: number): EventResult {
+export function resolveEvent(
+  event: DungeonEvent,
+  team: CombatUnit[],
+  floorNumber: number,
+  teamFortune?: number
+): EventResult {
   const emptyReward = { spiritStone: 0, herb: 0, ore: 0 }
 
   switch (event.type) {
@@ -177,7 +183,27 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
       const maxHp = totalTeamMaxHp(team)
       const roll = Math.random()
 
-      if (roll < 0.5) {
+      // Fortune-adjusted probabilities:
+      // Base: treasure 50%, rest 30%, trap 20%
+      // fortune > 50: treasure +15%, trap -10%
+      // fortune < 30: trap +10%, treasure -10%
+      // Linear interpolation between thresholds
+      let treasureThreshold = 0.5
+      let trapBase = 0.8 // trap starts here (rest was 0.5-0.8)
+
+      if (teamFortune !== undefined) {
+        if (teamFortune > 50) {
+          const factor = Math.min((teamFortune - 50) / 50, 1) // 0-1 range
+          treasureThreshold += 0.15 * factor
+          trapBase += 0.1 * factor // trap region shrinks by shifting trapBase up
+        } else if (teamFortune < 30) {
+          const factor = Math.min((30 - teamFortune) / 30, 1) // 0-1 range
+          treasureThreshold -= 0.1 * factor
+          trapBase -= 0.1 * factor // trap region grows by shifting trapBase down
+        }
+      }
+
+      if (roll < treasureThreshold) {
         return {
           type: 'random',
           success: true,
@@ -189,7 +215,7 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
         }
       }
 
-      if (roll < 0.8) {
+      if (roll < trapBase) {
         const healAmount = Math.floor(maxHp * 0.1)
         const perUnitHeal = aliveTeam.length > 0 ? Math.floor(healAmount / aliveTeam.length) : 0
         const hpChanges: Record<string, number> = {}
@@ -257,7 +283,20 @@ export function resolveEvent(event: DungeonEvent, team: CombatUnit[], floorNumbe
       const bossTemplate = ENEMY_TEMPLATES.find((enemy) => enemy.isBoss) as EnemyTemplate
       const bossUnit = createCombatUnitFromEnemy(bossTemplate, floorNumber)
 
-      // Dynamic boss scaling: replace fixed 2x HP / 1.5x ATK with power-based adjustment
+      // Apply 2.5x boss base scaling on top of layer-scaled stats
+      const bossScaled = scaleBossStats({
+        hp: bossUnit.maxHp,
+        atk: bossUnit.atk,
+        def: bossUnit.def,
+        spd: bossUnit.spd,
+      })
+      bossUnit.hp = bossScaled.hp
+      bossUnit.maxHp = bossScaled.hp
+      bossUnit.atk = bossScaled.atk
+      bossUnit.def = bossScaled.def
+      bossUnit.spd = bossScaled.spd
+
+      // Then apply +/-20% team power adjustment
       adjustEnemyByTeamPower(bossUnit, aliveTeam, { isBoss: true, floor: floorNumber })
 
       if (hasAffix(bossUnit.affixes, 'shield')) {

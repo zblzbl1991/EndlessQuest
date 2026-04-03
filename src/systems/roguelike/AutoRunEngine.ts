@@ -51,7 +51,7 @@ export interface ResolveAutomatedRunInput {
   automationStrategy: AutomationStrategy
   baseTeamUnits: CombatUnit[]
   now?: () => number
-  resolveEventFn?: (event: DungeonEvent, team: CombatUnit[], floorNumber: number) => EventResult
+  resolveEventFn?: (event: DungeonEvent, team: CombatUnit[], floorNumber: number, teamFortune?: number) => EventResult
   pickBlessingOptionsFn?: (ownedBlessings: BlessingId[]) => BlessingId[]
   pickRelicRewardFn?: (ownedRelics: RelicId[]) => RelicId | null
   petCaptureFn?: (context: { strategy: AutomationStrategy; floor: number; run: DungeonRun }) => PetCaptureOutcome
@@ -81,6 +81,16 @@ function buildTeamSnapshot(run: DungeonRun, baseTeamUnits: CombatUnit[]): Advent
       ]
     })
   )
+}
+
+/** Compute the average fortune of the team characters. */
+function computeTeamFortune(characterIds: string[]): number | undefined {
+  const characters = useSectStore.getState().sect.characters
+  const teamChars = characterIds
+    .map((id) => characters.find((c) => c.id === id))
+    .filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined)
+  if (teamChars.length === 0) return undefined
+  return teamChars.reduce((sum, c) => sum + c.cultivationStats.fortune, 0) / teamChars.length
 }
 
 function buildTeamUnits(
@@ -230,6 +240,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
     input.run.teamCharacterIds.map((charId) => [charId, []])
   )
   const teamSnapshot = buildTeamSnapshot(input.run, input.baseTeamUnits)
+  const teamFortune = computeTeamFortune(input.run.teamCharacterIds)
 
   const run: DungeonRun = {
     ...input.run,
@@ -332,7 +343,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
         break
       }
 
-      const eventResult = resolveEventFn(event, teamUnits, run.currentFloor)
+      const eventResult = resolveEventFn(event, teamUnits, run.currentFloor, teamFortune)
       pushStep('event_resolved', `事件：${event.type}`, eventResult.message, undefined, {
         success: eventResult.success,
       })

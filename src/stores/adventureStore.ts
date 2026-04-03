@@ -618,12 +618,23 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     let statBattles = 0
     let statVictories = 0
     let statKills = 0
+
+    // Compute team average fortune for random event bias
+    const { sect: fortuneSect } = useSectStore.getState()
+    const teamCharacters = run.teamCharacterIds
+      .map((charId) => fortuneSect.characters.find((c) => c.id === charId))
+      .filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined)
+    const teamFortune =
+      teamCharacters.length > 0
+        ? teamCharacters.reduce((sum, c) => sum + c.cultivationStats.fortune, 0) / teamCharacters.length
+        : undefined
+
     for (const event of route.events) {
       // Rebuild alive team from updated states
       const currentUnits = buildAliveTeamUnits({ ...run, memberStates: newMemberStates })
       if (currentUnits.length === 0) break
 
-      const result = resolveEvent(event, currentUnits, run.currentFloor)
+      const result = resolveEvent(event, currentUnits, run.currentFloor, teamFortune)
 
       // Track combat stats
       if (result.combatResult) {
@@ -1262,8 +1273,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         ...run.eventLog,
         {
           timestamp: Date.now(),
-          message:
-            '灵兽挣脱了束缚，未能捕获。',
+          message: '灵兽挣脱了束缚，未能捕获。',
         },
       ]
       set((s) => ({

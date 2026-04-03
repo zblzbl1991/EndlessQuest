@@ -1,7 +1,13 @@
 import { simulateCombat } from '../systems/combat/CombatEngine'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
-import { calcUnitPowerRating, calcTeamPowerRating, adjustEnemyByTeamPower } from '../data/enemies'
-import type { TacticPreset } from '../types/runBuild'
+import {
+  calcUnitPowerRating,
+  calcTeamPowerRating,
+  adjustEnemyByTeamPower,
+  scaleBossStats,
+  createCharacterCombatUnit,
+} from '../data/enemies'
+import { resolveEvent } from '../systems/roguelike/EventSystem'
 
 function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; team: 'ally' | 'enemy' }): CombatUnit {
   return {
@@ -484,9 +490,9 @@ describe('Power Rating System', () => {
       critDmg: 1.5,
     })
     const rating = calcUnitPowerRating(unit)
-    // atk*1.0 + def*0.8 + maxHp*0.15 + spd*0.4 + crit*30 + (critDmg-1)*20
-    // = 20 + 8 + 15 + 4.8 + 3 + 10 = 60.8
-    expect(rating).toBeCloseTo(60.8, 1)
+    // atk*1.0 + def*0.8 + maxHp*0.2 + spd*0.5 + crit*100 + critDmg*50
+    // = 20 + 8 + 20 + 6 + 10 + 75 = 139
+    expect(rating).toBeCloseTo(139, 1)
   })
 
   it('should sum team power from all members', () => {
@@ -590,5 +596,211 @@ describe('adjustEnemyByTeamPower', () => {
     const bossPower = calcUnitPowerRating(bossEnemy)
     const regularPower = calcUnitPowerRating(regularEnemy)
     expect(bossPower).toBeGreaterThanOrEqual(regularPower)
+  })
+})
+
+// ─── Boss Scaling Tests ──────────────────────────────────────────────
+
+describe('scaleBossStats', () => {
+  it('should multiply all stats by 2.5', () => {
+    const base = { hp: 100, atk: 20, def: 10, spd: 8 }
+    const result = scaleBossStats(base)
+    expect(result.hp).toBe(250)
+    expect(result.atk).toBe(50)
+    expect(result.def).toBe(25)
+    expect(result.spd).toBe(20)
+  })
+
+  it('should floor the results', () => {
+    const base = { hp: 7, atk: 3, def: 5, spd: 1 }
+    const result = scaleBossStats(base)
+    // 7*2.5=17.5 -> 17, 3*2.5=7.5 -> 7, 5*2.5=12.5 -> 12, 1*2.5=2.5 -> 2
+    expect(result.hp).toBe(17)
+    expect(result.atk).toBe(7)
+    expect(result.def).toBe(12)
+    expect(result.spd).toBe(2)
+  })
+})
+
+// ─── Fortune-based Random Events ────────────────────────────────────
+
+describe('Fortune-based Random Events', () => {
+  function makeTeam(_fortune?: number): CombatUnit[] {
+    return [
+      makeUnit({
+        id: 'p1',
+        name: 'FortuneTest',
+        team: 'ally',
+        hp: 1000,
+        maxHp: 1000,
+        atk: 10,
+        def: 10,
+        spd: 10,
+      }),
+    ]
+  }
+
+  it('high fortune should increase treasure rate', () => {
+    const team = makeTeam()
+    let treasureCount = 0
+    const trials = 200
+    // fortune = 80 (>50), should bias towards treasure
+    for (let i = 0; i < trials; i++) {
+      const result = resolveEvent({ type: 'random', id: 'test' }, team, 1, 80)
+      if (result.message === '发现了一处宝箱！') treasureCount++
+    }
+    // With fortune=80 and linear interpolation: treasure threshold = 0.5 + 0.15 * 0.6 = 0.59
+    // So ~59% should be treasure. Allow wide range due to randomness.
+    expect(treasureCount).toBeGreaterThan(trials * 0.4)
+  })
+
+  it('low fortune should increase trap rate', () => {
+    const team = makeTeam()
+    let trapCount = 0
+    const trials = 200
+    // fortune = 10 (<30), should bias towards trap
+    for (let i = 0; i < trials; i++) {
+      const result = resolveEvent({ type: 'random', id: 'test' }, team, 1, 10)
+      if (result.message === '踩到了陷阱！') trapCount++
+    }
+    // With fortune=10: treasure threshold = 0.5 - 0.1 * (2/3) = 0.433, trapBase = 0.8 - 0.1 * (2/3) = 0.733
+    // Trap range = 0.733 to 1.0 = 26.7%, up from base 20%.
+    expect(trapCount).toBeGreaterThan(trials * 0.15)
+  })
+
+  it('neutral fortune should behave like default', () => {
+    const team = makeTeam()
+    let treasureCount = 0
+    const trials = 200
+    for (let i = 0; i < trials; i++) {
+      const result = resolveEvent({ type: 'random', id: 'test' }, team, 1, 40)
+      if (result.message === '发现了一处宝箱！') treasureCount++
+    }
+    // fortune=40 is between 30-50, so no adjustment. Should be ~50%.
+    expect(treasureCount).toBeGreaterThan(trials * 0.3)
+    expect(treasureCount).toBeLessThan(trials * 0.7)
+  })
+
+  it('undefined fortune should behave like default (no adjustment)', () => {
+    const team = makeTeam()
+    let treasureCount = 0
+    const trials = 200
+    for (let i = 0; i < trials; i++) {
+      const result = resolveEvent({ type: 'random', id: 'test' }, team, 1)
+      if (result.message === '发现了一处宝箱！') treasureCount++
+    }
+    // No fortune = default thresholds. Should be ~50%.
+    expect(treasureCount).toBeGreaterThan(trials * 0.3)
+    expect(treasureCount).toBeLessThan(trials * 0.7)
+  })
+})
+
+// ─── Combat Attribute System - Realm/Quality/Specialty ──────────────
+
+describe('createCharacterCombatUnit - Realm/Quality/Specialty bonuses', () => {
+  function makeCharacter(overrides: Partial<import('../types/character').Character> = {}) {
+    return {
+      id: 'c1',
+      name: 'TestChar',
+      title: 'disciple' as const,
+      quality: 'common' as const,
+      realm: 0,
+      realmStage: 0 as const,
+      cultivation: 0,
+      baseStats: { hp: 100, atk: 20, def: 10, spd: 8, crit: 0.05, critDmg: 1.5 },
+      cultivationStats: { spiritPower: 50, maxSpiritPower: 50, comprehension: 50, spiritualRoot: 50, fortune: 50 },
+      learnedTechniques: [],
+      equippedGear: [],
+      equippedSkills: [],
+      backpack: [],
+      maxBackpackSlots: 10,
+      petIds: [],
+      talents: [],
+      status: 'idle' as const,
+      injuryTimer: 0,
+      createdAt: Date.now(),
+      totalCultivation: 0,
+      specialties: [],
+      assignedBuilding: null,
+      cultivationPath: 'none' as const,
+      fateTags: [],
+      investedSpiritStone: 0,
+      ...overrides,
+    }
+  }
+
+  it('should apply realm bonus: realm 3 + realmStage 2 = +11% stats', () => {
+    const lowRealm = makeCharacter({ realm: 0, realmStage: 0 })
+    const highRealm = makeCharacter({ realm: 3, realmStage: 2 })
+
+    const lowUnit = createCharacterCombatUnit(lowRealm, [])
+    const highUnit = createCharacterCombatUnit(highRealm, [])
+
+    // realm 3 * 0.03 + stage 2 * 0.01 = 0.11 multiplier
+    expect(highUnit.atk).toBeGreaterThan(lowUnit.atk)
+    expect(highUnit.hp).toBeGreaterThan(lowUnit.hp)
+  })
+
+  it('should apply quality bonus: chaos > divine > immortal > spirit > common', () => {
+    const common = makeCharacter({ quality: 'common' })
+    const spirit = makeCharacter({ quality: 'spirit' })
+    const chaos = makeCharacter({ quality: 'chaos' })
+
+    const commonUnit = createCharacterCombatUnit(common, [])
+    const spiritUnit = createCharacterCombatUnit(spirit, [])
+    const chaosUnit = createCharacterCombatUnit(chaos, [])
+
+    expect(spiritUnit.atk).toBeGreaterThan(commonUnit.atk)
+    expect(chaosUnit.atk).toBeGreaterThan(spiritUnit.atk)
+  })
+
+  it('should apply combat specialty bonus: each level +5%', () => {
+    const noSpecialty = makeCharacter()
+    const combatSpecialist = makeCharacter({
+      specialties: [{ type: 'combat', level: 3 }],
+    })
+
+    const noSpecUnit = createCharacterCombatUnit(noSpecialty, [])
+    const specUnit = createCharacterCombatUnit(combatSpecialist, [])
+
+    // combat level 3 = +15% stats
+    expect(specUnit.atk).toBeGreaterThan(noSpecUnit.atk)
+    // common quality (1.0), realm 0 stage 0 (1.0), so multiplier = 1 * 1 * 1.15
+    const expectedAtk = Math.floor(20 * 1.15)
+    expect(specUnit.atk).toBe(expectedAtk)
+  })
+
+  it('should not apply non-combat specialty bonus', () => {
+    const noSpecialty = makeCharacter()
+    const alchemySpecialist = makeCharacter({
+      specialties: [{ type: 'alchemy', level: 3 }],
+    })
+
+    const noSpecUnit = createCharacterCombatUnit(noSpecialty, [])
+    const alchemyUnit = createCharacterCombatUnit(alchemySpecialist, [])
+
+    // Alchemy specialty should not affect combat stats
+    expect(alchemyUnit.atk).toBe(noSpecUnit.atk)
+    expect(alchemyUnit.hp).toBe(noSpecUnit.hp)
+  })
+
+  it('combined bonuses should stack multiplicatively', () => {
+    const base = makeCharacter({ quality: 'common', realm: 0, realmStage: 0 })
+    const buffed = makeCharacter({
+      quality: 'divine',
+      realm: 2,
+      realmStage: 3,
+      specialties: [{ type: 'combat', level: 2 }],
+    })
+
+    const baseUnit = createCharacterCombatUnit(base, [])
+    const buffedUnit = createCharacterCombatUnit(buffed, [])
+
+    // Expected multiplier: (1 + 2*0.03 + 3*0.01) * 1.3 * (1 + 2*0.05)
+    // = (1 + 0.06 + 0.03) * 1.3 * 1.1 = 1.09 * 1.3 * 1.1 = 1.5587
+    const expectedMultiplier = 1.09 * 1.3 * 1.1
+    const expectedAtk = Math.floor(20 * expectedMultiplier)
+    expect(buffedUnit.atk).toBe(expectedAtk)
+    expect(buffedUnit.atk).toBeGreaterThan(baseUnit.atk)
   })
 })
