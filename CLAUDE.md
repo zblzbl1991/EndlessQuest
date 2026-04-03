@@ -69,7 +69,6 @@ React 19 + TypeScript + Zustand + CSS Modules + Vitest + IndexedDB
 - 已归档方案：`docs/superpowers/specs/2026-03-27-core-product-overhaul.md`
 - 已归档路线图：`docs/superpowers/plans/2026-03-27-core-product-overhaul-roadmap.md`
 
-<!-- GSD:project-start source:PROJECT.md -->
 ## Project
 
 **EndlessQuest**
@@ -85,9 +84,6 @@ React 19 + TypeScript + Zustand + CSS Modules + Vitest + IndexedDB
 - **水墨风格**: 必须遵循清墨轻岚设计系统 — 不使用 MMO 式重度 UI
 - **移动优先**: 布局以移动端为起点，逐级增强桌面端
 - **存档兼容**: 新字段必须有迁移逻辑，旧存档必须可加载
-<!-- GSD:project-end -->
-
-<!-- GSD:stack-start source:codebase/STACK.md -->
 ## Technology Stack
 
 ## Languages
@@ -151,9 +147,6 @@ React 19 + TypeScript + Zustand + CSS Modules + Vitest + IndexedDB
 - IndexedDB required for save data persistence
 - Google Fonts CDN for `Noto Serif SC` and `Noto Sans SC` fonts (loaded in `index.html`)
 - PWA-ready meta tags in `index.html` (apple-mobile-web-app-capable, theme-color)
-<!-- GSD:stack-end -->
-
-<!-- GSD:conventions-start source:CONVENTIONS.md -->
 ## Conventions
 
 ## Naming Patterns
@@ -253,9 +246,6 @@ React 19 + TypeScript + Zustand + CSS Modules + Vitest + IndexedDB
 - Import as `styles` and reference via `styles.className`
 - Theme variables from `src/styles/theme.css` used throughout
 - Global styles in `src/styles/globals.css`
-<!-- GSD:conventions-end -->
-
-<!-- GSD:architecture-start source:ARCHITECTURE.md -->
 ## Architecture
 
 ## Pattern Overview
@@ -338,24 +328,4 @@ React 19 + TypeScript + Zustand + CSS Modules + Vitest + IndexedDB
 - Save data integrity check: if meta exists but all entity stores are empty, treats as corrupted and returns `false`
 - Resource normalization on load (`normalizeFiniteNumber`, `normalizeResources`) prevents NaN/Infinity corruption
 ## Cross-Cutting Concerns
-<!-- GSD:architecture-end -->
 
-<!-- GSD:workflow-start source:GSD defaults -->
-## GSD Workflow Enforcement
-
-Before using Edit, Write, or other file-changing tools, start work through a GSD command so planning artifacts and execution context stay in sync.
-
-Use these entry points:
-- `/gsd:quick` for small fixes, doc updates, and ad-hoc tasks
-- `/gsd:debug` for investigation and bug fixing
-- `/gsd:execute-phase` for planned phase work
-
-Do not make direct repo edits outside a GSD workflow unless the user explicitly asks to bypass it.
-<!-- GSD:workflow-end -->
-
-<!-- GSD:profile-start -->
-## Developer Profile
-
-> Profile not yet configured. Run `/gsd:profile-user` to generate your developer profile.
-> This section is managed by `generate-claude-profile` -- do not edit manually.
-<!-- GSD:profile-end -->

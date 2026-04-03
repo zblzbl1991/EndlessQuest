@@ -1,0 +1,5 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": "src/systems/combat/CombatEngine.ts", "reason": "回合制战斗模拟核心，不需要修改但需要理解"}
+{"file": "src/systems/roguelike/EventSystem.ts", "reason": "事件解决逻辑，需要修改战斗事件生成"}
+{"file": "src/data/enemies.ts", "reason": "敌人模板+角色转战斗单位，需要新增战力评估"}
