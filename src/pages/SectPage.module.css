@@ -180,41 +180,110 @@
   color: var(--color-text-tertiary);
 }
 
-/* Adventure Items */
-.adventureItem {
+/* Destiny activity list */
+.destinyList {
+  display: grid;
+  gap: 6px;
+}
+
+.destinyItem {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: var(--space-sm);
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(95, 122, 141, 0.1);
   border-radius: var(--radius-md);
-  padding: 10px 12px;
-  margin-bottom: var(--space-xs);
+  padding: 8px 12px;
 }
 
-.adventureName {
-  display: inline-flex;
+.destinyLeft {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-sm);
+  min-width: 0;
+}
+
+.destinyName {
   font-size: 13px;
+  font-weight: 600;
   color: var(--color-text);
 }
 
-.adventureFloor {
-  display: block;
-  font-size: 12px;
+.destinyStage {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: rgba(95, 122, 141, 0.1);
+  color: var(--color-accent);
+  font-weight: 500;
+}
+
+.destinyRight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.destinyRisk {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.riskSafe {
+  background: rgba(79, 122, 116, 0.1);
+  color: var(--color-success);
+}
+
+.riskDrifting {
+  background: rgba(181, 139, 98, 0.1);
+  color: var(--color-warning);
+}
+
+.riskDanger {
+  background: rgba(180, 95, 95, 0.1);
+  color: var(--color-danger);
+}
+
+.riskCalamity {
+  background: rgba(180, 95, 95, 0.18);
+  color: #8b3030;
+}
+
+.destinyExposure {
+  font-size: 10px;
   color: var(--color-text-tertiary);
 }
 
-.adventureLink {
-  color: var(--color-accent);
-  text-decoration: none;
-  font-size: 12px;
-  font-weight: 600;
+/* Route Identity */
+.routeCard {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  background: var(--color-panel);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
 }
 
-.adventureLink:hover {
-  text-decoration: underline;
+.routeName {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-accent);
+}
+
+.routeDesc {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.routeHint {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  font-style: italic;
 }
 
 @media (min-width: 1024px) {
@@ -233,6 +302,10 @@
 
   .statsRow {
     grid-template-columns: repeat(5, 1fr);
+  }
+
+  .destinyList {
+    grid-template-columns: 1fr 1fr;
   }
 }
 
@@ -268,32 +341,4 @@
     align-items: flex-start;
     gap: 10px;
   }
-}
-
-/* Route Identity */
-.routeCard {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-sm);
-  background: var(--color-panel);
-  border-radius: var(--radius-md);
-  padding: var(--space-sm) var(--space-md);
-}
-
-.routeName {
-  font-family: var(--font-serif);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-accent);
-}
-
-.routeDesc {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-}
-
-.routeHint {
-  font-size: 12px;
-  color: var(--color-text-tertiary);
-  font-style: italic;
 }
