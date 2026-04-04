@@ -3,7 +3,7 @@
   "name": "roguelike-destiny",
   "title": "Roguelike Destiny System - Automated Destiny & Sect Policy",
   "description": "",
-  "status": "planning",
+  "status": "in_progress",
   "dev_type": null,
   "scope": "systems",
   "priority": "P2",
@@ -13,7 +13,7 @@
   "completedAt": null,
   "branch": "feature/roguelike-destiny",
   "base_branch": "master",
-  "worktree_path": null,
+  "worktree_path": "E:\\projects\\trellis-worktrees\\feature\\roguelike-destiny",
   "current_phase": 0,
   "next_action": [
     {

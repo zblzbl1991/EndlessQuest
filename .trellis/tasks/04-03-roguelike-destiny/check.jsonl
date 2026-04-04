@@ -1,5 +1,3 @@
 {"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
 {"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": "src/pages/SectPage.tsx", "reason": "Sect page - needs restructure"}
-{"file": "src/pages/CharactersPage.tsx", "reason": "Characters page - needs destiny info"}
-{"file": "src/systems/sect/SectAutomationSystem.ts", "reason": "Automation system to extend"}
