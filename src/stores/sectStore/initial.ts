@@ -9,6 +9,8 @@ import { BUILDING_DEFS } from '../../data/buildings'
 import { generateCharacter } from '../../systems/character/CharacterEngine'
 import type { ShopState } from '../../systems/trade/TradeSystem'
 
+let _materialIdCounter = 0
+
 // ---------------------------------------------------------------------------
 // Helper: get equipment item by ID from vault + all character backpacks
 // ---------------------------------------------------------------------------
@@ -43,6 +45,18 @@ export function produceItemAsStack(recipe: AutoRecipe, buildingLevel: number) {
     const slot = FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
     const item = generateEquipment(slot, forgeRecipe.quality)
     return item ? { item, quantity: 1 } : null
+  }
+  if (recipe.productType === 'material') {
+    const item: import('../../types/item').Material = {
+      id: 'mat_' + Date.now() + '_' + ++_materialIdCounter,
+      name: recipe.name,
+      quality: 'common',
+      type: 'material',
+      description: `炼制材料：${recipe.name}`,
+      sellPrice: Math.round(recipe.totalCost.spiritStone * 0.5),
+      category: recipe.id === 'refined_herb' ? 'herb' : recipe.id === 'refined_ore' ? 'ore' : 'other',
+    }
+    return { item, quantity: 1 }
   }
   return null
 }

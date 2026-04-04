@@ -200,8 +200,8 @@ describe('SectRouteSystem', () => {
       expect(calcBuildingRouteBonus('sword', 'spiritField')).toBe(1)
     })
 
-    it('should return 1 for beast route on spiritField (no bonus value)', () => {
-      expect(calcBuildingRouteBonus('beast', 'spiritField')).toBe(1)
+    it('should return 1.15 for beast route on spiritField (building bonus)', () => {
+      expect(calcBuildingRouteBonus('beast', 'spiritField')).toBe(1.15)
     })
   })
 

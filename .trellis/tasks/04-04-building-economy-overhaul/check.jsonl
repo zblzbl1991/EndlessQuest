@@ -1,0 +1,5 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": "src/__tests__/stores.test.ts", "reason": "verify no regressions in store tests"}
+{"file": "src/data/sectRoutes.ts", "reason": "verify beast route bonus fix"}
+{"file": "src/data/specialties.ts", "reason": "verify leadership specialty fix"}

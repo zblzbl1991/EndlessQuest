@@ -5,7 +5,12 @@ import type { BuildingType, OfflineAccumulator } from '../../types'
 import { useGameStore } from '../gameStore'
 import { useAdventureStore } from '../adventureStore'
 import { calcSectLevel } from '../../systems/character/CharacterEngine'
-import { calcResourceRates, clampResources, calcTaxRate } from '../../systems/economy/ResourceEngine'
+import {
+  calcResourceRates,
+  clampResources,
+  calcTaxRate,
+  applySpiritStoneDecay,
+} from '../../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../../systems/economy/ResourceEngine'
 import {
   tick as cultivationTick,
@@ -256,15 +261,14 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     // 12. Build new sect with updated resources (production + cultivation - consumed + tax)
     const taxProduced = calcTaxRate(newSectLevel, sect.characters.length) * deltaSec
 
+    // Apply spirit stone soft cap decay to mine production (tax is NOT affected)
+    const mineStoneProduced = applySpiritStoneDecay(rates.spiritStone * deltaSec, sect.resources.spiritStone, mhLevel)
+
     const newResources = {
       spiritEnergy: Math.max(0, updatedSpiritEnergy - breakthroughEnergyCost),
       spiritStone: Math.max(
         0,
-        sect.resources.spiritStone +
-          rates.spiritStone * deltaSec +
-          taxProduced -
-          totalConsumed.spiritStone -
-          breakthroughStoneCost
+        sect.resources.spiritStone + mineStoneProduced + taxProduced - totalConsumed.spiritStone - breakthroughStoneCost
       ),
       herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb,
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
@@ -277,7 +281,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const prevAcc = sect.offlineAccumulator
     const updatedAccumulator: OfflineAccumulator = {
       resourcesGained: {
-        spiritStone: prevAcc.resourcesGained.spiritStone + rates.spiritStone * deltaSec + taxProduced,
+        spiritStone: prevAcc.resourcesGained.spiritStone + mineStoneProduced + taxProduced,
         spiritEnergy: prevAcc.resourcesGained.spiritEnergy + spiritProduced,
         herb: prevAcc.resourcesGained.herb + rates.herb * deltaSec,
         ore: prevAcc.resourcesGained.ore + rates.ore * deltaSec,
@@ -288,7 +292,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     }
 
     // Calculate spirit stone income for stats
-    const spiritStoneEarned = rates.spiritStone * deltaSec + taxProduced
+    const spiritStoneEarned = mineStoneProduced + taxProduced
 
     // Build the updated sect for the set call
     let archiveMilestones = sect.archiveMilestones

@@ -1,0 +1,115 @@
+.container {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  padding: 12px;
+  box-shadow: 0 12px 28px rgba(37, 50, 64, 0.05);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+  padding-left: 6px;
+  border-left: 3px solid rgba(95, 122, 141, 0.68);
+}
+
+.synergyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.synergyCard {
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.synergyActive {
+  background: rgba(79, 122, 116, 0.06);
+  border-color: rgba(79, 122, 116, 0.18);
+}
+
+.synergyClose {
+  background: rgba(181, 139, 98, 0.05);
+  border-color: rgba(181, 139, 98, 0.16);
+}
+
+.synergyInactive {
+  background: rgba(255, 255, 255, 0.6);
+  border-color: rgba(95, 122, 141, 0.08);
+  opacity: 0.7;
+}
+
+.synergyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.synergyName {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.statusActive {
+  font-size: 10px;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+.statusInactive {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+.synergyDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-bottom: 6px;
+}
+
+.synergyProgress {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.progressItem {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.progressMet {
+  background: rgba(79, 122, 116, 0.1);
+  color: var(--color-success);
+}
+
+.progressPending {
+  background: rgba(95, 122, 141, 0.06);
+  color: var(--color-text-tertiary);
+}
+
+@media (min-width: 640px) {
+  .synergyList {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .synergyList {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}

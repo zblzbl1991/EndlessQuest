@@ -1,6 +1,11 @@
 // src/systems/economy/ResourceEngine.ts
 
-import { getSpiritFieldHerbRate, getSpiritFieldRate, getSpiritMineOreRate, getSpiritMineRate } from '../../data/buildings'
+import {
+  getSpiritFieldHerbRate,
+  getSpiritFieldRate,
+  getSpiritMineOreRate,
+  getSpiritMineRate,
+} from '../../data/buildings'
 import type { ResourceCaps, Resources } from '../../types/sect'
 
 export type { Resources }
@@ -45,10 +50,31 @@ export function calcResourceRates(
 
 /**
  * Calculate sect tax (spirit stone income from main hall).
- * Formula: sectLevel * discipleCount * 0.1 per second
+ * Formula: sectLevel * discipleCount * 0.05 per second
  */
 export function calcTaxRate(sectLevel: number, discipleCount: number): number {
-  return sectLevel * discipleCount * 0.1
+  return sectLevel * discipleCount * 0.05
+}
+
+/**
+ * Calculate spirit stone soft cap based on main hall level.
+ * Formula: (5000 + mainHallLevel * 3000) * max(1, mainHallLevel - 2)
+ */
+export function calcSpiritStoneCap(mainHallLevel: number): number {
+  if (mainHallLevel <= 2) return 5000 + mainHallLevel * 3000
+  return (5000 + mainHallLevel * 3000) * Math.max(1, mainHallLevel - 2)
+}
+
+/**
+ * Apply spirit stone soft cap decay to production rate.
+ * When spirit stones exceed cap, production rate decays: actualRate = rate * (cap / current).
+ * Minimum 10% production rate. Tax income is NOT affected.
+ */
+export function applySpiritStoneDecay(rate: number, currentSpiritStone: number, mainHallLevel: number): number {
+  const cap = calcSpiritStoneCap(mainHallLevel)
+  if (currentSpiritStone <= cap) return rate
+  const decayFactor = Math.max(0.1, cap / currentSpiritStone)
+  return rate * decayFactor
 }
 
 export function clampResources(resources: Resources, caps: ResourceCaps): Resources {

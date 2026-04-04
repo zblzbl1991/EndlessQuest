@@ -890,7 +890,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
     expect(updated.cultivationPath).toBe('none')
-    expect(getStore().sect.resources.spiritStone).toBe(5000.6)
+    expect(getStore().sect.resources.spiritStone).toBe(5000.55)
   })
 
   it('should skip breakthrough when spiritStone is insufficient', () => {
@@ -909,8 +909,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Initial spiritMine + tax now add 0.6 spiritStone per tick.
-    expect(getStore().sect.resources.spiritStone).toBe(1000.6)
+    // Initial spiritMine + tax now add 0.55 spiritStone per tick.
+    expect(getStore().sect.resources.spiritStone).toBe(1000.55)
   })
 
   it('should skip breakthrough when spiritStone insufficient', () => {
@@ -929,8 +929,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Initial spiritMine + tax now add 0.6 spiritStone per tick.
-    expect(getStore().sect.resources.spiritStone).toBe(100.6)
+    // Initial spiritMine + tax now add 0.55 spiritStone per tick.
+    expect(getStore().sect.resources.spiritStone).toBe(100.55)
   })
 
   it('should skip breakthrough when spiritEnergy is insufficient', () => {
@@ -968,7 +968,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
 
     // Sub-level breakthrough consumes minor breakthrough cost (50 for realm 0, stage 0) but not vault items
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.resources.spiritStone).toBe(950.6) // 1000 - 50 + 0.5 (mine) + 0.1 (tax)
+    expect(getStore().sect.resources.spiritStone).toBe(950.55) // 1000 - 50 + 0.5 (mine) + 0.05 (tax)
   })
 
   it('should remove a disciple when sub-level breakthrough fails', () => {
@@ -2416,8 +2416,8 @@ describe('SectStore - Offline Accumulator', () => {
     getStore().tickAll(10)
 
     const acc = getStore().sect.offlineAccumulator
-    // At sect level 1 with 1 disciple: taxRate = 0.1/s, 10s = 1
-    expect(acc.taxIncome).toBeCloseTo(1, 0)
+    // At sect level 1 with 1 disciple: taxRate = 0.05/s, 10s = 0.5
+    expect(acc.taxIncome).toBeCloseTo(0.5, 0)
   })
 
   it('should accumulate resources across multiple tickAll calls', () => {
@@ -2428,7 +2428,7 @@ describe('SectStore - Offline Accumulator', () => {
 
     const acc = getStore().sect.offlineAccumulator
     // Tax should have accumulated across both ticks
-    expect(acc.taxIncome).toBeCloseTo(2, 0)
+    expect(acc.taxIncome).toBeCloseTo(1, 0)
   })
 
   it('should clear accumulator when clearOfflineAccumulator is called', () => {

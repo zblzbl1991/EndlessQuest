@@ -149,6 +149,43 @@
   font-size: 12px;
 }
 
+/* Spirit Stone Cap Progress */
+.capBar {
+  position: relative;
+  width: 100%;
+  height: 14px;
+  background: rgba(95, 122, 141, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.capBarFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(95, 122, 141, 0.28);
+  border-radius: 4px;
+  transition: width var(--transition-fast);
+}
+
+.capBarWarning {
+  background: rgba(181, 95, 95, 0.35);
+}
+
+.capBarLabel {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 9px;
+  color: var(--color-text-secondary);
+  z-index: 1;
+}
+
 /* Character Stats */
 .statsRow {
   display: grid;
