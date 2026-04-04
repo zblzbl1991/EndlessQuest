@@ -1,13 +1,15 @@
 import { useMemo } from 'react'
-import { Link } from 'react-router-dom'
 import { useSectStore } from '../stores/sectStore'
-import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
 import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
+import { getDominantDarkCurrentFamily } from '../systems/destiny/DarkCurrentSystem'
+import { SECT_RISK_POLICY_LIST } from '../data/sectRiskPolicies'
+import { DESTINY_STAGE_NAMES, DESTINY_RISK_NAMES } from '../types/destiny'
+import type { DestinyRiskLevel } from '../types/destiny'
 import { PixelIcon } from '../components/common/PixelIcon'
 import PageHeader from '../components/common/PageHeader'
 import ResourceRate from '../components/common/ResourceRate'
-import ActionAgenda from '../components/sect/ActionAgenda'
+import StrategyPanel from '../components/sect/StrategyPanel'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
@@ -49,31 +51,16 @@ function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStor
   ]
 }
 
-function getDungeonIconName(dungeonId: string): string {
-  switch (dungeonId) {
-    case 'lingCaoValley':
-      return 'dungeonValley'
-    case 'luoYunCave':
-      return 'dungeonCave'
-    case 'bloodDemonAbyss':
-      return 'dungeonAbyss'
-    case 'dragonBoneWasteland':
-      return 'dungeonWasteland'
-    case 'nineNetherPurgatory':
-      return 'dungeonPurgatory'
-    case 'heavenlyTribulationRealm':
-      return 'dungeonTribulation'
-    default:
-      return 'dungeonCave'
-  }
+const RISK_LEVEL_TONE: Record<DestinyRiskLevel, string> = {
+  safe: styles.riskSafe,
+  drifting: styles.riskDrifting,
+  danger: styles.riskDanger,
+  calamity: styles.riskCalamity,
 }
 
 export default function SectPage() {
   const sect = useSectStore((s) => s.sect)
   const resetSect = useSectStore((s) => s.reset)
-  const reports = useAdventureStore((s) => s.reports)
-  const dungeons = useAdventureStore((s) => s.dungeons)
-  const resetAdventure = useAdventureStore((s) => s.reset)
   const resetGame = useGameStore((s) => s.reset)
 
   const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
@@ -81,13 +68,30 @@ export default function SectPage() {
   const spiritFieldCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
   const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel * spiritFieldCount : 0
 
+  const dominantDarkCurrent = useMemo(() => getDominantDarkCurrentFamily(sect.darkCurrent), [sect.darkCurrent])
+
+  const policyName = SECT_RISK_POLICY_LIST.find((p) => p.id === sect.strategySettings.activePolicy)?.name ?? '审机'
+
+  // Identify disciples with notable destiny states
+  const notableDisciples = useMemo(() => {
+    return sect.characters
+      .filter((c) => c.destinyState && c.destinyState.stage !== 'seed')
+      .sort((a, b) => {
+        const order = { heavenmarked: 4, mutated: 3, formed: 2, stirring: 1, seed: 0 }
+        return (order[b.destinyState!.stage] ?? 0) - (order[a.destinyState!.stage] ?? 0)
+      })
+      .slice(0, 3)
+  }, [sect.characters])
+
   const handleResetSect = async () => {
     if (!window.confirm('确认重置当前宗门档案吗？此操作会清空当前进度。')) {
       return
     }
 
     resetSect()
-    resetAdventure()
+    // Also reset adventure store
+    const { useAdventureStore } = await import('../stores/adventureStore')
+    useAdventureStore.getState().reset()
     resetGame()
     await clearSaveData()
   }
@@ -105,29 +109,22 @@ export default function SectPage() {
         metrics={[
           { label: '宗门等级', value: sect.level, detail: `${sect.characters.length} 弟子 · ${sect.pets.length} 灵宠` },
           {
+            label: '宗门方针',
+            value: policyName,
+            detail: `核心上限 ${SECT_RISK_POLICY_LIST.find((p) => p.id === sect.strategySettings.activePolicy)?.maxCoreDisciples ?? 2} 人`,
+          },
+          {
             label: '自动运转',
             value: '运行中',
             detail: `资源可养 ${calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute)} 人`,
           },
           {
-            label: '优先秘境',
-            value: sect.automationSettings.preferredDungeonId ?? '未设置',
-            detail: `倾向 ${sect.automationSettings.casualtyTolerance}`,
-          },
-          {
-            label: '最近战报',
-            value: reports.length,
-            detail: reports[0] ? `${reports[0].result} · 第 ${reports[0].floorsCleared} 层` : '暂无记录',
+            label: '宗门暗流',
+            value: dominantDarkCurrent ? dominantDarkCurrent.value : '平静',
+            detail: dominantDarkCurrent ? `${dominantDarkCurrent.tier}` : '暂无波动',
           },
         ]}
       />
-
-      <section className={`${styles.section} ${styles.heroSection}`}>
-        <div className={styles.sectionTitle}>要务</div>
-        <div className={styles.heroCard}>
-          <ActionAgenda />
-        </div>
-      </section>
 
       <div className={styles.midgroundGrid} data-testid="sect-midground-grid">
         <section className={styles.section}>
@@ -172,38 +169,35 @@ export default function SectPage() {
             ))}
           </div>
         </section>
+      </div>
 
-        {reports.length > 0 && (
-          <section className={styles.section}>
-            <div className={styles.sectionTitle}>战报</div>
-            {reports.slice(0, 3).map((report) => {
-              const dungeon = dungeons.find((item) => item.id === report.dungeonId)
+      {/* Notable disciples with destiny activity */}
+      {notableDisciples.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>命运动向</div>
+          <div className={styles.destinyList}>
+            {notableDisciples.map((char) => {
+              const ds = char.destinyState!
               return (
-                <div key={report.id} className={styles.adventureItem}>
-                  <div>
-                    <span className={styles.adventureName}>
-                      <PixelIcon
-                        name={getDungeonIconName(report.dungeonId)}
-                        size={16}
-                        className={styles.inlineIcon}
-                        aria-label={dungeon?.name ?? report.dungeonId}
-                      />
-                      {dungeon?.name ?? report.dungeonId}
-                    </span>
-                    <span className={styles.adventureFloor}>
-                      {report.result === 'completed' ? '通关' : report.result === 'retreated' ? '撤退' : '失败'} · 第
-                      {report.floorsCleared} 层
-                    </span>
+                <div key={char.id} className={styles.destinyItem}>
+                  <div className={styles.destinyLeft}>
+                    <span className={styles.destinyName}>{char.name}</span>
+                    <span className={styles.destinyStage}>{DESTINY_STAGE_NAMES[ds.stage]}</span>
                   </div>
-                  <Link className={styles.adventureLink} to={`/adventure/report/${report.id}`}>
-                    查看详情
-                  </Link>
+                  <div className={styles.destinyRight}>
+                    <span className={`${styles.destinyRisk} ${RISK_LEVEL_TONE[ds.riskLevel]}`}>
+                      {DESTINY_RISK_NAMES[ds.riskLevel]}
+                    </span>
+                    <span className={styles.destinyExposure}>曝露 {Math.floor(ds.exposure)}</span>
+                  </div>
                 </div>
               )
             })}
-          </section>
-        )}
-      </div>
+          </div>
+        </section>
+      )}
+
+      <StrategyPanel />
 
       <div className={styles.backgroundStack}>
         <SectPathPanel />

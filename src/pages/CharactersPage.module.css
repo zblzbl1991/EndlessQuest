@@ -417,6 +417,15 @@
   border-top: 1px solid rgba(95, 122, 141, 0.08);
 }
 
+.foldEventNote {
+  margin-top: var(--space-sm);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  padding-left: var(--space-xs);
+  border-left: 2px solid var(--color-border-light);
+}
+
 .statsGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

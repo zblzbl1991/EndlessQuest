@@ -210,3 +210,56 @@
   background: rgba(46, 125, 50, 0.1);
   color: #2e7d32;
 }
+
+/* Destiny row: stage + risk + matched amplifiers */
+.destinyRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin: 4px 0;
+}
+
+.destinyStage {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: rgba(95, 122, 141, 0.12);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.destinyRisk {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.riskSafe {
+  background: rgba(79, 122, 116, 0.1);
+  color: var(--color-success);
+}
+
+.riskDrifting {
+  background: rgba(181, 139, 98, 0.1);
+  color: var(--color-warning);
+}
+
+.riskDanger {
+  background: rgba(180, 95, 95, 0.1);
+  color: var(--color-danger);
+}
+
+.riskCalamity {
+  background: rgba(180, 95, 95, 0.18);
+  color: #8b3030;
+}
+
+.destinyMatched {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  background: rgba(111, 115, 157, 0.1);
+  color: var(--color-rare);
+}

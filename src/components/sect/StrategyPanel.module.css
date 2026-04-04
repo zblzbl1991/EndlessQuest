@@ -1,0 +1,290 @@
+.container {
+  margin-bottom: var(--space-md);
+  background:
+    radial-gradient(circle at right, rgba(133, 164, 182, 0.1), transparent 40%),
+    linear-gradient(180deg, rgba(252, 254, 255, 0.96), rgba(240, 246, 250, 0.9));
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(95, 122, 141, 0.12);
+  padding: var(--space-md);
+  box-shadow: 0 14px 28px rgba(37, 50, 64, 0.06);
+}
+
+.title {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+  padding-left: var(--space-xs);
+  border-left: 2px solid var(--color-accent);
+}
+
+.activeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+  padding: var(--space-sm);
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border-light);
+}
+
+.activeLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  min-width: 32px;
+}
+
+.activeValue {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.activeDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
+
+.cooldownHint {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Policy picker grid */
+.policyGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+  margin-bottom: var(--space-md);
+}
+
+.policyCard {
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.policyCard:hover {
+  border-color: var(--color-accent);
+  background: var(--color-panel-hover);
+}
+
+.policyCardActive {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-paper));
+}
+
+.policyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 2px;
+}
+
+.policyName {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.policyIdx {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.policyDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.policyMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.policyTag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: rgba(95, 122, 141, 0.08);
+  color: var(--color-text-tertiary);
+}
+
+.policyTagAggressive {
+  background: rgba(180, 95, 95, 0.08);
+  color: var(--color-danger);
+}
+
+/* Amplifier section */
+.ampSection {
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.ampTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.ampGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 6px;
+}
+
+.ampCard {
+  width: 100%;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
+}
+
+.ampCard:hover {
+  border-color: var(--color-accent);
+  background: var(--color-panel-hover);
+}
+
+.ampCardActive {
+  border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-paper));
+}
+
+.ampName {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.ampDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.ampCount {
+  font-size: 10px;
+  color: var(--color-accent);
+  text-align: right;
+}
+
+/* Dark current overview */
+.darkSection {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.darkTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-sm);
+}
+
+.darkGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+
+.darkCell {
+  text-align: center;
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.darkCellLabel {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  margin-bottom: 2px;
+}
+
+.darkCellValue {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.darkCellBg {
+  background: rgba(95, 122, 141, 0.06);
+}
+
+.darkCellPerceptible {
+  background: rgba(181, 139, 98, 0.08);
+}
+
+.darkCellSignificant {
+  background: rgba(180, 95, 95, 0.08);
+}
+
+.darkCellStrong {
+  background: rgba(180, 95, 95, 0.14);
+}
+
+.darkHint {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-xs);
+  text-align: center;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .policyGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .ampGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .policyGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .ampGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .darkGrid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}

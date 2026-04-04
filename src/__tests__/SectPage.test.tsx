@@ -31,7 +31,9 @@ describe('SectPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('要务')).toBeInTheDocument()
+    // The page now renders StrategyPanel instead of ActionAgenda
+    // "宗门方针" appears in both the header metrics and StrategyPanel title
+    expect(screen.getAllByText('宗门方针').length).toBeGreaterThanOrEqual(2)
     expect(screen.getByTestId('sect-hero')).toBeInTheDocument()
     expect(screen.getByTestId('sect-midground-grid')).toBeInTheDocument()
     expect(screen.queryByText('行动指引')).not.toBeInTheDocument()
@@ -51,7 +53,7 @@ describe('SectPage', () => {
     expect(screen.getByText('流转正常')).toBeInTheDocument()
   })
 
-  it('renders recent adventure summaries instead of live run progress when reports exist', () => {
+  it('renders page without inline adventure reports (reports moved to adventure page)', () => {
     useAdventureStore.setState({
       reports: [
         {
@@ -76,9 +78,12 @@ describe('SectPage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('战报')).toBeInTheDocument()
+    // Adventure reports are no longer rendered inline on SectPage
+    expect(screen.queryByText('战报')).not.toBeInTheDocument()
     expect(screen.queryByText(/进行中的秘境/)).not.toBeInTheDocument()
-    expect(screen.getByRole('link', { name: '查看详情' })).toHaveAttribute('href', '/adventure/report/report_1')
+    expect(screen.queryByRole('link', { name: '查看详情' })).not.toBeInTheDocument()
+    // Page still renders core sections
+    expect(screen.getByTestId('sect-hero')).toBeInTheDocument()
   })
 
   it('keeps disciple information at overview level without rendering the disciple list', () => {

@@ -30,6 +30,9 @@ import {
   MAX_CHARACTER_SKILL_SLOTS,
   syncCharacterSkillLoadout,
 } from '../data/activeSkills'
+import { getSeedDef } from '../data/destinySeeds'
+import { getAmplifierProfile } from '../data/destinyAmplifiers'
+import { DESTINY_STAGE_NAMES, DESTINY_RISK_NAMES } from '../types/destiny'
 import styles from './CharactersPage.module.css'
 
 const TITLE_NAMES: Record<string, string> = {
@@ -697,6 +700,48 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
               </div>
             </div>
           </FoldSection>
+
+          {character.destinyState && (
+            <FoldSection
+              icon="cultivation"
+              title="命运"
+              summary={`${DESTINY_STAGE_NAMES[character.destinyState.stage]} · ${DESTINY_RISK_NAMES[character.destinyState.riskLevel]}`}
+            >
+              <div className={styles.statsGrid}>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>命苗</span>
+                  <span className={styles.statValue}>{getSeedDef(character.destinyState.seedId).name}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>阶段</span>
+                  <span className={styles.statValue}>{DESTINY_STAGE_NAMES[character.destinyState.stage]}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>风险</span>
+                  <span className={styles.statValue}>{DESTINY_RISK_NAMES[character.destinyState.riskLevel]}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>曝露</span>
+                  <span className={styles.statValue}>{Math.floor(character.destinyState.exposure)}</span>
+                </div>
+                <div className={styles.statItem}>
+                  <span className={styles.statLabel}>不稳</span>
+                  <span className={styles.statValue}>{Math.floor(character.destinyState.instability)}</span>
+                </div>
+                {character.destinyState.matchedAmplifiers.length > 0 && (
+                  <div className={styles.statItem}>
+                    <span className={styles.statLabel}>契合标签</span>
+                    <span className={styles.statValue}>
+                      {character.destinyState.matchedAmplifiers.map((aId) => getAmplifierProfile(aId).name).join('、')}
+                    </span>
+                  </div>
+                )}
+              </div>
+              {character.destinyState.lastMajorEvent && (
+                <div className={styles.foldEventNote}>{character.destinyState.lastMajorEvent.summary}</div>
+              )}
+            </FoldSection>
+          )}
 
           <FoldSection
             icon={DETAIL_SECTION_ICONS.technique}

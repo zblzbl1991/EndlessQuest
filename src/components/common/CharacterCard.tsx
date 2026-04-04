@@ -8,6 +8,8 @@ import { getFateTagDef } from '../../data/fateTags'
 import { getPrimaryRole, getRoleLabel } from '../../systems/character/SpecialtySystem'
 import { formatCultivationValue } from '../../utils/format'
 import { useSectStore } from '../../stores/sectStore'
+import { DESTINY_STAGE_NAMES, DESTINY_RISK_NAMES } from '../../types/destiny'
+import type { DestinyRiskLevel } from '../../types/destiny'
 import { PixelIcon } from './PixelIcon'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
@@ -21,7 +23,6 @@ const QUALITY_BORDER: Record<CharacterQuality, string> = {
   chaos: styles.qualityChaos,
 }
 
-
 const PATH_ICON_NAMES: Record<string, string> = {
   sword: 'swordPath',
   body: 'bodyPath',
@@ -29,6 +30,13 @@ const PATH_ICON_NAMES: Record<string, string> = {
   beast: 'beastPath',
   formation: 'spellPath',
   void: 'spellPath',
+}
+
+const RISK_LEVEL_CLASS: Record<DestinyRiskLevel, string> = {
+  safe: styles.riskSafe,
+  drifting: styles.riskDrifting,
+  danger: styles.riskDanger,
+  calamity: styles.riskCalamity,
 }
 
 interface CharacterCardProps {
@@ -55,14 +63,16 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
     .map((specialty) => `${getRoleLabel(specialty.type)} Lv.${specialty.level}`)
   const statusSummary =
     character.status === 'recovering'
-      ? `休养 ${Math.max(0, character.recoveryDaysRemaining ?? 0)} 天`
+      ? `\u4F11\u517B ${Math.max(0, character.recoveryDaysRemaining ?? 0)} \u5929`
       : character.status === 'adventuring'
-        ? '秘境中'
+        ? '\u79D8\u5883\u4E2D'
         : character.status === 'patrolling'
-          ? '派遣中'
+          ? '\u6D3E\u9063\u4E2D'
           : primaryRole
-            ? `主定位 ${getRoleLabel(primaryRole)}`
-            : '待培养'
+            ? `\u4E3B\u5B9A\u4F4D ${getRoleLabel(primaryRole)}`
+            : '\u5F85\u57F9\u517B'
+
+  const destinyState = character.destinyState
 
   return (
     <div
@@ -87,6 +97,20 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           {getPathName(character.cultivationPath)}
         </span>
       )}
+
+      {/* Destiny stage and risk level - shown when past seed stage */}
+      {destinyState && destinyState.stage !== 'seed' && (
+        <div className={styles.destinyRow}>
+          <span className={styles.destinyStage}>{DESTINY_STAGE_NAMES[destinyState.stage]}</span>
+          <span className={`${styles.destinyRisk} ${RISK_LEVEL_CLASS[destinyState.riskLevel]}`}>
+            {DESTINY_RISK_NAMES[destinyState.riskLevel]}
+          </span>
+          {destinyState.matchedAmplifiers.length > 0 && (
+            <span className={styles.destinyMatched}>{destinyState.matchedAmplifiers.length} 契合</span>
+          )}
+        </div>
+      )}
+
       <div className={styles.metaRow}>
         {primaryRole && <span className={styles.roleTag}>擅长 {getRoleLabel(primaryRole)}</span>}
         {character.status === 'recovering' && (
@@ -128,7 +152,9 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
               </span>
             )
           })}
-          {character.learnedTechniques.length > 2 && <span className={styles.techTag}>+{character.learnedTechniques.length - 2}</span>}
+          {character.learnedTechniques.length > 2 && (
+            <span className={styles.techTag}>+{character.learnedTechniques.length - 2}</span>
+          )}
         </div>
       )}
       {character.status === 'idle' && (
@@ -138,7 +164,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
             <span>
               修为 {formatCultivationValue(character.cultivation)}/{needed.toLocaleString()}
             </span>
-            <span>·</span>
+            <span>{'\u00B7'}</span>
             <span>+{effectiveCultivationSpeed.toFixed(1)}/s</span>
           </div>
         </div>
