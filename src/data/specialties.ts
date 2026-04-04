@@ -21,7 +21,7 @@ export const SPECIALTY_BONUS_TABLE: Record<SpecialtyType, Record<number, number>
   comprehension: { 1: 0.15, 2: 0.3, 3: 0.5 },
   combat: { 1: 0.05, 2: 0.1, 3: 0.2 },
   fortune: { 1: 0.1, 2: 0.2, 3: 0.35 },
-  leadership: { 1: 1, 2: 1, 3: 1.05 },
+  leadership: { 1: 0.1, 2: 0.2, 3: 0.35 },
 }
 
 /** All possible specialty types */

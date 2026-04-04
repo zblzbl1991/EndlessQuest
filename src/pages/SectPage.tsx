@@ -4,10 +4,12 @@ import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
 import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
+import { calcSpiritStoneCap } from '../systems/economy/ResourceEngine'
 import { PixelIcon } from '../components/common/PixelIcon'
 import PageHeader from '../components/common/PageHeader'
 import ResourceRate from '../components/common/ResourceRate'
 import ActionAgenda from '../components/sect/ActionAgenda'
+import SynergyPanel from '../components/sect/SynergyPanel'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
@@ -80,6 +82,9 @@ export default function SectPage() {
   const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
   const spiritFieldCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
   const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel * spiritFieldCount : 0
+  const mainHallLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
+  const spiritStoneCap = calcSpiritStoneCap(mainHallLevel)
+  const spiritStoneRatio = sect.resources.spiritStone / spiritStoneCap
 
   const handleResetSect = async () => {
     if (!window.confirm('确认重置当前宗门档案吗？此操作会清空当前进度。')) {
@@ -137,6 +142,17 @@ export default function SectPage() {
               <PixelIcon name="spiritStone" size={18} className={styles.inlineIcon} aria-label="灵石" />
               <span className={styles.resourceLabel}>灵石</span>
               <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritStone).toLocaleString()}</span>
+              {spiritStoneRatio > 0.5 && (
+                <div className={styles.capBar}>
+                  <div
+                    className={`${styles.capBarFill} ${spiritStoneRatio > 0.8 ? styles.capBarWarning : ''}`}
+                    style={{ width: `${Math.min(100, spiritStoneRatio * 100)}%` }}
+                  />
+                  <span className={styles.capBarLabel}>
+                    {Math.floor(sect.resources.spiritStone).toLocaleString()} / {spiritStoneCap.toLocaleString()}
+                  </span>
+                </div>
+              )}
             </div>
             <div className={styles.resourceCard}>
               <PixelIcon name="spiritEnergy" size={18} className={styles.inlineIcon} aria-label="灵气" />
@@ -172,6 +188,8 @@ export default function SectPage() {
             ))}
           </div>
         </section>
+
+        <SynergyPanel />
 
         {reports.length > 0 && (
           <section className={styles.section}>

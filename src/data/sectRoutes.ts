@@ -47,7 +47,7 @@ export const SECT_ROUTES: Record<SectRouteId, SectRouteDef> = {
     id: 'beast',
     name: '兽道',
     description: '专注御兽,灵兽品质',
-    buildingBonus: { spiritField: 1.0 },
+    buildingBonus: { spiritField: 1.15 },
     adventureModifier: '灵兽捕捉成功率和品质提升',
     nodes: [
       { id: 'taming', name: '驯服', description: '驯服成功率 +10%', effect: '灵兽驯服率提升' },
