@@ -1,0 +1,44 @@
+{
+  "id": "building-economy-overhaul",
+  "name": "building-economy-overhaul",
+  "title": "建筑与经营系统全面改进：P0数据修复（御兽路线灵田加成1.0修复、统御特长+100%修复、灵石软上限）+ P1玩法丰富（生产链深化、建筑协同可视化、经营随机事件）+ P2平衡深度（税收平衡、弟子建筑熟练度、建筑升级队列）",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "ui",
+  "priority": "P2",
+  "creator": "zhaobaolong",
+  "assignee": "zhaobaolong",
+  "createdAt": "2026-04-04",
+  "completedAt": "2026-04-05",
+  "branch": "feature/building-economy-overhaul",
+  "base_branch": "master",
+  "worktree_path": "E:\\projects\\trellis-worktrees\\feature\\building-economy-overhaul",
+  "current_phase": 4,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

@@ -439,7 +439,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       memberStates,
       totalRewards: emptyResources(),
       itemRewards: [],
-      eventLog: [{ timestamp: Date.now(), message: `Entered ${dungeon.name}` }],
+      eventLog: [{ timestamp: Date.now(), message: `进入${dungeon.name}` }],
       status: 'active',
       floorTimer: 0,
       supplyLevel,
@@ -468,7 +468,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       },
     }))
 
-    emitEvent('adventure_start', `Team entered dungeon ${dungeon.name}`)
+    emitEvent('adventure_start', `队伍进入秘境${dungeon.name}`)
 
     return run
   },
@@ -545,7 +545,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       postRunMemberOutcomes = get().failRun(startedRun.id, reportEventData)
     } else {
       postRunMemberOutcomes = get().retreat(startedRun.id)
-      emitEvent('adventure_fail', `Dungeon ${dungeon.name} retreat`, reportEventData)
+      emitEvent('adventure_fail', `秘境${dungeon.name}撤退`, reportEventData)
     }
 
     const finalizedReport: AdventureReport = postRunMemberOutcomes
@@ -608,10 +608,11 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     const addScaledReward = (reward: Resources) => {
       const modified = applyRouteRewardModifiers(applyRunRewardModifiers(reward, newBlessings, newRelics))
-      newRewards.spiritStone += Math.floor(modified.spiritStone * (run.rewardMultiplier ?? 1))
-      newRewards.spiritEnergy += Math.floor(modified.spiritEnergy * (run.rewardMultiplier ?? 1))
-      newRewards.herb += Math.floor(modified.herb * (run.rewardMultiplier ?? 1))
-      newRewards.ore += Math.floor(modified.ore * (run.rewardMultiplier ?? 1))
+      const mult = run.rewardMultiplier ?? 1
+      newRewards.spiritStone += Math.floor((modified.spiritStone || 0) * mult)
+      newRewards.spiritEnergy += Math.floor((modified.spiritEnergy || 0) * mult)
+      newRewards.herb += Math.floor((modified.herb || 0) * mult)
+      newRewards.ore += Math.floor((modified.ore || 0) * mult)
     }
 
     // Resolve all events on the route
@@ -991,7 +992,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!run || run.status !== 'active') return null
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_complete', `Dungeon ${dungeonName} cleared`, eventData)
+    emitEvent('adventure_complete', `秘境${dungeonName}通关`, eventData)
     unlockSectMilestone('firstDungeonClear')
 
     // Update stats: adventure completion + max floor
@@ -1035,7 +1036,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!run || run.status !== 'active') return null
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_fail', `Dungeon ${dungeonName} failed`, eventData)
+    emitEvent('adventure_fail', `秘境${dungeonName}探索失败`, eventData)
 
     // Update stats: adventure failure
     useSectStore.setState((s) => ({

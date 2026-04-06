@@ -251,6 +251,63 @@
   text-align: center;
 }
 
+.floorGroup {
+  margin-bottom: var(--space-sm);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.floorGroupBoss {
+  border-left: 3px solid rgba(180, 95, 95, 0.315);
+}
+
+.floorGroupHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm);
+  cursor: pointer;
+  user-select: none;
+  background: rgba(133, 164, 182, 0.06);
+}
+
+.floorGroupHeader:hover {
+  background: rgba(133, 164, 182, 0.1);
+}
+
+.floorGroupToggle {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  width: 16px;
+  transition: transform 0.15s ease;
+}
+
+.floorGroupLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+  flex: 1;
+}
+
+.floorGroupLabel.bossLabel {
+  color: var(--color-quality-epic);
+}
+
+.floorGroupSummary {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  padding-left: var(--space-xs);
+}
+
+.floorSteps {
+  padding: var(--space-xs) var(--space-sm) var(--space-sm);
+}
+
+.floorSteps:last-child {
+  margin-bottom: 0;
+}
+
 @media (max-width: 640px) {
   .header,
   .highlightTop,

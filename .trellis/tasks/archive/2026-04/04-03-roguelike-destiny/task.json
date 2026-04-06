@@ -1,0 +1,44 @@
+{
+  "id": "roguelike-destiny",
+  "name": "roguelike-destiny",
+  "title": "Roguelike Destiny System - Automated Destiny & Sect Policy",
+  "description": "",
+  "status": "completed",
+  "dev_type": null,
+  "scope": "systems",
+  "priority": "P2",
+  "creator": "zhaobaolong",
+  "assignee": "zhaobaolong",
+  "createdAt": "2026-04-03",
+  "completedAt": "2026-04-05",
+  "branch": "feature/roguelike-destiny-ui",
+  "base_branch": "master",
+  "worktree_path": "E:\\projects\\trellis-worktrees\\feature\\roguelike-destiny-ui",
+  "current_phase": 4,
+  "next_action": [
+    {
+      "phase": 1,
+      "action": "implement"
+    },
+    {
+      "phase": 2,
+      "action": "check"
+    },
+    {
+      "phase": 3,
+      "action": "finish"
+    },
+    {
+      "phase": 4,
+      "action": "create-pr"
+    }
+  ],
+  "commit": null,
+  "pr_url": "https://github.com/zblzbl1991/EndlessQuest/pull/1",
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

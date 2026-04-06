@@ -107,7 +107,11 @@ export default function AdventurePage() {
           {
             label: '可出战',
             value: availableCharacters.length,
-            detail: `恢复中 ${sect.characters.filter((char) => char.status === 'recovering').length}`,
+            detail:
+              sect.characters
+                .filter((char) => char.status === 'recovering')
+                .map((char) => `${char.name}（${char.recoveryDaysRemaining ?? '?'}天）`)
+                .join('、') || '无恢复中弟子',
           },
           {
             label: '最近结果',

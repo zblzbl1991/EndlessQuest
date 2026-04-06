@@ -156,7 +156,7 @@ export function resolveEvent(
           reward: emptyReward,
           itemRewards: [],
           combatResult: result,
-          message: `Lost to ${enemyTemplate.name}.`,
+          message: `败给了${enemyTemplate.name}。`,
           hpChanges,
         }
       }
@@ -170,8 +170,8 @@ export function resolveEvent(
         itemRewards,
         combatResult: result,
         message: hasPetCapture
-          ? `Defeated ${enemyTemplate.name} and found a tameable beast.`
-          : `Defeated ${enemyTemplate.name}.`,
+          ? `击败了${enemyTemplate.name}，发现一只可驯服的灵兽。`
+          : `击败了${enemyTemplate.name}。`,
         hpChanges,
         petCaptureAvailable: hasPetCapture || undefined,
         mutationTrigger: 'battle',
@@ -252,7 +252,7 @@ export function resolveEvent(
         success: true,
         reward: emptyReward,
         itemRewards: [],
-        message: 'Encountered a wandering merchant.',
+        message: '路遇一位游方商人，摆出了几件货物。',
         hpChanges: {},
         shopOffers: offers,
       }
@@ -313,7 +313,7 @@ export function resolveEvent(
           reward: { spiritStone: 50 * floorNumber, herb: 2 * floorNumber, ore: 0 },
           itemRewards: [],
           combatResult: result,
-          message: `Lost to BOSS: ${bossTemplate.name}.`,
+          message: `败给了秘境守关者：${bossTemplate.name}。`,
           hpChanges,
         }
       }
@@ -327,8 +327,8 @@ export function resolveEvent(
         itemRewards,
         combatResult: result,
         message: hasPetCapture
-          ? `Defeated BOSS: ${bossTemplate.name} and found a tameable beast.`
-          : `Defeated BOSS: ${bossTemplate.name}.`,
+          ? `击败了秘境守关者：${bossTemplate.name}，发现一只可驯服的灵兽。`
+          : `击败了秘境守关者：${bossTemplate.name}。`,
         hpChanges,
         petCaptureAvailable: hasPetCapture || undefined,
         mutationTrigger: 'battle',
@@ -343,7 +343,7 @@ export function resolveEvent(
         success: true,
         reward: { spiritStone: 0, herb: 0, ore: 0 },
         itemRewards: [],
-        message: `Ancient cave manual discovered: ${techniqueName}`,
+        message: `在古修洞府中发现功法：${techniqueName}`,
         hpChanges: {},
         techniqueReward: { techniqueId },
         mutationTrigger: 'insight',

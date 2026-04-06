@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, useParams } from 'react-router-dom'
 import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useSectStore } from './stores/sectStore'
 import { useAdventureStore } from './stores/adventureStore'
@@ -19,6 +19,12 @@ const AdventurePage = lazy(() => import('./pages/AdventurePage'))
 const AdventureReportPage = lazy(() => import('./pages/AdventureReportPage'))
 const VaultPage = lazy(() => import('./pages/VaultPage'))
 const EventLogPage = lazy(() => import('./pages/EventLogPage'))
+
+/** Force re-mount when reportId changes so the page fetches fresh data */
+function AdventureReportPageWrapper() {
+  const { reportId } = useParams()
+  return <AdventureReportPage key={reportId} />
+}
 
 export default function App() {
   const [isLoaded, setIsLoaded] = useState(false)
@@ -122,7 +128,7 @@ export default function App() {
               <Route path="/characters" element={<CharactersPage />} />
               <Route path="/buildings" element={<BuildingsPage />} />
               <Route path="/adventure" element={<AdventurePage />} />
-              <Route path="/adventure/report/:reportId" element={<AdventureReportPage />} />
+              <Route path="/adventure/report/:reportId" element={<AdventureReportPageWrapper />} />
               <Route path="/vault" element={<VaultPage />} />
               <Route path="/log" element={<EventLogPage />} />
             </Routes>

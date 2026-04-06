@@ -109,8 +109,8 @@ export function applyRunRewardModifiers(reward: Resources, blessings: BlessingId
 
   return {
     ...reward,
-    spiritStone: Math.floor(reward.spiritStone * spiritStoneMult),
-    herb: Math.floor(reward.herb * herbMult),
+    spiritStone: Math.floor((reward.spiritStone || 0) * spiritStoneMult),
+    herb: Math.floor((reward.herb || 0) * herbMult),
   }
 }
 
@@ -128,9 +128,9 @@ export function applyMutationRewardModifiers(reward: Resources, mutationIds: Dis
 
   return {
     ...reward,
-    spiritStone: Math.floor(reward.spiritStone * spiritStoneMult),
-    herb: Math.floor(reward.herb * herbMult),
-    ore: Math.floor(reward.ore * oreMult),
+    spiritStone: Math.floor((reward.spiritStone || 0) * spiritStoneMult),
+    herb: Math.floor((reward.herb || 0) * herbMult),
+    ore: Math.floor((reward.ore || 0) * oreMult),
   }
 }
 

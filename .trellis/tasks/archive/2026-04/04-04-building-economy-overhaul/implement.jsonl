@@ -1,0 +1,15 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "src/data/sectRoutes.ts", "reason": "P0: fix beast route spiritField bonus (1.0 -> 1.15)"}
+{"file": "src/data/specialties.ts", "reason": "P0: fix leadership specialty values (1.0 -> 0.1/0.2/0.35)"}
+{"file": "src/systems/economy/ResourceEngine.ts", "reason": "P0: add spirit stone soft cap mechanism"}
+{"file": "src/data/buildings.ts", "reason": "P0-P2: building definitions, costs, caps, synergies"}
+{"file": "src/data/recipes.ts", "reason": "P1: production chain expansion - add intermediate products and recipes"}
+{"file": "src/systems/building/ProductionSystem.ts", "reason": "P1: production queue mechanics"}
+{"file": "src/pages/SectPage.tsx", "reason": "P1: synergy visualization, unlock preview"}
+{"file": "src/pages/SectPage.module.css", "reason": "P1: styling for new UI sections"}
+{"file": "src/types/sect.ts", "reason": "P2: new types for building events, proficiency, construction queue"}
+{"file": "src/stores/sectStore/buildingSlice.ts", "reason": "P2: building upgrade with time and multi-resource costs"}
+{"file": "src/stores/sectStore/tickSlice.ts", "reason": "P1: tick integration for building events and construction queue"}
+{"file": "src/systems/economy/SynergySystem.ts", "reason": "P1: synergy system for UI integration"}
+{"file": "src/components/sect/SectPathPanel.tsx", "reason": "P1: reference for route-related UI patterns"}

@@ -107,6 +107,8 @@ function buildTeamUnits(
         ...withMutation,
         hp: memberState?.currentHp ?? unit.hp,
         maxHp: memberState?.maxHp ?? unit.maxHp,
+        buffs: [],
+        shield: 0,
         preset: run.tacticalPreset,
       }
     })
@@ -332,7 +334,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
       'route_selected',
       `选择路线：${route.name}`,
       route.description,
-      `${input.automationStrategy}策略下自动选择${route.riskLevel}风险路线`
+      `${input.automationStrategy === 'steady' ? '守成' : input.automationStrategy === 'combat' ? '争锋' : '寻机'}策略下选择${route.riskLevel === 'low' ? '低' : route.riskLevel === 'medium' ? '中' : '高'}风险路线`
     )
 
     for (const event of route.events) {
@@ -542,7 +544,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
     startedAt,
     finishedAt,
     result,
-    floorsCleared: result === 'completed' ? run.floors.length : Math.max(0, run.currentFloor - 1),
+    floorsCleared: result === 'completed' ? run.floors.length : run.currentFloor,
     rewards: { ...run.totalRewards },
     itemRewards: [...run.itemRewards],
     finalMemberStates: cloneMemberStates(run.memberStates),

@@ -1,0 +1,12 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "src/systems/combat/CombatEngine.ts", "reason": "Core combat engine - damage formula, skill resolution, buff/debuff"}
+{"file": "src/data/enemies.ts", "reason": "Enemy/boss templates and combat unit creation"}
+{"file": "src/systems/combat/SkillAI.ts", "reason": "Tactical AI presets"}
+{"file": "src/systems/roguelike/EventSystem.ts", "reason": "Boss generation and event system"}
+{"file": "src/systems/roguelike/RunBuildSystem.ts", "reason": "Blessing effects and recovery"}
+{"file": "src/data/blessings.ts", "reason": "Blessing definitions"}
+{"file": "src/types/adventure.ts", "reason": "Adventure types"}
+{"file": "src/systems/roguelike/AutoRunEngine.ts", "reason": "Auto-run floor progression"}
+{"file": "src/data/activeSkills.ts", "reason": "Active skill definitions"}

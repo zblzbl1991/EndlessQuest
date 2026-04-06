@@ -1,0 +1,16 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "docs/superpowers/specs/2026-04-03-roguelike-destiny-automation-design.md", "reason": "Primary design spec"}
+{"file": "docs/superpowers/specs/2026-04-03-roguelike-destiny-rules-and-mapping.md", "reason": "Rules and mapping spec"}
+{"file": "src/types/character.ts", "reason": "Character type to extend with destiny fields"}
+{"file": "src/types/sect.ts", "reason": "Sect type to extend with strategy/darkCurrent"}
+{"file": "src/types/adventure.ts", "reason": "Adventure types to extend"}
+{"file": "src/types/index.ts", "reason": "Barrel re-export"}
+{"file": "src/stores/sectStore/types.ts", "reason": "Store types to extend"}
+{"file": "src/stores/sectStore/initial.ts", "reason": "Initial values to extend"}
+{"file": "src/stores/sectStore/index.ts", "reason": "Slice composition"}
+{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Tick integration"}
+{"file": "src/systems/roguelike/AutoRunEngine.ts", "reason": "Auto-run engine to integrate policy"}
+{"file": "src/systems/sect/SectAutomationSystem.ts", "reason": "Automation system to integrate policy"}
+{"file": "src/pages/SectPage.tsx", "reason": "UI to add policy settings"}
+{"file": "src/pages/CharactersPage.tsx", "reason": "UI to add destiny info"}

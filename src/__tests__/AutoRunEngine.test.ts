@@ -169,7 +169,7 @@ describe('AutoRunEngine', () => {
     expect(report.teamSnapshot.char_1.name).toBe('柳清风')
     expect(report.steps.some((step) => step.type === 'run_retreated')).toBe(true)
     expect(report.discipleMutations.char_1.length).toBeGreaterThan(0)
-    expect(report.floorsCleared).toBe(1)
+    expect(report.floorsCleared).toBe(2)
     expect(report.finalMemberStates.char_1.currentHp).toBe(15)
   })
 })

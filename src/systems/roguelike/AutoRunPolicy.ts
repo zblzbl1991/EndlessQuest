@@ -93,10 +93,26 @@ export function pickAutomationRoute(
   floor: DungeonFloor,
   context: AutomationContext
 ): number {
+  // E6: steady 策略硬过滤高风险路线（除非全部都是高风险）
+  const candidates =
+    strategy === 'steady'
+      ? floor.routes.every((r) => r.riskLevel === 'high')
+        ? floor.routes
+        : floor.routes.filter((r) => r.riskLevel !== 'high')
+      : floor.routes
+
+  return scoreAndPick(strategy, candidates, context)
+}
+
+function scoreAndPick(
+  strategy: AutomationStrategy,
+  routes: DungeonFloor['routes'],
+  context: AutomationContext
+): number {
   let bestIndex = 0
   let bestScore = Number.NEGATIVE_INFINITY
 
-  for (const [index, route] of floor.routes.entries()) {
+  for (const [index, route] of routes.entries()) {
     const rewardScore = scoreRouteReward(route.reward)
     const riskPenalty = RISK_SCORE[route.riskLevel] * 45
     const dangerMultiplier = context.averageHpRatio < 0.45 || context.lowestHpRatio < 0.25 ? 1.8 : 1
@@ -105,7 +121,7 @@ export function pickAutomationRoute(
 
     let score = rewardScore
     if (strategy === 'steady') {
-      score -= riskPenalty * dangerMultiplier
+      score -= riskPenalty * dangerMultiplier * 3
       if (archetype === 'stable') score += 40
       if (archetype === 'combat') score += 4
       if (archetype === 'profit') score -= 14

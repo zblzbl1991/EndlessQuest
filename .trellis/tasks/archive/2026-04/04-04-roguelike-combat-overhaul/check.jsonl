@@ -1,0 +1,9 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": "src/systems/combat/CombatEngine.ts", "reason": "Core combat engine"}
+{"file": "src/data/enemies.ts", "reason": "Enemy templates"}
+{"file": "src/systems/roguelike/EventSystem.ts", "reason": "Event system"}
+{"file": "src/systems/roguelike/RunBuildSystem.ts", "reason": "Run build system"}
+{"file": "src/data/blessings.ts", "reason": "Blessing definitions"}
+{"file": "src/types/adventure.ts", "reason": "Adventure types"}
