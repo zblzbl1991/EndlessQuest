@@ -180,6 +180,134 @@ A Zustand subscription detects `sect` reference changes, debounces 500ms, then w
 
 ---
 
+## Cross-Store Mutation Gotcha
+
+When a store action calls another store's mutating actions, the calling store's `getState()` still returns the **pre-mutation snapshot**. You must re-read `getState()` after any cross-store mutation to see updated state.
+
+### Wrong
+
+```tsx
+// adventureStore.ts — inside startRun()
+const sectStore = useSectStore.getState()
+sectStore.spendResource('spiritStone', cost)
+// BUG: sect still has old spiritStone count
+const character = sectStore.sect.characters.find(c => c.id === charId)
+```
+
+### Correct
+
+```tsx
+// adventureStore.ts — inside startRun()
+const sectStore = useSectStore.getState()
+sectStore.spendResource('spiritStone', cost)
+
+// Re-read after mutation
+const currentSect = useSectStore.getState().sect
+const character = currentSect.characters.find(c => c.id === charId)
+```
+
+This applies to any sequence where:
+1. Store A calls Store B's mutating action (`spendResource`, `setCharacterStatus`, `equipItem`, etc.)
+2. Store A then needs to read Store B's updated state
+
+The Zustand `set()` call updates the store immediately, but the local variable holding the old snapshot is stale.
+
+---
+
+## Temporary Resource Assignment Pattern
+
+When items must be temporarily moved between containers (vault → character → vault) for a dungeon run:
+
+### Lifecycle
+
+1. **Assign**: Before run starts, use `autoEquipForDungeon()` to plan, then execute via `transferItemToCharacter()` + `equipItem()`
+2. **Store plan**: Save the assignment plan on the run object (`DungeonRun.autoEquipAssignments`)
+3. **Return**: After run ends (complete/fail/retreat), use `unequipItem()` + `transferItemToVault()` to return items
+
+### Implementation
+
+```tsx
+// 1. Plan (pure function, no mutations)
+const autoEquipResult = autoEquipForDungeon(characterIds, characters, vault)
+
+// 2. Execute mutations sequentially
+for (const [charId, slots] of Object.entries(autoEquipResult.assignments)) {
+  for (const { slotIndex, itemId } of slots) {
+    const vaultIdx = sect.vault.findIndex(s => s.item.id === itemId)
+    sectStore.transferItemToCharacter(charId, vaultIdx)  // vault → backpack
+    // Re-read after mutation!
+    const char = useSectStore.getState().sect.characters.find(c => c.id === charId)
+    const bpIdx = char.backpack.findIndex(s => s.item.id === itemId)
+    sectStore.equipItem(charId, bpIdx, slotIndex)  // backpack → slot
+  }
+}
+
+// 3. Save plan for later return
+run.autoEquipAssignments = autoEquipResult.assignments
+
+// 4. After run ends — return items
+for (const [charId, slots] of Object.entries(run.autoEquipAssignments)) {
+  for (const { slotIndex, itemId } of slots) {
+    sectStore.unequipItem(charId, slotIndex)  // slot → backpack
+    const char = useSectStore.getState().sect.characters.find(c => c.id === charId)
+    const bpIdx = char.backpack.findIndex(s => s.item.id === itemId)
+    sectStore.transferItemToVault(charId, bpIdx)  // backpack → vault
+  }
+}
+```
+
+### Key Rules
+
+- Always re-read `getState()` after each mutation step (transfer → find → equip)
+- Save the assignment plan so items can be returned even if the run fails
+- Call `returnAutoEquippedItems()` in ALL exit paths: `completeRun`, `failRun`, and `retreat`
+
+---
+
+## Dungeon Growth System Contracts
+
+### `calcDungeonGrowth(floorsCleared, quality)`
+
+Returns permanent stat boosts for surviving characters after a dungeon run.
+
+**File**: `src/systems/character/DungeonGrowthSystem.ts`
+
+**Signature**:
+```tsx
+function calcDungeonGrowth(
+  floorsCleared: number,
+  quality: CharacterQuality
+): {
+  statBoost: { hp: number; atk: number; def: number }
+  cultivationGain: number
+}
+```
+
+**Formulas**:
+- HP boost: `floor(floors * 3 * qualityMultiplier)`
+- ATK/DEF boost: `floor(floors * 1 * qualityMultiplier)`
+- Cultivation: `floor(floors * 10 * qualityMultiplier)`
+- Quality multipliers: common=1.0, uncommon=1.2, rare=1.5, epic=2.0, legendary=2.5
+
+### Application Rules
+
+| Run Result | Stat Boost | Cultivation | Comprehension |
+|------------|-----------|-------------|---------------|
+| Completed  | Yes       | Yes         | Yes           |
+| Retreated  | No        | No          | Yes           |
+| Failed     | No        | No          | Only from events before death |
+
+### Comprehension Accumulation
+
+Comprehension growth (+2 per technique per combat) accumulates across all events in a run:
+
+- **Automation path**: `AutoRunEngine` accumulates into `report.comprehensionGrowth`, applied via `applyDungeonGrowth()`
+- **Manual path**: `selectRoute()` accumulates into `run.accumulatedComprehensionGrowth`, applied via `applyManualRunGrowth()`
+- Applied only to surviving characters (status !== 'dead')
+- Capped at 100 per technique
+
+---
+
 ## Common Mistakes
 
 1. **Mutating state directly** — Always use `set()` with immutable spread patterns
@@ -187,3 +315,5 @@ A Zustand subscription detects `sect` reference changes, debounces 500ms, then w
 3. **Putting logic in components** — Business logic belongs in store actions or system functions
 4. **Creating new stores for small state** — Add a slice to SectStore or use local `useState`
 5. **Forgetting to update `types.ts`** — Every new slice action must be added to the `SectStore` interface
+6. **Stale cross-store references** — After calling another store's mutating action, re-read `getState()` before using the data
+7. **Missing item return on failed runs** — Temporary item assignments must be returned in ALL exit paths (complete, fail, retreat)
