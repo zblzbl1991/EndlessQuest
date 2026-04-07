@@ -7,7 +7,7 @@ import {
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
-import type { CultivationPath, RealmStage } from '../../types/character'
+import type { RealmStage } from '../../types/character'
 import { getFateTagDef } from '../../data/fateTags'
 import { formatCultivationValue } from '../../utils/format'
 import styles from './BreakthroughPanel.module.css'
