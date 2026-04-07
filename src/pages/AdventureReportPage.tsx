@@ -11,6 +11,7 @@ import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
 import type { CombatAction, CombatResult, CombatUnit } from '../systems/combat/CombatEngine'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
+import { getTechniqueById } from '../data/techniquesTable'
 import type { AdventureReportStep } from '../types'
 import styles from './AdventureReportPage.module.css'
 
@@ -58,6 +59,18 @@ interface BossStepMeta {
 
 function isBossStepMeta(meta: Record<string, unknown> | undefined): meta is BossStepMeta {
   return meta?.eventType === 'boss' && meta.combatResult != null
+}
+
+interface CombatStepMeta {
+  eventType: 'combat'
+  combatResult?: CombatResult
+  teamUnits?: CombatUnit[]
+  enemyUnit?: CombatUnit
+  [key: string]: unknown
+}
+
+function isCombatStepMeta(meta: Record<string, unknown> | undefined): meta is CombatStepMeta {
+  return meta?.eventType === 'combat' && meta.combatResult != null
 }
 
 /** Extract key turning-point actions from a boss fight. */
@@ -320,6 +333,50 @@ function BossCombatReport({ meta }: { meta: BossStepMeta }) {
   )
 }
 
+// ─── Regular Combat Report Panel (collapsible) ──────────────────────────
+
+function CombatReportPanel({ meta }: { meta: CombatStepMeta }) {
+  const combatResult = meta.combatResult!
+  const teamUnits = meta.teamUnits ?? []
+  const enemyUnit = meta.enemyUnit
+
+  const [expanded, setExpanded] = useState(false)
+
+  // Simple stats
+  const totalTeamDmg = combatResult.actions
+    .filter((a) => teamUnits.some((u) => u.id === a.actorId))
+    .reduce((sum, a) => sum + a.damage, 0)
+  const totalEnemyDmg = combatResult.actions
+    .filter((a) => enemyUnit && a.actorId === enemyUnit.id)
+    .reduce((sum, a) => sum + a.damage, 0)
+
+  return (
+    <div className={styles.combatPanel}>
+      <div className={styles.combatSummary}>
+        <span>
+          {combatResult.victory ? '胜利' : '落败'} · {combatResult.turns} 回合
+        </span>
+        {enemyUnit && (
+          <span className={styles.combatEnemyName}>
+            vs {enemyUnit.name} (HP {enemyUnit.maxHp})
+          </span>
+        )}
+        <span className={styles.combatDmgStat}>
+          队伍输出 {totalTeamDmg} / 承伤 {totalEnemyDmg}
+        </span>
+      </div>
+      {expanded && enemyUnit && (
+        <div className={styles.combatDetails}>
+          <RoundByRoundDetails actions={combatResult.actions} bossUnit={enemyUnit} teamUnits={teamUnits} />
+        </div>
+      )}
+      <button className={styles.roundToggle} onClick={() => setExpanded(!expanded)}>
+        {expanded ? '收起明细 ▲' : '展开回合明细 ▼'}
+      </button>
+    </div>
+  )
+}
+
 /** Group steps by floor number, Collapsible groups; boss floor expanded by default. */
 function FloorGroupedTimeline({ steps }: { steps: AdventureReportStep[] }) {
   const groups = useMemo(() => {
@@ -404,6 +461,7 @@ function FloorGroupedTimeline({ steps }: { steps: AdventureReportStep[] }) {
                       <div className={styles.stepDetail}>{step.detail}</div>
                       {step.decisionReason && <div className={styles.stepReason}>决策依据：{step.decisionReason}</div>}
                       {isBossStepMeta(step.meta) && <BossCombatReport meta={step.meta} />}
+                      {isCombatStepMeta(step.meta) && <CombatReportPanel meta={step.meta} />}
                     </article>
                   ))}
                 </div>
@@ -617,6 +675,50 @@ export default function AdventureReportPage() {
             <strong>{report.rewards.ore}</strong>
           </div>
         </motion.section>
+
+        {/* Section 4: Growth summary */}
+        {(report.comprehensionGrowth || report.dungeonGrowthApplied) && (
+          <motion.section className={styles.summaryCard} variants={shouldAnimate ? staggerItemVariants : undefined}>
+            <div className={styles.sectionTitle}>弟子磨练</div>
+            {report.comprehensionGrowth &&
+              Object.entries(report.comprehensionGrowth).map(([charId, techGrowth]) => {
+                const charName = characterNameMap.get(charId) ?? charId
+                const entries = Object.entries(techGrowth)
+                if (entries.length === 0) return null
+                return (
+                  <div key={charId} className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>
+                      <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="参悟" />
+                      {charName} 参悟
+                    </span>
+                    <strong>
+                      {entries
+                        .map(([techId, growth]) => {
+                          const techName = getTechniqueById(techId)?.name ?? techId
+                          return `${techName} +${growth}`
+                        })
+                        .join('、')}
+                    </strong>
+                  </div>
+                )
+              })}
+            {report.dungeonGrowthApplied &&
+              Object.entries(report.dungeonGrowthApplied).map(([charId, growth]) => {
+                const charName = characterNameMap.get(charId) ?? charId
+                return (
+                  <div key={charId} className={styles.summaryRow}>
+                    <span className={styles.summaryLabel}>
+                      <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="属性提升" />
+                      {charName} 属性
+                    </span>
+                    <strong>
+                      气血 +{growth.statBoost} · 修为 +{growth.cultivationGain}
+                    </strong>
+                  </div>
+                )
+              })}
+          </motion.section>
+        )}
       </motion.div>
     </div>
   )

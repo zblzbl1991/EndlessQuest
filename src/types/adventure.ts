@@ -156,6 +156,10 @@ export interface AdventureReport {
   policySnapshot?: SectRiskPolicyId
   amplifierSnapshot?: DestinyAmplifierId[]
   destinyChanges?: DestinyEventRecord[]
+  /** Accumulated comprehension growth: charId -> { techId -> totalGrowth } */
+  comprehensionGrowth?: Record<string, Record<string, number>>
+  /** Dungeon growth applied: charId -> { baseStatBoost, cultivationGain } */
+  dungeonGrowthApplied?: Record<string, { statBoost: number; cultivationGain: number }>
 }
 
 export interface AdventureReportSummary {
@@ -213,4 +217,8 @@ export interface DungeonRun {
   relics: RelicId[]
   branchTags: string[]
   pendingBlessingOptions: BlessingId[]
+  /** Items auto-equipped before this run; returned to vault after run ends */
+  autoEquipAssignments?: Record<string, { slotIndex: number; itemId: string }[]>
+  /** Accumulated comprehension growth from combat events (manual run path) */
+  accumulatedComprehensionGrowth?: Record<string, Record<string, number>>
 }

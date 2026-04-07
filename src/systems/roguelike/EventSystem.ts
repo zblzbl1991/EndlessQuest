@@ -46,6 +46,7 @@ export interface EventResult {
   petCaptureAvailable?: boolean
   mutationTrigger?: 'battle' | 'insight' | 'rest'
   bossUnitSnapshot?: CombatUnit
+  enemyUnitSnapshot?: CombatUnit
   teamUnitSnapshots?: CombatUnit[]
   /** Per-character comprehension growths from combat: characterId -> { techId -> growth } */
   comprehensionGrowth?: Record<string, Record<string, number>>
@@ -170,6 +171,7 @@ export function resolveEvent(
       const templates = getNonBossTemplates(dungeonId)
       const enemyTemplate = templates[Math.floor(Math.random() * templates.length)] as EnemyTemplate
       const enemyUnit = createCombatUnitFromEnemy(enemyTemplate, floorNumber)
+      const enemySnapshot: CombatUnit = { ...enemyUnit, affixes: [...(enemyUnit.affixes ?? [])] }
 
       // Adjust enemy difficulty based on team power (±20%)
       adjustEnemyByTeamPower(enemyUnit, aliveTeam, { floor: floorNumber })
@@ -190,6 +192,8 @@ export function resolveEvent(
           combatResult: result,
           message: `败给了${enemyTemplate.name}。`,
           hpChanges,
+          enemyUnitSnapshot: enemySnapshot,
+          teamUnitSnapshots: aliveTeam.map((u) => ({ ...u })),
         }
       }
 
@@ -208,6 +212,8 @@ export function resolveEvent(
         petCaptureAvailable: hasPetCapture || undefined,
         mutationTrigger: 'battle',
         comprehensionGrowth: buildCombatComprehensionGrowth(aliveTeam),
+        enemyUnitSnapshot: enemySnapshot,
+        teamUnitSnapshots: aliveTeam.map((u) => ({ ...u })),
       }
     }
 

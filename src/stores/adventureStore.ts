@@ -50,6 +50,12 @@ import { calcSectLevel } from '../systems/character/CharacterEngine'
 import { getTechniqueCodexCapacity } from '../systems/technique/TechniqueSystem'
 import { getPathEffects } from '../data/sectPaths'
 import { buildPathEffectMap, getCombatEffects as getCombatEffectsFromMap } from '../systems/sect/SectPathEffects'
+import { autoEquipForDungeon } from '../systems/equipment/AutoEquipSystem'
+import type { AutoEquipResult } from '../systems/equipment/AutoEquipSystem'
+import { calcEquipmentStats } from '../systems/equipment/EquipmentEngine'
+import type { Equipment } from '../types/item'
+import { findEquipmentById } from './sectStore/initial'
+import { calcDungeonGrowth } from '../systems/character/DungeonGrowthSystem'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -286,6 +292,204 @@ function depositItemsToVault(items: AnyItem[]): void {
   }
 }
 
+/** Execute auto-equip: move best vault items to character equipped slots */
+function executeAutoEquip(characterIds: string[]): AutoEquipResult | null {
+  const { sect } = useSectStore.getState()
+  const result = autoEquipForDungeon(characterIds, sect.characters, sect.vault)
+  if (Object.keys(result.assignments).length === 0) return null
+
+  const sectStore = useSectStore.getState()
+  for (const [charId, slots] of Object.entries(result.assignments)) {
+    for (const { slotIndex, itemId } of slots) {
+      // Find item in vault
+      const vaultIdx = sectStore.sect.vault.findIndex((s) => s.item.type === 'equipment' && s.item.id === itemId)
+      if (vaultIdx === -1) continue
+
+      // Transfer vault → character backpack
+      if (!sectStore.transferItemToCharacter(charId, vaultIdx)) continue
+
+      // Re-read state after transfer
+      const char = useSectStore.getState().sect.characters.find((c) => c.id === charId)
+      if (!char) continue
+
+      // Find item in backpack
+      const bpIdx = char.backpack.findIndex((s) => s.item.id === itemId)
+      if (bpIdx === -1) continue
+
+      // Equip from backpack to slot
+      sectStore.equipItem(charId, bpIdx, slotIndex)
+    }
+  }
+
+  return result
+}
+
+/** Return auto-equipped items from character slots back to vault */
+function returnAutoEquippedItems(run: DungeonRun): void {
+  if (!run.autoEquipAssignments) return
+  const sectStore = useSectStore.getState()
+
+  for (const [charId, slots] of Object.entries(run.autoEquipAssignments)) {
+    for (const { slotIndex, itemId } of slots) {
+      // Unequip from slot → backpack
+      if (!sectStore.unequipItem(charId, slotIndex)) continue
+
+      // Re-read character after unequip
+      const char = useSectStore.getState().sect.characters.find((c) => c.id === charId)
+      if (!char) continue
+
+      // Find the specific item in backpack
+      const bpIdx = char.backpack.findIndex((s) => s.item.id === itemId)
+      if (bpIdx === -1) continue
+
+      // Transfer backpack → vault
+      sectStore.transferItemToVault(charId, bpIdx)
+    }
+  }
+}
+
+/** Apply comprehension growth and stat boosts to surviving characters */
+function applyDungeonGrowth(
+  report: AdventureReport,
+  run: DungeonRun
+): Record<string, { statBoost: number; cultivationGain: number }> | undefined {
+  const sectStore = useSectStore.getState()
+  const growthApplied: Record<string, { statBoost: number; cultivationGain: number }> = {}
+  let anyGrowth = false
+
+  // Apply comprehension growth
+  if (report.comprehensionGrowth) {
+    for (const [charId, techGrowth] of Object.entries(report.comprehensionGrowth)) {
+      const memberState = report.finalMemberStates[charId]
+      if (!memberState || memberState.status === 'dead') continue
+
+      const character = sectStore.sect.characters.find((c) => c.id === charId)
+      if (!character) continue
+
+      const newComprehension = { ...character.techniqueComprehension }
+      for (const [techId, growth] of Object.entries(techGrowth)) {
+        newComprehension[techId] = Math.min(100, (newComprehension[techId] ?? 0) + growth)
+      }
+
+      // Directly update character in store
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) =>
+            c.id === charId ? { ...c, techniqueComprehension: newComprehension } : c
+          ),
+        },
+      }))
+      anyGrowth = true
+    }
+  }
+
+  // Apply stat/cultivation growth for completed runs
+  if (report.result === 'completed' || report.result === 'retreated') {
+    for (const charId of run.teamCharacterIds) {
+      const memberState = report.finalMemberStates[charId]
+      if (!memberState || memberState.status === 'dead') continue
+
+      const character = useSectStore.getState().sect.characters.find((c) => c.id === charId)
+      if (!character) continue
+
+      const growth = calcDungeonGrowth(report.floorsCleared, character.quality)
+
+      // Only apply stat boost for completed runs
+      const statBoost = report.result === 'completed' ? growth.statBoost : { hp: 0, atk: 0, def: 0 }
+      const totalStatBoost = statBoost.hp + statBoost.atk + statBoost.def
+
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) =>
+            c.id === charId
+              ? {
+                  ...c,
+                  baseStats: {
+                    ...c.baseStats,
+                    hp: c.baseStats.hp + statBoost.hp,
+                    atk: c.baseStats.atk + statBoost.atk,
+                    def: c.baseStats.def + statBoost.def,
+                  },
+                  totalCultivation: c.totalCultivation + growth.cultivationGain,
+                }
+              : c
+          ),
+        },
+      }))
+
+      growthApplied[charId] = { statBoost: totalStatBoost, cultivationGain: growth.cultivationGain }
+      anyGrowth = true
+    }
+  }
+
+  return anyGrowth ? growthApplied : undefined
+}
+
+/** Apply dungeon growth for manual run path (selectRoute → completeRun/retreat). */
+function applyManualRunGrowth(run: DungeonRun, result: 'completed' | 'retreated'): void {
+  const sectStore = useSectStore.getState()
+
+  // Apply comprehension growth
+  if (run.accumulatedComprehensionGrowth) {
+    for (const [charId, techGrowth] of Object.entries(run.accumulatedComprehensionGrowth)) {
+      const memberState = run.memberStates[charId]
+      if (!memberState || memberState.status === 'dead') continue
+
+      const character = sectStore.sect.characters.find((c) => c.id === charId)
+      if (!character) continue
+
+      const newComprehension = { ...character.techniqueComprehension }
+      for (const [techId, growth] of Object.entries(techGrowth)) {
+        newComprehension[techId] = Math.min(100, (newComprehension[techId] ?? 0) + growth)
+      }
+
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) =>
+            c.id === charId ? { ...c, techniqueComprehension: newComprehension } : c
+          ),
+        },
+      }))
+    }
+  }
+
+  // Apply stat/cultivation growth for completed runs
+  if (result === 'completed') {
+    for (const charId of run.teamCharacterIds) {
+      const memberState = run.memberStates[charId]
+      if (!memberState || memberState.status === 'dead') continue
+
+      const character = useSectStore.getState().sect.characters.find((c) => c.id === charId)
+      if (!character) continue
+
+      const growth = calcDungeonGrowth(run.currentFloor - 1, character.quality)
+
+      useSectStore.setState((s) => ({
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) =>
+            c.id === charId
+              ? {
+                  ...c,
+                  baseStats: {
+                    ...c.baseStats,
+                    hp: c.baseStats.hp + growth.statBoost.hp,
+                    atk: c.baseStats.atk + growth.statBoost.atk,
+                    def: c.baseStats.def + growth.statBoost.def,
+                  },
+                  totalCultivation: c.totalCultivation + growth.cultivationGain,
+                }
+              : c
+          ),
+        },
+      }))
+    }
+  }
+}
+
 function unlockSectMilestone(id: 'firstDungeonClear'): void {
   const { sect } = useSectStore.getState()
   const nextMilestones = unlockArchiveMilestone(sect.archiveMilestones, id)
@@ -358,7 +562,14 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
     const character = sect.characters.find((c) => c.id === charId)
     if (!character) continue
 
-    const unit = createCharacterCombatUnit(character, character.learnedTechniques, sectCombatEffects)
+    // Compute equipment stats from character's equipped gear
+    const eqStats = calcEquipmentStats(
+      character.equippedGear,
+      [],
+      (id: string) => findEquipmentById(sect, id) as Equipment | undefined
+    )
+
+    const unit = createCharacterCombatUnit(character, character.learnedTechniques, sectCombatEffects, eqStats)
     const tunedUnit = applyRouteCombatModifiers(applyRunCombatModifiers(unit, run.blessings ?? [], run.relics ?? []))
     // Override HP with current member state HP (not max)
     tunedUnit.hp = memberState.currentHp
@@ -427,10 +638,16 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       removeVaultItemsByRecipeId(recipeId, requiredCount)
     }
 
+    // 3e. Auto-equip: assign best vault items to characters
+    const autoEquipResult = executeAutoEquip(characterIds)
+
+    // Re-read sect after mutations (spendResource, executeAutoEquip, ticks)
+    const currentSect = useSectStore.getState().sect
+
     // 4. Validate each character
     const memberStates: DungeonRun['memberStates'] = {}
     for (const charId of characterIds) {
-      const character = sect.characters.find((c) => c.id === charId)
+      const character = currentSect.characters.find((c) => c.id === charId)
       if (!character) return null
 
       // Check status: must be idle or resting (not adventuring)
@@ -441,8 +658,14 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         if (run.teamCharacterIds.includes(charId)) return null
       }
 
-      // Build combat unit for HP calculation
-      const unit = createCharacterCombatUnit(character, character.learnedTechniques)
+      // Re-read character after auto-equip (stats may have changed)
+      const charAfterEquip = useSectStore.getState().sect.characters.find((c) => c.id === charId) ?? character
+      const eqStats = calcEquipmentStats(
+        charAfterEquip.equippedGear,
+        [],
+        (id: string) => findEquipmentById(useSectStore.getState().sect, id) as Equipment | undefined
+      )
+      const unit = createCharacterCombatUnit(charAfterEquip, charAfterEquip.learnedTechniques, undefined, eqStats)
 
       memberStates[charId] = {
         currentHp: unit.maxHp,
@@ -481,6 +704,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       relics: [],
       branchTags: [],
       pendingBlessingOptions: [],
+      autoEquipAssignments: autoEquipResult?.assignments,
     }
 
     set((s) => ({
@@ -521,9 +745,15 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const baseTeamUnits = config.teamCharacterIds
       .map((charId) => {
         const character = sect.characters.find((c) => c.id === charId)
-        return character
-          ? applyRouteCombatModifiers(createCharacterCombatUnit(character, character.learnedTechniques))
-          : null
+        if (!character) return null
+        const eqStats = calcEquipmentStats(
+          character.equippedGear,
+          [],
+          (id: string) => findEquipmentById(useSectStore.getState().sect, id) as Equipment | undefined
+        )
+        return applyRouteCombatModifiers(
+          createCharacterCombatUnit(character, character.learnedTechniques, undefined, eqStats)
+        )
       })
       .filter((unit): unit is CombatUnit => unit !== null)
 
@@ -593,12 +823,16 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       emitEvent('adventure_fail', `秘境${dungeon.name}撤退`, reportEventData)
     }
 
+    // Apply dungeon growth to surviving characters
+    const dungeonGrowthApplied = applyDungeonGrowth(report, startedRun)
+
     const finalizedReport: AdventureReport = postRunMemberOutcomes
       ? {
           ...report,
           postRunMemberOutcomes,
+          dungeonGrowthApplied,
         }
-      : report
+      : { ...report, dungeonGrowthApplied }
 
     const summary = summarizeReport(finalizedReport)
     set((s) => {
@@ -664,6 +898,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     let statBattles = 0
     let statVictories = 0
     let statKills = 0
+    const accumulatedComprehension = run.accumulatedComprehensionGrowth ?? {}
 
     // Compute team average fortune for random event bias
     const { sect: fortuneSect } = useSectStore.getState()
@@ -689,6 +924,16 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           statVictories++
           // Count dead enemies (hp <= 0) from combat result
           statKills += result.combatResult.enemyHp.filter((hp) => hp <= 0).length
+        }
+      }
+
+      // Accumulate comprehension growth from combat
+      if (result.comprehensionGrowth) {
+        for (const [charId, techGrowth] of Object.entries(result.comprehensionGrowth)) {
+          if (!accumulatedComprehension[charId]) accumulatedComprehension[charId] = {}
+          for (const [techId, growth] of Object.entries(techGrowth)) {
+            accumulatedComprehension[charId][techId] = (accumulatedComprehension[charId][techId] ?? 0) + growth
+          }
         }
       }
       // Apply HP changes to member states
@@ -800,6 +1045,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
             relics: newRelics,
             branchTags: newBranchTags,
             pendingBlessingOptions: newBlessingOptions,
+            accumulatedComprehensionGrowth: accumulatedComprehension,
           },
         },
       }))
@@ -836,6 +1082,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
             relics: newRelics,
             branchTags: newBranchTags,
             pendingBlessingOptions: newBlessingOptions,
+            accumulatedComprehensionGrowth: accumulatedComprehension,
           },
         },
       }))
@@ -869,6 +1116,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           relics: newRelics,
           branchTags: newBranchTags,
           pendingBlessingOptions: newBlessingOptions,
+          accumulatedComprehensionGrowth: accumulatedComprehension,
         },
       },
     }))
@@ -951,6 +1199,12 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     // 3. Survivors return to idle; dead disciples are removed with partial refund
     const outcomes = settleRunMembers(run)
+
+    // 3b. Return auto-equipped items to vault
+    returnAutoEquippedItems(run)
+
+    // 3c. Apply dungeon growth for manual run path (comprehension only for retreat)
+    applyManualRunGrowth(run, 'retreated')
 
     // 4. Remove run
     set((s) => {
@@ -1060,6 +1314,12 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     // 3. Survivors return to idle; dead disciples are removed with partial refund
     const outcomes = settleRunMembers(run)
 
+    // 3b. Return auto-equipped items to vault
+    returnAutoEquippedItems(run)
+
+    // 3c. Apply dungeon growth for manual run path
+    applyManualRunGrowth(run, 'completed')
+
     // 4. Add to completed dungeons
     set((s) => {
       const newRuns = { ...s.activeRuns }
@@ -1102,6 +1362,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     // 3. Failed runs resolve into sacrifice or recovery
     const outcomes = settleFailedRunMembers(run)
+
+    // 3b. Return auto-equipped items to vault
+    returnAutoEquippedItems(run)
 
     // 4. Remove run
     set((s) => {

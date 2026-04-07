@@ -266,6 +266,8 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
   const discipleMutations: Record<string, DiscipleMutationId[]> = Object.fromEntries(
     input.run.teamCharacterIds.map((charId) => [charId, []])
   )
+  // Accumulate comprehension growth from combat events
+  const accumulatedComprehensionGrowth: Record<string, Record<string, number>> = {}
   const teamSnapshot = buildTeamSnapshot(input.run, input.baseTeamUnits)
   const teamFortune = computeTeamFortune(input.run.teamCharacterIds)
 
@@ -372,16 +374,43 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
 
       const eventResult = resolveEventFn(event, teamUnits, run.currentFloor, teamFortune, run.dungeonId)
 
-      // Build meta for the step; include full boss combat data when applicable
+      // Build meta for the step; include full combat data when applicable
       const stepMeta: Record<string, unknown> = { success: eventResult.success }
       if (event.type === 'boss') {
         stepMeta.eventType = 'boss'
         stepMeta.combatResult = eventResult.combatResult
         stepMeta.bossUnit = eventResult.bossUnitSnapshot
         stepMeta.teamUnits = eventResult.teamUnitSnapshots
+      } else if (event.type === 'combat' && eventResult.combatResult) {
+        stepMeta.eventType = 'combat'
+        stepMeta.combatResult = eventResult.combatResult
+        stepMeta.teamUnits = teamUnits.map((u) => ({ ...u }))
       }
 
-      pushStep('event_resolved', `事件：${event.type}`, eventResult.message, undefined, stepMeta)
+      // Accumulate comprehension growth from combat
+      if (eventResult.comprehensionGrowth) {
+        for (const [charId, techGrowth] of Object.entries(eventResult.comprehensionGrowth)) {
+          if (!accumulatedComprehensionGrowth[charId]) accumulatedComprehensionGrowth[charId] = {}
+          for (const [techId, growth] of Object.entries(techGrowth)) {
+            accumulatedComprehensionGrowth[charId][techId] =
+              (accumulatedComprehensionGrowth[charId][techId] ?? 0) + growth
+          }
+        }
+      }
+
+      // Generate meaningful summary for combat events
+      const eventSummary =
+        event.type === 'combat'
+          ? eventResult.success
+            ? `击败了敌人 (${eventResult.combatResult?.turns ?? '?'}回合)`
+            : `败给了敌人 (${eventResult.combatResult?.turns ?? '?'}回合)`
+          : event.type === 'boss'
+            ? eventResult.success
+              ? `击败了守关者 (${eventResult.combatResult?.turns ?? '?'}回合)`
+              : `败给了守关者 (${eventResult.combatResult?.turns ?? '?'}回合)`
+            : `事件：${event.type}`
+
+      pushStep('event_resolved', eventSummary, eventResult.message, undefined, stepMeta)
 
       let memberStateChanged = false
       for (const charId of run.teamCharacterIds) {
@@ -586,5 +615,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
       Object.entries(discipleMutations).map(([charId, mutationIds]) => [charId, [...mutationIds]])
     ),
     steps,
+    comprehensionGrowth:
+      Object.keys(accumulatedComprehensionGrowth).length > 0 ? accumulatedComprehensionGrowth : undefined,
   }
 }

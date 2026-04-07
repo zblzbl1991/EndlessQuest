@@ -10,6 +10,7 @@ import { applyPathStatBonuses } from '../systems/character/CultivationPathSystem
 import type { SectPathCombatEffects } from '../systems/sect/SectPathEffects'
 import { getEmptyCombatEffects } from '../systems/sect/SectPathEffects'
 import { calcComprehensionScale } from '../systems/cultivation/CultivationEngine'
+import type { ItemStats } from '../types/item'
 
 // ─── Quality Combat Multiplier ──────────────────────────────────────────
 
@@ -639,7 +640,8 @@ export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUn
 export function createCharacterCombatUnit(
   character: Character,
   learnedTechniques: string[],
-  sectCombatEffects?: SectPathCombatEffects
+  sectCombatEffects?: SectPathCombatEffects,
+  equipmentStats?: ItemStats
 ): CombatUnit {
   const effects = sectCombatEffects ?? getEmptyCombatEffects()
   const base = character.baseStats
@@ -710,6 +712,16 @@ export function createCharacterCombatUnit(
   const specialtyMultiplier = 1 + combatSpecialtyLevel * 0.05
 
   const totalMultiplier = realmMultiplier * qualityMultiplier * specialtyMultiplier
+
+  // Add equipment stats before applying multipliers
+  if (equipmentStats) {
+    pathStats.hp += equipmentStats.hp
+    pathStats.atk += equipmentStats.atk
+    pathStats.def += equipmentStats.def
+    pathStats.spd += equipmentStats.spd
+    pathStats.crit = Math.round((pathStats.crit + equipmentStats.crit) * 10000) / 10000
+    pathStats.critDmg = Math.round((pathStats.critDmg + equipmentStats.critDmg) * 100) / 100
+  }
 
   const totalStats = {
     hp: Math.floor(pathStats.hp * totalMultiplier),
