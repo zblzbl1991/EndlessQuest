@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import type { AnyItem, Equipment } from '../../types/item'
 import { QUALITY_NAMES, EQUIP_SLOT_NAMES } from '../../data/items'
 import { getEffectiveStats } from '../../systems/equipment/EquipmentEngine'
@@ -51,9 +52,65 @@ function getItemIconName(item: AnyItem): string {
 }
 
 export default function ItemCard({ item, selected, onClick }: ItemCardProps) {
+  const prefersReducedMotion = useReducedMotion()
+
   if (!item) return <div className={styles.empty} />
 
   const isEquipment = item.type === 'equipment'
+  const isRareQuality = item.quality === 'divine' || item.quality === 'chaos'
+  const isChaos = item.quality === 'chaos'
+
+  // Rare item animation: subtle scale-in + float
+  const rareInitial = prefersReducedMotion
+    ? false
+    : isChaos
+      ? { opacity: 0, scale: 0.9, x: 0 }
+      : { opacity: 0, scale: 0.9 }
+
+  const rareAnimate = prefersReducedMotion
+    ? undefined
+    : isChaos
+      ? { opacity: 1, scale: 1, x: [0, -2, 2, 0] }
+      : { opacity: 1, scale: 1 }
+
+  const rareTransition = prefersReducedMotion
+    ? undefined
+    : isChaos
+      ? { duration: 0.4, ease: 'easeOut' as const, x: { duration: 0.2, delay: 0.3 } }
+      : { duration: 0.3, ease: 'easeOut' as const }
+
+  if (isRareQuality) {
+    return (
+      <motion.div
+        className={`${styles.card} ${isRareQuality ? styles.rareGlow : ''} ${
+          item.quality === 'divine' ? styles.rareGlowDivine : ''
+        } ${item.quality === 'chaos' ? styles.rareGlowChaos : ''} ${selected ? styles.selected : ''}`}
+        onClick={onClick}
+        initial={rareInitial}
+        animate={rareAnimate}
+        transition={rareTransition}
+      >
+        <span className={`${styles.qualityTag} ${qualityClass[item.quality] ?? ''}`}>
+          {QUALITY_NAMES[item.quality]}
+        </span>
+        <span className={styles.name}>
+          <PixelIcon name={getItemIconName(item)} size={16} className={styles.itemIcon} aria-label={item.name} />
+          {item.name}
+        </span>
+        {isEquipment && (
+          <>
+            <span className={styles.slot}>
+              {EQUIP_SLOT_NAMES[(item as Equipment).slot] ?? (item as Equipment).slot}
+            </span>
+            {(item as Equipment).enhanceLevel > 0 && (
+              <span className={styles.enhance}>+{(item as Equipment).enhanceLevel}</span>
+            )}
+            <span className={styles.stats}>{formatStats(getEffectiveStats(item as Equipment))}</span>
+          </>
+        )}
+      </motion.div>
+    )
+  }
 
   return (
     <div className={`${styles.card} ${selected ? styles.selected : ''}`} onClick={onClick}>

@@ -25,7 +25,7 @@ import { createCharacterCombatUnit } from '../data/enemies'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 import { resolveAdventureFailureOutcome } from '../systems/character/DiscipleRecoverySystem'
 import { DISPATCH_MISSIONS } from '../data/missions'
-import { generatePet, tryCapturePet } from '../systems/pet/PetSystem'
+import { generatePet, tryCapturePet, collectPetCombatUnits } from '../systems/pet/PetSystem'
 import type { PetQuality } from '../systems/pet/PetSystem'
 import {
   applyRunCombatModifiers,
@@ -48,6 +48,8 @@ import {
 import { getRunBuildBiasContext } from '../systems/roguelike/RunBuildContext'
 import { calcSectLevel } from '../systems/character/CharacterEngine'
 import { getTechniqueCodexCapacity } from '../systems/technique/TechniqueSystem'
+import { getPathEffects } from '../data/sectPaths'
+import { buildPathEffectMap, getCombatEffects as getCombatEffectsFromMap } from '../systems/sect/SectPathEffects'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -194,6 +196,13 @@ function applyRouteCombatModifiers(unit: CombatUnit): CombatUnit {
   }
 }
 
+/** Read the petPower multiplier from sect path effects (beast path node 2). Default 1. */
+function getPetPowerMultiplier(): number {
+  const { sect } = useSectStore.getState()
+  const effects = getPathEffects(sect.sectPath, sect.unlockedPathNodeIds)
+  return effects.find((e) => e.type === 'petPower')?.value ?? 1
+}
+
 /** Deposit resources into sectStore via addResource */
 function depositResourcesToSect(resources: Resources): void {
   const sectStore = useSectStore.getState()
@@ -326,10 +335,21 @@ function removeVaultItemsByRecipeId(recipeId: string, count: number): number {
   return count - remaining
 }
 
-/** Build CombatUnits from alive team members in a run */
+/** Get combat effects from sect path for use in combat unit creation and simulation. */
+function getSectCombatEffects(): import('../systems/sect/SectPathEffects').SectPathCombatEffects {
+  const { sect } = useSectStore.getState()
+  const effectMap = buildPathEffectMap(sect.sectPath, sect.unlockedPathNodeIds)
+  return getCombatEffectsFromMap(effectMap)
+}
+
+/** Build CombatUnits from alive team members and their pets in a run */
 function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
   const { sect } = useSectStore.getState()
   const units: CombatUnit[] = []
+
+  const aliveCharacters: { id: string; petIds: string[] }[] = []
+
+  const sectCombatEffects = getSectCombatEffects()
 
   for (const charId of run.teamCharacterIds) {
     const memberState = run.memberStates[charId]
@@ -338,13 +358,24 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
     const character = sect.characters.find((c) => c.id === charId)
     if (!character) continue
 
-    const unit = createCharacterCombatUnit(character, character.learnedTechniques)
+    const unit = createCharacterCombatUnit(character, character.learnedTechniques, sectCombatEffects)
     const tunedUnit = applyRouteCombatModifiers(applyRunCombatModifiers(unit, run.blessings ?? [], run.relics ?? []))
     // Override HP with current member state HP (not max)
     tunedUnit.hp = memberState.currentHp
     tunedUnit.maxHp = memberState.maxHp
     tunedUnit.preset = run.tacticalPreset ?? 'balanced'
     units.push(tunedUnit)
+
+    aliveCharacters.push({ id: character.id, petIds: character.petIds })
+  }
+
+  // Append pet combat units for alive characters
+  const petPowerMult = getPetPowerMultiplier()
+  const petUnits = collectPetCombatUnits(aliveCharacters, sect.pets, petPowerMult)
+  for (const petUnit of petUnits) {
+    const tunedPet = applyRouteCombatModifiers(applyRunCombatModifiers(petUnit, run.blessings ?? [], run.relics ?? []))
+    tunedPet.preset = run.tacticalPreset ?? 'balanced'
+    units.push(tunedPet)
   }
 
   return units
@@ -499,6 +530,20 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (baseTeamUnits.length !== config.teamCharacterIds.length) {
       get().retreat(startedRun.id)
       return null
+    }
+
+    // Append pet combat units for the team
+    const teamCharacters = config.teamCharacterIds
+      .map((charId) => sect.characters.find((c) => c.id === charId))
+      .filter((c): c is NonNullable<typeof c> => c !== null && c !== undefined)
+    const petPowerMult = getPetPowerMultiplier()
+    const petUnits = collectPetCombatUnits(
+      teamCharacters.map((c) => ({ id: c.id, petIds: c.petIds })),
+      sect.pets,
+      petPowerMult
+    )
+    for (const petUnit of petUnits) {
+      baseTeamUnits.push(applyRouteCombatModifiers(petUnit))
     }
 
     const rawReport = resolveAutomatedRun({

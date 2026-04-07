@@ -4,6 +4,7 @@ import type { TechniqueTier } from '../../types/technique'
 import { TECHNIQUE_TIER_ORDER, TECHNIQUE_TIER_NAMES } from '../../types/technique'
 import { TECHNIQUES } from '../../data/techniquesTable'
 import { QUALITY_NAMES } from '../../data/items'
+import { pickSetForSlot, generateRandomAffixes } from '../../data/equipmentSets'
 
 export interface SlotBaseStats {
   hp: number
@@ -97,6 +98,18 @@ export function generateEquipment(slot: EquipSlot, quality: ItemQuality, _seed?:
   const suffix = SLOT_PREFIX[slot]
   const name = quality === 'common' ? `${randomName}${suffix}` : `${prefix}${randomName}${suffix}`
 
+  // Assign set and random affixes
+  const set = pickSetForSlot(slot, quality)
+  const setId = set?.id ?? null
+  const refinementStats = generateRandomAffixes(quality, slot, stats)
+
+  // Build description with set name if applicable
+  const setDesc = set ? `，${set.name}` : ''
+  const statDesc = Object.entries(stats)
+    .filter(([, v]) => v > 0)
+    .map(([k, v]) => `${k.toUpperCase()}+${v}`)
+    .join(' ')
+
   return {
     id: generateId(),
     name,
@@ -105,12 +118,9 @@ export function generateEquipment(slot: EquipSlot, quality: ItemQuality, _seed?:
     slot,
     stats,
     enhanceLevel: 0,
-    refinementStats: [],
-    setId: null,
-    description: `${QUALITY_NAMES[quality]}品质${SLOT_PREFIX[slot]}，${Object.entries(stats)
-      .filter(([, v]) => v > 0)
-      .map(([k, v]) => `${k.toUpperCase()}+${v}`)
-      .join(' ')}`,
+    refinementStats,
+    setId,
+    description: `${QUALITY_NAMES[quality]}品质${SLOT_PREFIX[slot]}${setDesc}，${statDesc}`,
     sellPrice: Math.floor(mult * 10),
   }
 }

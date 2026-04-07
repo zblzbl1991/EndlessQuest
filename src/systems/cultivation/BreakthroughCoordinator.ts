@@ -1,15 +1,23 @@
 import type { Character } from '../../types/character'
-import {
-  canBreakthrough,
-  breakthrough as performBreakthrough,
-  calcBreakthroughFailureRate,
-} from './CultivationEngine'
+import { canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from './CultivationEngine'
 import { shouldTriggerTribulation, resolveTribulation } from './TribulationSystem'
 import { resolveSuccessfulBreakthroughFates } from '../character/FateSystem'
 import { tryComprehendOnBreakthrough } from '../technique/TechniqueSystem'
 import { REALMS, getBreakthroughResourceCost, getRealmName } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { needsCultivationPathChoice } from '../character/CultivationPathSystem'
+import type { PathEffectMap } from '../sect/SectPathEffects'
+import { getMultEffect } from '../sect/SectPathEffects'
+
+/**
+ * Seed initial comprehension when a new technique is learned.
+ * Dungeon-found techniques start at 15%.
+ */
+function seedComprehension(existingComprehension: Record<string, number>, techniqueId: string): Record<string, number> {
+  const technique = getTechniqueById(techniqueId)
+  const starterComp = technique?.origin === 'starter' ? 30 : 15
+  return { ...existingComprehension, [techniqueId]: starterComp }
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -68,7 +76,8 @@ export function processBreakthrough(
   availableSpiritStone: number,
   availableSpiritEnergy: number,
   techniqueCodex: string[],
-  currentCostAccumulator: { spiritStone: number; spiritEnergy: number }
+  currentCostAccumulator: { spiritStone: number; spiritEnergy: number },
+  pathEffects?: PathEffectMap
 ): BreakthroughResult {
   const noChange: BreakthroughResult = {
     updatedChar: char,
@@ -94,17 +103,21 @@ export function processBreakthrough(
   const isMajorBreakthrough = char.realmStage >= currentRealm.stages.length - 1
   const cost = getBreakthroughResourceCost(char.realm, char.realmStage)
 
+  // Apply sect path breakthroughCost multiplier (e.g. pill path -20%)
+  const btCostMult = pathEffects ? getMultEffect(pathEffects, 'breakthroughCost') : 1
+  const adjustedSpiritStoneCost = Math.floor(cost.spiritStone * btCostMult)
+
   if (isMajorBreakthrough) {
     // Major realm transition requires spiritStone
     if (
-      availableSpiritStone - currentCostAccumulator.spiritStone < cost.spiritStone ||
+      availableSpiritStone - currentCostAccumulator.spiritStone < adjustedSpiritStoneCost ||
       availableSpiritEnergy - currentCostAccumulator.spiritEnergy < cost.spiritEnergy
     ) {
       // Cannot breakthrough: insufficient resources
       return noChange
     }
 
-    const resourceCost = { spiritStone: cost.spiritStone, spiritEnergy: cost.spiritEnergy }
+    const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: cost.spiritEnergy }
 
     if (shouldTriggerTribulation(char.realm, char.realmStage)) {
       // Tribulation path for realms with tribulationPower
@@ -134,6 +147,7 @@ export function processBreakthrough(
             updatedChar = {
               ...updatedChar,
               learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+              techniqueComprehension: seedComprehension(updatedChar.techniqueComprehension ?? {}, comprehendedId),
             }
             const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
             events.push({ type: 'breakthrough_comprehension', message: `${updatedChar.name} 顿悟了 ${compName}` })
@@ -155,9 +169,7 @@ export function processBreakthrough(
           const failedName = getRealmName(btResult.newRealm, btResult.newStage)
           return {
             updatedChar: char,
-            events: [
-              { type: 'breakthrough_failure', message: `${char.name} 天劫虽过，却在突破中身死道消` },
-            ],
+            events: [{ type: 'breakthrough_failure', message: `${char.name} 天劫虽过，却在突破中身死道消` }],
             resourceCost,
             died: true,
             comprehendedTechniqueId: null,
@@ -217,6 +229,7 @@ export function processBreakthrough(
           updatedChar = {
             ...updatedChar,
             learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+            techniqueComprehension: seedComprehension(updatedChar.techniqueComprehension ?? {}, comprehendedId),
           }
           const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
           events.push({ type: 'breakthrough_comprehension', message: `${updatedChar.name} 顿悟了 ${compName}` })
@@ -238,9 +251,7 @@ export function processBreakthrough(
         const failedName = getRealmName(char.realm + 1, 0)
         return {
           updatedChar: char,
-          events: [
-            { type: 'breakthrough_failure', message: `${char.name} 突破失败，身死道消` },
-          ],
+          events: [{ type: 'breakthrough_failure', message: `${char.name} 突破失败，身死道消` }],
           resourceCost,
           died: true,
           comprehendedTechniqueId: null,
@@ -255,21 +266,19 @@ export function processBreakthrough(
   } else {
     // Sub-level breakthrough
     if (
-      availableSpiritStone - currentCostAccumulator.spiritStone < cost.spiritStone ||
+      availableSpiritStone - currentCostAccumulator.spiritStone < adjustedSpiritStoneCost ||
       availableSpiritEnergy - currentCostAccumulator.spiritEnergy < cost.spiritEnergy
     ) {
       // Cannot breakthrough: insufficient resources
       return noChange
     }
 
-    const resourceCost = { spiritStone: cost.spiritStone, spiritEnergy: cost.spiritEnergy }
+    const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: cost.spiritEnergy }
     const failureRate = calcBreakthroughFailureRate(char)
     const btResult = performBreakthrough(char, failureRate)
     if (btResult.success) {
       const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-      const events: BreakthroughEvent[] = [
-        { type: 'breakthrough_success', message: `${char.name} 突破至 ${nextName}` },
-      ]
+      const events: BreakthroughEvent[] = [{ type: 'breakthrough_success', message: `${char.name} 突破至 ${nextName}` }]
       let updatedChar: Character = {
         ...char,
         realm: btResult.newRealm,
@@ -287,6 +296,7 @@ export function processBreakthrough(
         updatedChar = {
           ...updatedChar,
           learnedTechniques: [...updatedChar.learnedTechniques, comprehendedId],
+          techniqueComprehension: seedComprehension(updatedChar.techniqueComprehension ?? {}, comprehendedId),
         }
         const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
         events.push({ type: 'breakthrough_comprehension', message: `${updatedChar.name} 顿悟了 ${compName}` })
@@ -307,9 +317,7 @@ export function processBreakthrough(
       // Sub-level breakthrough failure -> death
       return {
         updatedChar: char,
-        events: [
-          { type: 'breakthrough_failure', message: `${char.name} 突破失败，身死道消` },
-        ],
+        events: [{ type: 'breakthrough_failure', message: `${char.name} 突破失败，身死道消` }],
         resourceCost,
         died: true,
         comprehendedTechniqueId: null,

@@ -23,9 +23,14 @@ export interface CombatUnit {
   skills: ActiveSkill[]
   skillCooldowns: number[] // remaining cooldown for each skill
   affixes?: EnemyAffix[]
+  isBoss?: boolean
   preset?: TacticalPreset
   aggro?: number
   shield?: number
+  /** Extra spirit power regeneration per turn (from spirit_spring blessing) */
+  spiritRegenBonus?: number
+  /** Heal this ratio of maxHp when killing an enemy (from reaper_mark blessing) */
+  healOnKillRatio?: number
 }
 
 export interface DamageBreakdown {
@@ -93,10 +98,16 @@ function normalizePreset(preset?: TacticalPreset | TacticPreset): TacticalPreset
   return preset
 }
 
+export interface SectCombatBonus {
+  bossDmg?: number
+  aoeDmg?: number
+}
+
 export function simulateCombat(
   allies: CombatUnit[],
   enemies: CombatUnit[],
-  preset?: TacticalPreset | TacticPreset
+  preset?: TacticalPreset | TacticPreset,
+  sectBonus?: SectCombatBonus
 ): CombatResult {
   const normalizedPreset = normalizePreset(preset)
   // Initialize all units with aggro and shield defaults
@@ -145,7 +156,7 @@ export function simulateCombat(
       if (!isAlive(actor)) continue
 
       // Regen spirit
-      actor.spiritPower = Math.min(actor.maxSpiritPower, actor.spiritPower + 10)
+      actor.spiritPower = Math.min(actor.maxSpiritPower, actor.spiritPower + 10 + (actor.spiritRegenBonus ?? 0))
 
       // Pick target using TargetingSystem
       const enemyTeam = getEnemies(units, actor.team)
@@ -245,6 +256,18 @@ export function simulateCombat(
         damage = Math.floor(damage * actor.critDmg)
       }
 
+      // Sect path bonuses (only for ally attackers)
+      if (actor.team === 'ally' && sectBonus) {
+        // Boss damage bonus: multiply damage against bosses
+        if (target.isBoss && sectBonus.bossDmg) {
+          damage = Math.floor(damage * sectBonus.bossDmg)
+        }
+        // AoE damage bonus: multiply damage from AoE skills (multiplier >= 1.5)
+        if (usedSkill && usedSkill.multiplier >= 1.5 && sectBonus.aoeDmg) {
+          damage = Math.floor(damage * sectBonus.aoeDmg)
+        }
+      }
+
       // Tribulation Bane: bonus damage ignoring defense
       if (hasAffix(actor.affixes, 'tribulationBane')) {
         const bonusDamage = calcTribulationBaneDamage(effectiveAtk, true)
@@ -266,6 +289,12 @@ export function simulateCombat(
       }
 
       target.hp = Math.max(0, target.hp - damage)
+
+      // Heal on kill: if the target died and the attacker has healOnKillRatio
+      if (target.hp <= 0 && actor.healOnKillRatio && actor.healOnKillRatio > 0) {
+        const healAmount = Math.floor(actor.maxHp * actor.healOnKillRatio)
+        actor.hp = Math.min(actor.maxHp, actor.hp + healAmount)
+      }
 
       // Spirit Drain: heal attacker
       if (hasAffix(actor.affixes, 'spiritDrain') && damage > 0) {

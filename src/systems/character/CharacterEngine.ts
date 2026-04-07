@@ -378,6 +378,15 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
   const seedRarity = rollSeedRarity()
   const destinyState = createDestinyState(seedId)
 
+  // Seed technique comprehension for starter techniques (30%)
+  const techniqueComprehension: Record<string, number> = {}
+  for (const techId of learnedTechniques) {
+    const technique = getTechniqueById(techId)
+    if (technique?.origin === 'starter') {
+      techniqueComprehension[techId] = 30
+    }
+  }
+
   return syncCharacterSkillLoadout({
     id: 'char_' + Date.now() + '_' + ++_idCounter,
     name: generateName(),
@@ -405,6 +414,7 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     cultivationPath: 'none',
     fateTags: [],
     investedSpiritStone: getRecruitCost(quality),
+    techniqueComprehension,
     destinyState,
     seedRarity,
     seedId,

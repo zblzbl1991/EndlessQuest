@@ -33,6 +33,7 @@ import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archi
 import { tickRecoveryDays } from '../../systems/character/DiscipleRecoverySystem'
 import { buildAutomationRunConfig, shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
+import { buildPathEffectMap, getMultEffect } from '../../systems/sect/SectPathEffects'
 
 export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   tickAll: (deltaSec: number) => {
@@ -93,6 +94,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     rates.ore *= calcBuildingRouteBonus(sect.activeRoute, 'spiritMine')
     rates.spiritEnergy *= calcBuildingRouteBonus(sect.activeRoute, 'spiritField')
     rates.herb *= calcBuildingRouteBonus(sect.activeRoute, 'spiritField')
+
+    // 4d. Apply sect path effects
+    const pathEffectMap = buildPathEffectMap(sect.sectPath, sect.unlockedPathNodeIds)
+    rates.herb *= getMultEffect(pathEffectMap, 'herbYield')
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
@@ -193,6 +198,15 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           totalCultivation: char.totalCultivation + gained,
         }
 
+        // Apply comprehension growth from cultivation tick
+        if (Object.keys(result.comprehensionGrowth).length > 0) {
+          const newComprehension = { ...char.techniqueComprehension }
+          for (const [techId, growth] of Object.entries(result.comprehensionGrowth)) {
+            newComprehension[techId] = Math.min(100, (newComprehension[techId] ?? 0) + growth)
+          }
+          updatedChar = { ...updatedChar, techniqueComprehension: newComprehension }
+        }
+
         // Deduct spirit energy
         updatedSpiritEnergy -= effectiveSpirit
 
@@ -212,7 +226,8 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
             sect.resources.spiritStone - breakthroughStoneCost,
             updatedSpiritEnergy - breakthroughEnergyCost,
             get().sect.techniqueCodex,
-            { spiritStone: breakthroughStoneCost, spiritEnergy: breakthroughEnergyCost }
+            { spiritStone: breakthroughStoneCost, spiritEnergy: breakthroughEnergyCost },
+            pathEffectMap
           )
 
           updatedChar = btResult.updatedChar

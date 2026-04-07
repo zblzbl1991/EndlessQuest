@@ -7,8 +7,28 @@ import type { SectRiskPolicyId, DestinyAmplifierId, DestinyEventRecord } from '.
 
 export type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribulationBane'
 export type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
-export type BlessingId = 'stoneHarvest' | 'verdantBounty' | 'ironBody' | 'galeStride' | 'battleFocus'
-export type RelicId = 'jadeGourd' | 'merchantSeal' | 'warBanner'
+export type BlessingId =
+  | 'stoneHarvest'
+  | 'verdantBounty'
+  | 'ironBody'
+  | 'galeStride'
+  | 'battleFocus'
+  | 'flame_heart'
+  | 'iron_wall'
+  | 'jade_pulse'
+  | 'spirit_spring'
+  | 'keen_eye'
+  | 'reaper_mark'
+  | 'golden_touch'
+  | 'wind_step'
+export type RelicId =
+  | 'jadeGourd'
+  | 'merchantSeal'
+  | 'warBanner'
+  | 'mirror_shard'
+  | 'jade_armor'
+  | 'blood_vial'
+  | 'golden_scale'
 // Persisted strategy ids remain stable for save compatibility; UI copy maps them to 守成 / 争锋 / 寻机.
 export type AutomationStrategy = 'steady' | 'combat' | 'profit'
 

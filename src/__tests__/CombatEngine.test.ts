@@ -602,23 +602,23 @@ describe('adjustEnemyByTeamPower', () => {
 // ─── Boss Scaling Tests ──────────────────────────────────────────────
 
 describe('scaleBossStats', () => {
-  it('should multiply all stats by 2.5', () => {
+  it('should multiply all stats by 1.8', () => {
     const base = { hp: 100, atk: 20, def: 10, spd: 8 }
     const result = scaleBossStats(base)
-    expect(result.hp).toBe(250)
-    expect(result.atk).toBe(50)
-    expect(result.def).toBe(25)
-    expect(result.spd).toBe(20)
+    expect(result.hp).toBe(180)
+    expect(result.atk).toBe(36)
+    expect(result.def).toBe(18)
+    expect(result.spd).toBe(14)
   })
 
   it('should floor the results', () => {
     const base = { hp: 7, atk: 3, def: 5, spd: 1 }
     const result = scaleBossStats(base)
-    // 7*2.5=17.5 -> 17, 3*2.5=7.5 -> 7, 5*2.5=12.5 -> 12, 1*2.5=2.5 -> 2
-    expect(result.hp).toBe(17)
-    expect(result.atk).toBe(7)
-    expect(result.def).toBe(12)
-    expect(result.spd).toBe(2)
+    // 7*1.8=12.6 -> 12, 3*1.8=5.4 -> 5, 5*1.8=9 -> 9, 1*1.8=1.8 -> 1
+    expect(result.hp).toBe(12)
+    expect(result.atk).toBe(5)
+    expect(result.def).toBe(9)
+    expect(result.spd).toBe(1)
   })
 })
 

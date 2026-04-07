@@ -24,6 +24,7 @@ import { resolveEvent } from './EventSystem'
 import {
   applyMutationCombatModifiers,
   applyMutationRewardModifiers,
+  applyRunCombatModifiers,
   applyRunRecovery,
   applyRunRewardModifiers,
   getShopCostMultiplier,
@@ -51,7 +52,13 @@ export interface ResolveAutomatedRunInput {
   automationStrategy: AutomationStrategy
   baseTeamUnits: CombatUnit[]
   now?: () => number
-  resolveEventFn?: (event: DungeonEvent, team: CombatUnit[], floorNumber: number, teamFortune?: number) => EventResult
+  resolveEventFn?: (
+    event: DungeonEvent,
+    team: CombatUnit[],
+    floorNumber: number,
+    teamFortune?: number,
+    dungeonId?: string
+  ) => EventResult
   pickBlessingOptionsFn?: (ownedBlessings: BlessingId[]) => BlessingId[]
   pickRelicRewardFn?: (ownedRelics: RelicId[]) => RelicId | null
   petCaptureFn?: (context: { strategy: AutomationStrategy; floor: number; run: DungeonRun }) => PetCaptureOutcome
@@ -98,15 +105,33 @@ function buildTeamUnits(
   baseTeamUnits: CombatUnit[],
   discipleMutations: Record<string, DiscipleMutationId[]>
 ): CombatUnit[] {
+  const petIds = new Set(baseTeamUnits.filter((u) => !run.teamCharacterIds.includes(u.id)).map((u) => u.id))
+
   return baseTeamUnits
-    .filter((unit) => run.teamCharacterIds.includes(unit.id))
+    .filter((unit) => run.teamCharacterIds.includes(unit.id) || petIds.has(unit.id))
     .map((unit) => {
+      // Pet units are not tracked in memberStates; they always use base stats
+      if (petIds.has(unit.id)) {
+        return {
+          ...unit,
+          buffs: [],
+          shield: 0,
+          preset: run.tacticalPreset,
+        }
+      }
       const memberState = run.memberStates[unit.id]
       const withMutation = applyMutationCombatModifiers(unit, discipleMutations[unit.id] ?? [])
+      const withBlessingRelic = applyRunCombatModifiers(
+        {
+          ...withMutation,
+          hp: memberState?.currentHp ?? unit.hp,
+          maxHp: memberState?.maxHp ?? unit.maxHp,
+        },
+        run.blessings,
+        run.relics
+      )
       return {
-        ...withMutation,
-        hp: memberState?.currentHp ?? unit.hp,
-        maxHp: memberState?.maxHp ?? unit.maxHp,
+        ...withBlessingRelic,
         buffs: [],
         shield: 0,
         preset: run.tacticalPreset,
@@ -345,7 +370,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
         break
       }
 
-      const eventResult = resolveEventFn(event, teamUnits, run.currentFloor, teamFortune)
+      const eventResult = resolveEventFn(event, teamUnits, run.currentFloor, teamFortune, run.dungeonId)
 
       // Build meta for the step; include full boss combat data when applicable
       const stepMeta: Record<string, unknown> = { success: eventResult.success }

@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import type { Resources } from '../../types'
 import s from './OfflineReportModal.module.css'
 
@@ -26,6 +27,47 @@ function fmt(n: number): string {
   if (n >= 100) return Math.round(n).toString()
   if (n >= 1) return n.toFixed(1)
   return n.toFixed(2)
+}
+
+/** Animated list item for breakthrough events */
+function BreakthroughEventItem({
+  bt,
+  index,
+}: {
+  bt: { characterName: string; targetRealm: string; success: boolean }
+  index: number
+}) {
+  const prefersReducedMotion = useReducedMotion()
+
+  if (bt.success) {
+    return (
+      <motion.li
+        className={`${s.eventItem} ${s.eventItemBreakthroughSuccess}`}
+        initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.95, y: -8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: 'easeOut', delay: index * 0.1 }}
+      >
+        <span className={s.eventSuccess}>{'✦'}</span>
+        <span>
+          {bt.characterName} → {bt.targetRealm}
+        </span>
+      </motion.li>
+    )
+  }
+
+  return (
+    <motion.li
+      className={s.eventItem}
+      initial={prefersReducedMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1, x: [0, -4, 4, -3, 3, 0] }}
+      transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.1, x: { duration: 0.3 } }}
+    >
+      <span className={s.eventFailure}>{'✧'}</span>
+      <span>
+        {bt.characterName} → {bt.targetRealm}（失败）
+      </span>
+    </motion.li>
+  )
 }
 
 export type { OfflineReportData }
@@ -83,13 +125,7 @@ export default function OfflineReportModal({ report, onClose }: OfflineReportMod
             <div className={s.sectionTitle}>境界突破</div>
             <ul className={s.eventList}>
               {report.breakthroughs.map((bt, i) => (
-                <li key={i} className={s.eventItem}>
-                  <span className={bt.success ? s.eventSuccess : s.eventFailure}>{bt.success ? '✦' : '✧'}</span>
-                  <span>
-                    {bt.characterName} → {bt.targetRealm}
-                    {!bt.success && '（失败）'}
-                  </span>
-                </li>
+                <BreakthroughEventItem key={i} bt={bt} index={i} />
               ))}
             </ul>
           </div>

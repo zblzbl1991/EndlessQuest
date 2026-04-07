@@ -1,7 +1,8 @@
 import type { DungeonEvent } from '../../types/adventure'
 import type { AnyItem } from '../../types/item'
 import {
-  ENEMY_TEMPLATES,
+  getEnemiesForDungeon,
+  getBossForDungeon,
   createCombatUnitFromEnemy,
   adjustEnemyByTeamPower,
   scaleBossStats,
@@ -15,6 +16,7 @@ import { hasAffix, calcShield } from '../combat/AffixSystem'
 import { simulateCombat } from '../combat/CombatEngine'
 import { generateEquipment } from '../item/ItemGenerator'
 import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
+import { useSectStore } from '../../stores/sectStore'
 import type { LootResult } from './LootSystem'
 import { generateLoot } from './LootSystem'
 
@@ -45,10 +47,13 @@ export interface EventResult {
   mutationTrigger?: 'battle' | 'insight' | 'rest'
   bossUnitSnapshot?: CombatUnit
   teamUnitSnapshots?: CombatUnit[]
+  /** Per-character comprehension growths from combat: characterId -> { techId -> growth } */
+  comprehensionGrowth?: Record<string, Record<string, number>>
 }
 
-function getNonBossTemplates(): EnemyTemplate[] {
-  return ENEMY_TEMPLATES.filter((enemy) => !enemy.isBoss)
+function getNonBossTemplates(dungeonId?: string): EnemyTemplate[] {
+  if (dungeonId) return getEnemiesForDungeon(dungeonId)
+  return getEnemiesForDungeon('')
 }
 
 function getAliveTeam(team: CombatUnit[]): CombatUnit[] {
@@ -57,6 +62,30 @@ function getAliveTeam(team: CombatUnit[]): CombatUnit[] {
 
 function totalTeamMaxHp(team: CombatUnit[]): number {
   return getAliveTeam(team).reduce((sum, unit) => sum + unit.maxHp, 0)
+}
+
+/** Build per-character comprehension growths from combat (+2 per technique per combat). */
+function buildCombatComprehensionGrowth(team: CombatUnit[]): Record<string, Record<string, number>> {
+  const characters = useSectStore.getState().sect.characters
+  const growth: Record<string, Record<string, number>> = {}
+
+  for (const unit of team) {
+    const character = characters.find((c) => c.id === unit.id)
+    if (!character || character.learnedTechniques.length === 0) continue
+
+    const techGrowth: Record<string, number> = {}
+    for (const techId of character.learnedTechniques) {
+      const currentComp = character.techniqueComprehension?.[techId] ?? 0
+      if (currentComp < 100) {
+        techGrowth[techId] = Math.min(100 - currentComp, 2)
+      }
+    }
+    if (Object.keys(techGrowth).length > 0) {
+      growth[unit.id] = techGrowth
+    }
+  }
+
+  return growth
 }
 
 function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyItem[]; hasPetCapture: boolean } {
@@ -128,7 +157,8 @@ export function resolveEvent(
   event: DungeonEvent,
   team: CombatUnit[],
   floorNumber: number,
-  teamFortune?: number
+  teamFortune?: number,
+  dungeonId?: string
 ): EventResult {
   const emptyReward = { spiritStone: 0, herb: 0, ore: 0 }
 
@@ -137,7 +167,7 @@ export function resolveEvent(
       const aliveTeam = getAliveTeam(team)
       if (aliveTeam.length === 0) return makeNoTeamResult('combat')
 
-      const templates = getNonBossTemplates()
+      const templates = getNonBossTemplates(dungeonId)
       const enemyTemplate = templates[Math.floor(Math.random() * templates.length)] as EnemyTemplate
       const enemyUnit = createCombatUnitFromEnemy(enemyTemplate, floorNumber)
 
@@ -177,6 +207,7 @@ export function resolveEvent(
         hpChanges,
         petCaptureAvailable: hasPetCapture || undefined,
         mutationTrigger: 'battle',
+        comprehensionGrowth: buildCombatComprehensionGrowth(aliveTeam),
       }
     }
 
@@ -282,7 +313,7 @@ export function resolveEvent(
       const aliveTeam = getAliveTeam(team)
       if (aliveTeam.length === 0) return makeNoTeamResult('boss')
 
-      const bossTemplate = ENEMY_TEMPLATES.find((enemy) => enemy.isBoss) as EnemyTemplate
+      const bossTemplate = dungeonId ? getBossForDungeon(dungeonId) : getBossForDungeon('')
       const bossUnit = createCombatUnitFromEnemy(bossTemplate, floorNumber)
 
       // Apply 2.5x boss base scaling on top of layer-scaled stats
@@ -342,6 +373,7 @@ export function resolveEvent(
         mutationTrigger: 'battle',
         bossUnitSnapshot: bossSnapshot,
         teamUnitSnapshots: teamSnapshots,
+        comprehensionGrowth: buildCombatComprehensionGrowth(aliveTeam),
       }
     }
 

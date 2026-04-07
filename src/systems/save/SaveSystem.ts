@@ -353,6 +353,11 @@ export async function loadGame(): Promise<boolean> {
         cultivationPath: c.cultivationPath ?? 'none',
         fateTags: c.fateTags ?? [],
         recoveryDaysRemaining: normalizedStatus === 'recovering' ? recoveryDaysRemaining : 0,
+        // Migration: seed techniqueComprehension for existing characters
+        techniqueComprehension:
+          c.techniqueComprehension && Object.keys(c.techniqueComprehension).length > 0
+            ? c.techniqueComprehension
+            : Object.fromEntries((c.learnedTechniques ?? []).map((techId) => [techId, 50])),
       })
     })
 

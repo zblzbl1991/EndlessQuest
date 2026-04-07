@@ -166,4 +166,43 @@ describe('EquipmentEngine', () => {
     expect(rec.direction).toContain('速度')
     expect(rec.label).toBeDefined()
   })
+
+  it('should include set bonus stats in calcEquipmentStats', () => {
+    const w1 = makeEquipment({
+      id: 'w1',
+      setId: 'azureBlade',
+      slot: 'weapon',
+      stats: { hp: 0, atk: 100, def: 0, spd: 0, crit: 0, critDmg: 0 },
+    })
+    const b1 = makeEquipment({
+      id: 'b1',
+      setId: 'azureBlade',
+      slot: 'bracer',
+      stats: { hp: 0, atk: 30, def: 10, spd: 0, crit: 0, critDmg: 0 },
+    })
+    // gear order: head, armor, bracer, belt, boots, weapon, accessory1, accessory2, talisman
+    const equippedGear: (string | null)[] = [null, null, 'b1', null, null, 'w1', null, null, null]
+    const items = [w1, b1]
+    const getById = (id: string) => items.find((i) => i.id === id)
+
+    const total = calcEquipmentStats(equippedGear, items, getById)
+    // Base: atk=100+30=130, def=10
+    // azureBlade 2pc: atk +8% = floor(130*0.08) = 10
+    expect(total.atk).toBe(140) // 130 + 10
+  })
+
+  it('should not apply set bonus when fewer than 2 pieces', () => {
+    const w1 = makeEquipment({
+      id: 'w1',
+      setId: 'azureBlade',
+      slot: 'weapon',
+      stats: { hp: 0, atk: 100, def: 0, spd: 0, crit: 0, critDmg: 0 },
+    })
+    const equippedGear: (string | null)[] = [null, null, null, null, null, 'w1', null, null, null]
+    const items = [w1]
+    const getById = (id: string) => items.find((i) => i.id === id)
+
+    const total = calcEquipmentStats(equippedGear, items, getById)
+    expect(total.atk).toBe(100) // No set bonus with only 1 piece
+  })
 })

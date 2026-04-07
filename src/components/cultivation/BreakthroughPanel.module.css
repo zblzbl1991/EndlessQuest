@@ -41,6 +41,26 @@
   transition: width 0.3s ease;
 }
 
+.progressFillReady {
+  animation: readyPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes readyPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .progressFillReady {
+    animation: none;
+  }
+}
+
 .failureRate {
   color: var(--color-danger);
   font-weight: 600;

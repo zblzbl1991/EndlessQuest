@@ -84,3 +84,67 @@
   border-radius: var(--radius-sm);
   min-height: 80px;
 }
+
+/* ─── Rare Item Glow Animations ──────────────────────────────────────── */
+
+.rareGlow {
+  position: relative;
+  animation: rareFloat 0.4s ease-out 0.15s 1;
+}
+
+.rareGlowDivine {
+  border-color: var(--color-quality-divine);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+  animation:
+    rareFloat 0.4s ease-out 0.15s 1,
+    divineGlowPulse 0.8s ease-in-out 0.3s 1;
+}
+
+.rareGlowChaos {
+  border-color: var(--color-quality-chaos);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+  animation:
+    rareFloat 0.4s ease-out 0.15s 1,
+    chaosGlowPulse 0.8s ease-in-out 0.3s 1;
+}
+
+@keyframes rareFloat {
+  0% {
+    transform: translateY(-3px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@keyframes divineGlowPulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 14px 3px rgba(245, 158, 11, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+  }
+}
+
+@keyframes chaosGlowPulse {
+  0% {
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 14px 3px rgba(239, 68, 68, 0.18);
+  }
+  100% {
+    box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rareGlow,
+  .rareGlowDivine,
+  .rareGlowChaos {
+    animation: none;
+  }
+}

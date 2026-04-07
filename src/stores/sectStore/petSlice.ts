@@ -1,6 +1,10 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import type { Pet } from '../../systems/pet/PetSystem'
+import { buildPathEffectMap, getFlatEffect } from '../../systems/sect/SectPathEffects'
+
+/** Base max pet count per character (without any path bonuses). */
+const BASE_MAX_PETS_PER_CHARACTER = 2
 
 export const createPetSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, _get) => ({
   addPet: (pet: Pet) => {
@@ -32,6 +36,11 @@ export const createPetSlice: StateCreator<SectStore, [], [], Partial<SectStore>>
     if (!petExists) return false
 
     if (char.petIds.includes(petId)) return true // already assigned
+
+    // Check max pet slots, including sect path bonus
+    const pathEffectMap = buildPathEffectMap(sect.sectPath, sect.unlockedPathNodeIds)
+    const maxPets = BASE_MAX_PETS_PER_CHARACTER + getFlatEffect(pathEffectMap, 'petSlots')
+    if (char.petIds.length >= maxPets) return false
 
     set((s) => ({
       sect: {

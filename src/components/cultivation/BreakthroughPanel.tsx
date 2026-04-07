@@ -1,3 +1,4 @@
+import { motion, useReducedMotion } from 'framer-motion'
 import { useSectStore } from '../../stores/sectStore'
 import {
   canBreakthrough,
@@ -19,6 +20,7 @@ interface BreakthroughPanelProps {
 export default function BreakthroughPanel({ characterId }: BreakthroughPanelProps) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const spiritStone = useSectStore((s) => s.sect.resources.spiritStone)
+  const prefersReducedMotion = useReducedMotion()
 
   if (!character) return null
 
@@ -80,7 +82,14 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       <div className={styles.title}>境界突破</div>
       <div className={styles.requirement}>
         <span>下一境界</span>
-        <span>{nextName}</span>
+        <motion.span
+          key={nextName}
+          initial={prefersReducedMotion ? false : { opacity: 0, y: -4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+        >
+          {nextName}
+        </motion.span>
       </div>
       <div className={styles.requirement}>
         <span>修为进度</span>
@@ -89,7 +98,10 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         </span>
       </div>
       <div className={styles.progressBar}>
-        <div className={styles.progressFill} style={{ width: `${progress * 100}%` }} />
+        <div
+          className={`${styles.progressFill} ${ready && !prefersReducedMotion ? styles.progressFillReady : ''}`}
+          style={{ width: `${progress * 100}%` }}
+        />
       </div>
       <div className={styles.requirement}>
         <span>突破失败率</span>

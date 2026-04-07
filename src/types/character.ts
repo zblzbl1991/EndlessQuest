@@ -74,6 +74,7 @@ export interface Character {
   cultivationPath: CultivationPath
   fateTags: FateTag[]
   investedSpiritStone: number
+  techniqueComprehension: Record<string, number>
   destinyState?: DestinyState
   seedRarity?: 1 | 2 | 3 | 4 | 5
   seedId?: DestinySeedId

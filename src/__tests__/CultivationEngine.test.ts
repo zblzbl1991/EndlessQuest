@@ -59,15 +59,16 @@ describe('CultivationEngine', () => {
       expect(calcCultivationRate(character, [])).toBe(5)
     })
 
-    it('should apply spiritualRoot bonus (+2% per point)', () => {
+    it('should apply spiritualRoot bonus (exponential scaling)', () => {
       const character = createCharacter({
         cultivationStats: {
           ...createCharacter().cultivationStats,
           spiritualRoot: 15,
         },
       })
-      // base 10 -> +0%, 15 -> +10%
-      expect(calcCultivationRate(character, [])).toBe(5 * 1.1)
+      // rootBonus = (15/10)^0.85 ≈ 1.4114, compBonus = 1.0 (comp=10)
+      const expected = 5 * Math.pow(15 / 10, 0.85) * 1.0
+      expect(calcCultivationRate(character, [])).toBeCloseTo(expected, 10)
     })
 
     it('should apply realm multiplier (higher realm = slower)', () => {
@@ -81,8 +82,9 @@ describe('CultivationEngine', () => {
         realm: 1,
       })
       const rate = calcCultivationRate(character, ['leiyu'])
-      const baseRate = 5 * 1.0 * 0.9 // spiritualRoot=10 (+0%), realm 1 (0.9x)
-      expect(rate).toBe(baseRate * 1.1) // +10% from cultivationRate bonus
+      // rootBonus=1.0, compBonus=1.0, realmMult=0.9
+      const baseRate = 5 * 1.0 * 1.0 * 0.9
+      expect(rate).toBeCloseTo(baseRate * 1.1, 10) // +10% from cultivationRate bonus
     })
 
     it('should apply fate-based cultivation modifiers', () => {
@@ -91,6 +93,41 @@ describe('CultivationEngine', () => {
 
       expect(calcCultivationRate(insight, [])).toBeGreaterThan(calcCultivationRate(createCharacter(), []))
       expect(calcCultivationRate(scar, [])).toBeLessThan(calcCultivationRate(createCharacter(), []))
+    })
+
+    it('should apply comprehension bonus to cultivation rate', () => {
+      const base = createCharacter() // comp=10 → compBonus=1.0
+      const highComp = createCharacter({
+        cultivationStats: {
+          ...createCharacter().cultivationStats,
+          comprehension: 20,
+        },
+      })
+      // compBonus = 1 + (20-10)*0.015 = 1.15
+      const baseRate = calcCultivationRate(base, [])
+      const highRate = calcCultivationRate(highComp, [])
+      expect(highRate).toBeCloseTo(baseRate * 1.15, 10)
+    })
+
+    it('should show significant quality gap between common and chaos', () => {
+      const common = createCharacter({ quality: 'common' }) // root=10, comp=10
+      const chaos = createCharacter({
+        quality: 'chaos',
+        cultivationStats: {
+          spiritPower: 50,
+          maxSpiritPower: 50,
+          comprehension: 30,
+          spiritualRoot: 35,
+          fortune: 25,
+        },
+      })
+      const commonRate = calcCultivationRate(common, [])
+      const chaosRate = calcCultivationRate(chaos, [])
+      const ratio = chaosRate / commonRate
+      // rootBonus = (35/10)^0.85 ≈ 2.86, compBonus = 1 + 20*0.015 = 1.3
+      // total ≈ 3.72x — should be between 3 and 4.5
+      expect(ratio).toBeGreaterThan(3)
+      expect(ratio).toBeLessThan(4.5)
     })
   })
 
@@ -114,8 +151,9 @@ describe('CultivationEngine', () => {
       })
       // leiyu has cultivationRate bonus of 0.1 (flat, always active)
       const result = tick(character, 20, 1, ['leiyu'])
-      const baseRate = 5 * 1.0 * 0.9 // spiritualRoot=10 (+0%), realm 1 (0.9x)
-      expect(result.cultivationGained).toBe(baseRate * 1.1) // baseRate * (1 + 0.1)
+      // rootBonus=1.0, compBonus=1.0, realmMult=0.9
+      const baseRate = 5 * 1.0 * 1.0 * 0.9
+      expect(result.cultivationGained).toBeCloseTo(baseRate * 1.1, 10) // baseRate * (1 + 0.1)
     })
 
     it('should not gain when no spirit energy', () => {

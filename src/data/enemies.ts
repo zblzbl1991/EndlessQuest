@@ -7,6 +7,9 @@ import type { ActiveSkill } from '../types/skill'
 import { buildCharacterSkillLoadout, getActiveSkillById } from './activeSkills'
 import { rollAffixes } from './affixes'
 import { applyPathStatBonuses } from '../systems/character/CultivationPathSystem'
+import type { SectPathCombatEffects } from '../systems/sect/SectPathEffects'
+import { getEmptyCombatEffects } from '../systems/sect/SectPathEffects'
+import { calcComprehensionScale } from '../systems/cultivation/CultivationEngine'
 
 // ─── Quality Combat Multiplier ──────────────────────────────────────────
 
@@ -101,7 +104,12 @@ export interface EnemyTemplate extends Enemy {
   dropsPerFight: number
 }
 
+// ─── Legacy/Fallback Templates ─────────────────────────────────────────
+// These are kept for backward compatibility. Dungeon-specific enemies below
+// are used when a dungeonId is provided to the selection functions.
+
 export const ENEMY_TEMPLATES: EnemyTemplate[] = [
+  // --- Legacy ---
   {
     id: 'wild_spirit_beast',
     name: '灵兽',
@@ -141,10 +149,10 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
     id: 'spirit_boss',
     name: '灵脉守卫',
     element: 'lightning',
-    stats: { hp: 500, atk: 40, def: 25, spd: 12 },
+    stats: { hp: 220, atk: 24, def: 14, spd: 9 },
     isBoss: true,
     affixPool: ['berserk', 'shield', 'tribulationBane'],
-    skillIds: ['fireball'],
+    skillIds: ['sword_qi'],
     dropsPerFight: 3,
     lootTable: [
       { type: 'spiritStone', weight: 30, minAmount: 100, maxAmount: 300 },
@@ -156,7 +164,401 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
       { type: 'petCapture', weight: 5 },
     ],
   },
+
+  // --- LingCao Valley (灵草谷) - Nature/herb spirits, low difficulty ---
+  {
+    id: 'valley_vine_spirit',
+    name: '蔓藤灵',
+    element: 'neutral',
+    stats: { hp: 40, atk: 8, def: 4, spd: 5 },
+    isBoss: false,
+    affixPool: [],
+    dropsPerFight: 1,
+    lootTable: [
+      { type: 'spiritStone', weight: 40, minAmount: 15, maxAmount: 40 },
+      { type: 'herb', weight: 30, minAmount: 3, maxAmount: 10 },
+      { type: 'ore', weight: 10, minAmount: 1, maxAmount: 3 },
+      { type: 'equipment', weight: 10, quality: 'common' },
+      { type: 'equipment', weight: 2, quality: 'spirit' },
+      { type: 'petCapture', weight: 2 },
+    ],
+  },
+  {
+    id: 'valley_herb_guardian',
+    name: '草灵守卫',
+    element: 'ice',
+    stats: { hp: 55, atk: 10, def: 6, spd: 4 },
+    isBoss: false,
+    affixPool: ['shield'],
+    dropsPerFight: 1,
+    lootTable: [
+      { type: 'spiritStone', weight: 35, minAmount: 20, maxAmount: 50 },
+      { type: 'herb', weight: 30, minAmount: 4, maxAmount: 12 },
+      { type: 'ore', weight: 10, minAmount: 1, maxAmount: 4 },
+      { type: 'equipment', weight: 12, quality: 'common' },
+      { type: 'equipment', weight: 3, quality: 'spirit' },
+      { type: 'petCapture', weight: 3 },
+    ],
+  },
+  {
+    id: 'valley_ancient_treant',
+    name: '古木树灵',
+    element: 'neutral',
+    stats: { hp: 60, atk: 12, def: 6, spd: 5 },
+    isBoss: true,
+    affixPool: ['shield', 'spiritDrain'],
+    skillIds: ['sword_qi'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 30, minAmount: 80, maxAmount: 200 },
+      { type: 'herb', weight: 20, minAmount: 10, maxAmount: 25 },
+      { type: 'ore', weight: 10, minAmount: 3, maxAmount: 10 },
+      { type: 'equipment', weight: 15, quality: 'spirit' },
+      { type: 'equipment', weight: 8, quality: 'immortal' },
+      { type: 'equipment', weight: 2, quality: 'divine' },
+      { type: 'petCapture', weight: 5 },
+    ],
+  },
+
+  // --- LuoYun Cave (落云洞) - Shadows/illusions, medium difficulty ---
+  {
+    id: 'cave_shadow_fiend',
+    name: '影魇',
+    element: 'ice',
+    stats: { hp: 80, atk: 14, def: 7, spd: 10 },
+    isBoss: false,
+    affixPool: ['swift'],
+    dropsPerFight: 1,
+    lootTable: [
+      { type: 'spiritStone', weight: 35, minAmount: 30, maxAmount: 70 },
+      { type: 'herb', weight: 15, minAmount: 3, maxAmount: 8 },
+      { type: 'ore', weight: 15, minAmount: 2, maxAmount: 7 },
+      { type: 'equipment', weight: 8, quality: 'common' },
+      { type: 'equipment', weight: 10, quality: 'spirit' },
+      { type: 'petCapture', weight: 3 },
+    ],
+  },
+  {
+    id: 'cave_illusion_weaver',
+    name: '幻影蛛',
+    element: 'fire',
+    stats: { hp: 95, atk: 16, def: 8, spd: 9 },
+    isBoss: false,
+    affixPool: ['berserk', 'swift'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 35, minAmount: 35, maxAmount: 80 },
+      { type: 'herb', weight: 12, minAmount: 3, maxAmount: 9 },
+      { type: 'ore', weight: 15, minAmount: 2, maxAmount: 8 },
+      { type: 'equipment', weight: 6, quality: 'common' },
+      { type: 'equipment', weight: 10, quality: 'spirit' },
+      { type: 'equipment', weight: 3, quality: 'immortal' },
+      { type: 'petCapture', weight: 3 },
+    ],
+  },
+  {
+    id: 'cave_void_phantom',
+    name: '虚空幻影',
+    element: 'ice',
+    stats: { hp: 110, atk: 18, def: 10, spd: 9 },
+    isBoss: true,
+    affixPool: ['swift', 'spiritDrain'],
+    skillIds: ['ice_blade'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 30, minAmount: 100, maxAmount: 250 },
+      { type: 'herb', weight: 15, minAmount: 8, maxAmount: 20 },
+      { type: 'ore', weight: 12, minAmount: 4, maxAmount: 12 },
+      { type: 'equipment', weight: 15, quality: 'spirit' },
+      { type: 'equipment', weight: 10, quality: 'immortal' },
+      { type: 'equipment', weight: 3, quality: 'divine' },
+      { type: 'petCapture', weight: 5 },
+    ],
+  },
+
+  // --- Blood Demon Abyss (血魔渊) - Blood/demons, high difficulty ---
+  {
+    id: 'abyss_blood_spawn',
+    name: '血煞',
+    element: 'fire',
+    stats: { hp: 150, atk: 24, def: 12, spd: 10 },
+    isBoss: false,
+    affixPool: ['berserk'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 35, minAmount: 50, maxAmount: 120 },
+      { type: 'herb', weight: 10, minAmount: 4, maxAmount: 12 },
+      { type: 'ore', weight: 18, minAmount: 4, maxAmount: 12 },
+      { type: 'equipment', weight: 4, quality: 'common' },
+      { type: 'equipment', weight: 10, quality: 'spirit' },
+      { type: 'equipment', weight: 5, quality: 'immortal' },
+      { type: 'petCapture', weight: 3 },
+    ],
+  },
+  {
+    id: 'abyss_demon_soldier',
+    name: '魔兵',
+    element: 'fire',
+    stats: { hp: 180, atk: 22, def: 16, spd: 8 },
+    isBoss: false,
+    affixPool: ['shield', 'berserk'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 35, minAmount: 55, maxAmount: 130 },
+      { type: 'herb', weight: 8, minAmount: 4, maxAmount: 10 },
+      { type: 'ore', weight: 18, minAmount: 5, maxAmount: 14 },
+      { type: 'equipment', weight: 3, quality: 'common' },
+      { type: 'equipment', weight: 12, quality: 'spirit' },
+      { type: 'equipment', weight: 5, quality: 'immortal' },
+      { type: 'petCapture', weight: 3 },
+    ],
+  },
+  {
+    id: 'abyss_blood_demon_lord',
+    name: '血魔领主',
+    element: 'fire',
+    stats: { hp: 160, atk: 26, def: 14, spd: 10 },
+    isBoss: true,
+    affixPool: ['berserk', 'spiritDrain', 'tribulationBane'],
+    skillIds: ['fire_palm'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 25, minAmount: 150, maxAmount: 400 },
+      { type: 'herb', weight: 12, minAmount: 10, maxAmount: 30 },
+      { type: 'ore', weight: 12, minAmount: 6, maxAmount: 18 },
+      { type: 'equipment', weight: 15, quality: 'spirit' },
+      { type: 'equipment', weight: 12, quality: 'immortal' },
+      { type: 'equipment', weight: 4, quality: 'divine' },
+      { type: 'petCapture', weight: 5 },
+    ],
+  },
+
+  // --- Dragon Bone Wasteland (龙骨荒原) - Dragon/bones, very high difficulty ---
+  {
+    id: 'wasteland_bone_drake',
+    name: '骨龙崽',
+    element: 'lightning',
+    stats: { hp: 240, atk: 32, def: 22, spd: 12 },
+    isBoss: false,
+    affixPool: ['shield'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 30, minAmount: 80, maxAmount: 180 },
+      { type: 'herb', weight: 8, minAmount: 5, maxAmount: 15 },
+      { type: 'ore', weight: 18, minAmount: 8, maxAmount: 20 },
+      { type: 'equipment', weight: 3, quality: 'common' },
+      { type: 'equipment', weight: 8, quality: 'spirit' },
+      { type: 'equipment', weight: 8, quality: 'immortal' },
+      { type: 'petCapture', weight: 4 },
+    ],
+  },
+  {
+    id: 'wasteland_dragon_skeleton',
+    name: '龙骸',
+    element: 'neutral',
+    stats: { hp: 280, atk: 36, def: 20, spd: 10 },
+    isBoss: false,
+    affixPool: ['berserk', 'shield'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 30, minAmount: 90, maxAmount: 200 },
+      { type: 'herb', weight: 6, minAmount: 5, maxAmount: 14 },
+      { type: 'ore', weight: 18, minAmount: 8, maxAmount: 22 },
+      { type: 'equipment', weight: 2, quality: 'common' },
+      { type: 'equipment', weight: 10, quality: 'spirit' },
+      { type: 'equipment', weight: 8, quality: 'immortal' },
+      { type: 'petCapture', weight: 4 },
+    ],
+  },
+  {
+    id: 'wasteland_elder_dragon_lord',
+    name: '远古龙皇骸骨',
+    element: 'lightning',
+    stats: { hp: 260, atk: 38, def: 22, spd: 12 },
+    isBoss: true,
+    affixPool: ['berserk', 'shield', 'tribulationBane'],
+    skillIds: ['thunder_strike'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 25, minAmount: 200, maxAmount: 600 },
+      { type: 'herb', weight: 10, minAmount: 12, maxAmount: 35 },
+      { type: 'ore', weight: 10, minAmount: 8, maxAmount: 25 },
+      { type: 'equipment', weight: 10, quality: 'spirit' },
+      { type: 'equipment', weight: 15, quality: 'immortal' },
+      { type: 'equipment', weight: 5, quality: 'divine' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
+
+  // --- Nine Nether Purgatory (九幽炼狱) - Ghosts/nether, extreme difficulty ---
+  {
+    id: 'purgatory_wraith',
+    name: '幽魂',
+    element: 'ice',
+    stats: { hp: 320, atk: 40, def: 24, spd: 14 },
+    isBoss: false,
+    affixPool: ['swift'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 30, minAmount: 120, maxAmount: 280 },
+      { type: 'herb', weight: 8, minAmount: 8, maxAmount: 20 },
+      { type: 'ore', weight: 15, minAmount: 10, maxAmount: 25 },
+      { type: 'equipment', weight: 2, quality: 'common' },
+      { type: 'equipment', weight: 8, quality: 'spirit' },
+      { type: 'equipment', weight: 10, quality: 'immortal' },
+      { type: 'equipment', weight: 2, quality: 'divine' },
+      { type: 'petCapture', weight: 4 },
+    ],
+  },
+  {
+    id: 'purgatory_nether_hound',
+    name: '冥犬',
+    element: 'fire',
+    stats: { hp: 350, atk: 44, def: 22, spd: 16 },
+    isBoss: false,
+    affixPool: ['berserk', 'swift'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 30, minAmount: 130, maxAmount: 300 },
+      { type: 'herb', weight: 6, minAmount: 8, maxAmount: 22 },
+      { type: 'ore', weight: 15, minAmount: 10, maxAmount: 28 },
+      { type: 'equipment', weight: 2, quality: 'common' },
+      { type: 'equipment', weight: 6, quality: 'spirit' },
+      { type: 'equipment', weight: 10, quality: 'immortal' },
+      { type: 'equipment', weight: 3, quality: 'divine' },
+      { type: 'petCapture', weight: 4 },
+    ],
+  },
+  {
+    id: 'purgatory_nether_king',
+    name: '冥王',
+    element: 'ice',
+    stats: { hp: 380, atk: 48, def: 26, spd: 14 },
+    isBoss: true,
+    affixPool: ['berserk', 'shield', 'spiritDrain', 'tribulationBane'],
+    skillIds: ['ice_blade', 'fire_palm'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 20, minAmount: 300, maxAmount: 800 },
+      { type: 'herb', weight: 10, minAmount: 15, maxAmount: 40 },
+      { type: 'ore', weight: 10, minAmount: 12, maxAmount: 35 },
+      { type: 'equipment', weight: 8, quality: 'spirit' },
+      { type: 'equipment', weight: 12, quality: 'immortal' },
+      { type: 'equipment', weight: 8, quality: 'divine' },
+      { type: 'equipment', weight: 1, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
+
+  // --- Heavenly Tribulation Realm (天劫秘境) - Lightning/tribulation, ultimate difficulty ---
+  {
+    id: 'tribulation_lightning_elemental',
+    name: '雷灵',
+    element: 'lightning',
+    stats: { hp: 420, atk: 50, def: 30, spd: 18 },
+    isBoss: false,
+    affixPool: ['swift', 'tribulationBane'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 28, minAmount: 180, maxAmount: 400 },
+      { type: 'herb', weight: 6, minAmount: 10, maxAmount: 28 },
+      { type: 'ore', weight: 12, minAmount: 12, maxAmount: 30 },
+      { type: 'equipment', weight: 2, quality: 'common' },
+      { type: 'equipment', weight: 6, quality: 'spirit' },
+      { type: 'equipment', weight: 10, quality: 'immortal' },
+      { type: 'equipment', weight: 4, quality: 'divine' },
+      { type: 'petCapture', weight: 5 },
+    ],
+  },
+  {
+    id: 'tribulation_thunder_golem',
+    name: '雷岩巨像',
+    element: 'lightning',
+    stats: { hp: 480, atk: 44, def: 36, spd: 14 },
+    isBoss: false,
+    affixPool: ['shield', 'tribulationBane'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 28, minAmount: 200, maxAmount: 450 },
+      { type: 'herb', weight: 5, minAmount: 10, maxAmount: 25 },
+      { type: 'ore', weight: 15, minAmount: 14, maxAmount: 35 },
+      { type: 'equipment', weight: 2, quality: 'common' },
+      { type: 'equipment', weight: 5, quality: 'spirit' },
+      { type: 'equipment', weight: 12, quality: 'immortal' },
+      { type: 'equipment', weight: 5, quality: 'divine' },
+      { type: 'petCapture', weight: 5 },
+    ],
+  },
+  {
+    id: 'tribulation_heavenly_tribulation_spirit',
+    name: '天劫之灵',
+    element: 'lightning',
+    stats: { hp: 500, atk: 56, def: 32, spd: 16 },
+    isBoss: true,
+    affixPool: ['berserk', 'shield', 'swift', 'tribulationBane'],
+    skillIds: ['thunder_strike', 'sword_qi'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 20, minAmount: 400, maxAmount: 1200 },
+      { type: 'herb', weight: 8, minAmount: 20, maxAmount: 50 },
+      { type: 'ore', weight: 8, minAmount: 15, maxAmount: 40 },
+      { type: 'equipment', weight: 6, quality: 'spirit' },
+      { type: 'equipment', weight: 12, quality: 'immortal' },
+      { type: 'equipment', weight: 10, quality: 'divine' },
+      { type: 'equipment', weight: 2, quality: 'chaos' },
+      { type: 'petCapture', weight: 8 },
+    ],
+  },
 ]
+
+// ─── Dungeon-Enemy Mapping ─────────────────────────────────────────────
+
+/** Maps dungeon IDs to their themed enemy template IDs. */
+const DUNGEON_ENEMY_MAP: Record<string, { regular: string[]; boss: string }> = {
+  lingCaoValley: {
+    regular: ['valley_vine_spirit', 'valley_herb_guardian'],
+    boss: 'valley_ancient_treant',
+  },
+  luoYunCave: {
+    regular: ['cave_shadow_fiend', 'cave_illusion_weaver'],
+    boss: 'cave_void_phantom',
+  },
+  bloodDemonAbyss: {
+    regular: ['abyss_blood_spawn', 'abyss_demon_soldier'],
+    boss: 'abyss_blood_demon_lord',
+  },
+  dragonBoneWasteland: {
+    regular: ['wasteland_bone_drake', 'wasteland_dragon_skeleton'],
+    boss: 'wasteland_elder_dragon_lord',
+  },
+  nineNetherPurgatory: {
+    regular: ['purgatory_wraith', 'purgatory_nether_hound'],
+    boss: 'purgatory_nether_king',
+  },
+  heavenlyTribulationRealm: {
+    regular: ['tribulation_lightning_elemental', 'tribulation_thunder_golem'],
+    boss: 'tribulation_heavenly_tribulation_spirit',
+  },
+}
+
+/** Get dungeon-themed regular enemy templates. Falls back to all non-boss templates if dungeonId is unknown. */
+export function getEnemiesForDungeon(dungeonId: string): EnemyTemplate[] {
+  const mapping = DUNGEON_ENEMY_MAP[dungeonId]
+  if (!mapping) return ENEMY_TEMPLATES.filter((e) => !e.isBoss)
+  return mapping.regular
+    .map((id) => ENEMY_TEMPLATES.find((e) => e.id === id))
+    .filter((e): e is EnemyTemplate => e !== undefined)
+}
+
+/** Get the boss template for a specific dungeon. Falls back to the first boss template if dungeonId is unknown. */
+export function getBossForDungeon(dungeonId: string): EnemyTemplate {
+  const mapping = DUNGEON_ENEMY_MAP[dungeonId]
+  if (mapping) {
+    const boss = ENEMY_TEMPLATES.find((e) => e.id === mapping.boss)
+    if (boss) return boss
+  }
+  return ENEMY_TEMPLATES.find((e) => e.isBoss) as EnemyTemplate
+}
 
 export function scaleEnemy(baseStats: { hp: number; atk: number; def: number; spd: number }, layer: number) {
   const mult = 1 + 0.08 * layer
@@ -168,7 +570,7 @@ export function scaleEnemy(baseStats: { hp: number; atk: number; def: number; sp
   }
 }
 
-/** Scale enemy stats by the boss multiplier (2.5x base). */
+/** Scale enemy stats by the boss multiplier (1.8x base). */
 export function scaleBossStats(baseStats: { hp: number; atk: number; def: number; spd: number }): {
   hp: number
   atk: number
@@ -176,10 +578,10 @@ export function scaleBossStats(baseStats: { hp: number; atk: number; def: number
   spd: number
 } {
   return {
-    hp: Math.floor(baseStats.hp * 2.5),
-    atk: Math.floor(baseStats.atk * 2.5),
-    def: Math.floor(baseStats.def * 2.5),
-    spd: Math.floor(baseStats.spd * 2.5),
+    hp: Math.floor(baseStats.hp * 1.8),
+    atk: Math.floor(baseStats.atk * 1.8),
+    def: Math.floor(baseStats.def * 1.8),
+    spd: Math.floor(baseStats.spd * 1.8),
   }
 }
 
@@ -218,6 +620,7 @@ export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUn
     skills,
     skillCooldowns: new Array(skills.length).fill(0),
     affixes,
+    isBoss: enemy.isBoss,
     aggro: 0,
     shield: 0,
   }
@@ -233,7 +636,12 @@ export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUn
  * 4. Resolve equippedSkills to ActiveSkill objects
  * 5. Use highest tier technique's element, or 'neutral' if no techniques
  */
-export function createCharacterCombatUnit(character: Character, learnedTechniques: string[]): CombatUnit {
+export function createCharacterCombatUnit(
+  character: Character,
+  learnedTechniques: string[],
+  sectCombatEffects?: SectPathCombatEffects
+): CombatUnit {
+  const effects = sectCombatEffects ?? getEmptyCombatEffects()
   const base = character.baseStats
 
   let hp = base.hp
@@ -243,7 +651,7 @@ export function createCharacterCombatUnit(character: Character, learnedTechnique
   let crit = base.crit
   let critDmg = base.critDmg
 
-  // Collect bonuses from all techniques
+  // Collect bonuses from all techniques, scaled by comprehension
   let highestTierIdx = -1
   let element: string = 'neutral'
 
@@ -258,26 +666,31 @@ export function createCharacterCombatUnit(character: Character, learnedTechnique
       element = technique.element
     }
 
-    // Sum bonuses
+    // Calculate comprehension scale for this technique
+    const comprehension = character.techniqueComprehension?.[techId]
+    const compScale = calcComprehensionScale(comprehension)
+
+    // Sum bonuses, scaled by comprehension
     for (const bonus of technique.bonuses) {
+      const scaledValue = bonus.value * compScale
       switch (bonus.type) {
         case 'hp':
-          hp += bonus.value
+          hp += scaledValue
           break
         case 'atk':
-          atk += bonus.value
+          atk += scaledValue
           break
         case 'def':
-          def += bonus.value
+          def += scaledValue
           break
         case 'spd':
-          spd += bonus.value
+          spd += scaledValue
           break
         case 'crit':
-          crit = Math.round((crit + bonus.value) * 10000) / 10000
+          crit = Math.round((crit + scaledValue) * 10000) / 10000
           break
         case 'critDmg':
-          critDmg = Math.round((critDmg + bonus.value) * 100) / 100
+          critDmg = Math.round((critDmg + scaledValue) * 100) / 100
           break
         // cultivationRate and other non-stat bonuses are handled elsewhere
       }
@@ -300,10 +713,10 @@ export function createCharacterCombatUnit(character: Character, learnedTechnique
 
   const totalStats = {
     hp: Math.floor(pathStats.hp * totalMultiplier),
-    atk: Math.floor(pathStats.atk * totalMultiplier),
+    atk: Math.floor(pathStats.atk * totalMultiplier * effects.atk),
     def: Math.floor(pathStats.def * totalMultiplier),
-    spd: Math.floor(pathStats.spd * totalMultiplier),
-    crit: Math.round(pathStats.crit * totalMultiplier * 10000) / 10000,
+    spd: Math.floor(pathStats.spd * totalMultiplier * effects.spd),
+    crit: Math.round(pathStats.crit * totalMultiplier * effects.crit * 10000) / 10000,
     critDmg: Math.round(pathStats.critDmg * totalMultiplier * 100) / 100,
   }
 

@@ -1,5 +1,6 @@
 import type { Equipment, ItemStats, EquipSlot } from '../../types/item'
 import { getEnhanceRate, EQUIP_SLOTS } from '../../data/items'
+import { calcSetBonusStats } from '../../data/equipmentSets'
 import type { ItemQuality } from '../../types/item'
 import type { Character, CultivationPath, SpecialtyType } from '../../types/character'
 
@@ -308,7 +309,7 @@ export function getEquipmentTendency(item: Equipment): EquipmentRecommendation {
 }
 
 /**
- * Calculate total base stats from all equipped gear
+ * Calculate total base stats from all equipped gear, including set bonuses
  */
 export function calcEquipmentStats(
   equippedGear: (string | null)[],
@@ -330,6 +331,15 @@ export function calcEquipmentStats(
       total.critDmg = Math.round((total.critDmg + eff.critDmg) * 100) / 100
     }
   }
+
+  // Apply set bonuses on top of summed base stats
+  const setBonus = calcSetBonusStats(total, equippedGear, getEquipmentById)
+  total.hp += setBonus.hp
+  total.atk += setBonus.atk
+  total.def += setBonus.def
+  total.spd += setBonus.spd
+  total.crit = Math.round((total.crit + setBonus.crit) * 1000) / 1000
+  total.critDmg = Math.round((total.critDmg + setBonus.critDmg) * 100) / 100
 
   return total
 }

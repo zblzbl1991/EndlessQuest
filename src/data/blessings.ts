@@ -39,6 +39,46 @@ export const BLESSING_DEFS: Record<BlessingId, BlessingDef> = {
     name: '战意凝神',
     description: '战斗中攻击提高 15%。',
   },
+  flame_heart: {
+    id: 'flame_heart',
+    name: '炎心',
+    description: '战斗中攻击提高 15%。',
+  },
+  iron_wall: {
+    id: 'iron_wall',
+    name: '铁壁',
+    description: '战斗中防御提高 15%。',
+  },
+  jade_pulse: {
+    id: 'jade_pulse',
+    name: '玉脉',
+    description: '战斗中最大生命提高 12%。',
+  },
+  spirit_spring: {
+    id: 'spirit_spring',
+    name: '灵泉',
+    description: '战斗中每回合恢复 5 点灵力。',
+  },
+  keen_eye: {
+    id: 'keen_eye',
+    name: '锐目',
+    description: '战斗中暴击率提高 5%。',
+  },
+  reaper_mark: {
+    id: 'reaper_mark',
+    name: '猎杀号令',
+    description: '击杀敌人后恢复 10% 最大生命。',
+  },
+  golden_touch: {
+    id: 'golden_touch',
+    name: '聚宝',
+    description: '战斗掉落数量提高 20%。',
+  },
+  wind_step: {
+    id: 'wind_step',
+    name: '踏风',
+    description: '战斗中攻击提高 15%。',
+  },
 }
 
 export const BLESSINGS: Blessing[] = [

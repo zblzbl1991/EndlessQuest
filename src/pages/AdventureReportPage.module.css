@@ -84,6 +84,25 @@
   margin-bottom: 10px;
 }
 
+.resultBadgeCompleted {
+  color: var(--color-quality-divine);
+  background: rgba(245, 158, 11, 0.1);
+  box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  animation: completedGlowPulse 2s ease-in-out 0.5s 2;
+}
+
+@keyframes completedGlowPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px 2px rgba(245, 158, 11, 0.15);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
 .highlightTitle {
   margin: 0;
   font-family: var(--font-serif);
@@ -482,6 +501,99 @@
   letter-spacing: 0.04em;
 }
 
+/* ─── Round-by-Round Details ───────────────────────────────────────── */
+
+.roundDetailsWrapper {
+  margin-bottom: var(--space-md);
+}
+
+.roundToggle {
+  display: block;
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px dashed rgba(95, 122, 141, 0.2);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s ease;
+}
+
+.roundToggle:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.roundDetailsList {
+  margin-top: var(--space-sm);
+  max-height: 360px;
+  overflow-y: auto;
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.roundGroup {
+  padding: var(--space-xs) var(--space-sm);
+  border-bottom: 1px solid rgba(95, 122, 141, 0.06);
+}
+
+.roundGroup:last-child {
+  border-bottom: none;
+}
+
+.roundHeader {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  padding: 2px 0;
+  letter-spacing: 0.04em;
+}
+
+.roundAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--space-xs);
+  padding: 2px 0 2px var(--space-sm);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.roundActionAlly .roundActor {
+  color: var(--color-accent);
+}
+
+.roundActionEnemy .roundActor {
+  color: var(--color-danger);
+}
+
+.roundArrow {
+  color: var(--color-text-tertiary);
+}
+
+.roundTarget {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.roundSkill {
+  color: var(--color-text-secondary);
+  font-size: 10px;
+}
+
+.roundDamage {
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.roundElement {
+  font-size: 10px;
+  color: var(--color-accent);
+}
+
 @media (min-width: 641px) and (max-width: 1023px) {
   .bossCompareGrid {
     grid-template-columns: 1fr 1fr;
@@ -501,5 +613,11 @@
 
   .bossDamageGrid {
     grid-template-columns: auto 1fr auto 1fr auto 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .resultBadgeCompleted {
+    animation: none;
   }
 }

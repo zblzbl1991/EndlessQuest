@@ -29,6 +29,26 @@ export const RELIC_DEFS: Record<RelicId, RelicDef> = {
     name: '镇煞战旗',
     description: '战斗中攻击与防御额外提高 10%。',
   },
+  mirror_shard: {
+    id: 'mirror_shard',
+    name: '镜片',
+    description: '战斗中暴击率提高 4%。',
+  },
+  jade_armor: {
+    id: 'jade_armor',
+    name: '玉甲',
+    description: '战斗中防御提高 20%。',
+  },
+  blood_vial: {
+    id: 'blood_vial',
+    name: '血瓶',
+    description: '每场战斗结束后恢复 15% 最大生命。',
+  },
+  golden_scale: {
+    id: 'golden_scale',
+    name: '金鳞',
+    description: '灵石奖励提高 25%。',
+  },
 }
 
 export const RELICS: Relic[] = [

@@ -21,6 +21,7 @@ const MAJOR_REALM_STAT_MULT = 1.8
 export interface TickResult {
   cultivationGained: number
   spiritSpent: number
+  comprehensionGrowth: Record<string, number>
 }
 
 export interface BreakthroughResult {
@@ -76,22 +77,29 @@ export function calcBreakthroughFailureRate(character: Character): number {
 /**
  * Calculate cultivation rate per second for a character.
  *
- * Sums cultivationRate bonuses from all learned techniques.
+ * rootBonus: exponential scaling on spiritualRoot — (root / 10) ^ 0.85
+ *   high-root characters benefit from accelerating returns.
+ * compBonus: linear scaling on comprehension — 1 + (comp - 10) * 0.015
+ *   comprehension directly boosts cultivation efficiency.
+ * Together, a chaos disciple (~3.7x) cultivates far faster than common (1x).
  */
 export function calcCultivationRate(character: Character, learnedTechniques: string[]): number {
   const spiritualRoot = character.cultivationStats.spiritualRoot
-  const rootBonus = 1 + (spiritualRoot - 10) * 0.02 // base 10 = +0%, each point +2%
+  const comprehension = character.cultivationStats.comprehension
+  const rootBonus = Math.pow(spiritualRoot / 10, 0.85)
+  const compBonus = 1 + (comprehension - 10) * 0.015
   const realmMult = REALM_CULTIVATION_MULT[character.realm] ?? 0.5
 
-  let rate = BASE_CULTIVATION_RATE * rootBonus * realmMult
+  let rate = BASE_CULTIVATION_RATE * rootBonus * compBonus * realmMult
 
-  // Sum cultivationRate bonuses from all learned techniques
+  // Sum cultivationRate bonuses from all learned techniques, scaled by comprehension
   for (const techId of learnedTechniques) {
     const technique = getTechniqueById(techId)
     if (!technique) continue
     const cultivationBonus = technique.bonuses.find((b) => b.type === 'cultivationRate')
     if (cultivationBonus) {
-      rate *= 1 + cultivationBonus.value
+      const compScale = calcComprehensionScale(character.techniqueComprehension?.[techId])
+      rate *= 1 + cultivationBonus.value * compScale
     }
   }
 
@@ -109,6 +117,42 @@ export function canCultivate(spiritEnergy: number): boolean {
 }
 
 /**
+ * Calculate the comprehension scale factor for a technique bonus.
+ * - comprehension 0-99: linear scale (comprehension / 100)
+ * - comprehension 100: 1.1 (10% mastery bonus)
+ * - undefined or missing: 1.0 (full bonus for backward compatibility / migration)
+ */
+export function calcComprehensionScale(comprehension: number | undefined): number {
+  if (comprehension === undefined) return 1.0
+  if (comprehension >= 100) return 1.1
+  return comprehension / 100
+}
+
+// Base comprehension growth per tick per technique
+const BASE_COMPREHENSION_GROWTH = 0.1
+
+/**
+ * Calculate comprehension growth for a character's learned techniques during a tick.
+ * Growth rate: baseGrowth * (1 + comprehension / 200) per technique per tick.
+ * Only techniques below 100% comprehension grow.
+ */
+export function calcComprehensionGrowth(character: Character): Record<string, number> {
+  const growth: Record<string, number> = {}
+  const compStat = character.cultivationStats.comprehension
+  const growthMultiplier = 1 + compStat / 200
+
+  for (const techId of character.learnedTechniques) {
+    const currentComp = character.techniqueComprehension?.[techId]
+    if (currentComp === undefined || currentComp >= 100) continue
+
+    const increment = BASE_COMPREHENSION_GROWTH * growthMultiplier
+    growth[techId] = Math.min(100 - currentComp, increment)
+  }
+
+  return growth
+}
+
+/**
  * Tick cultivation for a single character.
  * Returns cultivation gained and spirit energy spent.
  */
@@ -119,14 +163,17 @@ export function tick(
   learnedTechniques: string[] = []
 ): TickResult {
   if (!canCultivate(spiritEnergyAvailable)) {
-    return { cultivationGained: 0, spiritSpent: 0 }
+    return { cultivationGained: 0, spiritSpent: 0, comprehensionGrowth: {} }
   }
 
   const rate = calcCultivationRate(character, learnedTechniques)
   const gained = rate * deltaSec
   const spent = SPIRIT_COST_PER_SECOND * deltaSec
 
-  return { cultivationGained: gained, spiritSpent: spent }
+  // Comprehension grows only during cultivation ticks
+  const comprehensionGrowth = calcComprehensionGrowth(character)
+
+  return { cultivationGained: gained, spiritSpent: spent, comprehensionGrowth }
 }
 
 /**

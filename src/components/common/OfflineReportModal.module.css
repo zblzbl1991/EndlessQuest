@@ -116,6 +116,12 @@
   color: var(--color-success);
 }
 
+.eventItemBreakthroughSuccess {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(79, 122, 116, 0.06);
+}
+
 .eventFailure {
   color: var(--color-danger);
 }
@@ -201,5 +207,12 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .modal {
+    animation: none;
   }
 }

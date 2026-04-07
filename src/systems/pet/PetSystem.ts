@@ -1,4 +1,5 @@
 import type { ActiveSkill } from '../../types/skill'
+import type { CombatUnit } from '../combat/CombatEngine'
 
 export type PetQuality = 'common' | 'spirit' | 'immortal' | 'divine'
 
@@ -109,12 +110,12 @@ export function feedPet(pet: Pet): Pet {
   }
 }
 
-export function tryCapturePet(fortune: number, targetQuality: PetQuality): boolean {
+export function tryCapturePet(fortune: number, targetQuality: PetQuality, captureBonus = 1): boolean {
   const baseRate = 0.3 + fortune * 0.02
   // Lower quality = higher rate
   const qualityMod =
     targetQuality === 'common' ? 1.0 : targetQuality === 'spirit' ? 0.7 : targetQuality === 'immortal' ? 0.4 : 0.2
-  return Math.random() < baseRate * qualityMod
+  return Math.random() < baseRate * qualityMod * captureBonus
 }
 
 function petSkillToActiveSkill(skill: PetSkill): ActiveSkill {
@@ -131,16 +132,17 @@ function petSkillToActiveSkill(skill: PetSkill): ActiveSkill {
   }
 }
 
-export function getPetCombatUnit(pet: Pet): import('../combat/CombatEngine').CombatUnit {
+export function getPetCombatUnit(pet: Pet, statMultiplier = 1): CombatUnit {
+  const mult = statMultiplier
   return {
     id: pet.id,
     name: pet.name,
     team: 'ally',
-    hp: pet.stats.hp,
-    maxHp: pet.stats.hp,
-    atk: pet.stats.atk,
-    def: pet.stats.def,
-    spd: pet.stats.spd,
+    hp: Math.floor(pet.stats.hp * mult),
+    maxHp: Math.floor(pet.stats.hp * mult),
+    atk: Math.floor(pet.stats.atk * mult),
+    def: Math.floor(pet.stats.def * mult),
+    spd: Math.floor(pet.stats.spd * mult),
     crit: 0.05,
     critDmg: 1.3,
     element: pet.element === 'neutral' ? 'fire' : pet.element,
@@ -151,5 +153,32 @@ export function getPetCombatUnit(pet: Pet): import('../combat/CombatEngine').Com
       ...(pet.equippedSkills.filter(Boolean) as PetSkill[]).map(petSkillToActiveSkill),
     ],
     skillCooldowns: [0, 0, 0],
+    aggro: 0,
+    shield: 0,
   }
+}
+
+interface PetOwner {
+  id: string
+  petIds: string[]
+}
+
+/**
+ * Build pet combat units for a team of characters.
+ * Each character contributes at most 1 pet (first in petIds).
+ * Returns an array of pet CombatUnits ready to join the ally team.
+ */
+export function collectPetCombatUnits(characters: PetOwner[], pets: Pet[], statMultiplier = 1): CombatUnit[] {
+  const petMap = new Map(pets.map((p) => [p.id, p]))
+  const units: CombatUnit[] = []
+
+  for (const char of characters) {
+    if (char.petIds.length === 0) continue
+    const petId = char.petIds[0]
+    const pet = petMap.get(petId)
+    if (!pet) continue
+    units.push(getPetCombatUnit(pet, statMultiplier))
+  }
+
+  return units
 }
