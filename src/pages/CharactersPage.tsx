@@ -180,7 +180,7 @@ export default function CharactersPage() {
     () => calcMaxDisciplesByResources(buildings, characters, activeRoute),
     [buildings, characters, activeRoute]
   )
-  const automationSummary = `资源可养 ${maxDisciples} 人，保留 ${automationSettings.reserveSpiritStone} 灵石 / ${automationSettings.reserveSpiritEnergy} 灵气`
+  const autoSummaryText = `可养 ${maxDisciples} 人 · 保底 ${automationSettings.reserveSpiritStone} 灵石 / ${automationSettings.reserveSpiritEnergy} 灵气 · 自动突破${automationSettings.autoBreakthrough ? '已开启' : '已关闭'}`
 
   if (selectedId) {
     return (
@@ -212,7 +212,7 @@ export default function CharactersPage() {
           <div className={styles.automationHeader}>
             <div>
               <h2 className={styles.panelTitle}>宗门自动运转</h2>
-              <p className={styles.panelMeta}>{automationSummary}</p>
+              <p className={styles.panelMeta}>{autoSummaryText}</p>
             </div>
           </div>
 

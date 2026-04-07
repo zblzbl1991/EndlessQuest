@@ -6,7 +6,6 @@ import {
 } from '../../systems/cultivation/CultivationEngine'
 import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
-import { CULTIVATION_PATHS } from '../../data/cultivationPaths'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import type { CultivationPath, RealmStage } from '../../types/character'
 import { getFateTagDef } from '../../data/fateTags'
@@ -20,7 +19,6 @@ interface BreakthroughPanelProps {
 export default function BreakthroughPanel({ characterId }: BreakthroughPanelProps) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const spiritStone = useSectStore((s) => s.sect.resources.spiritStone)
-  const chooseCultivationPath = useSectStore((s) => s.chooseCultivationPath)
 
   if (!character) return null
 
@@ -108,19 +106,8 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       )}
       {needsPathChoice && (
         <div className={styles.pathChoiceSection}>
-          <div className={styles.reqTitle}>筑基前抉择</div>
-          <div className={styles.pathChoiceList}>
-            {Object.values(CULTIVATION_PATHS).map((path) => (
-              <button
-                key={path.id}
-                className={styles.pathChoiceCard}
-                onClick={() => chooseCultivationPath(character.id, path.id as Exclude<CultivationPath, 'none'>)}
-              >
-                <span className={styles.pathChoiceName}>{path.name}</span>
-                <span className={styles.pathChoiceDesc}>{path.description}</span>
-              </button>
-            ))}
-          </div>
+          <div className={styles.reqTitle}>修行路线</div>
+          <div className={styles.pathAutoHint}>突破时将随机领悟修行方向。</div>
         </div>
       )}
       {character.fateTags.length > 0 && (

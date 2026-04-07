@@ -28,6 +28,17 @@ export interface CombatUnit {
   shield?: number
 }
 
+export interface DamageBreakdown {
+  baseAtk: number
+  skillMultiplier: number
+  elementMultiplier: number
+  defReduction: number
+  variance: number
+  critMultiplier?: number
+  shieldAbsorbed: number
+  tribulationBonus?: number
+}
+
 export interface CombatAction {
   turn: number
   actorId: string
@@ -41,6 +52,7 @@ export interface CombatAction {
   element: string
   isHeal?: boolean
   healAmount?: number
+  breakdown?: DamageBreakdown
 }
 
 export interface CombatResult {
@@ -195,12 +207,24 @@ export function simulateCombat(
         effectiveAtk = applyBerserk(effectiveAtk, actor.hp, actor.maxHp)
       }
 
+      // --- Damage breakdown tracking ---
+      const breakdown: DamageBreakdown = {
+        baseAtk: effectiveAtk,
+        skillMultiplier: 1,
+        elementMultiplier: 1,
+        defReduction: Math.floor(target.def / 2),
+        variance: 1,
+        shieldAbsorbed: 0,
+      }
+
       let damage = 0
       let isCrit = false
 
       if (usedSkill && usedSkill.category === 'attack') {
         // Skill attack
         const elementMult = getElementMultiplier(usedSkill.element, target.element)
+        breakdown.skillMultiplier = usedSkill.multiplier
+        breakdown.elementMultiplier = elementMult
         damage = Math.max(1, Math.floor(effectiveAtk * usedSkill.multiplier * elementMult - target.def / 2))
         actor.spiritPower -= usedSkill.spiritCost
         actor.skillCooldowns[skillIdx] = usedSkill.cooldown
@@ -210,26 +234,32 @@ export function simulateCombat(
       }
 
       // Apply variance
-      damage = Math.max(1, Math.floor(damage * randomVariance()))
+      const variance = randomVariance()
+      breakdown.variance = variance
+      damage = Math.max(1, Math.floor(damage * variance))
 
       // Crit check
       if (Math.random() < actor.crit) {
         isCrit = true
+        breakdown.critMultiplier = actor.critDmg
         damage = Math.floor(damage * actor.critDmg)
       }
 
       // Tribulation Bane: bonus damage ignoring defense
       if (hasAffix(actor.affixes, 'tribulationBane')) {
         const bonusDamage = calcTribulationBaneDamage(effectiveAtk, true)
+        breakdown.tribulationBonus = bonusDamage
         damage += bonusDamage
       }
 
       // Shield absorption: absorb damage from shield first
       if (target.shield && target.shield > 0) {
         if (damage <= target.shield) {
+          breakdown.shieldAbsorbed = damage
           target.shield -= damage
           damage = 0
         } else {
+          breakdown.shieldAbsorbed = target.shield
           damage -= target.shield
           target.shield = 0
         }
@@ -257,6 +287,7 @@ export function simulateCombat(
         damage,
         isCrit,
         element: usedSkill?.element ?? 'neutral',
+        breakdown,
       })
 
       // Check if all enemies or all allies are dead

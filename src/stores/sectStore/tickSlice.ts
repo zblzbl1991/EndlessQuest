@@ -18,6 +18,8 @@ import {
   calcCultivationRate,
 } from '../../systems/cultivation/CultivationEngine'
 import { processBreakthrough } from '../../systems/cultivation/BreakthroughCoordinator'
+import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
+import { rollCultivationPath, getPathName } from '../../data/cultivationPaths'
 import { calcResourceCaps } from '../../data/buildings'
 import { tickProductionQueue, calcOfflineProduction } from '../../systems/building/ProductionSystem'
 import { getAutoRecipeById } from '../../data/recipes'
@@ -176,6 +178,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     let statBreakthroughAttempts = 0
     let statBreakthroughSuccesses = 0
     let unlockedFirstTribulationSuccess = false
+    const pathAssignedEvents: string[] = []
     const breakthroughDeaths: Character[] = []
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
@@ -192,6 +195,15 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
         // Deduct spirit energy
         updatedSpiritEnergy -= effectiveSpirit
+
+        // Auto-assign cultivation path if needed (roguelike randomness)
+        if (needsCultivationPathChoice(updatedChar)) {
+          const path = rollCultivationPath(updatedChar.quality)
+          updatedChar = syncCharacterSkillLoadout({ ...updatedChar, cultivationPath: path })
+          if (path !== 'none') {
+            pathAssignedEvents.push(`${updatedChar.name} 随缘定下修行方向：${getPathName(path)}`)
+          }
+        }
 
         // Auto-breakthrough: delegate to pure coordinator
         if (canBreakthrough(updatedChar)) {
@@ -395,6 +407,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     for (const character of breakthroughDeaths) {
       get().sacrificeCharacter(character.id, { source: 'breakthrough', reason: '突破失败，身死道消' })
+    }
+
+    for (const msg of pathAssignedEvents) {
+      emitEvent('milestone', msg)
     }
 
     return {

@@ -1,11 +1,14 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useMemo, useState, useCallback, Fragment } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
+import { AFFIX_DEFS } from '../data/affixes'
+import { ELEMENT_NAMES } from '../data/skills'
 import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
+import type { CombatAction, CombatResult, CombatUnit } from '../systems/combat/CombatEngine'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import type { AdventureReportStep } from '../types'
 import styles from './AdventureReportPage.module.css'
@@ -40,6 +43,192 @@ function getStepIconName(type: string): string {
     default:
       return 'eventRandom'
   }
+}
+
+// ─── Boss Combat Report Helpers ──────────────────────────────────────────
+
+interface BossStepMeta {
+  eventType: 'boss'
+  combatResult?: CombatResult
+  bossUnit?: CombatUnit
+  teamUnits?: CombatUnit[]
+  [key: string]: unknown
+}
+
+function isBossStepMeta(meta: Record<string, unknown> | undefined): meta is BossStepMeta {
+  return meta?.eventType === 'boss' && meta.combatResult != null
+}
+
+/** Extract key turning-point actions from a boss fight. */
+function extractKeyActions(actions: CombatAction[]): CombatAction[] {
+  const keyActions: CombatAction[] = []
+  let foundFirstCrit = false
+
+  for (const action of actions) {
+    const bd = action.breakdown
+    const isFirstCrit = !foundFirstCrit && action.isCrit
+    if (isFirstCrit) foundFirstCrit = true
+
+    const isElemental = bd != null && bd.elementMultiplier !== 1
+
+    if (isFirstCrit || isElemental) {
+      keyActions.push(action)
+    }
+  }
+
+  // Always include the last action (kill blow)
+  if (actions.length > 0) {
+    const last = actions[actions.length - 1]
+    if (last !== keyActions[keyActions.length - 1]) {
+      keyActions.push(last)
+    }
+  }
+
+  return keyActions
+}
+
+/** Build per-unit damage stats. */
+function buildDamageStats(
+  actions: CombatAction[],
+  bossUnit: CombatUnit,
+  teamUnits: CombatUnit[]
+): {
+  teamOutput: Record<string, number>
+  teamReceived: Record<string, number>
+  bossOutput: number
+} {
+  const teamOutput: Record<string, number> = {}
+  const teamReceived: Record<string, number> = {}
+  let bossOutput = 0
+
+  for (const unit of teamUnits) {
+    teamOutput[unit.id] = 0
+    teamReceived[unit.id] = 0
+  }
+
+  for (const action of actions) {
+    if (action.actorId === bossUnit.id) {
+      bossOutput += action.damage
+      if (teamReceived[action.targetId] !== undefined) {
+        teamReceived[action.targetId] += action.damage
+      }
+    } else {
+      if (teamOutput[action.actorId] !== undefined) {
+        teamOutput[action.actorId] += action.damage
+      }
+    }
+  }
+
+  return { teamOutput, teamReceived, bossOutput }
+}
+
+// ─── Boss Combat Report Panel ──────────────────────────────────────────
+
+function BossCombatReport({ meta }: { meta: BossStepMeta }) {
+  const combatResult = meta.combatResult!
+  const bossUnit = meta.bossUnit
+  const teamUnits = meta.teamUnits
+
+  if (!bossUnit || !teamUnits) return null
+
+  const keyActions = extractKeyActions(combatResult.actions)
+  const { teamOutput, teamReceived, bossOutput } = buildDamageStats(combatResult.actions, bossUnit, teamUnits)
+  const affixNames = (bossUnit.affixes ?? []).map((a) => AFFIX_DEFS[a]?.name ?? a)
+
+  return (
+    <div className={styles.bossPanel}>
+      {/* Pre-fight attribute comparison */}
+      <div className={styles.bossSectionTitle}>战前对比</div>
+      <div className={styles.bossCompareGrid}>
+        {/* Boss column */}
+        <div className={styles.bossCompareCol}>
+          <div className={styles.bossUnitHeader}>
+            <span className={styles.bossName}>{bossUnit.name}</span>
+            <span className={styles.bossAffixes}>{affixNames.length > 0 ? affixNames.join(' / ') : ''}</span>
+          </div>
+          <div className={styles.bossStatGrid}>
+            <span className={styles.bossStatLabel}>HP</span>
+            <strong>{bossUnit.maxHp}</strong>
+            <span className={styles.bossStatLabel}>ATK</span>
+            <strong>{bossUnit.atk}</strong>
+            <span className={styles.bossStatLabel}>DEF</span>
+            <strong>{bossUnit.def}</strong>
+            <span className={styles.bossStatLabel}>SPD</span>
+            <strong>{bossUnit.spd}</strong>
+            <span className={styles.bossStatLabel}>元素</span>
+            <strong>{ELEMENT_NAMES[bossUnit.element] ?? bossUnit.element}</strong>
+          </div>
+        </div>
+        {/* Team column */}
+        <div className={styles.bossCompareCol}>
+          <div className={styles.bossUnitHeader}>
+            <span className={styles.bossName}>我方队伍</span>
+          </div>
+          {teamUnits.map((unit) => (
+            <div key={unit.id} className={styles.bossTeamMember}>
+              <div className={styles.bossTeamMemberName}>{unit.name}</div>
+              <div className={styles.bossStatGrid}>
+                <span className={styles.bossStatLabel}>HP</span>
+                <strong>{unit.maxHp}</strong>
+                <span className={styles.bossStatLabel}>ATK</span>
+                <strong>{unit.atk}</strong>
+                <span className={styles.bossStatLabel}>DEF</span>
+                <strong>{unit.def}</strong>
+                <span className={styles.bossStatLabel}>SPD</span>
+                <strong>{unit.spd}</strong>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Victory status */}
+      <div className={styles.bossResultLine}>
+        {combatResult.victory ? '击败首领' : '首领战失利'} -- 共 {combatResult.turns} 回合
+      </div>
+
+      {/* Key turning-point actions */}
+      <div className={styles.bossSectionTitle}>关键回合</div>
+      <div className={styles.bossKeyActions}>
+        {keyActions.map((action, idx) => (
+          <div key={idx} className={styles.bossKeyAction}>
+            <span className={styles.bossKeyTurn}>回合 {action.turn}</span>
+            <span className={styles.bossKeyActionText}>
+              {action.actorName}
+              {' -> '}
+              {action.targetName}
+              {action.skillName ? ` [${action.skillName}]` : ''}
+            </span>
+            <span className={styles.bossKeyDamage}>
+              {action.damage}
+              {action.isCrit ? ' 暴击' : ''}
+            </span>
+            {action.breakdown && action.breakdown.elementMultiplier !== 1 && (
+              <span className={styles.bossKeyElement}>元素克制 x{action.breakdown.elementMultiplier}</span>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Damage statistics */}
+      <div className={styles.bossSectionTitle}>伤害统计</div>
+      <div className={styles.bossDamageGrid}>
+        {teamUnits.map((unit) => (
+          <Fragment key={unit.id}>
+            <span>{unit.name} 输出</span>
+            <strong>{teamOutput[unit.id]}</strong>
+            <span>{unit.name} 承伤</span>
+            <strong>{teamReceived[unit.id]}</strong>
+          </Fragment>
+        ))}
+        <span>{bossUnit.name} 输出</span>
+        <strong>{bossOutput}</strong>
+      </div>
+
+      {/* Element counter reference */}
+      <div className={styles.bossElementRef}>火 -- 冰 1.5x | 冰 -- 雷 1.5x | 雷 -- 火 1.5x</div>
+    </div>
+  )
 }
 
 /** Group steps by floor number, Collapsible groups; boss floor expanded by default. */
@@ -125,6 +314,7 @@ function FloorGroupedTimeline({ steps }: { steps: AdventureReportStep[] }) {
                       </div>
                       <div className={styles.stepDetail}>{step.detail}</div>
                       {step.decisionReason && <div className={styles.stepReason}>决策依据：{step.decisionReason}</div>}
+                      {isBossStepMeta(step.meta) && <BossCombatReport meta={step.meta} />}
                     </article>
                   ))}
                 </div>

@@ -61,6 +61,7 @@ export default function AdventurePage() {
   const reportDetails = useAdventureStore((s) => s.reportDetails)
   const sect = useSectStore((s) => s.sect)
   const setAutomationSettings = useSectStore((s) => s.setAutomationSettings)
+  const runAutomation = useAdventureStore((s) => s.runAutomation)
   const dayProgressSec = useGameStore((s) => s.dayProgressSec)
 
   const maxRealmChar = useMemo(() => {
@@ -81,7 +82,23 @@ export default function AdventurePage() {
     [sect.characters]
   )
   const latestReport = reports[0] ?? null
-  const manualLaunchDungeonId = preferredDungeon?.id ?? unlockedDungeons[0]?.id ?? null
+  const quickLaunchDungeonId = preferredDungeon?.id ?? unlockedDungeons[0]?.id ?? null
+
+  const handleQuickLaunch = () => {
+    if (!quickLaunchDungeonId) return
+    const autoTeam = [...availableCharacters]
+      .sort((a, b) => b.realm * 4 + b.realmStage - (a.realm * 4 + a.realmStage))
+      .slice(0, 5)
+      .map((c) => c.id)
+    if (autoTeam.length === 0) return
+    runAutomation({
+      dungeonId: quickLaunchDungeonId,
+      teamCharacterIds: autoTeam,
+      supplyLevel: 'basic',
+      tacticalPreset: 'balanced',
+      automationStrategy: 'steady',
+    })
+  }
 
   return (
     <div className={styles.page}>
@@ -89,14 +106,23 @@ export default function AdventurePage() {
         title="秘境"
         testId="adventure-hero"
         action={
-          <button
-            type="button"
-            className={`${styles.startBtn} ${!manualLaunchDungeonId ? styles.btnDisabled : ''}`}
-            disabled={!manualLaunchDungeonId}
-            onClick={() => manualLaunchDungeonId && setBuildingTeam(manualLaunchDungeonId)}
-          >
-            手动发起
-          </button>
+          <div className={styles.launchActions}>
+            <button
+              type="button"
+              className={`${styles.quickLaunchBtn} ${!quickLaunchDungeonId || availableCharacters.length === 0 ? styles.btnDisabled : ''}`}
+              disabled={!quickLaunchDungeonId || availableCharacters.length === 0}
+              onClick={handleQuickLaunch}
+            >
+              一键出发
+            </button>
+            <button
+              type="button"
+              className={styles.customLaunchLink}
+              onClick={() => quickLaunchDungeonId && setBuildingTeam(quickLaunchDungeonId)}
+            >
+              自定义
+            </button>
+          </div>
         }
         metrics={[
           {
@@ -304,9 +330,9 @@ export default function AdventurePage() {
                 </span>
               </div>
               <button
-                className={`${styles.startBtn} ${!manualLaunchDungeonId ? styles.btnDisabled : ''}`}
-                disabled={!manualLaunchDungeonId}
-                onClick={() => manualLaunchDungeonId && setBuildingTeam(manualLaunchDungeonId)}
+                className={`${styles.startBtn} ${!quickLaunchDungeonId ? styles.btnDisabled : ''}`}
+                disabled={!quickLaunchDungeonId}
+                onClick={() => quickLaunchDungeonId && setBuildingTeam(quickLaunchDungeonId)}
               >
                 组队出发
               </button>

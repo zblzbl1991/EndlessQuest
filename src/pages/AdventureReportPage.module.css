@@ -320,4 +320,186 @@
   .highlightGrid {
     grid-template-columns: 1fr;
   }
+
+  .bossCompareGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .bossDamageGrid {
+    grid-template-columns: auto 1fr auto 1fr;
+  }
+}
+
+/* ─── Boss Combat Report Panel ──────────────────────────────────────── */
+
+.bossPanel {
+  margin-top: var(--space-md);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background: radial-gradient(ellipse at top left, rgba(180, 95, 95, 0.08), transparent 50%), rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(180, 95, 95, 0.15);
+  border-left: 4px solid var(--color-danger);
+  box-shadow: 0 6px 18px rgba(37, 50, 64, 0.07);
+}
+
+.bossSectionTitle {
+  margin-bottom: var(--space-sm);
+  padding-bottom: 4px;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-danger);
+  border-bottom: 1px solid rgba(180, 95, 95, 0.12);
+}
+
+.bossCompareGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.bossCompareCol {
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.bossUnitHeader {
+  margin-bottom: var(--space-sm);
+}
+
+.bossName {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.bossAffixes {
+  margin-left: var(--space-sm);
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.bossStatGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px var(--space-sm);
+  font-size: 12px;
+}
+
+.bossStatLabel {
+  color: var(--color-text-tertiary);
+}
+
+.bossTeamMember {
+  padding: var(--space-sm) 0;
+}
+
+.bossTeamMemberName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.bossResultLine {
+  margin-bottom: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  background: rgba(133, 164, 182, 0.08);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* Key actions timeline */
+.bossKeyActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding-left: var(--space-sm);
+  border-left: 2px solid rgba(180, 95, 95, 0.2);
+}
+
+.bossKeyAction {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-xs) var(--space-sm);
+  padding: 4px var(--space-sm);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.bossKeyTurn {
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  min-width: 56px;
+}
+
+.bossKeyActionText {
+  color: var(--color-text);
+}
+
+.bossKeyDamage {
+  font-weight: 700;
+  color: var(--color-danger);
+}
+
+.bossKeyElement {
+  font-size: 11px;
+  color: var(--color-accent);
+}
+
+/* Damage statistics grid */
+.bossDamageGrid {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr;
+  gap: 4px var(--space-md);
+  margin-bottom: var(--space-md);
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.bossDamageGrid strong {
+  text-align: right;
+  color: var(--color-text);
+}
+
+/* Element counter reference line */
+.bossElementRef {
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(95, 122, 141, 0.08);
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .bossCompareGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-lg);
+  }
+
+  .bossDamageGrid {
+    grid-template-columns: auto 1fr auto 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .bossCompareGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+  }
+
+  .bossDamageGrid {
+    grid-template-columns: auto 1fr auto 1fr auto 1fr;
+  }
 }

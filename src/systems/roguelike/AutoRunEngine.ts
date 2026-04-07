@@ -346,9 +346,17 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
       }
 
       const eventResult = resolveEventFn(event, teamUnits, run.currentFloor, teamFortune)
-      pushStep('event_resolved', `事件：${event.type}`, eventResult.message, undefined, {
-        success: eventResult.success,
-      })
+
+      // Build meta for the step; include full boss combat data when applicable
+      const stepMeta: Record<string, unknown> = { success: eventResult.success }
+      if (event.type === 'boss') {
+        stepMeta.eventType = 'boss'
+        stepMeta.combatResult = eventResult.combatResult
+        stepMeta.bossUnit = eventResult.bossUnitSnapshot
+        stepMeta.teamUnits = eventResult.teamUnitSnapshots
+      }
+
+      pushStep('event_resolved', `事件：${event.type}`, eventResult.message, undefined, stepMeta)
 
       let memberStateChanged = false
       for (const charId of run.teamCharacterIds) {

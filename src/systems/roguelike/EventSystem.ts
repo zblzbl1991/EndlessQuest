@@ -43,6 +43,8 @@ export interface EventResult {
   shopOffers?: ShopOffer[]
   petCaptureAvailable?: boolean
   mutationTrigger?: 'battle' | 'insight' | 'rest'
+  bossUnitSnapshot?: CombatUnit
+  teamUnitSnapshots?: CombatUnit[]
 }
 
 function getNonBossTemplates(): EnemyTemplate[] {
@@ -303,6 +305,10 @@ export function resolveEvent(
         bossUnit.shield = calcShield(bossUnit.maxHp, true)
       }
 
+      // Snapshot boss and team before combat for report
+      const bossSnapshot: CombatUnit = { ...bossUnit, affixes: [...(bossUnit.affixes ?? [])] }
+      const teamSnapshots: CombatUnit[] = aliveTeam.map((u) => ({ ...u, affixes: [...(u.affixes ?? [])] }))
+
       const result = simulateCombat(buildCombatTeam(aliveTeam), [bossUnit])
       const hpChanges = buildHpChanges(aliveTeam, result.allyHp)
 
@@ -315,6 +321,8 @@ export function resolveEvent(
           combatResult: result,
           message: `败给了秘境守关者：${bossTemplate.name}。`,
           hpChanges,
+          bossUnitSnapshot: bossSnapshot,
+          teamUnitSnapshots: teamSnapshots,
         }
       }
 
@@ -332,6 +340,8 @@ export function resolveEvent(
         hpChanges,
         petCaptureAvailable: hasPetCapture || undefined,
         mutationTrigger: 'battle',
+        bossUnitSnapshot: bossSnapshot,
+        teamUnitSnapshots: teamSnapshots,
       }
     }
 
