@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 5
+- **Total Sessions**: 6
 - **Last Active**: 2026-04-08
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~296 | Active |
+| `journal-1.md` | ~355 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 6 | 2026-04-08 | 命格系统重设计：替换命运系统 | pending |
 | 5 | 2026-04-08 | Remove dispatch UI and auto-operation panel | uncommitted |
 | 4 | 2026-04-08 | Add mid-game regression test fixture | `2e8f290` |
 | 3 | 2026-04-08 | Simplify sect policies 7→3 | pending |

@@ -294,3 +294,62 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: 命格系统重设计：替换命运系统
+
+**Date**: 2026-04-08
+**Task**: 命格系统重设计：替换命运系统
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 概要
+
+将旧的命运系统（种子/曝光/不稳定性/暗流/策略增幅器）完全替换为弟子命格系统。灵感来源于《猎命师传奇》的命格设定。
+
+## 核心变更
+
+| 类别 | 变更 |
+|------|------|
+| 新增 | `data/fateGrids.ts` — 10 命格定义 + 获取概率 |
+| 新增 | `systems/destiny/DestinySystem.ts` — 命格查询函数（完全重写） |
+| 删除 | `destinyAmplifiers.ts`、`destinySeeds.ts`、`fateTags.ts`、`DarkCurrentSystem.ts`、`FateSystem.ts` |
+| 类型 | `destiny.ts`、`character.ts`、`sect.ts`、`adventure.ts`、`index.ts` 全部更新 |
+| 系统 | 13 个系统文件更新（修炼/突破/天劫/功法/装备/招募/核心弟子等） |
+| Store | `strategySlice`、`initial`、`types` 简化（移除 amplifier/darkCurrent） |
+| Save | `SaveSystem.ts` 迁移逻辑更新，旧字段兼容 |
+| UI | CharacterCard、StrategyPanel、CharactersPage、SectPage 全部重写命格显示 |
+| 测试 | 重写 DestinySystem.test（37 新测试），更新 16 个测试文件 |
+| Spec | 更新 state-management.md、type-safety.md、directory-structure.md |
+
+## 10 命格
+
+龙凤之姿、天生霸体、血镇、万鬼缠身、九死还魂、破釜沉舟、战意凌云、慧根深种、逆天改命、福星高照
+
+## 验证
+
+- TypeScript: 0 错误
+- 测试: 68 文件, 1043 测试全部通过
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `pending` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
