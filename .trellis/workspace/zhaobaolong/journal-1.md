@@ -73,3 +73,61 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: 修复6项UI/UX问题
+
+**Date**: 2026-04-08
+**Task**: 修复6项UI/UX问题
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 修改内容
+
+| 问题 | 修复 | 文件 |
+|------|------|------|
+| 秘境页显示矛盾 | 禁用按钮增加具体原因文案（需境界/无空闲弟子） | AdventurePage.tsx |
+| 移动端导航无高亮 | 增加底部accent bar + 增强图标背景对比度 | BottomNav.module.css |
+| 侧边栏提示太平淡 | 硬编码文案改为动态游戏状态提示 | Sidebar.tsx |
+| 建筑协同重复 | SectPage改摘要行，BuildingsPage升级3态+去重+进度 | SectPage/BuildingsPage |
+| 系统术语不解释 | 方针/命运标签/暗流增加副标题说明 | StrategyPanel.tsx |
+| 宗门首页信息过载 | 飞升与统计面板改为折叠式 | SectPage.tsx |
+
+## Code-Spec 更新
+
+- `component-guidelines.md`: 新增 Information Hierarchy、Disabled State Messaging、Sidebar Dynamic Hints、Mobile Navigation Active State 等章节
+- `quality-guidelines.md`: 新增3条 Forbidden Patterns + 3条 Code Review Checklist
+
+## 归档任务
+
+归档了7个已完成的P2任务（04-07-*系列）
+
+## 验证
+
+- TypeScript 编译通过
+- ESLint 通过
+- 1080 测试全部通过
+- 浏览器桌面端+移动端视觉验证通过
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e6a97bf` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
