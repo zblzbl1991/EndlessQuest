@@ -317,3 +317,186 @@ Comprehension growth (+2 per technique per combat) accumulates across all events
 5. **Forgetting to update `types.ts`** — Every new slice action must be added to the `SectStore` interface
 6. **Stale cross-store references** — After calling another store's mutating action, re-read `getState()` before using the data
 7. **Missing item return on failed runs** — Temporary item assignments must be returned in ALL exit paths (complete, fail, retreat)
+8. **Removing union type members without migration** — Old save data still contains the removed values; always add a migration map and apply it at the load boundary
+9. **Removing character fields without fixture updates** — When removing fields from Character (like `fateTags`), ALL test fixtures across ALL test files must be updated. Use `grep -r "fateTags" src/__tests__/` to find every occurrence.
+10. **Using `Record<boolean, T>` as type** — TypeScript doesn't allow boolean as Record key. Use a string literal union like `'normal' | 'high'` instead.
+
+---
+
+## Persisted Type Migration Pattern
+
+When simplifying a union type that is persisted in save data (IndexedDB), follow this pattern to maintain backward compatibility:
+
+### Steps
+
+1. **Define the new type** — Replace the old union with the simplified version
+2. **Create a migration map** — Map old values to new values in the data file
+3. **Export a migration helper** — A function that maps any old ID to the new ID
+4. **Apply at load boundary** — Use the helper in `SaveSystem.ts` when reconstructing state
+
+### Example: SectRiskPolicyId (7 → 3)
+
+```tsx
+// 1. New type (types/destiny.ts)
+export type SectRiskPolicyId = 'conservative' | 'balanced' | 'aggressive'
+
+// 2. Migration map (data/sectRiskPolicies.ts)
+export const POLICY_MIGRATION_MAP: Record<string, SectRiskPolicyId> = {
+  lianfeng: 'conservative',
+  shouheng: 'conservative',
+  shenji: 'balanced',
+  zhuxi: 'balanced',
+  yapo: 'aggressive',
+  niejie: 'aggressive',
+  fenming: 'aggressive',
+}
+
+// 3. Migration helper (data/sectRiskPolicies.ts)
+export function migratePolicyId(id: string): SectRiskPolicyId {
+  if (id in SECT_RISK_POLICIES) return id as SectRiskPolicyId
+  return POLICY_MIGRATION_MAP[id] ?? 'balanced'
+}
+
+// 4. Apply at load (systems/save/SaveSystem.ts)
+strategySettings: meta.strategySettings
+  ? {
+      ...meta.strategySettings,
+      activePolicy: migratePolicyId(meta.strategySettings.activePolicy),
+    }
+  : { activePolicy: 'balanced', ... }
+```
+
+### Key Rules
+
+- Migration runs at **load time only**, not on every tick
+- Default value (`'balanced'`) handles completely missing or unrecognized IDs
+- The helper checks `in SECT_RISK_POLICIES` first so it's idempotent (safe to call on already-migrated data)
+- Update all hardcoded references (initial state, default fallbacks, test fixtures) to new IDs
+
+### Example: Full System Replacement (Destiny → FateGrid)
+
+When replacing an entire system (not just simplifying a union), the migration pattern extends:
+
+```tsx
+// SaveSystem.ts loadGame()
+
+// 1. Removed fields: just omit them from reconstructed state
+// Old: character had fateTags, destinyState, seedRarity, seedId
+// New: character has fateGrid?: FateGridId
+// Migration: fateGrid: (c as any).fateGrid ?? undefined
+
+// 2. Removed top-level state: omit from sect reconstruction
+// Old: sect.darkCurrent, sect.strategySettings.activeAmplifiers
+// New: neither field exists
+
+// 3. Keep policy migration for idempotent loads
+strategySettings: meta.strategySettings
+  ? {
+      ...meta.strategySettings,
+      activePolicy: migratePolicyId(meta.strategySettings.activePolicy),
+      // activeAmplifiers silently dropped
+    }
+  : { activePolicy: 'balanced', switchCooldownDays: 0, lastSwitchedAt: null }
+```
+
+**Key rule**: When removing fields entirely, use `(c as any).fieldName` to read old data and provide `undefined` fallback. Do NOT add migration for fields that simply no longer exist — just let them be `undefined`.
+
+---
+
+## FateGrid (命格) System Contracts
+
+### Overview
+
+Each character may have an optional `fateGrid: FateGridId` representing an innate destiny that affects multiple gameplay dimensions. Inspired by 《猎命师传奇》.
+
+### Acquisition Rules
+
+| Trigger | Probability |
+|---------|-------------|
+| Recruitment — common | 5% |
+| Recruitment — spirit | 15% |
+| Recruitment — immortal | 30% |
+| Recruitment — divine | 50% |
+| Recruitment — chaos | 80% |
+| Major realm breakthrough (no grid) | 20% |
+
+### 10 Fate Grids
+
+| ID | Name | Category | Rarity | Core Effect |
+|----|------|----------|--------|-------------|
+| `dragonPhoenix` | 龙凤之姿 | heavenly | epic | All stats +15%, breakthrough +10% |
+| `overlordBody` | 天生霸体 | heavenly | legendary | Constitution +35%, lethal reduction 20% |
+| `bloodSuppress` | 血镇 | heavenly | legendary | All stats +8%, enemy -5%, boss +15% |
+| `ghostly` | 万鬼缠身 | ghost | rare | Attack +18%, ghost strike 15%, heart demon +8% |
+| `undying` | 九死还魂 | ghost | epic | 40% survive lethal, recovery +30%, cultivation -10% |
+| `lastStand` | 破釜沉舟 | emotional | rare | Low HP attack bonus, retreat loot 60% |
+| `warSpirit` | 战意凌云 | emotional | rare | Consecutive battle stacking +5%/battle |
+| `wisdom` | 慧根深种 | cultivation | common | Cultivation +25%, comprehension +20% |
+| `defiance` | 逆天改命 | cultivation | epic | Breakthrough failure retention 60% |
+| `lucky` | 福星高照 | probability | rare | Rare events +25%, loot quality +20% |
+
+### Effect Query Pattern
+
+Systems consume fate grid effects through query functions, not direct property access:
+
+```tsx
+// systems/destiny/DestinySystem.ts
+export function getCultivationSpeedModifier(character: Character): number
+export function getBreakthroughSuccessBonus(character: Character): number
+export function getAttackModifier(character: Character): number
+// ... 11 total query functions
+```
+
+**Convention**: Each query function returns `0` for characters without a fate grid, so callers don't need null checks.
+
+### Rarity Weight by Quality
+
+```tsx
+// Normal quality (common, spirit)
+{ common: 50, rare: 30, epic: 15, legendary: 5 }
+
+// High quality (immortal, divine, chaos)
+{ common: 20, rare: 35, epic: 30, legendary: 15 }
+```
+
+### Consuming Systems
+
+| System | What it reads | How |
+|--------|--------------|-----|
+| CultivationEngine | cultivation speed, breakthrough bonus | `getCultivationSpeedModifier()`, `getBreakthroughSuccessBonus()` |
+| TribulationSystem | heart demon bonus | `getHeartDemonBonus()` |
+| TechniqueSystem | comprehension, insight | `getTechniqueComprehensionModifier()`, `getSuddenInsightChance()` |
+| AutoEquipSystem | combat style from grid category | `getFateGridDef(id).category` → style mapping |
+| AutoRecruitSystem | grid rarity for candidate scoring | `getFateGridDef(id).rarity` |
+| CoreDiscipleSystem | grid rarity for core scoring | `getFateGridDef(id).rarity` |
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/types/destiny.ts` | FateGridId, FateGridDef, FateGridEffects, FateGridRarity types |
+| `src/data/fateGrids.ts` | 10 grid definitions, acquisition logic, roll functions |
+| `src/systems/destiny/DestinySystem.ts` | Effect query functions, acquisition helpers |
+| `src/data/sectRiskPolicies.ts` | Simplified policy profiles (no destiny-specific fields) |
+
+## Dormant Subsystems: Dispatch & Auto-Operation
+
+### Design Decision: UI Removed, Systems Preserved
+
+**Context**: The dispatch (派遣) system and auto-operation panel were removed from the UI (2026-04-08) to simplify the player experience. Building bonuses are no longer shown as tied to individual dispatch assignments.
+
+**What was removed from UI**:
+- `CharactersPage`: `dispatching` filter tab, "派遣" button, mission selection panel, current dispatch display, "宗门自动运转" panel (reserve settings + auto-breakthrough toggle)
+- `SectPage`: "自动运转" metric
+
+**What still exists in code** (dormant, not dead code):
+- `CharacterStatus` type still includes `'patrolling'` — used by `CharacterDispositionSystem` scoring
+- `AdventureStore` still has `dispatches`, `startDispatch`, `getActiveDispatchCount`
+- `data/missions.ts` still has `DISPATCH_MISSIONS` and `getAvailableMissions`
+- `SectStore` still has `automationSettings` (reserveSpiritStone, reserveSpiritEnergy, autoBreakthrough)
+- `buildingSlice.ts` still has `assignToBuilding`, `unassignFromBuilding` (used for technique training, not dispatch)
+- `SectEngine.ts` `calcMaxDisciplesByResources` still filters by `assignedBuilding === 'spiritField'`
+
+**Why preserve**: The underlying systems may be repurposed or re-enabled with different UI. Removing them from types would require a save migration for existing `patrolling` characters.
+
+**Implication for future work**: If re-adding dispatch UI, check `CharacterDispositionSystem`, `AdventureStore.dispatches`, and `data/missions.ts` — the data layer is already wired. If permanently removing dispatch, add a migration that converts `patrolling` characters to `idle` on load.

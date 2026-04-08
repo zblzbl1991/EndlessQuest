@@ -64,7 +64,7 @@ src/
 │   ├── combat/                       # CombatEngine, AffixSystem, TargetingSystem, SkillAI
 │   ├── economy/                      # ResourceEngine, AlchemySystem, ForgeSystem, SynergySystem
 │   ├── building/                     # ProductionSystem
-│   ├── character/                    # CharacterEngine, FateSystem, SpecialtySystem, etc.
+│   ├── character/                    # CharacterEngine, SpecialtySystem, etc.
 │   ├── cultivation/                  # CultivationEngine, BreakthroughCoordinator, TribulationSystem
 │   ├── equipment/                    # EquipmentEngine
 │   ├── item/                         # ItemGenerator, ItemStackUtils

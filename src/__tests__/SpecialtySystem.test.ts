@@ -124,7 +124,6 @@ function makeCharacter(specialties: Specialty[]): Character {
     specialties,
     assignedBuilding: null,
     cultivationPath: 'none',
-    fateTags: [],
   }
 }
 
@@ -165,16 +164,6 @@ describe('getPrimaryRole', () => {
   it('should return "herbalism" for herbalism specialty', () => {
     const char = makeCharacter([{ type: 'herbalism', level: 1 }])
     expect(getPrimaryRole(char)).toBe('herbalism')
-  })
-
-  it('should let sudden insight tilt a mixed disciple toward comprehension', () => {
-    const char = makeCharacter([
-      { type: 'combat', level: 1 },
-      { type: 'comprehension', level: 1 },
-    ])
-    char.fateTags = ['suddenInsight']
-
-    expect(getPrimaryRole(char)).toBe('comprehension')
   })
 })
 
@@ -227,14 +216,13 @@ describe('getRecommendedAssignment', () => {
     expect(getRecommendedAssignment(char)).toBe('alchemyFurnace')
   })
 
-  it('should treat tribulation-scarred mixed disciples as better adventure candidates', () => {
+  it('should return the first matching assignment for tied specialties', () => {
     const char = makeCharacter([
       { type: 'mining', level: 1 },
       { type: 'combat', level: 1 },
     ])
-    char.fateTags = ['tribulationScar']
-
-    expect(getRecommendedAssignment(char)).toBe('adventure')
+    // Both at level 1, mining appears first so it wins the tie-break
+    expect(getRecommendedAssignment(char)).toBe('spiritMine')
   })
 })
 

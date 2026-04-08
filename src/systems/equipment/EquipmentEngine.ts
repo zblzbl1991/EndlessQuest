@@ -240,7 +240,7 @@ function buildRecommendation(
 }
 
 export function getEquipmentRecommendationForCharacter(
-  character: Pick<Character, 'cultivationPath' | 'specialties' | 'fateTags'>,
+  character: Pick<Character, 'cultivationPath' | 'specialties'>,
   item: Equipment
 ): EquipmentRecommendation {
   const stats = getEffectiveStats(item)
@@ -280,15 +280,6 @@ export function getEquipmentRecommendationForCharacter(
   } else if (focus.focus === '速度' && (item.slot === 'armor' || item.slot === 'head' || item.slot === 'belt')) {
     score -= 2
     reasons.push('速度向词条和重防位冲突')
-  }
-
-  if (character.fateTags.includes('suddenInsight') && item.slot === 'talisman') {
-    score += 1
-    reasons.push('顿悟型命格更吃法宝位')
-  }
-  if (character.fateTags.includes('stableDaoHeart') && (item.slot === 'armor' || item.slot === 'belt')) {
-    score += 1
-    reasons.push('道心稳固，适合稳扎稳打装备')
   }
 
   return buildRecommendation(score, focus.focus, pathName, slotName, reasons)

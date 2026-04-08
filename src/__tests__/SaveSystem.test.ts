@@ -437,13 +437,13 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     expect(loadedChar!.status).toBe('idle')
   })
 
-  it('should load missing fate tags and archive milestones with safe defaults', async () => {
+  it('should load missing fate grid and archive milestones with safe defaults', async () => {
     useGameStore.getState().startGame()
     await saveGame()
 
     const db = await getDB()
     const sect = useSectStore.getState().sect
-    await db.put('characters', { ...sect.characters[0], fateTags: undefined })
+    await db.put('characters', { ...sect.characters[0], fateGrid: undefined })
     await db.put('meta', { ...(await db.get('meta', 1)), archiveMilestones: undefined })
 
     useSectStore.getState().reset()
@@ -451,7 +451,7 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
 
     const result = await loadGame()
     expect(result).toBe(true)
-    expect(useSectStore.getState().sect.characters[0].fateTags).toEqual([])
+    expect(useSectStore.getState().sect.characters[0].fateGrid).toBeUndefined()
     expect(useSectStore.getState().sect.archiveMilestones).toEqual([])
   })
 

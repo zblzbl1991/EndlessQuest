@@ -27,7 +27,6 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
     specialties: [],
     assignedBuilding: null,
     cultivationPath: 'none',
-    fateTags: [],
     ...overrides,
   }
 }
@@ -47,7 +46,6 @@ describe('active skill loadout automation', () => {
       realm: 4,
       cultivationPath: 'sword',
       learnedTechniques: ['qingxin', 'leiyu', 'leishen', 'wanjianguizong'],
-      fateTags: ['suddenInsight'],
     })
 
     const loadout = buildCharacterSkillLoadout(character)

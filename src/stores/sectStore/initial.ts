@@ -129,20 +129,9 @@ export function createInitialState(): { sect: Sect } {
         longestOfflineSeconds: 0,
       },
       strategySettings: {
-        activePolicy: 'shenji',
-        activeAmplifiers: [],
+        activePolicy: 'balanced',
         switchCooldownDays: 3,
         lastSwitchedAt: null,
-      },
-      darkCurrent: {
-        fortune: 0,
-        tribulation: 0,
-        abyss: 0,
-        guardian: 0,
-        plunder: 0,
-        afterglow: 0,
-        anomaly: 0,
-        lastShiftAt: null,
       },
     },
   }

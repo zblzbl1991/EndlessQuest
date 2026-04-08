@@ -15,7 +15,6 @@ describe('CharacterCard', () => {
       ...base,
       cultivationPath: 'alchemy' as const,
       specialties: [{ type: 'alchemy' as const, level: 3 }],
-      fateTags: ['stableDaoHeart' as const],
     }
 
     render(<CharacterCard character={character} />)

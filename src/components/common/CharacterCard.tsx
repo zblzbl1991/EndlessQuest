@@ -4,12 +4,11 @@ import { getRealmName, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { calcEffectiveCultivationRate } from '../../systems/cultivation/CultivationDisplay'
 import { getPathName } from '../../data/cultivationPaths'
-import { getFateTagDef } from '../../data/fateTags'
+import { getFateGridDef } from '../../data/fateGrids'
+import { FATE_GRID_RARITY_NAMES } from '../../types/destiny'
 import { getPrimaryRole, getRoleLabel } from '../../systems/character/SpecialtySystem'
 import { formatCultivationValue } from '../../utils/format'
 import { useSectStore } from '../../stores/sectStore'
-import { DESTINY_STAGE_NAMES, DESTINY_RISK_NAMES } from '../../types/destiny'
-import type { DestinyRiskLevel } from '../../types/destiny'
 import { PixelIcon } from './PixelIcon'
 import StatusBadge from './StatusBadge'
 import ProgressBar from './ProgressBar'
@@ -30,13 +29,6 @@ const PATH_ICON_NAMES: Record<string, string> = {
   beast: 'beastPath',
   formation: 'spellPath',
   void: 'spellPath',
-}
-
-const RISK_LEVEL_CLASS: Record<DestinyRiskLevel, string> = {
-  safe: styles.riskSafe,
-  drifting: styles.riskDrifting,
-  danger: styles.riskDanger,
-  calamity: styles.riskCalamity,
 }
 
 interface CharacterCardProps {
@@ -72,7 +64,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
             ? `\u4E3B\u5B9A\u4F4D ${getRoleLabel(primaryRole)}`
             : '\u5F85\u57F9\u517B'
 
-  const destinyState = character.destinyState
+  const fateGridDef = character.fateGrid ? getFateGridDef(character.fateGrid) : null
 
   return (
     <div
@@ -98,17 +90,10 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
         </span>
       )}
 
-      {/* Destiny stage and risk level - shown when past seed stage */}
-      {destinyState && destinyState.stage !== 'seed' && (
-        <div className={styles.destinyRow}>
-          <span className={styles.destinyStage}>{DESTINY_STAGE_NAMES[destinyState.stage]}</span>
-          <span className={`${styles.destinyRisk} ${RISK_LEVEL_CLASS[destinyState.riskLevel]}`}>
-            {DESTINY_RISK_NAMES[destinyState.riskLevel]}
-          </span>
-          {destinyState.matchedAmplifiers.length > 0 && (
-            <span className={styles.destinyMatched}>{destinyState.matchedAmplifiers.length} 契合</span>
-          )}
-        </div>
+      {fateGridDef && (
+        <span className={styles.fateGridBadge} title={fateGridDef.description}>
+          {fateGridDef.name} · {FATE_GRID_RARITY_NAMES[fateGridDef.rarity]}
+        </span>
       )}
 
       <div className={styles.metaRow}>
@@ -119,28 +104,6 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
       </div>
       <div className={styles.infoValue}>{statusSummary}</div>
       {specialtySummary.length > 0 && <div className={styles.specialtySummary}>{specialtySummary.join(' / ')}</div>}
-      {character.fateTags.length > 0 && (
-        <div className={styles.fateTags}>
-          {character.fateTags.map((tag) => {
-            const def = getFateTagDef(tag)
-            return (
-              <span
-                key={tag}
-                className={`${styles.fateTag} ${
-                  def.tone === 'danger'
-                    ? styles.fateDanger
-                    : def.tone === 'positive'
-                      ? styles.fatePositive
-                      : styles.fateAccent
-                }`}
-                title={def.description}
-              >
-                {def.name}
-              </span>
-            )
-          })}
-        </div>
-      )}
       {character.learnedTechniques.length > 0 && (
         <div className={styles.techniques}>
           {character.learnedTechniques.slice(0, 2).map((techId) => {

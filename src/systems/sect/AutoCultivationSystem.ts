@@ -1,19 +1,24 @@
 import type { Character, CultivationPath } from '../../types/character'
-import type { SectRiskPolicyId, DestinySeedId, AutoCultivationProfile } from '../../types/destiny'
+import type { SectRiskPolicyId, AutoCultivationProfile } from '../../types/destiny'
 import { getPolicyProfile } from '../../data/sectRiskPolicies'
+import { getFateGridDef } from '../../data/fateGrids'
 
 // ---------------------------------------------------------------------------
-// Seed combat style mapping
+// Fate grid category to combat style mapping
 // ---------------------------------------------------------------------------
 
-const SEED_STYLE_MAP: Record<DestinySeedId, 'burst' | 'tank' | 'control' | 'sacrifice' | 'summon'> = {
-  fortuneSeed: 'control',
-  tribulationSeed: 'burst',
-  abyssSeed: 'sacrifice',
-  guardianSeed: 'tank',
-  plunderSeed: 'burst',
-  afterglowSeed: 'burst',
-  anomalySeed: 'summon',
+const CATEGORY_STYLE_MAP: Record<string, 'burst' | 'tank' | 'control' | 'sacrifice' | 'summon'> = {
+  heavenly: 'control',
+  ghost: 'burst',
+  emotional: 'burst',
+  cultivation: 'control',
+  probability: 'control',
+}
+
+function getFateGridCombatStyle(character: Character): 'burst' | 'tank' | 'control' | 'sacrifice' | 'summon' {
+  if (!character.fateGrid) return 'burst'
+  const def = getFateGridDef(character.fateGrid)
+  return CATEGORY_STYLE_MAP[def.category] ?? 'burst'
 }
 
 // ---------------------------------------------------------------------------
@@ -21,12 +26,7 @@ const SEED_STYLE_MAP: Record<DestinySeedId, 'burst' | 'tank' | 'control' | 'sacr
 // ---------------------------------------------------------------------------
 
 export function generateCultivationProfile(character: Character, policyId: SectRiskPolicyId): AutoCultivationProfile {
-  const policy = getPolicyProfile(policyId)
-  const seedId = character.seedId ?? character.destinyState?.seedId
-  const seedStyle = seedId ? (SEED_STYLE_MAP[seedId] ?? 'burst') : 'burst'
-
-  // Determine preferred style: seed style first, then policy preference
-  const preferredStyle = seedStyle
+  const preferredStyle = getFateGridCombatStyle(character)
 
   // Base stat weights by style
   const baseWeights: Record<string, AutoCultivationProfile['statWeights']> = {
@@ -46,7 +46,9 @@ export function generateCultivationProfile(character: Character, policyId: SectR
     summon: { beast: 1.5, void: 0.8 },
   }
 
-  const riskAmp = policy.mutationExposureMultiplier
+  // Risk amplification: aggressive policies take more risk
+  const policy = getPolicyProfile(policyId)
+  const riskAmp = policy.coreFocusWeight > 1.2 ? 1.5 : 1.0
 
   return {
     preferredCombatStyle: preferredStyle,

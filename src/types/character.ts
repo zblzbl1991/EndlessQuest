@@ -1,9 +1,8 @@
 import type { ItemStack } from './item'
 import type { Talent } from './talent'
-import type { DestinyState, DestinySeedId } from './destiny'
+import type { FateGridId } from './destiny'
 
 export type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
-export type FateTag = 'tribulationScar' | 'heartDevilSeed' | 'suddenInsight' | 'stableDaoHeart'
 
 export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
 
@@ -29,8 +28,6 @@ export interface CultivationStats {
   spiritualRoot: number
   fortune: number
 }
-
-export type FateTagId = 'tribulation-scar' | 'heart-devil' | 'sudden-insight' | 'stable-dao-heart'
 
 export type SpecialtyType =
   | 'alchemy'
@@ -72,10 +69,7 @@ export interface Character {
   specialties: Specialty[]
   assignedBuilding: string | null
   cultivationPath: CultivationPath
-  fateTags: FateTag[]
   investedSpiritStone: number
   techniqueComprehension: Record<string, number>
-  destinyState?: DestinyState
-  seedRarity?: 1 | 2 | 3 | 4 | 5
-  seedId?: DestinySeedId
+  fateGrid?: FateGridId
 }

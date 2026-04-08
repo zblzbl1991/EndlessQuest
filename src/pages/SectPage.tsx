@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
-import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
+
 import { calcSpiritStoneCap } from '../systems/economy/ResourceEngine'
-import { getDominantDarkCurrentFamily } from '../systems/destiny/DarkCurrentSystem'
 import { getActiveSynergies } from '../systems/economy/SynergySystem'
 import { SYNERGIES } from '../data/buildings'
 import { SECT_RISK_POLICY_LIST } from '../data/sectRiskPolicies'
-import { DESTINY_STAGE_NAMES, DESTINY_RISK_NAMES } from '../types/destiny'
-import type { DestinyRiskLevel } from '../types/destiny'
+import { getFateGridDef } from '../data/fateGrids'
+import { FATE_GRID_RARITY_NAMES } from '../types/destiny'
+import type { FateGridRarity } from '../types/destiny'
 import { PixelIcon } from '../components/common/PixelIcon'
 import PageHeader from '../components/common/PageHeader'
 import ResourceRate from '../components/common/ResourceRate'
@@ -54,12 +54,7 @@ function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStor
   ]
 }
 
-const RISK_LEVEL_TONE: Record<DestinyRiskLevel, string> = {
-  safe: styles.riskSafe,
-  drifting: styles.riskDrifting,
-  danger: styles.riskDanger,
-  calamity: styles.riskCalamity,
-}
+const RARITY_ORDER: Record<FateGridRarity, number> = { legendary: 4, epic: 3, rare: 2, common: 1 }
 
 export default function SectPage() {
   const sect = useSectStore((s) => s.sect)
@@ -76,17 +71,16 @@ export default function SectPage() {
   const activeSynergyCount = getActiveSynergies(sect.buildings).length
   const uniqueSynergyTotal = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i).length
 
-  const dominantDarkCurrent = useMemo(() => getDominantDarkCurrentFamily(sect.darkCurrent), [sect.darkCurrent])
+  const policyName = SECT_RISK_POLICY_LIST.find((p) => p.id === sect.strategySettings.activePolicy)?.name ?? '均衡'
 
-  const policyName = SECT_RISK_POLICY_LIST.find((p) => p.id === sect.strategySettings.activePolicy)?.name ?? '审机'
-
-  // Identify disciples with notable destiny states
+  // Identify disciples with notable fate grids, sorted by rarity
   const notableDisciples = useMemo(() => {
     return sect.characters
-      .filter((c) => c.destinyState && c.destinyState.stage !== 'seed')
+      .filter((c) => c.fateGrid)
       .sort((a, b) => {
-        const order = { heavenmarked: 4, mutated: 3, formed: 2, stirring: 1, seed: 0 }
-        return (order[b.destinyState!.stage] ?? 0) - (order[a.destinyState!.stage] ?? 0)
+        const aDef = getFateGridDef(a.fateGrid!)
+        const bDef = getFateGridDef(b.fateGrid!)
+        return (RARITY_ORDER[bDef.rarity] ?? 0) - (RARITY_ORDER[aDef.rarity] ?? 0)
       })
       .slice(0, 3)
   }, [sect.characters])
@@ -120,16 +114,6 @@ export default function SectPage() {
             label: '宗门方针',
             value: policyName,
             detail: `核心上限 ${SECT_RISK_POLICY_LIST.find((p) => p.id === sect.strategySettings.activePolicy)?.maxCoreDisciples ?? 2} 人`,
-          },
-          {
-            label: '自动运转',
-            value: '运行中',
-            detail: `资源可养 ${calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute)} 人`,
-          },
-          {
-            label: '宗门暗流',
-            value: dominantDarkCurrent ? dominantDarkCurrent.value : '平静',
-            detail: dominantDarkCurrent ? `${dominantDarkCurrent.tier}` : '暂无波动',
           },
         ]}
       />
@@ -199,22 +183,16 @@ export default function SectPage() {
 
       {notableDisciples.length > 0 && (
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>命运动向</div>
-          <div className={styles.destinyList}>
+          <div className={styles.sectionTitle}>命格弟子</div>
+          <div className={styles.fateGridList}>
             {notableDisciples.map((char) => {
-              const ds = char.destinyState!
+              const fateDef = getFateGridDef(char.fateGrid!)
               return (
-                <div key={char.id} className={styles.destinyItem}>
-                  <div className={styles.destinyLeft}>
-                    <span className={styles.destinyName}>{char.name}</span>
-                    <span className={styles.destinyStage}>{DESTINY_STAGE_NAMES[ds.stage]}</span>
-                  </div>
-                  <div className={styles.destinyRight}>
-                    <span className={`${styles.destinyRisk} ${RISK_LEVEL_TONE[ds.riskLevel]}`}>
-                      {DESTINY_RISK_NAMES[ds.riskLevel]}
-                    </span>
-                    <span className={styles.destinyExposure}>曝露 {Math.floor(ds.exposure)}</span>
-                  </div>
+                <div key={char.id} className={styles.fateGridItem}>
+                  <span className={styles.fateGridName}>{char.name}</span>
+                  <span className={styles.fateGridRarity}>
+                    {fateDef.name} · {FATE_GRID_RARITY_NAMES[fateDef.rarity]}
+                  </span>
                 </div>
               )
             })}

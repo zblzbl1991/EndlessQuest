@@ -1,6 +1,6 @@
 import type { Character } from '../../types/character'
 import { REALMS } from '../../data/realms'
-import { calcFateTagTribulationModifier } from '../../data/fateTags'
+import { getHeartDemonBonus } from '../destiny/DestinySystem'
 
 export interface TribulationResult {
   success: boolean
@@ -46,7 +46,7 @@ export function resolveTribulation(character: Character): TribulationResult {
       stageMultiplier = currentRealmData.tribulationStages[character.realmStage] ?? 1.0
     }
   }
-  const fateModifier = calcFateTagTribulationModifier(character.fateTags)
+  const fateModifier = getHeartDemonBonus(character)
   const finalFailRate = Math.min(0.95, Math.max(0, failRate * stageMultiplier + fateModifier))
 
   if (Math.random() >= finalFailRate) {

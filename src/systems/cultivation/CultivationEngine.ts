@@ -1,7 +1,7 @@
 import type { Character, BaseStats, RealmStage } from '../../types/character'
 import { REALMS, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
-import { calcFateTagCultivationRateModifier, calcFateTagFailureRateModifier } from '../../data/fateTags'
+import { getCultivationSpeedModifier, getBreakthroughSuccessBonus } from '../destiny/DestinySystem'
 
 // Base cultivation rate: 修为 per second
 const BASE_CULTIVATION_RATE = 5
@@ -66,12 +66,12 @@ export function calcBreakthroughFailureRate(character: Character): number {
   if (major) {
     // Use target realm's tribulation power
     const targetPower = getTribulationPower(character.realm + 1, 0)
-    return Math.max(0, 0.1 + targetPower * 0.25 + calcFateTagFailureRateModifier(character.fateTags))
+    return Math.max(0, 0.1 + targetPower * 0.25 - getBreakthroughSuccessBonus(character))
   }
   // Sub-level: use current realm's tribulation power at next stage
   const nextStage = (character.realmStage + 1) as RealmStage
   const power = getTribulationPower(character.realm, nextStage)
-  return Math.max(0, 0.05 + power * 0.15 + calcFateTagFailureRateModifier(character.fateTags))
+  return Math.max(0, 0.05 + power * 0.15 - getBreakthroughSuccessBonus(character))
 }
 
 /**
@@ -103,7 +103,7 @@ export function calcCultivationRate(character: Character, learnedTechniques: str
     }
   }
 
-  rate *= Math.max(0.2, 1 + calcFateTagCultivationRateModifier(character.fateTags))
+  rate *= Math.max(0.2, 1 + getCultivationSpeedModifier(character))
 
   return rate
 }

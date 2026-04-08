@@ -132,6 +132,38 @@ function makeUnit(overrides: Partial<CombatUnit> & { id: string; name: string; t
 
 Uses `Partial<T> & Required<Pick<T, ...>>` to require essential fields while making others optional.
 
+### Effect definition pattern for character traits
+
+When defining character-level traits that affect multiple systems, use a flat effects interface with optional fields:
+
+```ts
+export interface FateGridEffects {
+  cultivationSpeedModifier?: number
+  attackModifier?: number
+  breakthroughSuccessBonus?: number
+  // ... each field is optional, meaning "no effect"
+}
+
+export interface FateGridDef {
+  id: FateGridId
+  name: string
+  category: FateGridCategory
+  rarity: FateGridRarity
+  effects: FateGridEffects
+}
+```
+
+Consumer systems use query functions that return `0` when the character has no trait:
+
+```ts
+export function getCultivationSpeedModifier(character: Character): number {
+  if (!character.fateGrid) return 0
+  return getFateGridDef(character.fateGrid).effects.cultivationSpeedModifier ?? 0
+}
+```
+
+**Why**: Optional fields + query functions that default to `0` means every system can safely call the query without null checks, and new effects can be added to `FateGridEffects` without touching consumer code.
+
 ---
 
 ## Validation

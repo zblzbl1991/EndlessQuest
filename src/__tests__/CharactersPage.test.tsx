@@ -67,7 +67,6 @@ describe('CharactersPage', () => {
 
     expect(screen.getByTestId('characters-hero')).toBeInTheDocument()
     expect(screen.getByText('弟子')).toBeInTheDocument()
-    expect(screen.getByText('宗门自动运转')).toBeInTheDocument()
     expect(screen.getByText('全部')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '网格' })).toBeInTheDocument()
   })
@@ -116,7 +115,6 @@ describe('CharactersPage', () => {
                   { type: 'comprehension', level: 2 },
                 ],
                 cultivationPath: 'alchemy',
-                fateTags: ['stableDaoHeart'],
               }
             : character
         ),

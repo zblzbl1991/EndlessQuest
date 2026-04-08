@@ -7,7 +7,6 @@ export type {
   BaseStats,
   CultivationStats,
   CultivationPath,
-  FateTag,
 } from './character'
 export type { Technique, TechniqueTier, TechniqueBonus } from './technique'
 export type { Element, SkillCategory, TechniqueType, ActiveSkill } from './skill'
@@ -74,24 +73,14 @@ export type { Talent, TalentEffect, TalentStat, TalentRarity, TalentId } from '.
 export { TALENT_RARITY_NAMES } from './talent'
 export type {
   SectRiskPolicyId,
-  DestinyAmplifierId,
-  DestinySeedId,
-  DestinyStage,
-  DestinyRiskLevel,
-  DestinyState,
-  SectDarkCurrent,
+  FateGridId,
+  FateGridCategory,
+  FateGridRarity,
+  FateGridDef,
+  FateGridEffects,
   SectStrategySettings,
   SectRiskPolicyProfile,
-  DestinyAmplifierProfile,
-  DestinySeedDef,
   AutoCultivationProfile,
   RunExecutorBias,
-  DestinyEventRecord,
 } from './destiny'
-export {
-  SECT_RISK_POLICY_ORDER,
-  DESTINY_STAGE_THRESHOLDS,
-  DESTINY_RISK_THRESHOLDS,
-  DESTINY_STAGE_NAMES,
-  DESTINY_RISK_NAMES,
-} from './destiny'
+export { SECT_RISK_POLICY_ORDER, FATE_GRID_CATEGORY_NAMES, FATE_GRID_RARITY_NAMES } from './destiny'

@@ -1,7 +1,6 @@
 import type { Character } from '../../types/character'
 import { canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from './CultivationEngine'
 import { shouldTriggerTribulation, resolveTribulation } from './TribulationSystem'
-import { resolveSuccessfulBreakthroughFates } from '../character/FateSystem'
 import { tryComprehendOnBreakthrough } from '../technique/TechniqueSystem'
 import { REALMS, getBreakthroughResourceCost, getRealmName } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
@@ -136,10 +135,6 @@ export function processBreakthrough(
             realmStage: btResult.newStage,
             cultivation: 0,
             baseStats: btResult.newStats,
-            fateTags: resolveSuccessfulBreakthroughFates(char.fateTags, {
-              tribulation: true,
-              failureRate,
-            }),
           }
           // Breakthrough comprehension (major tribulation)
           const comprehendedId = tryComprehendOnBreakthrough(updatedChar, techniqueCodex, true)
@@ -218,10 +213,6 @@ export function processBreakthrough(
           realmStage: btResult.newStage,
           cultivation: 0,
           baseStats: btResult.newStats,
-          fateTags: resolveSuccessfulBreakthroughFates(char.fateTags, {
-            tribulation: false,
-            failureRate,
-          }),
         }
         // Breakthrough comprehension (major non-tribulation)
         const comprehendedId = tryComprehendOnBreakthrough(updatedChar, techniqueCodex, true)
@@ -285,10 +276,6 @@ export function processBreakthrough(
         realmStage: btResult.newStage,
         cultivation: 0,
         baseStats: btResult.newStats,
-        fateTags: resolveSuccessfulBreakthroughFates(char.fateTags, {
-          tribulation: false,
-          failureRate,
-        }),
       }
       // Breakthrough comprehension (sub-level)
       const comprehendedId = tryComprehendOnBreakthrough(updatedChar, techniqueCodex, false)

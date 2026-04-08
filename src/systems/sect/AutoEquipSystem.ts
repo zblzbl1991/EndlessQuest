@@ -2,6 +2,25 @@ import type { Character } from '../../types/character'
 import type { Equipment } from '../../types/item'
 import type { SectRiskPolicyId } from '../../types/destiny'
 import { getPolicyProfile } from '../../data/sectRiskPolicies'
+import { getFateGridDef } from '../../data/fateGrids'
+
+// ---------------------------------------------------------------------------
+// Fate grid combat style mapping
+// ---------------------------------------------------------------------------
+
+const CATEGORY_STYLE_MAP: Record<string, 'burst' | 'tank' | 'control' | 'sacrifice' | 'summon'> = {
+  heavenly: 'control',
+  ghost: 'burst',
+  emotional: 'burst',
+  cultivation: 'control',
+  probability: 'control',
+}
+
+function getFateGridCombatStyle(character: Character): 'burst' | 'tank' | 'control' | 'sacrifice' | 'summon' {
+  if (!character.fateGrid) return 'burst'
+  const def = getFateGridDef(character.fateGrid)
+  return CATEGORY_STYLE_MAP[def.category] ?? 'burst'
+}
 
 // ---------------------------------------------------------------------------
 // Equip fit scoring
@@ -32,7 +51,7 @@ export function calculateEquipFitScore(ctx: EquipFitContext, policyId: SectRiskP
 // ---------------------------------------------------------------------------
 
 export function calculateRoleMatch(equipment: Equipment, character: Character): number {
-  const style = character.destinyState?.dominantStyle ?? 'burst'
+  const style = getFateGridCombatStyle(character)
 
   // Equipment stat bonus by style preference
   const stats = equipment.stats
@@ -104,7 +123,7 @@ export function distributeEquipment(
 
   // Aggressive: core first
   // Steady: weakest first
-  const isAggressive = ['yapo', 'niejie', 'fenming'].includes(policyId)
+  const isAggressive = policyId === 'aggressive'
 
   const sorted = [...characters].sort((a, b) => {
     const aCore = coreScores.get(a.id) ?? 0

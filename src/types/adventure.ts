@@ -3,7 +3,7 @@ import type { Resources } from './sect'
 import type { CharacterQuality, RealmStage } from './character'
 import type { ShopOffer } from '../systems/roguelike/EventSystem'
 import type { DiscipleMutationId } from '../data/discipleMutations'
-import type { SectRiskPolicyId, DestinyAmplifierId, DestinyEventRecord } from './destiny'
+import type { SectRiskPolicyId } from './destiny'
 
 export type EnemyAffix = 'berserk' | 'shield' | 'spiritDrain' | 'swift' | 'tribulationBane'
 export type TacticalPreset = 'conservative' | 'balanced' | 'burst' | 'bossCounter'
@@ -154,8 +154,6 @@ export interface AdventureReport {
   postRunMemberOutcomes?: Record<string, AdventureMemberReturnRecord>
   steps: AdventureReportStep[]
   policySnapshot?: SectRiskPolicyId
-  amplifierSnapshot?: DestinyAmplifierId[]
-  destinyChanges?: DestinyEventRecord[]
   /** Accumulated comprehension growth: charId -> { techId -> totalGrowth } */
   comprehensionGrowth?: Record<string, Record<string, number>>
   /** Dungeon growth applied: charId -> { baseStatBoost, cultivationGain } */

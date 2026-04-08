@@ -79,19 +79,8 @@ const META = {
   },
   strategySettings: {
     activePolicy: 'balanced',
-    activeAmplifiers: ['fortune_amplifier'],
     switchCooldownDays: 3,
     lastSwitchedAt: NOW - 259200000,
-  },
-  darkCurrent: {
-    fortune: 15,
-    tribulation: 5,
-    abyss: 3,
-    guardian: 8,
-    plunder: 0,
-    afterglow: 2,
-    anomaly: 0,
-    lastShiftAt: NOW - 3600000,
   },
   currentGameDay: 12,
   dayProgressSec: 28800,
@@ -153,17 +142,9 @@ const CHARACTERS = [
     ],
     assignedBuilding: null,
     cultivationPath: 'sword',
-    fateTags: ['stableDaoHeart'],
+    fateGrid: 'wisdom' as const,
     investedSpiritStone: 500,
     techniqueComprehension: { qingxin: 65, lieyan: 42, fentian: 18 },
-    destinyState: {
-      seedId: 'azure_dragon',
-      phase: 'sprout',
-      progress: 30,
-      bonuses: [],
-    },
-    seedRarity: 3,
-    seedId: 'azure_dragon',
   },
   // 灵品弟子 — 筑基初期, 坦克/防御
   {
@@ -196,17 +177,9 @@ const CHARACTERS = [
     ],
     assignedBuilding: 'spiritMine',
     cultivationPath: 'body',
-    fateTags: [],
+    fateGrid: undefined,
     investedSpiritStone: 500,
     techniqueComprehension: { qingxin: 55, houtu: 48, xuanbing: 22 },
-    destinyState: {
-      seedId: 'black_tortoise',
-      phase: 'seed',
-      progress: 10,
-      bonuses: [],
-    },
-    seedRarity: 2,
-    seedId: 'black_tortoise',
   },
   // 凡品弟子 — 炼气圆满
   {
@@ -251,17 +224,9 @@ const CHARACTERS = [
     ],
     assignedBuilding: 'spiritField',
     cultivationPath: 'none',
-    fateTags: [],
+    fateGrid: undefined,
     investedSpiritStone: 100,
     techniqueComprehension: { qingxin: 40, lieyan: 35 },
-    destinyState: {
-      seedId: 'wind_serpent',
-      phase: 'seed',
-      progress: 5,
-      bonuses: [],
-    },
-    seedRarity: 1,
-    seedId: 'wind_serpent',
   },
   // 凡品弟子 — 炼气中期, 采集型
   {
@@ -300,17 +265,9 @@ const CHARACTERS = [
     ],
     assignedBuilding: 'spiritField',
     cultivationPath: 'alchemy',
-    fateTags: ['suddenInsight'],
+    fateGrid: undefined,
     investedSpiritStone: 100,
     techniqueComprehension: { qingxin: 30, houtu: 25 },
-    destinyState: {
-      seedId: 'jade_rabbit',
-      phase: 'seed',
-      progress: 2,
-      bonuses: [],
-    },
-    seedRarity: 1,
-    seedId: 'jade_rabbit',
   },
   // 仙品弟子 — 金丹初期, 核心主力
   {
@@ -377,17 +334,9 @@ const CHARACTERS = [
     ],
     assignedBuilding: null,
     cultivationPath: 'sword',
-    fateTags: ['stableDaoHeart', 'suddenInsight'],
+    fateGrid: undefined,
     investedSpiritStone: 2000,
     techniqueComprehension: { qingxin: 88, lieyan: 72, houtu: 60, fentian: 45, leiyu: 35, leishen: 20 },
-    destinyState: {
-      seedId: 'vermilion_bird',
-      phase: 'bloom',
-      progress: 70,
-      bonuses: [{ stat: 'atk', value: 8 }],
-    },
-    seedRarity: 4,
-    seedId: 'vermilion_bird',
   },
   // 凡品弟子 — 受伤恢复中
   {
@@ -418,17 +367,9 @@ const CHARACTERS = [
     ],
     assignedBuilding: null,
     cultivationPath: 'none',
-    fateTags: ['tribulationScar'],
+    fateGrid: undefined,
     investedSpiritStone: 100,
     techniqueComprehension: { qingxin: 35, houtu: 28 },
-    destinyState: {
-      seedId: 'earth_bear',
-      phase: 'seed',
-      progress: 3,
-      bonuses: [],
-    },
-    seedRarity: 1,
-    seedId: 'earth_bear',
   },
 ]
 

@@ -117,7 +117,6 @@ describe('AutoRunEngine', () => {
         char_1: {
           cultivationPath: 'sword',
           specialties: [{ type: 'combat' }],
-          fateTags: ['suddenInsight'],
         },
       },
       now: (() => {
@@ -152,7 +151,6 @@ describe('AutoRunEngine', () => {
         char_1: {
           cultivationPath: 'body',
           specialties: [{ type: 'leadership' }],
-          fateTags: ['stableDaoHeart'],
         },
       },
       now: (() => {

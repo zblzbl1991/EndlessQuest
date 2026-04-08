@@ -45,13 +45,13 @@ describe('tryComprehendOnBreakthrough', () => {
     expect(result).not.toBeNull()
   })
 
-  it('should let sudden insight push the breakthrough comprehension chance higher', () => {
+  it('should let fate grid comprehension modifier push the breakthrough comprehension chance higher', () => {
     const result = tryComprehendOnBreakthrough(
       {
         learnedTechniques: ['qingxin'],
         realm: 1,
         cultivationStats: { comprehension: 30 },
-        fateTags: ['suddenInsight'],
+        fateGrid: 'wisdom',
       },
       codex,
       false,

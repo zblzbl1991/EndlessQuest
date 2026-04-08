@@ -1,11 +1,4 @@
-import type {
-  Character,
-  CharacterQuality,
-  CultivationPath,
-  FateTag,
-  Specialty,
-  SpecialtyType,
-} from '../../types/character'
+import type { Character, CharacterQuality, CultivationPath, Specialty, SpecialtyType } from '../../types/character'
 import { SPECIALTY_BONUS_TABLE, SPECIALTY_BUILDING_MAP, ALL_SPECIALTY_TYPES } from '../../data/specialties'
 
 interface SpecialtyConfig {
@@ -104,13 +97,6 @@ const PATH_ROLE_BONUSES: Partial<Record<CultivationPath, Partial<Record<Specialt
   void: { combat: 5, fortune: 4, comprehension: 2 },
 }
 
-const FATE_ROLE_BONUSES: Record<FateTag, Partial<Record<SpecialtyType, number>>> = {
-  tribulationScar: { combat: 7, fortune: 3 },
-  heartDevilSeed: { combat: 8, fortune: 3 },
-  suddenInsight: { comprehension: 8, alchemy: 3, fortune: 1 },
-  stableDaoHeart: { alchemy: 4, comprehension: 4, leadership: 3 },
-}
-
 function getRoleScore(character: Character, role: SpecialtyType, specialtyOrder: Map<SpecialtyType, number>): number {
   const specialty = character.specialties.find((owned) => owned.type === role)
   if (!specialty) return Number.NEGATIVE_INFINITY
@@ -121,14 +107,10 @@ function getRoleScore(character: Character, role: SpecialtyType, specialtyOrder:
     score += PATH_ROLE_BONUSES[character.cultivationPath]?.[role] ?? 0
   }
 
-  for (const fateTag of character.fateTags) {
-    score += FATE_ROLE_BONUSES[fateTag]?.[role] ?? 0
-  }
-
   return score
 }
 
-/** Return the primary role string for a character after accounting for specialties, path, and fate. */
+/** Return the primary role string for a character after accounting for specialties and path. */
 export function getPrimaryRole(character: Character): SpecialtyType | null {
   if (character.specialties.length === 0) return null
 

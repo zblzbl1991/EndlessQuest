@@ -1,9 +1,7 @@
 import type { CharacterQuality } from '../../types/character'
-import type { DestinySeedId, SectRiskPolicyId, DestinyAmplifierId } from '../../types/destiny'
-import type { SectDarkCurrent } from '../../types/destiny'
+import type { SectRiskPolicyId, FateGridId } from '../../types/destiny'
 import { getPolicyProfile } from '../../data/sectRiskPolicies'
-import { getAmplifierProfile } from '../../data/destinyAmplifiers'
-import { getDarkCurrentSeedWeight } from '../destiny/DarkCurrentSystem'
+import { getFateGridDef } from '../../data/fateGrids'
 
 // ---------------------------------------------------------------------------
 // Quality scores
@@ -17,12 +15,11 @@ const QUALITY_SCORES: Record<CharacterQuality, number> = {
   chaos: 60,
 }
 
-const SEED_RARITY_SCORES: Record<number, number> = {
-  1: 6,
-  2: 14,
-  3: 24,
-  4: 38,
-  5: 56,
+const FATE_GRID_RARITY_SCORES: Record<string, number> = {
+  common: 0,
+  rare: 5,
+  epic: 10,
+  legendary: 15,
 }
 
 // ---------------------------------------------------------------------------
@@ -31,8 +28,7 @@ const SEED_RARITY_SCORES: Record<number, number> = {
 
 export interface RecruitCandidate {
   quality: CharacterQuality
-  seedId: DestinySeedId
-  seedRarity: 1 | 2 | 3 | 4 | 5
+  fateGrid?: FateGridId
   baseRisk: number
   specialtyUtilityScore: number
 }
@@ -41,46 +37,23 @@ export interface RecruitCandidate {
 // Score a candidate
 // ---------------------------------------------------------------------------
 
-export function scoreRecruitCandidate(
-  candidate: RecruitCandidate,
-  policyId: SectRiskPolicyId,
-  activeAmplifiers: DestinyAmplifierId[],
-  darkCurrent: SectDarkCurrent
-): number {
+export function scoreRecruitCandidate(candidate: RecruitCandidate, policyId: SectRiskPolicyId): number {
   const policy = getPolicyProfile(policyId)
 
   // Base quality score
   const qualityScore = QUALITY_SCORES[candidate.quality]
 
-  // Seed rarity score with policy multiplier
-  const seedRarityScore = (SEED_RARITY_SCORES[candidate.seedRarity] ?? 0) * policy.rareSeedMultiplier
-
-  // Amplifier affinity: how well this seed matches active amplifiers
-  let seedAmplifierAffinity = 0
-  for (const ampId of activeAmplifiers) {
-    const ampProfile = getAmplifierProfile(ampId)
-    const bias = ampProfile.seedWeightBias[candidate.seedId] ?? 0
-    seedAmplifierAffinity += bias
-  }
+  // Fate grid rarity score
+  const gridRarity = candidate.fateGrid ? getFateGridDef(candidate.fateGrid).rarity : null
+  const gridRarityScore = gridRarity ? (FATE_GRID_RARITY_SCORES[gridRarity] ?? 0) : 0
 
   // Policy risk bias
   const policyRiskBias = candidate.baseRisk * (policy.highRiskRecruitBias / 20)
 
-  // Dark current affinity
-  const darkCurrentAffinity = getDarkCurrentSeedWeight(darkCurrent, candidate.seedId)
-
   // Risk penalty
   const baseRiskPenalty = candidate.baseRisk
 
-  return (
-    qualityScore +
-    seedRarityScore +
-    seedAmplifierAffinity +
-    policyRiskBias +
-    darkCurrentAffinity -
-    baseRiskPenalty +
-    candidate.specialtyUtilityScore
-  )
+  return qualityScore + gridRarityScore + policyRiskBias - baseRiskPenalty + candidate.specialtyUtilityScore
 }
 
 // ---------------------------------------------------------------------------
@@ -97,32 +70,23 @@ export interface AdmissionResult {
 export function evaluateAdmission(
   candidate: RecruitCandidate,
   policyId: SectRiskPolicyId,
-  activeAmplifiers: DestinyAmplifierId[],
-  darkCurrent: SectDarkCurrent,
   poolSize: number,
   maxPoolSize: number,
   lowestExistingScore: number
 ): AdmissionResult {
-  const score = scoreRecruitCandidate(candidate, policyId, activeAmplifiers, darkCurrent)
+  const score = scoreRecruitCandidate(candidate, policyId)
 
   // Chaos quality + high risk: only aggressive policies
   if (candidate.quality === 'chaos' && candidate.baseRisk >= 70) {
-    const allowedPolicies: SectRiskPolicyId[] = ['yapo', 'niejie', 'fenming']
+    const allowedPolicies: SectRiskPolicyId[] = ['aggressive']
     if (!allowedPolicies.includes(policyId)) {
       return { admitted: false, reason: '当前方针不宜接纳此等危险之人', score, isPriorityReserve: false }
     }
   }
 
-  // Priority reserve for rare seeds matching amplifiers
+  // Priority reserve for legendary fate grids
   const isPriorityReserve =
-    candidate.seedRarity >= 4 &&
-    (() => {
-      for (const ampId of activeAmplifiers) {
-        const ampProfile = getAmplifierProfile(ampId)
-        if ((ampProfile.seedWeightBias[candidate.seedId] ?? 0) > 0) return true
-      }
-      return false
-    })()
+    candidate.fateGrid !== undefined && getFateGridDef(candidate.fateGrid).rarity === 'legendary'
 
   // Pool not full: admit if score >= 22
   if (poolSize < maxPoolSize) {
@@ -142,5 +106,5 @@ export function evaluateAdmission(
     return { admitted: true, reason: '替代末位弟子', score, isPriorityReserve: false }
   }
 
-  return { admitted: false, reason: '弟子池已满且无优势', score, isPriorityReserve }
+  return { admitted: false, reason: '弟子池已满且无优势', score, isPriorityReserve: false }
 }

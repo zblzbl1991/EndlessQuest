@@ -1,5 +1,5 @@
 import type { Sect, SectStats, Resources } from '../../types'
-import type { SectStrategySettings, SectDarkCurrent } from '../../types/destiny'
+import type { SectStrategySettings } from '../../types/destiny'
 import type { DungeonRun, AdventureReport } from '../../types'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
@@ -9,6 +9,7 @@ import { useEventLogStore } from '../../stores/eventLogStore'
 import type { GameHistoryEntry } from './HistoryStore'
 import { getDB } from './db'
 import { migrateToItemStacks } from '../item/ItemStackUtils'
+import { migratePolicyId } from '../../data/sectRiskPolicies'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { BUILDING_DEFS } from '../../data/buildings'
 
@@ -40,7 +41,6 @@ interface SaveMeta {
   archiveMilestones: Sect['archiveMilestones']
   automationSettings?: Sect['automationSettings']
   strategySettings?: SectStrategySettings
-  darkCurrent?: SectDarkCurrent
   currentGameDay?: number
   dayProgressSec?: number
 }
@@ -68,7 +68,6 @@ type SavedCharacter = Sect['characters'][number] & {
   assignedBuilding?: Sect['characters'][number]['assignedBuilding']
   specialties?: Sect['characters'][number]['specialties']
   cultivationPath?: Sect['characters'][number]['cultivationPath']
-  fateTags?: Sect['characters'][number]['fateTags']
 }
 
 const DEFAULT_LEGACY: Sect['legacy'] = {
@@ -197,7 +196,6 @@ export async function saveGame(): Promise<void> {
       archiveMilestones: sect.archiveMilestones,
       automationSettings: sect.automationSettings,
       strategySettings: sect.strategySettings,
-      darkCurrent: sect.darkCurrent,
       currentGameDay: gameState.currentGameDay,
       dayProgressSec: gameState.dayProgressSec,
     })
@@ -351,7 +349,7 @@ export async function loadGame(): Promise<boolean> {
         specialties: c.specialties ?? [],
         assignedBuilding: normalizedStatus === 'training' && hasValidTrainingAssignment ? rawAssignedBuilding : null,
         cultivationPath: c.cultivationPath ?? 'none',
-        fateTags: c.fateTags ?? [],
+        fateGrid: (c as any).fateGrid ?? undefined,
         recoveryDaysRemaining: normalizedStatus === 'recovering' ? recoveryDaysRemaining : 0,
         // Migration: seed techniqueComprehension for existing characters
         techniqueComprehension:
@@ -388,22 +386,16 @@ export async function loadGame(): Promise<boolean> {
       archiveMilestones: meta.archiveMilestones ?? [],
       automationSettings: normalizeAutomationSettings(meta.automationSettings),
       stats: meta.stats ?? DEFAULT_STATS,
-      strategySettings: meta.strategySettings ?? {
-        activePolicy: 'shenji',
-        activeAmplifiers: [],
-        switchCooldownDays: 3,
-        lastSwitchedAt: null,
-      },
-      darkCurrent: meta.darkCurrent ?? {
-        fortune: 0,
-        tribulation: 0,
-        abyss: 0,
-        guardian: 0,
-        plunder: 0,
-        afterglow: 0,
-        anomaly: 0,
-        lastShiftAt: null,
-      },
+      strategySettings: meta.strategySettings
+        ? {
+            ...meta.strategySettings,
+            activePolicy: migratePolicyId(meta.strategySettings.activePolicy),
+          }
+        : {
+            activePolicy: 'balanced',
+            switchCooldownDays: 3,
+            lastSwitchedAt: null,
+          },
     }
 
     useSectStore.setState({ sect })

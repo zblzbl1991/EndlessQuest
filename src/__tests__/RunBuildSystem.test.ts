@@ -125,7 +125,6 @@ describe('RunBuildSystem', () => {
     const profile = {
       cultivationPath: 'none' as const,
       specialties: [{ type: 'comprehension' as const }],
-      fateTags: ['stableDaoHeart' as const],
     }
     const context = {
       routeId: 'alchemy' as const,

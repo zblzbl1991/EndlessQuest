@@ -100,7 +100,7 @@ export function getActiveSkillById(id: string): ActiveSkill | undefined {
 
 export const MAX_CHARACTER_SKILL_SLOTS = 5
 
-type CharacterSkillContext = Pick<Character, 'cultivationPath' | 'learnedTechniques' | 'realm' | 'specialties' | 'fateTags'>
+type CharacterSkillContext = Pick<Character, 'cultivationPath' | 'learnedTechniques' | 'realm' | 'specialties'>
 
 interface CombatStyleProfile {
   styleId: string
@@ -208,16 +208,6 @@ function getPreferredElements(character: CharacterSkillContext): Element[] {
     if (!merged.includes(element)) merged.push(element)
   }
 
-  if (character.fateTags.includes('tribulationScar') && !merged.includes('lightning')) {
-    merged.unshift('lightning')
-  }
-  if (character.fateTags.includes('heartDevilSeed') && !merged.includes('fire')) {
-    merged.unshift('fire')
-  }
-  if (character.fateTags.includes('stableDaoHeart') && !merged.includes('healing')) {
-    merged.push('healing')
-  }
-
   return merged
 }
 
@@ -238,11 +228,6 @@ function scoreSkill(skill: ActiveSkill, character: CharacterSkillContext, prefer
   for (const specialty of character.specialties) {
     score += SPECIALTY_SKILL_BONUSES[specialty.type]?.[skill.category] ?? 0
   }
-
-  if (character.fateTags.includes('suddenInsight') && skill.category === 'ultimate') score += 4
-  if (character.fateTags.includes('stableDaoHeart') && skill.category === 'support') score += 3
-  if (character.fateTags.includes('tribulationScar') && skill.element === 'lightning') score += 5
-  if (character.fateTags.includes('heartDevilSeed') && skill.element === 'fire') score += 5
 
   return score
 }

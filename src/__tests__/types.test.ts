@@ -69,8 +69,8 @@ describe('Character types', () => {
       specialties: [],
       assignedBuilding: null,
       cultivationPath: 'none',
-      fateTags: [],
       investedSpiritStone: 100,
+      techniqueComprehension: {},
     }
     expect(char.baseStats.hp).toBe(100)
     expect(char.title).toBe('disciple')
@@ -113,8 +113,8 @@ describe('Character types', () => {
       specialties: [],
       assignedBuilding: null,
       cultivationPath: 'none',
-      fateTags: [],
       investedSpiritStone: 500,
+      techniqueComprehension: {},
     }
 
     expect(char.equippedSkills).toHaveLength(5)

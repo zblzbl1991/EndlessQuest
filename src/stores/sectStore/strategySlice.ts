@@ -1,8 +1,7 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
-import type { SectRiskPolicyId, DestinyAmplifierId } from '../../types/destiny'
+import type { SectRiskPolicyId } from '../../types/destiny'
 import { getPolicyProfile } from '../../data/sectRiskPolicies'
-import { calculateShock, applyShockToState, calculateMatchedAmplifiers } from '../../systems/destiny/DestinySystem'
 import { getCoreDiscipleIds as getCoreIds } from '../../systems/sect/CoreDiscipleSystem'
 import { getCharacterDisposition } from '../../systems/character/CharacterDispositionSystem'
 import { findEquipmentById } from './initial'
@@ -56,19 +55,9 @@ export const createStrategySlice: StateCreator<SectStore, [], [], Partial<SectSt
       return { success: true, reason: '' }
     }
 
-    // Calculate shock for all characters with destiny state
-    const prevPolicyId = strategySettings.activePolicy
-    const updatedCharacters = sect.characters.map((char) => {
-      if (!char.destinyState) return char
-      const { shockImpact } = calculateShock(prevPolicyId, policyId, char.destinyState)
-      const { state: newState } = applyShockToState(char.destinyState, shockImpact, now)
-      return { ...char, destinyState: newState }
-    })
-
     set((s) => ({
       sect: {
         ...s.sect,
-        characters: updatedCharacters,
         strategySettings: {
           ...s.sect.strategySettings,
           activePolicy: policyId,
@@ -80,42 +69,17 @@ export const createStrategySlice: StateCreator<SectStore, [], [], Partial<SectSt
     return { success: true, reason: '' }
   },
 
-  setAmplifiers(amplifierIds: DestinyAmplifierId[]): void {
-    set((s) => {
-      const updatedCharacters = s.sect.characters.map((char) => {
-        if (!char.destinyState) return char
-        const matchedAmplifiers = calculateMatchedAmplifiers(char.destinyState.seedId, amplifierIds)
-        return {
-          ...char,
-          destinyState: { ...char.destinyState, matchedAmplifiers },
-        }
-      })
-
-      return {
-        sect: {
-          ...s.sect,
-          characters: updatedCharacters,
-          strategySettings: {
-            ...s.sect.strategySettings,
-            activeAmplifiers: amplifierIds,
-          },
-        },
-      }
-    })
-  },
-
   getActivePolicy() {
     return getPolicyProfile(get().sect.strategySettings.activePolicy)
   },
 
   getCoreDiscipleIds(): string[] {
     const { sect } = get()
-    const { activePolicy, activeAmplifiers } = sect.strategySettings
+    const { activePolicy } = sect.strategySettings
 
     return getCoreIds(
       sect.characters,
       activePolicy,
-      activeAmplifiers,
       (char) => {
         const disposition = getCharacterDisposition(char)
         return { adventure: disposition.adventure.score, risk: disposition.risk.score }

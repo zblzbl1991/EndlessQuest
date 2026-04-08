@@ -9,7 +9,6 @@ import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakth
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import type { RealmStage } from '../../types/character'
-import { getFateTagDef } from '../../data/fateTags'
 import { formatCultivationValue } from '../../utils/format'
 import styles from './BreakthroughPanel.module.css'
 
@@ -120,21 +119,6 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
         <div className={styles.pathChoiceSection}>
           <div className={styles.reqTitle}>修行路线</div>
           <div className={styles.pathAutoHint}>突破时将随机领悟修行方向。</div>
-        </div>
-      )}
-      {character.fateTags.length > 0 && (
-        <div className={styles.fateSection}>
-          <div className={styles.reqTitle}>命格痕印</div>
-          <div className={styles.fateTags}>
-            {character.fateTags.map((tag) => {
-              const def = getFateTagDef(tag)
-              return (
-                <span key={tag} className={styles.fateTag} title={def.description}>
-                  {def.name}
-                </span>
-              )
-            })}
-          </div>
         </div>
       )}
       {isMajor && cost && (

@@ -190,7 +190,6 @@ describe('Enemies data', () => {
       specialties: [],
       assignedBuilding: null,
       cultivationPath: 'none',
-      fateTags: [],
       ...overrides,
     }
   }

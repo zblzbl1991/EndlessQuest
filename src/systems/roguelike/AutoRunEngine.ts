@@ -159,7 +159,6 @@ function collectTeamMutationProfiles(
           {
             cultivationPath: character.cultivationPath,
             specialties: character.specialties.map((specialty) => ({ type: specialty.type })),
-            fateTags: [...character.fateTags],
           },
         ],
       ]

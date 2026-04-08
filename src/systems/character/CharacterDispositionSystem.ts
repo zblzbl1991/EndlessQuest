@@ -1,4 +1,4 @@
-import type { Character, CharacterStatus, CultivationPath, FateTag, SpecialtyType } from '../../types/character'
+import type { Character, CharacterStatus, CultivationPath, SpecialtyType } from '../../types/character'
 
 export type CharacterDispositionBand = 'high' | 'mid' | 'low'
 
@@ -67,27 +67,6 @@ const RISK_PATH_BONUS: Partial<Record<CultivationPath, number>> = {
   alchemy: 4,
 }
 
-const MANAGEMENT_FATE_BONUS: Partial<Record<FateTag, number>> = {
-  stableDaoHeart: 18,
-  suddenInsight: 12,
-  heartDevilSeed: -8,
-  tribulationScar: -10,
-}
-
-const ADVENTURE_FATE_BONUS: Partial<Record<FateTag, number>> = {
-  heartDevilSeed: 12,
-  tribulationScar: 8,
-  stableDaoHeart: 6,
-  suddenInsight: 4,
-}
-
-const RISK_FATE_BONUS: Partial<Record<FateTag, number>> = {
-  stableDaoHeart: 18,
-  suddenInsight: 8,
-  heartDevilSeed: -6,
-  tribulationScar: -14,
-}
-
 const MANAGEMENT_STATUS_BONUS: Partial<Record<CharacterStatus, number>> = {
   training: 8,
   patrolling: 4,
@@ -114,10 +93,6 @@ const RISK_STATUS_BONUS: Partial<Record<CharacterStatus, number>> = {
 
 function sumSpecialtyScore(character: Character, weights: Partial<Record<SpecialtyType, number>>): number {
   return character.specialties.reduce((total, specialty) => total + (weights[specialty.type] ?? 0) * specialty.level, 0)
-}
-
-function sumFateScore(character: Character, weights: Partial<Record<FateTag, number>>): number {
-  return character.fateTags.reduce((total, tag) => total + (weights[tag] ?? 0), 0)
 }
 
 function buildManagementFacet(score: number): CharacterDispositionFacet {
@@ -221,7 +196,6 @@ export function getCharacterDisposition(character: Character): CharacterDisposit
     character.learnedTechniques.length * 2 +
     (character.assignedBuilding ? 6 : 0) +
     (MANAGEMENT_PATH_BONUS[character.cultivationPath] ?? 0) +
-    sumFateScore(character, MANAGEMENT_FATE_BONUS) +
     (MANAGEMENT_STATUS_BONUS[character.status] ?? 0)
 
   const adventureScore =
@@ -235,7 +209,6 @@ export function getCharacterDisposition(character: Character): CharacterDisposit
     character.realmStage * 2 +
     character.learnedTechniques.length * 2 +
     (ADVENTURE_PATH_BONUS[character.cultivationPath] ?? 0) +
-    sumFateScore(character, ADVENTURE_FATE_BONUS) +
     (ADVENTURE_STATUS_BONUS[character.status] ?? 0)
 
   const riskScore =
@@ -247,7 +220,6 @@ export function getCharacterDisposition(character: Character): CharacterDisposit
     character.realm * 4 +
     character.realmStage * 2 +
     (RISK_PATH_BONUS[character.cultivationPath] ?? 0) +
-    sumFateScore(character, RISK_FATE_BONUS) +
     (RISK_STATUS_BONUS[character.status] ?? 0)
 
   return {

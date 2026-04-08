@@ -40,7 +40,6 @@ function buildCharacter(overrides: Partial<Character>): Character {
     specialties: [],
     assignedBuilding: null,
     cultivationPath: 'none',
-    fateTags: [],
     ...overrides,
   }
 }
@@ -54,7 +53,6 @@ describe('CharacterDispositionSystem', () => {
           { type: 'alchemy', level: 3 },
           { type: 'comprehension', level: 2 },
         ],
-        fateTags: ['stableDaoHeart'],
         assignedBuilding: 'alchemyFurnace',
         status: 'training',
       })
@@ -62,7 +60,7 @@ describe('CharacterDispositionSystem', () => {
 
     expect(disposition.management.label).toBe('厚积')
     expect(disposition.adventure.label).toBe('待养')
-    expect(disposition.risk.label).toBe('可试')
+    expect(disposition.risk.label).toBe('稳守')
   })
 
   it('reads an injured combat disciple as still锋锐 but currently偏稳守', () => {
@@ -73,7 +71,6 @@ describe('CharacterDispositionSystem', () => {
           { type: 'combat', level: 3 },
           { type: 'fortune', level: 2 },
         ],
-        fateTags: ['heartDevilSeed'],
         status: 'injured',
         injuryTimer: 120,
         baseStats: {

@@ -723,8 +723,8 @@ describe('createCharacterCombatUnit - Realm/Quality/Specialty bonuses', () => {
       specialties: [],
       assignedBuilding: null,
       cultivationPath: 'none' as const,
-      fateTags: [],
       investedSpiritStone: 0,
+      techniqueComprehension: {},
       ...overrides,
     }
   }

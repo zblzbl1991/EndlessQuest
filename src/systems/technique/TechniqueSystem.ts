@@ -2,7 +2,7 @@ import type { Character, CultivationPath, SpecialtyType } from '../../types/char
 import type { Technique, TechniqueStyle, TechniqueTier } from '../../types/technique'
 import { TECHNIQUE_TIER_ORDER } from '../../types/technique'
 import { TECHNIQUES } from '../../data/techniquesTable'
-import { calcFateTagInsightChanceModifier } from '../../data/fateTags'
+import { getTechniqueComprehensionModifier, getSuddenInsightChance } from '../destiny/DestinySystem'
 
 const REALM_TIER_CEILING: TechniqueTier[] = ['mortal', 'spirit', 'immortal', 'divine', 'chaos']
 const BASE_TECHNIQUE_CODEX_CAPACITY = 3
@@ -106,7 +106,7 @@ export function canLearnTechnique(character: Character, technique: Technique): b
 export function calcTechniqueAffinityWeight(
   character: Pick<
     Character,
-    'learnedTechniques' | 'cultivationPath' | 'specialties' | 'fateTags' | 'realm' | 'cultivationStats'
+    'learnedTechniques' | 'cultivationPath' | 'specialties' | 'fateGrid' | 'realm' | 'cultivationStats'
   >,
   technique: Technique
 ): number {
@@ -123,10 +123,10 @@ export function calcTechniqueAffinityWeight(
 
   weight += getLearnedElementBonus(character, technique)
 
-  if (character.fateTags?.includes('suddenInsight') && technique.styles.includes('cultivation')) weight += 1.2
-  if (character.fateTags?.includes('stableDaoHeart') && technique.styles.includes('balanced')) weight += 1
-  if (character.fateTags?.includes('heartDevilSeed') && technique.styles.includes('burst')) weight += 0.8
-  if (character.fateTags?.includes('tribulationScar') && technique.tier !== 'mortal') weight += 0.6
+  // Fate grid comprehension modifier adds affinity across all techniques
+  weight += getTechniqueComprehensionModifier(character as Character)
+  // Sudden insight bonus adds extra weight to cultivation-style techniques
+  if (technique.styles.includes('cultivation')) weight += getSuddenInsightChance(character as Character)
 
   const realmTierIdx = TECHNIQUE_TIER_ORDER.indexOf(REALM_TIER_CEILING[Math.min(character.realm, 4)])
   const techniqueTierIdx = TECHNIQUE_TIER_ORDER.indexOf(technique.tier)
@@ -142,7 +142,7 @@ export function calcTechniqueAffinityWeight(
 export function tryComprehendOnBreakthrough(
   character: Pick<
     Character,
-    'learnedTechniques' | 'realm' | 'cultivationStats' | 'fateTags' | 'cultivationPath' | 'specialties'
+    'learnedTechniques' | 'realm' | 'cultivationStats' | 'fateGrid' | 'cultivationPath' | 'specialties'
   >,
   techniqueCodex: string[],
   isMajor: boolean,
@@ -150,7 +150,12 @@ export function tryComprehendOnBreakthrough(
 ): string | null {
   const chance = Math.min(
     0.95,
-    Math.max(0, (isMajor ? 0.4 : 0.15) + calcFateTagInsightChanceModifier(character.fateTags ?? []))
+    Math.max(
+      0,
+      (isMajor ? 0.4 : 0.15) +
+        getTechniqueComprehensionModifier(character as Character) +
+        getSuddenInsightChance(character as Character)
+    )
   )
   if (randomFn() >= chance) return null
 
@@ -173,8 +178,7 @@ export function pickTechniqueForFloor(floorNumber: number, randomFn: () => numbe
   const maxTier = getMaxTierForExploration(floorNumber)
   const maxTierIdx = TECHNIQUE_TIER_ORDER.indexOf(maxTier)
   const candidates = TECHNIQUES.filter(
-    (technique) =>
-      technique.origin === 'dungeon' && TECHNIQUE_TIER_ORDER.indexOf(technique.tier) <= maxTierIdx
+    (technique) => technique.origin === 'dungeon' && TECHNIQUE_TIER_ORDER.indexOf(technique.tier) <= maxTierIdx
   )
 
   return (

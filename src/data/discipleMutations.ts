@@ -1,4 +1,4 @@
-import type { CultivationPath, FateTag, SpecialtyType } from '../types/character'
+import type { CultivationPath, SpecialtyType } from '../types/character'
 import type { RunBuildBiasContext } from '../types/runBuild'
 
 export type DiscipleMutationId =
@@ -17,7 +17,6 @@ export interface DiscipleMutationDef {
   summary: string
   favoredPaths?: CultivationPath[]
   favoredSpecialties?: SpecialtyType[]
-  favoredFates?: FateTag[]
   combat: {
     atk?: number
     def?: number
@@ -33,7 +32,6 @@ export interface DiscipleMutationDef {
 export interface MutationCharacterProfile {
   cultivationPath: CultivationPath
   specialties: Array<{ type: SpecialtyType }>
-  fateTags: FateTag[]
 }
 
 export const DISCIPLE_MUTATION_DEFS: Record<DiscipleMutationId, DiscipleMutationDef> = {
@@ -88,7 +86,6 @@ export const DISCIPLE_MUTATION_DEFS: Record<DiscipleMutationId, DiscipleMutation
     summary: '高风险高回报的突刺型变异，更容易打出 carry 局。',
     favoredPaths: ['void', 'sword'],
     favoredSpecialties: ['combat', 'fortune'],
-    favoredFates: ['heartDevilSeed'],
     combat: { atk: 0.22, spd: 0.12 },
     reward: { spiritStone: 0.06 },
   },
@@ -97,7 +94,6 @@ export const DISCIPLE_MUTATION_DEFS: Record<DiscipleMutationId, DiscipleMutation
     name: '机缘先兆',
     summary: '更偏收益侧，会把一局往资源局推。',
     favoredSpecialties: ['fortune'],
-    favoredFates: ['suddenInsight', 'stableDaoHeart'],
     combat: { spd: 0.05 },
     reward: { spiritStone: 0.1, herb: 0.05, ore: 0.05 },
   },
@@ -105,7 +101,6 @@ export const DISCIPLE_MUTATION_DEFS: Record<DiscipleMutationId, DiscipleMutation
     id: 'scar_reactor',
     name: '劫痕共振',
     summary: '把坏命格转成局内爆点，但波动更大。',
-    favoredFates: ['tribulationScar', 'heartDevilSeed'],
     combat: { atk: 0.16, def: 0.06 },
     reward: { ore: 0.08 },
   },
@@ -142,7 +137,6 @@ export function getDiscipleMutationWeight(
   let weight = 1
 
   if (mutation.favoredPaths?.includes(profile.cultivationPath)) weight += 4
-  if (mutation.favoredFates?.some((fate) => profile.fateTags.includes(fate))) weight += 3
   if (mutation.favoredSpecialties?.some((spec) => profile.specialties.some((owned) => owned.type === spec))) {
     weight += 2
   }

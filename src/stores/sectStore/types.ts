@@ -17,7 +17,7 @@ import type {
 } from '../../types'
 import type { ShopState } from '../../systems/trade/TradeSystem'
 import type { SectRouteDef, SectRouteId } from '../../data/sectRoutes'
-import type { SectRiskPolicyId, DestinyAmplifierId, SectRiskPolicyProfile } from '../../types/destiny'
+import type { SectRiskPolicyId, SectRiskPolicyProfile } from '../../types/destiny'
 
 export interface CharacterSacrificeContext {
   source: 'adventure' | 'breakthrough'
@@ -123,9 +123,8 @@ export interface SectStore {
   // Legacy ascension
   performAscension(): void
 
-  // Strategy & Destiny
+  // Strategy
   setPolicy(policyId: SectRiskPolicyId): { success: boolean; reason: string }
-  setAmplifiers(amplifierIds: DestinyAmplifierId[]): void
   getActivePolicy(): SectRiskPolicyProfile | null
   getCoreDiscipleIds(): string[]
 

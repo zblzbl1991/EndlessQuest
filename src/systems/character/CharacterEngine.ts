@@ -7,8 +7,7 @@ import { getTechniqueById } from '../../data/techniquesTable'
 import type { SectRouteId } from '../../data/sectRoutes'
 import { rollSpecialties } from './SpecialtySystem'
 import { applyPathStatBonuses } from './CultivationPathSystem'
-import { DESTINY_SEED_LIST, rollSeedRarity } from '../../data/destinySeeds'
-import { createDestinyState } from '../../systems/destiny/DestinySystem'
+import { tryAcquireFateGrid } from '../../systems/destiny/DestinySystem'
 
 // ---------------------------------------------------------------------------
 // Quality stat table
@@ -373,10 +372,8 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
   const learnedTechniques = ['qingxin']
   const specialties = applyRouteIdentityBiases(rollSpecialties(quality), activeRoute)
 
-  // Assign destiny seed
-  const seedId = DESTINY_SEED_LIST[Math.floor(Math.random() * DESTINY_SEED_LIST.length)].id
-  const seedRarity = rollSeedRarity()
-  const destinyState = createDestinyState(seedId)
+  // Assign fate grid
+  const fateGrid = tryAcquireFateGrid(quality)
 
   // Seed technique comprehension for starter techniques (30%)
   const techniqueComprehension: Record<string, number> = {}
@@ -412,12 +409,9 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     specialties,
     assignedBuilding: null,
     cultivationPath: 'none',
-    fateTags: [],
     investedSpiritStone: getRecruitCost(quality),
     techniqueComprehension,
-    destinyState,
-    seedRarity,
-    seedId,
+    fateGrid,
   })
 }
 

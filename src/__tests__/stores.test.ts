@@ -1010,7 +1010,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(updated.cultivation).toBeGreaterThan(100)
   })
 
-  it('should add fate tags and unlock milestone after first tribulation success', () => {
+  it('should unlock milestone after first tribulation success', () => {
     const char = getFirstCharacter()
     useSectStore.setState((s) => ({
       sect: {
@@ -1040,7 +1040,6 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(2)
     expect(updated.realmStage).toBe(0)
-    expect(updated.fateTags).toContain('stableDaoHeart')
     expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'firstTribulationSuccess')).toBe(true)
   })
 })
