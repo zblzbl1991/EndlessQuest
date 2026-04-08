@@ -131,3 +131,68 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: Simplify sect policies 7→3
+
+**Date**: 2026-04-08
+**Task**: Simplify sect policies 7→3
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## 变更概要
+
+将宗门方针从 7 档（敛锋/守衡/审机/逐隙/压魄/逆劫/焚命）简化为 3 档：
+
+| 新方针 | 合并来源 | 定位 |
+|--------|----------|------|
+| 保守 (conservative) | 敛锋 + 守衡 | 求稳，保全弟子 |
+| 均衡 (balanced) | 审机 + 逐隙 | 攻守兼备，基准档 |
+| 激进 (aggressive) | 压魄 + 逆劫 + 焚命 | 主动撞险，高回报 |
+
+## 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `src/types/destiny.ts` | SectRiskPolicyId 缩减为 3 值 |
+| `src/data/sectRiskPolicies.ts` | 3 档配置 + 旧 ID 迁移映射 + migratePolicyId() |
+| `src/systems/save/SaveSystem.ts` | 加载存档时自动迁移旧方针 ID |
+| `src/stores/sectStore/initial.ts` | 默认方针 → balanced |
+| `src/components/sect/StrategyPanel.tsx` | 简化 UI（去掉序号和旧标签） |
+| `src/pages/SectPage.tsx` | 默认显示名 → 均衡 |
+| `src/systems/sect/AutoRecruitSystem.ts` | 激进判断 → aggressive |
+| `src/systems/sect/AutoEquipSystem.ts` | 同上 |
+| `src/systems/destiny/DestinySystem.ts` | 天命触发阈值调整 |
+| `src/__tests__/DarkCurrentSystem.test.ts` | 更新为新 ID |
+| `src/__tests__/DestinySystem.test.ts` | 更新为新 ID |
+| `.trellis/spec/frontend/state-management.md` | 新增 Persisted Type Migration Pattern |
+
+## 验证
+
+- tsc: 通过（无关的 CharactersPage 未使用变量警告除外）
+- vitest: 49 测试通过（3 相关文件）
+- SectPage: 6 测试通过
+- 存档兼容: 旧 7 档 ID 通过 migratePolicyId() 自动映射
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `pending` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
