@@ -5,6 +5,7 @@ import { useAdventureStore } from './stores/adventureStore'
 import { useGameStore } from './stores/gameStore'
 import { IdleEngine, calcOfflineSeconds } from './systems/idle/IdleEngine'
 import { loadGame } from './systems/save/SaveSystem'
+import { loadTestSave } from './systems/save/testFixture'
 import { startAutoSave } from './systems/save/startAutoSave'
 import Sidebar from './components/common/Sidebar'
 import BottomNav from './components/common/BottomNav'
@@ -36,6 +37,15 @@ export default function App() {
     loadingRef.current = true
     ;(async () => {
       try {
+        // Dev shortcut: ?loadTestSave=true loads the regression test fixture
+        const params = new URLSearchParams(window.location.search)
+        if (params.get('loadTestSave') === 'true') {
+          await loadTestSave()
+          // Clean the URL param so it doesn't re-trigger on refresh
+          const cleanUrl = new URL(window.location.href)
+          cleanUrl.searchParams.delete('loadTestSave')
+          window.history.replaceState({}, '', cleanUrl.toString())
+        }
         await loadGame()
       } catch (e) {
         console.error('Failed to load save:', e)
