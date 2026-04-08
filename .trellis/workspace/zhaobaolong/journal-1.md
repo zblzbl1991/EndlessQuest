@@ -245,3 +245,52 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 5: Remove dispatch UI and auto-operation panel
+
+**Date**: 2026-04-08
+**Task**: Remove dispatch UI and auto-operation panel
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Changes
+
+| Change | Description |
+|--------|-------------|
+| Remove dispatch filter tab | CharactersPage no longer shows "派遣中" filter |
+| Remove dispatch button & mission panel | CharacterDetail no longer shows "派遣" button or mission selection overlay |
+| Remove current dispatch display | CharacterDetail no longer shows dispatch progress section |
+| Remove auto-operation panel | CharactersPage no longer shows "宗门自动运转" section (reserve settings, auto-breakthrough toggle) |
+| Remove auto-operation metric | SectPage no longer shows "自动运转" metric in header |
+| Update spec | Added Dormant Subsystems section to state-management.md documenting preserved backend systems |
+
+**Modified Files**:
+- `src/pages/CharactersPage.tsx` — removed dispatch UI, auto-operation panel, cleaned imports
+- `src/pages/SectPage.tsx` — removed "自动运转" metric, cleaned import
+- `.trellis/spec/frontend/state-management.md` — documented dormant dispatch/auto-op subsystems
+
+**Note**: Backend systems (patrolling status, AdventureStore dispatches, missions data, automationSettings, building assignments) are preserved as dormant code for potential future reuse. Full removal would require save migration.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `uncommitted` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
