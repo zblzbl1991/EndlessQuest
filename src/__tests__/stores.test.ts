@@ -286,12 +286,16 @@ describe('SectStore - Building Management', () => {
   beforeEach(() => resetStore())
 
   it('upgradeBuilding should upgrade mainHall', () => {
-    // mainHall upgradeCost at level 1 = 100 * (1+1)^1.3 ≈ 246
+    // mainHall upgradeCost at level 1 = 200 * (1+1)^1.7 ≈ 650
+    // Need more spirit stones than default 500
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 1000 } },
+    }))
     const result = getStore().upgradeBuilding('mainHall')
     expect(result).toBe(true)
     const mainHall = getStore().sect.buildings.find((b) => b.type === 'mainHall')
     expect(mainHall?.level).toBe(2)
-    expect(getStore().sect.resources.spiritStone).toBe(500 - Math.round(100 * Math.pow(2, 1.3))) // 500 - 246
+    expect(getStore().sect.resources.spiritStone).toBe(1000 - Math.round(200 * Math.pow(2, 1.7))) // 1000 - 650
   })
 
   it('upgradeBuilding should fail with insufficient spirit stones', () => {
@@ -313,12 +317,20 @@ describe('SectStore - Building Management', () => {
   })
 
   it('tryUpgradeBuilding should succeed with enough resources', () => {
+    // Upgrade costs 200 * (1+1)^1.7 ≈ 650, need more than default 500
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 1000 } },
+    }))
     const result = getStore().tryUpgradeBuilding('mainHall')
     expect(result.success).toBe(true)
     expect(result.reason).toBe('')
   })
 
   it('upgradeBuilding should upgrade spiritField from its initial unlocked state', () => {
+    // Upgrade costs 200 * (1+1)^1.7 ≈ 650, need more than default 500
+    useSectStore.setState((s) => ({
+      sect: { ...s.sect, resources: { ...s.sect.resources, spiritStone: 1000 } },
+    }))
     const result = getStore().tryUpgradeBuilding('spiritField')
     expect(result.success).toBe(true)
     const sf = getStore().sect.buildings.find((b) => b.type === 'spiritField')
@@ -1950,6 +1962,7 @@ describe('SectStore - Daily automation', () => {
         ...s.sect,
         characters: s.sect.characters.map((character) => ({ ...character, realmStage: 3 })),
         resources: { ...s.sect.resources, spiritStone: 50000, spiritEnergy: 5000 },
+        autoRunDayCounter: 4, // Set counter to 4 so next day triggers auto-run (>= 5)
         automationSettings: {
           ...s.sect.automationSettings,
           reserveSpiritStone: 200,

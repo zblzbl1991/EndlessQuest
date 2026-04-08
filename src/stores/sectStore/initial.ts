@@ -133,6 +133,7 @@ export function createInitialState(): { sect: Sect } {
         switchCooldownDays: 3,
         lastSwitchedAt: null,
       },
+      autoRunDayCounter: 0,
     },
   }
 }

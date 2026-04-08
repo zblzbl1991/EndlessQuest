@@ -45,11 +45,11 @@ export function calcTeamPowerRating(units: CombatUnit[]): number {
 }
 
 /**
- * Adjust enemy stats so difficulty matches team power within +/-20%.
+ * Adjust enemy stats so difficulty matches team power within +/-35%.
  * Layer-based scaling remains the primary factor; this is a secondary calibration.
  *
- * Regular enemy: target power is 60-100% of team power (randomly chosen).
- * Boss: base stats are already 2.5x scaled before this function; then +/-20% team power adjustment.
+ * Regular enemy: target power is 80-130% of team power (randomly chosen).
+ * Boss: base stats are already 2.5x scaled before this function; then 120-200% team power adjustment.
  */
 export function adjustEnemyByTeamPower(
   enemy: CombatUnit,
@@ -67,18 +67,18 @@ export function adjustEnemyByTeamPower(
   // Determine target enemy power relative to team
   let targetRatio: number
   if (isBoss) {
-    // Boss: 1.0-1.5x team power for a challenging but fair fight
-    targetRatio = 1.0 + Math.random() * 0.5
+    // Boss: 1.2-2.0x team power for a challenging fight
+    targetRatio = 1.2 + Math.random() * 0.8
   } else {
-    // Regular enemy: 60-100% of team power
-    targetRatio = 0.6 + Math.random() * 0.4
+    // Regular enemy: 80-130% of team power
+    targetRatio = 0.8 + Math.random() * 0.5
   }
 
   const targetEnemyPower = teamPower * targetRatio
   const adjustment = targetEnemyPower / enemyPower
 
-  // Clamp adjustment to +/-20% (layer-based scaling is still primary)
-  const clamped = Math.max(0.8, Math.min(1.2, adjustment))
+  // Clamp adjustment to +/-35% (layer-based scaling is still primary)
+  const clamped = Math.max(0.65, Math.min(1.35, adjustment))
 
   enemy.hp = Math.max(1, Math.floor(enemy.hp * clamped))
   enemy.maxHp = Math.max(1, Math.floor(enemy.maxHp * clamped))

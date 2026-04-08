@@ -17,7 +17,7 @@ State is managed with **Zustand** using a sliced store pattern. There is no serv
 | `useSectStore` | `src/stores/sectStore/index.ts` | Main game state (characters, buildings, resources, items, pets, vault) |
 | `useAdventureStore` | `src/stores/adventureStore.ts` | Dungeon runs, reports, dispatches |
 | `useGameStore` | `src/stores/gameStore.ts` | Meta state (saveSlot, isPaused, dayProgress) |
-| `useEventLogStore` | `src/stores/eventLogStore.ts` | Event log (200 events max, newest first) |
+| `useEventLogStore` | `src/stores/eventLogStore.ts` | Event log (500 events max, newest first, consecutive adventure events auto-merged) |
 
 ---
 
@@ -34,7 +34,7 @@ The main store (`useSectStore`) is decomposed into 12 slices composed via object
 | `createItemSlice` | `itemSlice.ts` | transferItemToCharacter, transferItemToVault, addToVault, sellItem, equipItem, unequipItem, enhanceItem |
 | `createTechniqueSlice` | `techniqueSlice.ts` | unlockCodexEntry, unlockCodexAndLearn, craftPotion, forgeEquipment, studyTechnique |
 | `createPetSlice` | `petSlice.ts` | addPet, removePet, assignPet, unassignPet |
-| `createTickSlice` | `tickSlice.ts` | tickAll (main game loop — cultivation, production, breakthroughs) |
+| `createTickSlice` | `tickSlice.ts` | tickAll (main game loop — cultivation, production, breakthroughs, auto-run gating) |
 | `createShopSlice` | `shopSlice.ts` | initShop, buyFromShop, refreshDailyShop |
 | `createSectPathSlice` | `sectPathSlice.ts` | chooseSectPath, unlockPathNode, resetSectPath, setActiveRoute |
 | `createLegacySlice` | `legacySlice.ts` | performAscension |
@@ -143,7 +143,7 @@ useSectStore.setState((s) => ({ sect: { ...s.sect, stats: { ... } } }))
 | Global game state | `useSectStore` | `sect.characters`, `sect.buildings`, `sect.resources` |
 | Session/adventure state | `useAdventureStore` | `runs`, `reports` |
 | Meta/session state | `useGameStore` | `isPaused`, `dayProgress` |
-| Event history | `useEventLogStore` | `events` (capped at 200) |
+| Event history | `useEventLogStore` | `events` (capped at 500, auto-merged) |
 | Local UI state | Component `useState` | Modal visibility, toast messages |
 | Derived state | Component `useMemo` | Aggregated stats, filtered lists |
 
@@ -177,6 +177,46 @@ export interface SectStore {
 ## Auto-Save
 
 A Zustand subscription detects `sect` reference changes, debounces 500ms, then writes all entity stores to IndexedDB in a single transaction. Triggers on: state change, `visibilitychange`, `beforeunload`.
+
+---
+
+## Tick-Loop Day Counter Gating
+
+The `tickAll` elapsed-days loop runs recovery and auto-recruit every game day, but expensive operations (auto dungeon runs) are gated by `sect.autoRunDayCounter`. Only when the counter reaches the threshold (currently 5) does the auto-run trigger, then the counter resets.
+
+### Pattern
+
+```tsx
+for (let day = 0; day < elapsedDays; day++) {
+  // 1. Every-day operations: recovery, auto-recruit
+  set((state) => ({
+    sect: {
+      ...state.sect,
+      autoRunDayCounter: (state.sect.autoRunDayCounter ?? 0) + 1,
+      characters: /* recovery logic */,
+    },
+  }))
+
+  // Auto-recruit runs every day
+  while (shouldAutoRecruit({...})) { ... }
+
+  // 2. Gated operations: only every N days
+  const currentState = get()
+  if ((currentState.sect.autoRunDayCounter ?? 0) >= 5) {
+    const autoRunConfig = buildAutomationRunConfig({...})
+    if (autoRunConfig) useAdventureStore.getState().runAutomation(autoRunConfig)
+    set((state) => ({ sect: { ...state.sect, autoRunDayCounter: 0 } }))
+  }
+}
+```
+
+### Adding New Gated Features
+
+When adding new tick-gated features:
+1. Add a counter field to `Sect` interface + `initial.ts` + `SaveMeta` migration
+2. Increment in the day loop (same `set()` call as existing counter)
+3. Check threshold before triggering, reset after
+4. Always use `?? 0` fallback for save compatibility
 
 ---
 

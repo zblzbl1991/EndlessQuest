@@ -40,7 +40,7 @@ export interface EventLogStore {
 // Implementation
 // ---------------------------------------------------------------------------
 
-const MAX_EVENTS = 200
+const MAX_EVENTS = 500
 let _counter = 0
 
 export const useEventLogStore = create<EventLogStore>((set) => ({
@@ -54,9 +54,29 @@ export const useEventLogStore = create<EventLogStore>((set) => ({
       message,
       data,
     }
-    set((s) => ({
-      events: [evt, ...s.events].slice(0, MAX_EVENTS),
-    }))
+
+    set((s) => {
+      // Check if we should merge with the previous event
+      const prev = s.events[0]
+      const mergeableTypes: EventType[] = ['adventure_start', 'adventure_complete', 'adventure_fail']
+
+      if (prev && mergeableTypes.includes(prev.type) && prev.type === type && Date.now() - prev.timestamp < 60000) {
+        // Merge: increment count in data
+        const count = ((prev.data?.mergedCount as number) ?? 1) + 1
+        const merged: GameEvent = {
+          ...prev,
+          message: `批量秘境探索 x${count}`,
+          data: { ...prev.data, mergedCount: count },
+        }
+        return {
+          events: [merged, ...s.events.slice(1)].slice(0, MAX_EVENTS),
+        }
+      }
+
+      return {
+        events: [evt, ...s.events].slice(0, MAX_EVENTS),
+      }
+    })
   },
 
   reset: () => set({ events: [] }),

@@ -117,12 +117,12 @@ export function pickAutomationRoute(
   floor: DungeonFloor,
   context: AutomationContext
 ): number {
-  // E6: steady 策略硬过滤高风险路线（除非全部都是高风险）
+  // steady 策略：高风险路线有 15% 概率被保留（允许偶尔冒险）
   const candidates =
     strategy === 'steady'
       ? floor.routes.every((r) => r.riskLevel === 'high')
         ? floor.routes
-        : floor.routes.filter((r) => r.riskLevel !== 'high')
+        : floor.routes.filter((r) => r.riskLevel !== 'high' || Math.random() < 0.15)
       : floor.routes
 
   return scoreAndPick(strategy, candidates, context)
@@ -186,11 +186,11 @@ export function pickAutomationBlessing(strategy: AutomationStrategy, options: Bl
 export function shouldRetreat(strategy: AutomationStrategy, context: AutomationContext): boolean {
   switch (strategy) {
     case 'steady':
-      return context.averageHpRatio < 0.4 || context.lowestHpRatio < 0.22
+      return context.averageHpRatio < 0.55 || context.lowestHpRatio < 0.3
     case 'combat':
-      return context.averageHpRatio < 0.18 || context.lowestHpRatio < 0.08
+      return context.averageHpRatio < 0.3 || context.lowestHpRatio < 0.12
     case 'profit':
-      return context.averageHpRatio < 0.28 || context.lowestHpRatio < 0.15
+      return context.averageHpRatio < 0.4 || context.lowestHpRatio < 0.18
   }
 }
 

@@ -119,4 +119,5 @@ export interface Sect {
   archiveMilestones: ArchiveMilestoneEntry[]
   automationSettings: SectAutomationSettings
   strategySettings: SectStrategySettings
+  autoRunDayCounter: number
 }

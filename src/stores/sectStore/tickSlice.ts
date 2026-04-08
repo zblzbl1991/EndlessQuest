@@ -10,6 +10,7 @@ import {
   clampResources,
   calcTaxRate,
   applySpiritStoneDecay,
+  calcSpiritStoneCap,
 } from '../../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../../systems/economy/ResourceEngine'
 import {
@@ -286,10 +287,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const newSectLevel = calcSectLevel(mainHallLevel)
 
     // 12. Build new sect with updated resources (production + cultivation - consumed + tax)
-    const taxProduced = calcTaxRate(newSectLevel, sect.characters.length) * deltaSec
-
-    // Apply spirit stone soft cap decay to mine production (tax is NOT affected)
+    // Apply spirit stone soft cap decay to mine production and tax
     const mineStoneProduced = applySpiritStoneDecay(rates.spiritStone * deltaSec, sect.resources.spiritStone, mhLevel)
+    const taxProduced = applySpiritStoneDecay(
+      calcTaxRate(newSectLevel, sect.characters.length) * deltaSec,
+      sect.resources.spiritStone,
+      mhLevel
+    )
 
     const newResources = {
       spiritEnergy: Math.max(0, updatedSpiritEnergy - breakthroughEnergyCost),
@@ -301,8 +305,11 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
     }
 
-    // 13. Clamp resources to caps
-    const clampedResources = clampResources(newResources, caps)
+    // 13. Clamp resources to caps (with spirit stone hard cap = soft cap * 5)
+    const clampedResources = clampResources(newResources, caps, calcSpiritStoneCap(mhLevel) * 5)
+
+    // Dynamic vault capacity: 50 + (mainHallLevel - 1) * 20
+    const dynamicMaxVaultSlots = 50 + (mhLevel - 1) * 20
 
     // 14. Update offline accumulator
     const prevAcc = sect.offlineAccumulator
@@ -337,6 +344,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       resources: clampedResources,
       buildings: newBuildings,
       vault: newVault,
+      maxVaultSlots: dynamicMaxVaultSlots,
       level: newSectLevel,
       offlineAccumulator: updatedAccumulator,
       archiveMilestones,
@@ -361,9 +369,11 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     if (elapsedDays > 0) {
       for (let day = 0; day < elapsedDays; day++) {
+        // Recovery and counter run every day (not gated by auto-run interval)
         set((state) => ({
           sect: {
             ...state.sect,
+            autoRunDayCounter: (state.sect.autoRunDayCounter ?? 0) + 1,
             characters: state.sect.characters.map((character) => {
               if (character.status !== 'recovering') return character
 
@@ -383,6 +393,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           },
         }))
 
+        // Auto-recruit runs every day
         let currentState = get()
         while (
           shouldAutoRecruit({
@@ -397,25 +408,31 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           currentState = get()
         }
 
+        // Auto-run only every 5 game days
         currentState = get()
-        const maxRealmCharacter = currentState.sect.characters.reduce<Character | null>((best, character) => {
-          if (!best) return character
-          if (character.realm > best.realm) return character
-          if (character.realm === best.realm && character.realmStage > best.realmStage) return character
-          return best
-        }, null)
-        const autoRunConfig = buildAutomationRunConfig({
-          settings: currentState.sect.automationSettings,
-          characters: currentState.sect.characters,
-          dungeons: useAdventureStore.getState().dungeons,
-          spiritStone: currentState.sect.resources.spiritStone,
-          spiritEnergy: currentState.sect.resources.spiritEnergy,
-          playerRealm: maxRealmCharacter?.realm ?? 0,
-          playerStage: maxRealmCharacter?.realmStage ?? 0,
-        })
+        if ((currentState.sect.autoRunDayCounter ?? 0) >= 5) {
+          const maxRealmCharacter = currentState.sect.characters.reduce<Character | null>((best, character) => {
+            if (!best) return character
+            if (character.realm > best.realm) return character
+            if (character.realm === best.realm && character.realmStage > best.realmStage) return character
+            return best
+          }, null)
+          const autoRunConfig = buildAutomationRunConfig({
+            settings: currentState.sect.automationSettings,
+            characters: currentState.sect.characters,
+            dungeons: useAdventureStore.getState().dungeons,
+            spiritStone: currentState.sect.resources.spiritStone,
+            spiritEnergy: currentState.sect.resources.spiritEnergy,
+            playerRealm: maxRealmCharacter?.realm ?? 0,
+            playerStage: maxRealmCharacter?.realmStage ?? 0,
+          })
 
-        if (autoRunConfig) {
-          useAdventureStore.getState().runAutomation(autoRunConfig)
+          if (autoRunConfig) {
+            useAdventureStore.getState().runAutomation(autoRunConfig)
+          }
+
+          // Reset counter
+          set((state) => ({ sect: { ...state.sect, autoRunDayCounter: 0 } }))
         }
       }
     }

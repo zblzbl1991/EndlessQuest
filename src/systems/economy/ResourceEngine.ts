@@ -68,7 +68,7 @@ export function calcSpiritStoneCap(mainHallLevel: number): number {
 /**
  * Apply spirit stone soft cap decay to production rate.
  * When spirit stones exceed cap, production rate decays: actualRate = rate * (cap / current).
- * Minimum 10% production rate. Tax income is NOT affected.
+ * Minimum 10% production rate.
  */
 export function applySpiritStoneDecay(rate: number, currentSpiritStone: number, mainHallLevel: number): number {
   const cap = calcSpiritStoneCap(mainHallLevel)
@@ -77,9 +77,11 @@ export function applySpiritStoneDecay(rate: number, currentSpiritStone: number, 
   return rate * decayFactor
 }
 
-export function clampResources(resources: Resources, caps: ResourceCaps): Resources {
+export function clampResources(resources: Resources, caps: ResourceCaps, spiritStoneHardCap?: number): Resources {
+  const spiritStone =
+    spiritStoneHardCap != null ? Math.min(resources.spiritStone, spiritStoneHardCap) : resources.spiritStone
   return {
-    spiritStone: resources.spiritStone,
+    spiritStone,
     spiritEnergy: Math.min(resources.spiritEnergy, caps.spiritEnergy),
     herb: Math.min(resources.herb, caps.herb),
     ore: Math.min(resources.ore, caps.ore),

@@ -234,8 +234,8 @@ describe('RunBuildSystem', () => {
   it('should apply blood_vial relic recovery bonus', () => {
     const healed = applyRunRecovery(40, 100, [], ['blood_vial'])
     expect(healed).toBeGreaterThan(40)
-    // blood_vial gives 15% maxHp recovery = 15 hp
-    expect(healed).toBe(55)
+    // blood_vial gives 8% maxHp recovery = 8 hp
+    expect(healed).toBe(48)
   })
 
   it('should apply golden_scale relic spirit stone bonus to reward modifiers', () => {

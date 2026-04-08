@@ -235,9 +235,9 @@ export function applyMutationCombatModifiers(unit: CombatUnit, mutationIds: Disc
 
 export function applyRunRecovery(currentHp: number, maxHp: number, blessings: BlessingId[], relics: RelicId[]): number {
   let healRatio = 0
-  if (blessings.includes('ironBody')) healRatio += 0.12
-  if (relics.includes('jadeGourd')) healRatio += 0.08
-  if (relics.includes('blood_vial')) healRatio += 0.15
+  if (blessings.includes('ironBody')) healRatio += 0.06
+  if (relics.includes('jadeGourd')) healRatio += 0.04
+  if (relics.includes('blood_vial')) healRatio += 0.08
   return Math.min(maxHp, currentHp + Math.floor(maxHp * healRatio))
 }
 

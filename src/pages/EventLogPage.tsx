@@ -73,14 +73,22 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export default function EventLogPage() {
-  const [filter, setFilter] = useState<'all' | 'adventure'>('all')
+  const [filter, setFilter] = useState<'all' | 'adventure' | 'cultivation' | 'building' | 'milestone'>('all')
   const events = useEventLogStore((s) => s.events)
   const archiveMilestones = useSectStore((s) => s.sect.archiveMilestones)
 
   const filteredEvents =
     filter === 'adventure'
       ? events.filter((event) => ['adventure_start', 'adventure_complete', 'adventure_fail'].includes(event.type))
-      : events
+      : filter === 'cultivation'
+        ? events.filter((event) =>
+            ['breakthrough_success', 'breakthrough_failure', 'breakthrough_comprehension'].includes(event.type)
+          )
+        : filter === 'building'
+          ? events.filter((event) => ['building_upgrade', 'building_build', 'item_crafted'].includes(event.type))
+          : filter === 'milestone'
+            ? events.filter((event) => ['milestone', 'recruit', 'pet_capture'].includes(event.type))
+            : events
 
   if (events.length === 0 && archiveMilestones.length === 0) {
     return (
@@ -97,7 +105,20 @@ export default function EventLogPage() {
         title="记录"
         metrics={[
           { label: '里程碑', value: archiveMilestones.length, detail: '会跨轮回保留' },
-          { label: '当前筛选', value: filter === 'all' ? '全部' : '秘境', detail: `${filteredEvents.length} 条事件` },
+          {
+            label: '当前筛选',
+            value:
+              filter === 'all'
+                ? '全部'
+                : filter === 'adventure'
+                  ? '秘境'
+                  : filter === 'cultivation'
+                    ? '修行'
+                    : filter === 'building'
+                      ? '建设'
+                      : '里程碑',
+            detail: `${filteredEvents.length} 条事件`,
+          },
         ]}
       />
       {archiveMilestones.length > 0 && (
@@ -155,7 +176,25 @@ export default function EventLogPage() {
           className={`${styles.filterBtn} ${filter === 'adventure' ? styles.filterBtnActive : ''}`}
           onClick={() => setFilter('adventure')}
         >
-          秘境明细
+          秘境
+        </button>
+        <button
+          className={`${styles.filterBtn} ${filter === 'cultivation' ? styles.filterBtnActive : ''}`}
+          onClick={() => setFilter('cultivation')}
+        >
+          修行
+        </button>
+        <button
+          className={`${styles.filterBtn} ${filter === 'building' ? styles.filterBtnActive : ''}`}
+          onClick={() => setFilter('building')}
+        >
+          建设
+        </button>
+        <button
+          className={`${styles.filterBtn} ${filter === 'milestone' ? styles.filterBtnActive : ''}`}
+          onClick={() => setFilter('milestone')}
+        >
+          里程碑
         </button>
       </div>
 

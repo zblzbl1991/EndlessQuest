@@ -110,9 +110,9 @@ describe('checkBuildingUnlock', () => {
 describe('canUpgradeBuilding', () => {
   it('should allow upgrade with sufficient spirit stone', () => {
     const buildings = createBuildings({ mainHall: { level: 1, unlocked: true } })
-    const result = canUpgradeBuilding('mainHall', buildings, 300)
+    const result = canUpgradeBuilding('mainHall', buildings, 700)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(Math.round(100 * Math.pow(2, 1.3))) // 100 * 2^1.3 ≈ 246
+    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(2, 1.7))) // 200 * 2^1.7 ≈ 650
   })
 
   it('should reject upgrade without enough spirit stone', () => {
@@ -138,22 +138,22 @@ describe('canUpgradeBuilding', () => {
 
   it('should show correct cost for level 2 spirit field upgrade', () => {
     const buildings = createBuildings({ spiritField: { level: 2, unlocked: true } })
-    const result = canUpgradeBuilding('spiritField', buildings, 400)
+    const result = canUpgradeBuilding('spiritField', buildings, 1400)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(Math.round(80 * Math.pow(3, 1.3))) // 80 * 3^1.3 ≈ 334
+    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(3, 1.7))) // 200 * 3^1.7 ≈ 1294
   })
 
   it('canUpgradeBuilding should show correct spiritMine level 0→1 cost', () => {
     const buildings = createBuildings({ spiritMine: { level: 0, unlocked: true } })
-    const result = canUpgradeBuilding('spiritMine', buildings, 100)
+    const result = canUpgradeBuilding('spiritMine', buildings, 200)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(Math.round(100 * Math.pow(1, 1.3))) // 100 * 1^1.3 = 100
+    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(1, 1.7))) // 200 * 1^1.7 = 200
   })
 
   it('canUpgradeBuilding should show correct spiritMine level 1→2 cost', () => {
     const buildings = createBuildings({ spiritMine: { level: 1, unlocked: true } })
-    const result = canUpgradeBuilding('spiritMine', buildings, 300)
+    const result = canUpgradeBuilding('spiritMine', buildings, 700)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(Math.round(100 * Math.pow(2, 1.3))) // 100 * 2^1.3 ≈ 246
+    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(2, 1.7))) // 200 * 2^1.7 ≈ 650
   })
 })

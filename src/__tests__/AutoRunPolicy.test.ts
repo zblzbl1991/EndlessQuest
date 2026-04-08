@@ -97,7 +97,7 @@ describe('AutoRunPolicy', () => {
   })
 
   it('steady retreats earlier than profit and combat in the same low-hp state', () => {
-    const context = makeContext({ averageHpRatio: 0.34, lowestHpRatio: 0.18 })
+    const context = makeContext({ averageHpRatio: 0.45, lowestHpRatio: 0.2 })
     expect(shouldRetreat('steady', context)).toBe(true)
     expect(shouldRetreat('profit', context)).toBe(false)
     expect(shouldRetreat('combat', context)).toBe(false)
