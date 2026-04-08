@@ -196,3 +196,52 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: Add mid-game regression test fixture
+
+**Date**: 2026-04-08
+**Task**: Add mid-game regression test fixture
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Feature | Description |
+|---------|-------------|
+| testFixture.ts | 中期存档测试数据：天机阁 Lv3、6 名弟子（仙/灵/凡品）、8 栋建筑、18 件仓库物品、2 只灵宠、6 部功法 |
+| App.tsx | 添加 ?loadTestSave=true URL 参数，一键加载测试数据后自动清除 URL 参数 |
+| smoke-test.md | 与 testFixture 数据整合，检查点精确到具体弟子/装备/数值；新增快速回归命令序列 |
+
+**Fixture Details**:
+- 宗门：天机阁 (Lv3)，剑道路线，已解锁 sword_basic + sword_fury
+- 弟子：赵无极(仙品/金丹)、李青云(灵品/筑基)、王铁柱(灵品/筑基)、张小凡/陈灵儿/林小龙(凡品/炼气)
+- 建筑：主殿3、灵田3x2、灵矿3x2、坊市2、丹炉2(生产中)、锻器坊1、藏经阁1
+- 仓库：仙品装备(天罡冠/天罡战甲/雷鸣剑)、灵品装备、丹药(回气丹x12/疗伤丹x8)、材料、功法残卷
+- 灵宠：小火狐(灵品)、灵鹿(仙品)
+
+**Updated Files**:
+- `src/systems/save/testFixture.ts` (new)
+- `src/App.tsx`
+- `tests/playwright/smoke-test.md`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `2e8f290` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
