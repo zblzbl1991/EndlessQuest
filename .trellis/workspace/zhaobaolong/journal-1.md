@@ -353,3 +353,46 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: Balance Fix: auto-run interval, combat risk, resource caps, event log
+
+**Date**: 2026-04-08
+**Task**: Balance Fix: auto-run interval, combat risk, resource caps, event log
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| Phase | Changes | Files |
+|-------|---------|-------|
+| Auto-run interval | 60s→300s via autoRunDayCounter (5 game days), save migration | sect.ts, initial.ts, tickSlice.ts, SaveSystem.ts, LegacySystem.ts |
+| Combat risk | Enemy strength 80-200%, retreat thresholds tightened, recovery halved, steady 15% risky routes | enemies.ts, AutoRunPolicy.ts, RunBuildSystem.ts |
+| Resource balance | Spirit stone hard cap (soft×5), tax decay, building costs 200*pow(n,1.7), vault 50+20*lv | ResourceEngine.ts, buildings.ts, tickSlice.ts |
+| Event log | MAX_EVENTS 500, consecutive adventure events auto-merge, 5-category filter (全部/秘境/修行/建设/里程碑) | eventLogStore.ts, EventLogPage.tsx |
+| Tests | Updated 4 test files to match new balance values | AutoRunPolicy.test.ts, BuildingSystem.test.ts, RunBuildSystem.test.ts, stores.test.ts |
+| Spec | Updated state-management.md (event cap, tick gating pattern) | state-management.md |
+
+**Approach**: 3 parallel implement agents (no file overlap), then unified check.
+**Result**: 0 lint errors, 0 type errors, 1043/1043 tests pass.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `1214874` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
