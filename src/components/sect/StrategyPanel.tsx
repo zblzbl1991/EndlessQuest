@@ -86,6 +86,7 @@ export default function StrategyPanel() {
   return (
     <div className={styles.container}>
       <div className={styles.title}>宗门方针</div>
+      <div className={styles.subtitle}>选择宗门的冒险倾向，影响核心弟子数与风险偏好</div>
 
       {/* Active policy summary */}
       <div className={styles.activeRow}>
@@ -129,6 +130,7 @@ export default function StrategyPanel() {
         <div className={styles.ampTitle}>
           命运标签 ({activeAmplifiers.length}/{MAX_AMPLIFIERS})
         </div>
+        <div className={styles.ampSubtitle}>选择后放大对应类型事件的发生概率</div>
         <div className={styles.ampGrid}>
           {DESTINY_AMPLIFIER_LIST.map((amp) => {
             const isActive = activeAmplifiers.includes(amp.id)
@@ -149,7 +151,10 @@ export default function StrategyPanel() {
       {/* Dark current overview */}
       {hasNoticeableDarkCurrent && (
         <div className={styles.darkSection}>
-          <div className={styles.darkTitle}>宗门暗流</div>
+          <div className={styles.darkTitle}>
+            宗门暗流
+            <span className={styles.darkHint}> — 影响招募倾向与秘境事件分布</span>
+          </div>
           <div className={styles.darkGrid}>
             {DARK_CURRENT_FAMILIES.map((family) => {
               const value = darkCurrent[family]
@@ -161,7 +166,6 @@ export default function StrategyPanel() {
               )
             })}
           </div>
-          <div className={styles.darkHint}>暗流影响招募倾向与秘境事件分布</div>
         </div>
       )}
     </div>

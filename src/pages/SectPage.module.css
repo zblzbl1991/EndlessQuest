@@ -90,6 +90,62 @@
   gap: 12px;
 }
 
+.synergySummary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+  margin-bottom: var(--space-md);
+}
+
+.collapsibleSection {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 28px rgba(37, 50, 64, 0.05);
+}
+
+.collapsibleSummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  list-style: none;
+  user-select: none;
+}
+
+.collapsibleSummary::-webkit-details-marker {
+  display: none;
+}
+
+.collapsibleSummary::before {
+  content: '▸';
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  margin-right: 8px;
+  transition: transform 0.2s;
+}
+
+.collapsibleSection[open] > .collapsibleSummary::before {
+  transform: rotate(90deg);
+}
+
+.collapsibleMeta {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+}
+
 .sectionTitle {
   font-family: var(--font-serif);
   font-size: 14px;

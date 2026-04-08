@@ -1056,21 +1056,64 @@
 }
 
 .synergyCard {
-  padding: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-md);
   background: var(--color-panel);
   border: 1px solid var(--color-border);
-  opacity: 0.5;
+  transition:
+    opacity 0.2s,
+    border-color 0.2s;
 }
 
 .synergyActive {
-  opacity: 1;
   border-color: var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 8%, var(--color-bg-paper));
+}
+
+.synergyClose {
+  border-color: rgba(181, 139, 98, 0.35);
+  background: rgba(181, 139, 98, 0.04);
+}
+
+.synergyInactive {
+  opacity: 0.55;
+}
+
+.synergyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 2px;
 }
 
 .synergyName {
   font-weight: 600;
   font-size: 14px;
+}
+
+.statusActive {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: rgba(79, 122, 116, 0.1);
+  color: var(--color-success);
+}
+
+.statusClose {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: rgba(181, 139, 98, 0.1);
+  color: var(--color-warning);
+}
+
+.statusInactive {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: rgba(95, 122, 141, 0.08);
+  color: var(--color-text-tertiary);
 }
 
 .synergyDesc {
@@ -1079,8 +1122,26 @@
   margin-top: 2px;
 }
 
-.synergyReq {
-  font-size: 11px;
+.synergyProgress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-xs);
+}
+
+.progressItem {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.progressMet {
+  background: rgba(79, 122, 116, 0.1);
+  color: var(--color-success);
+}
+
+.progressPending {
+  background: rgba(95, 122, 141, 0.06);
   color: var(--color-text-tertiary);
-  margin-top: 4px;
 }

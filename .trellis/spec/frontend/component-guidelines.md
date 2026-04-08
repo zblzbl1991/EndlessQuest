@@ -228,6 +228,155 @@ Define inline — no `useCallback` anywhere in the codebase:
 
 ---
 
+## Information Hierarchy
+
+### Three-layer page architecture
+
+Pages should organize content into three layers of visibility:
+
+| Layer | Always Visible | Purpose |
+|-------|---------------|---------|
+| **Near** | PageHeader + primary metrics + resources | Answer "what's happening now?" |
+| **Mid** | Expandable panels, summary rows | Answer "what can I do?" |
+| **Far** | Collapsible `<details>` sections | Answer "what are all the details?" |
+
+**Rule**: A page should never display all its sections fully expanded by default. Move secondary content (stats, settings, legacy info) into collapsible containers.
+
+### Collapsible sections with native `<details>`
+
+Use HTML `<details>/<summary>` for collapsible content — no custom accordion component:
+
+```tsx
+<details className={styles.collapsibleSection}>
+  <summary className={styles.collapsibleSummary}>
+    <span>Section Title</span>
+    <span className={styles.collapsibleMeta}>展开详情</span>
+  </summary>
+  <ChildComponent />
+</details>
+```
+
+```css
+.collapsibleSummary {
+  list-style: none;
+}
+.collapsibleSummary::-webkit-details-marker {
+  display: none;
+}
+.collapsibleSummary::before {
+  content: '▸';
+  transition: transform 0.2s;
+}
+.collapsibleSection[open] > .collapsibleSummary::before {
+  transform: rotate(90deg);
+}
+```
+
+**Why**: No extra JS state, accessible by default, works on mobile without hover. Keep it simple.
+
+### Avoid cross-page data duplication
+
+If data appears in multiple pages, show a **summary** on the overview page and the **full detail** on the dedicated page — never render the same full component twice:
+
+```tsx
+// Good: SectPage shows one-line summary
+<div className={styles.synergySummary}>
+  建筑协同已激活 {activeCount}/{totalCount}
+</div>
+
+// Good: BuildingsPage shows full detail with progress tracking
+<SynergySection buildings={sect.buildings} />
+```
+
+### Section subtitle pattern
+
+When a section uses domain-specific terminology, add an explanatory subtitle below the title:
+
+```tsx
+<div className={styles.title}>宗门方针</div>
+<div className={styles.subtitle}>选择宗门的冒险倾向，影响核心弟子数与风险偏好</div>
+```
+
+```css
+.title { margin-bottom: 2px; }
+.subtitle {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-sm);
+}
+```
+
+**Why**: Mobile-first design means no hover tooltips. Explanations must be always-visible text. Keep subtitles to one line, under 20 characters.
+
+---
+
+## Disabled State Messaging
+
+When a button is disabled, the UI must explain **why** it's disabled — not just show a gray button:
+
+```tsx
+// Bad — generic hint regardless of reason
+<div className={styles.dungeonHint}>
+  {unlocked ? '手动发起' : '当前境界不足'}
+</div>
+// This says "可探索" but the button is disabled because no idle characters!
+
+// Good — specific reason for each disabled state
+if (!unlocked) {
+  hint = `需${unlockRealmName}才可探索`
+} else if (availableCharacters.length === 0) {
+  hint = '暂无空闲弟子可出战'
+}
+```
+
+**Rule**: Every disabled button should have adjacent text explaining the blocking condition. Test by asking: "If I were a new player, would I know what to do to enable this button?"
+
+---
+
+## Sidebar Dynamic Hints
+
+The desktop sidebar resource card shows a hint line below the spirit stone count. This should be **dynamic** — reflecting the most important current game state, not a hardcoded string:
+
+```tsx
+function getSidebarHint(sect: Sect): string {
+  if (recoveringChars.length > 0) return `${count}名弟子恢复中`
+  if (allBusy) return '弟子皆在外，留意归期'
+  if (lowOnStones) return '灵石紧缺，留意收支'
+  return '门中香火稳，诸务可理'  // default zen text
+}
+```
+
+**Priority order**: Recovery > All-busy > Low-resources > Default zen text. Add new conditions at the top of the priority chain.
+
+---
+
+## Mobile Navigation Active State
+
+The mobile bottom nav uses `NavLink` with an active class. The active state must be **visually distinct** — not just a subtle color change:
+
+Required visual indicators:
+1. **Bottom accent bar** via `::after` pseudo-element (3px, accent color)
+2. **Icon frame background** with higher-contrast gradient (45% opacity, not 28%)
+3. **Text color** change to accent color
+
+```css
+.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(109, 135, 152, 0.6);
+}
+```
+
+**Why**: On small screens (11px labels), font-weight changes alone are imperceptible. Shape-based indicators (bars, underlines) are universally understood.
+
+---
+
 ## Common Mistakes
 
 1. **Subscribing to entire store** — Always use selectors: `useSectStore((s) => s.field)`

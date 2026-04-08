@@ -134,10 +134,12 @@ export default function AdventurePage() {
             label: '可出战',
             value: availableCharacters.length,
             detail:
-              sect.characters
-                .filter((char) => char.status === 'recovering')
-                .map((char) => `${char.name}（${char.recoveryDaysRemaining ?? '?'}天）`)
-                .join('、') || '无恢复中弟子',
+              availableCharacters.length > 0
+                ? sect.characters
+                    .filter((char) => char.status === 'recovering')
+                    .map((char) => `${char.name}（${char.recoveryDaysRemaining ?? '?'}天）`)
+                    .join('、') || '无恢复中弟子'
+                : '全部弟子忙于其他事务',
           },
           {
             label: '最近结果',
@@ -347,6 +349,16 @@ export default function AdventurePage() {
                 const unlockRealmName = getRealmName(dungeon.unlockRealm, dungeon.unlockStage as 0 | 1 | 2 | 3)
                 const cleared = completedDungeons.includes(dungeon.id)
                 const launchDisabled = !unlocked || availableCharacters.length === 0
+                let hint = ''
+                if (!unlocked) {
+                  hint = `需${unlockRealmName}才可探索`
+                } else if (availableCharacters.length === 0) {
+                  hint = '暂无空闲弟子可出战'
+                } else if (cleared) {
+                  hint = '已通关，可再次挑战'
+                } else {
+                  hint = '手动发起并保留完整战报。'
+                }
 
                 return (
                   <div key={dungeon.id} className={`${styles.dungeonCard} ${!unlocked ? styles.dungeonLocked : ''}`}>
@@ -368,7 +380,7 @@ export default function AdventurePage() {
                       <span>层数：{dungeon.totalLayers}</span>
                       <span>推荐：{unlockRealmName}</span>
                     </div>
-                    <div className={styles.dungeonHint}>{unlocked ? '手动发起并保留完整战报。' : '当前境界不足。'}</div>
+                    <div className={styles.dungeonHint}>{hint}</div>
                     <button
                       className={`${styles.startBtn} ${launchDisabled ? styles.btnDisabled : ''}`}
                       disabled={launchDisabled}

@@ -173,6 +173,9 @@ npx vitest run path    # Run specific test file
 8. **Mutating store state directly** — Always use `set()` with immutable spreads
 9. **Importing from `@/` alias** — Use relative paths (`../../`) instead
 10. **Emoji in code/UI** — Only use if explicitly requested
+11. **Disabled buttons without explanation** — Every disabled button must have adjacent text explaining WHY
+12. **Rendering the same full component on multiple pages** — Show summary on overview, detail on dedicated page
+13. **Hardcoded static hint text** — Sidebar/status hints must reflect game state dynamically
 
 ---
 
@@ -201,3 +204,6 @@ npx vitest run path    # Run specific test file
 - [ ] CSS uses theme variables, not hardcoded values
 - [ ] Mobile-first responsive design (min-width media queries)
 - [ ] Touch targets >= 44px on mobile
+- [ ] Disabled buttons have adjacent explanation text
+- [ ] No duplicate full components across pages (summary on overview, detail on dedicated page)
+- [ ] Mobile nav active state uses shape indicator (accent bar), not just color change

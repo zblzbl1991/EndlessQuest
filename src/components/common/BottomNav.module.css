@@ -31,6 +31,7 @@
     transform var(--transition-fast);
   min-height: 52px;
   border-radius: 16px;
+  position: relative;
 }
 
 .iconFrame {
@@ -63,9 +64,21 @@
   font-weight: 600;
 }
 
+.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(109, 135, 152, 0.6);
+}
+
 .active .iconFrame {
-  background: linear-gradient(180deg, rgba(174, 199, 218, 0.28), rgba(111, 139, 149, 0.1)), rgba(255, 255, 255, 0.92);
-  border-color: rgba(125, 146, 164, 0.16);
+  background: linear-gradient(180deg, rgba(174, 199, 218, 0.45), rgba(111, 139, 149, 0.15)), rgba(255, 255, 255, 0.92);
+  border-color: rgba(125, 146, 164, 0.2);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
 }
 

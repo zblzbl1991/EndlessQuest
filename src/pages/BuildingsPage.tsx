@@ -497,20 +497,46 @@ function BuildingsTab() {
       <section className={styles.synergySection}>
         <div className={styles.sectionTitle}>建筑协同</div>
         <div className={styles.synergyList}>
-          {SYNERGIES.map((synergy) => {
+          {SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i).map((synergy) => {
             const isActive = activeSynergies.some((a) => a.id === synergy.id)
+            const reqProgress = synergy.requirements.map((req) => {
+              const building = sect.buildings.find((b) => b.type === req.building)
+              const currentLevel = building?.level ?? 0
+              const name = BUILDING_DEFS.find((d) => d.type === req.building)?.name ?? req.building
+              const met = currentLevel >= req.level
+              return { name, currentLevel, requiredLevel: req.level, met }
+            })
+            const allMet = reqProgress.every((r) => r.met)
+            const closeToActivation =
+              !allMet &&
+              reqProgress.filter((r) => r.met).length === reqProgress.length - 1 &&
+              reqProgress.some((r) => !r.met && r.currentLevel === r.requiredLevel - 1)
+
+            let cardClass = styles.synergyCard
+            if (isActive) cardClass += ` ${styles.synergyActive}`
+            else if (closeToActivation) cardClass += ` ${styles.synergyClose}`
+            else cardClass += ` ${styles.synergyInactive}`
+
             return (
-              <div
-                key={synergy.id}
-                className={`${styles.synergyCard} ${isActive ? styles.synergyActive : styles.synergyInactive}`}
-              >
-                <div className={styles.synergyName}>{synergy.name}</div>
+              <div key={synergy.id} className={cardClass}>
+                <div className={styles.synergyHeader}>
+                  <span className={styles.synergyName}>{synergy.name}</span>
+                  <span
+                    className={
+                      isActive ? styles.statusActive : closeToActivation ? styles.statusClose : styles.statusInactive
+                    }
+                  >
+                    {isActive ? '已激活' : closeToActivation ? '即将激活' : '未激活'}
+                  </span>
+                </div>
                 <div className={styles.synergyDesc}>{synergy.description}</div>
-                <div className={styles.synergyReq}>
-                  {synergy.requirements.map((req, i) => (
-                    <span key={i}>
-                      {BUILDING_DEFS.find((d) => d.type === req.building)?.name ?? req.building} Lv{req.level}
-                      {i < synergy.requirements.length - 1 && ' + '}
+                <div className={styles.synergyProgress}>
+                  {reqProgress.map((r, i) => (
+                    <span
+                      key={i}
+                      className={`${styles.progressItem} ${r.met ? styles.progressMet : styles.progressPending}`}
+                    >
+                      {r.name} Lv{r.currentLevel}/{r.requiredLevel}
                     </span>
                   ))}
                 </div>

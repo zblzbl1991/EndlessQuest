@@ -4,8 +4,30 @@ import { primaryNavigation } from '../../data/navigation'
 import { PixelIcon } from './PixelIcon'
 import styles from './Sidebar.module.css'
 
+function getSidebarHint(sect: ReturnType<typeof useSectStore.getState>['sect']): string {
+  const recoveringChars = sect.characters.filter(
+    (c) => c.status === 'resting' || c.status === 'injured' || c.status === 'recovering'
+  )
+  const busyChars = sect.characters.filter(
+    (c) => c.status === 'adventuring' || c.status === 'patrolling' || c.status === 'training'
+  )
+
+  // Priority hints from high to low
+  if (recoveringChars.length > 0) {
+    return `${recoveringChars.length}名弟子恢复中`
+  }
+  if (busyChars.length === sect.characters.length && sect.characters.length > 0) {
+    return '弟子皆在外，留意归期'
+  }
+  if (sect.resources.spiritStone < 200 && sect.characters.length > 0) {
+    return '灵石紧缺，留意收支'
+  }
+  return '门中香火稳，诸务可理'
+}
+
 export default function Sidebar() {
   const sect = useSectStore((s) => s.sect)
+  const hint = getSidebarHint(sect)
 
   return (
     <aside className={styles.sidebar} data-testid="shell-sidebar">
@@ -24,7 +46,7 @@ export default function Sidebar() {
             <span className={styles.resourceLabel}>灵石</span>
             <span className={styles.resourceValue}>{Math.floor(sect.resources.spiritStone).toLocaleString()}</span>
           </div>
-          <div className={styles.resourceHint}>门中香火稳，诸务可理</div>
+          <div className={styles.resourceHint}>{hint}</div>
         </div>
       </div>
       <nav className={styles.navList} aria-label="侧边导航">

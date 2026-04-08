@@ -4,6 +4,8 @@ import { useGameStore } from '../stores/gameStore'
 import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
 import { calcSpiritStoneCap } from '../systems/economy/ResourceEngine'
 import { getDominantDarkCurrentFamily } from '../systems/destiny/DarkCurrentSystem'
+import { getActiveSynergies } from '../systems/economy/SynergySystem'
+import { SYNERGIES } from '../data/buildings'
 import { SECT_RISK_POLICY_LIST } from '../data/sectRiskPolicies'
 import { DESTINY_STAGE_NAMES, DESTINY_RISK_NAMES } from '../types/destiny'
 import type { DestinyRiskLevel } from '../types/destiny'
@@ -11,7 +13,6 @@ import { PixelIcon } from '../components/common/PixelIcon'
 import PageHeader from '../components/common/PageHeader'
 import ResourceRate from '../components/common/ResourceRate'
 import StrategyPanel from '../components/sect/StrategyPanel'
-import SynergyPanel from '../components/sect/SynergyPanel'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
@@ -72,6 +73,8 @@ export default function SectPage() {
   const mainHallLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
   const spiritStoneCap = calcSpiritStoneCap(mainHallLevel)
   const spiritStoneRatio = sect.resources.spiritStone / spiritStoneCap
+  const activeSynergyCount = getActiveSynergies(sect.buildings).length
+  const uniqueSynergyTotal = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i).length
 
   const dominantDarkCurrent = useMemo(() => getDominantDarkCurrentFamily(sect.darkCurrent), [sect.darkCurrent])
 
@@ -187,7 +190,12 @@ export default function SectPage() {
         </section>
       </div>
 
-      <SynergyPanel />
+      <div className={styles.synergySummary}>
+        <PixelIcon name="buildingMainHall" size={14} className={styles.inlineIcon} aria-label="协同" />
+        <span>
+          建筑协同已激活 {activeSynergyCount}/{uniqueSynergyTotal}
+        </span>
+      </div>
 
       {notableDisciples.length > 0 && (
         <section className={styles.section}>
@@ -218,8 +226,20 @@ export default function SectPage() {
 
       <div className={styles.backgroundStack}>
         <SectPathPanel />
-        <LegacyPanel />
-        <StatsPanel />
+        <details className={styles.collapsibleSection}>
+          <summary className={styles.collapsibleSummary}>
+            <span>飞升与传承</span>
+            <span className={styles.collapsibleMeta}>展开详情</span>
+          </summary>
+          <LegacyPanel />
+        </details>
+        <details className={styles.collapsibleSection}>
+          <summary className={styles.collapsibleSummary}>
+            <span>宗门统计</span>
+            <span className={styles.collapsibleMeta}>展开详情</span>
+          </summary>
+          <StatsPanel />
+        </details>
       </div>
     </div>
   )
