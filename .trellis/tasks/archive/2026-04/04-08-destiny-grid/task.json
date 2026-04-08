@@ -1,0 +1,32 @@
+{
+  "id": "destiny-grid",
+  "name": "destiny-grid",
+  "title": "命运系统重设计：弟子命格",
+  "description": "将现有命运系统重设计为弟子个人命格系统，10个命格定义，按品级概率获取",
+  "status": "completed",
+  "dev_type": "fullstack",
+  "scope": "destiny",
+  "priority": "P2",
+  "creator": "zhaobaolong",
+  "assignee": "zhaobaolong",
+  "createdAt": "2026-04-08",
+  "completedAt": "2026-04-08",
+  "branch": null,
+  "base_branch": "master",
+  "worktree_path": null,
+  "current_phase": 4,
+  "next_action": [],
+  "commit": "d07ac83",
+  "pr_url": null,
+  "subtasks": [],
+  "children": [],
+  "parent": null,
+  "relatedFiles": [
+    "src/systems/destiny/DestinySystem.ts",
+    "src/types/character.ts",
+    "src/data/fateGrids.ts",
+    "src/stores/sectStore/characterSlice.ts"
+  ],
+  "notes": "Completed via commit d07ac83 refactor(destiny): replace seed/exposure system with fate grid",
+  "meta": {}
+}

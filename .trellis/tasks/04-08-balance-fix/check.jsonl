@@ -1,0 +1,14 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": "src/types/sect.ts", "reason": "Sect interface - adding autoRunDayCounter field"}
+{"file": "src/stores/sectStore/initial.ts", "reason": "Initial state factory"}
+{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Tick logic - auto run interval, tax decay, vault capacity"}
+{"file": "src/systems/save/SaveSystem.ts", "reason": "Save migration for autoRunDayCounter"}
+{"file": "src/data/enemies.ts", "reason": "Enemy difficulty scaling"}
+{"file": "src/systems/roguelike/AutoRunPolicy.ts", "reason": "Retreat thresholds + route selection"}
+{"file": "src/systems/roguelike/RunBuildSystem.ts", "reason": "Floor recovery values"}
+{"file": "src/systems/economy/ResourceEngine.ts", "reason": "Spirit stone hard cap"}
+{"file": "src/data/buildings.ts", "reason": "Building upgrade cost formula"}
+{"file": "src/stores/eventLogStore.ts", "reason": "Event log merge + MAX_EVENTS"}
+{"file": "src/pages/EventLogPage.tsx", "reason": "Event log filter UI"}
