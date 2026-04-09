@@ -24,7 +24,10 @@ function formatRouteBonus(routeId: SectRouteId): string {
   if (entries.length === 0) return route.adventureModifier
 
   return entries
-    .map(([buildingType, value]) => `${BUILDING_NAME_MAP[buildingType as keyof typeof BUILDING_NAME_MAP]} x${value.toFixed(2)}`)
+    .map(
+      ([buildingType, value]) =>
+        `${BUILDING_NAME_MAP[buildingType as keyof typeof BUILDING_NAME_MAP]} x${value.toFixed(2)}`
+    )
     .join(' / ')
 }
 

@@ -41,7 +41,9 @@ export default function StatsPanel() {
     })
 
     const pathChoices = breakthroughCandidates.filter(needsCultivationPathChoice)
-    const nextUpgrade = BUILDING_DEFS.find((def) => canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone).canUpgrade)
+    const nextUpgrade = BUILDING_DEFS.find(
+      (def) => canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone).canUpgrade
+    )
     const caps = calcResourceCaps(
       sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0,
       sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0,

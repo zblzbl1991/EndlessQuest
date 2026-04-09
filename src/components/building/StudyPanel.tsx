@@ -33,7 +33,9 @@ export default function StudyPanel() {
           <PixelIcon name="scriptureHall" size={20} className={styles.panelIcon} aria-label="Scripture Hall" />
           Scripture Hall Lv{scriptureLevel}
         </span>
-        <span className={styles.resourceDisplay}>Codex {sect.techniqueCodex.length} / {capacity}</span>
+        <span className={styles.resourceDisplay}>
+          Codex {sect.techniqueCodex.length} / {capacity}
+        </span>
       </div>
 
       <div className={styles.studyInfo}>

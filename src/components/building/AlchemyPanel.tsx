@@ -48,7 +48,8 @@ export default function AlchemyPanel() {
             <div className={styles.recipeHeader}>
               <span className={styles.recipeName}>{recipe.name}</span>
               <span className={`${styles.recipeQuality} ${getQualityClass(recipe.product.quality)}`}>
-                {CHAR_QUALITY_NAMES[recipe.product.quality as keyof typeof CHAR_QUALITY_NAMES] || recipe.product.quality}
+                {CHAR_QUALITY_NAMES[recipe.product.quality as keyof typeof CHAR_QUALITY_NAMES] ||
+                  recipe.product.quality}
               </span>
             </div>
             <div className={styles.recipeDesc}>{recipe.description}</div>
