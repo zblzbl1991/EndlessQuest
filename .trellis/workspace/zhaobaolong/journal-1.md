@@ -683,3 +683,80 @@ Redesigned CharacterCard to show decision-critical info (core stats HP/ATK/DEF, 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 14: Disciple level system + skill customization + UI density overhaul
+
+**Date**: 2026-04-10
+**Task**: Disciple level system + skill customization + UI density overhaul
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Features Implemented
+
+| Feature | Description |
+|---------|-------------|
+| Disciple Level System | Quality→stats, realm→cap, dungeon→XP. Level/xp fields on Character, tryLevelUp in adventureStore |
+| Skill Customization | updateCharacterSkill store action + SkillPicker UI with tier gating by realm |
+| UI Density Overhaul | FoldSection for base stats/aptitude, level display with XP bar, skill slot editing |
+| Save Migration | normalizeFiniteNumber for level/xp on load, backward-compatible defaults |
+| Vitest Config | Exclude .claude/ worktree dirs from test discovery |
+
+## Spec Updates
+
+| Spec File | Changes |
+|-----------|---------|
+| state-management.md | Level system contracts, save export/import, skill action, DungeonGrowth update |
+| component-guidelines.md | FoldSection pattern replacing generic collapsible section |
+| type-safety.md | Character field migration checklist |
+| guides/parallel-development-guide.md | New: worktree agent development guide |
+
+## Key Decisions
+
+- **Quality determines stat gain per level**: common +2/+1/+1 to chaos +12/+6/+6 (HP/ATK/DEF)
+- **Realm determines level cap**: 10/20/30/40/50/60 for realms 0-5
+- **XP only from dungeons**: 100 XP per floor, level*100 curve
+- **FoldSection for density**: Native details/summary with summary line showing key values
+
+## Lessons Learned
+
+- Parallel agents may report success but leave features unimplemented — always verify file contents
+- Run `npm run format` on master before branching to avoid 200+ file format-only diffs
+- Exclude worktree directories from vitest to prevent test pollution
+- When merging agent output, check cross-agent type consistency (e.g., new fields in shared types)
+
+**Updated Files**:
+- `src/types/character.ts` (level, xp fields)
+- `src/systems/character/CharacterEngine.ts` (defaults)
+- `src/stores/sectStore/characterSlice.ts` (updateCharacterSkill)
+- `src/stores/sectStore/types.ts` (action signature)
+- `src/pages/CharactersPage.tsx` (FoldSection, SkillPicker, level display)
+- `src/pages/CharactersPage.module.css` (all new styles)
+- `src/components/common/CharacterCard.module.css` (xpProgress)
+- `vite.config.ts` (exclude .claude/)
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a54f4f9` | (see git log) |
+| `19428db` | (see git log) |
+| `ebc84a8` | (see git log) |
+| `a7c164e` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
