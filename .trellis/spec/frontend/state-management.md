@@ -174,6 +174,58 @@ export interface SectStore {
 
 ---
 
+## Tick-Driven Re-render Performance
+
+`tickAll` fires every 1 second and replaces the entire `sect` object via `set({ sect: newSect })`. This means **every component subscribed to `useSectStore((s) => s.sect)` re-renders once per second**, regardless of which fields changed.
+
+### Why fine-grained selectors don't help
+
+Since `tickAll` creates a new `sect` with new nested references (`characters`, `resources`, `buildings`, `vault`), even `useSectStore((s) => s.sect.characters)` detects a reference change every tick. Narrow selectors only help if the slice truly wasn't replaced.
+
+### Defense: useMemo for expensive derivations
+
+Any component subscribed to `sect` must wrap expensive computations in `useMemo`. "Expensive" means any of:
+- Iterating arrays (`filter`, `reduce`, `find` inside `.map()`)
+- Calling system functions (`getActiveSynergies`, `calcEffectiveCultivationRate`, `buildCharacterSkillLoadout`)
+- Sorting or transforming data
+
+```tsx
+// Good — computation only runs when buildings actually change reference
+const activeSynergies = useMemo(() => getActiveSynergies(sect.buildings), [sect.buildings])
+
+// Bad — re-runs O(synergies * requirements * buildings) every second
+const activeSynergies = getActiveSynergies(sect.buildings)
+```
+
+### Defense: Hoist shared computations to parent
+
+When multiple child components need the same derived value, compute once in the parent and pass via props:
+
+```tsx
+// Parent
+const activeSynergies = useMemo(() => getActiveSynergies(sect.buildings), [sect.buildings])
+const autoAssignableCount = useMemo(() => /* ... */, [sect.buildings, sect.characters])
+
+return <BuildingsTab activeSynergies={activeSynergies} autoAssignableCount={autoAssignableCount} />
+
+// Child — receives via props, no duplicate computation
+function BuildingsTab({ activeSynergies, autoAssignableCount }: Props) { ... }
+```
+
+### Defense: Hoist static data to module level
+
+When a computation depends only on static data (not game state), compute once at module level:
+
+```tsx
+// Good — computed once when module loads
+const UNIQUE_SYNERGIES = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i)
+
+// Bad — O(n²) dedup runs every render
+const uniqueSynergies = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i)
+```
+
+---
+
 ## Auto-Save
 
 A Zustand subscription detects `sect` reference changes, debounces 500ms, then writes all entity stores to IndexedDB in a single transaction. Triggers on: state change, `visibilitychange`, `beforeunload`.

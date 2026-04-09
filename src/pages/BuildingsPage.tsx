@@ -98,6 +98,9 @@ function getTalentClass(rarity: Talent['rarity']): string {
 /** Building types that support auto-production queues. */
 const PROCESSING_BUILDINGS: BuildingType[] = ['alchemyFurnace', 'forge']
 
+/** Deduplicated synergies — static data, computed once at module level. */
+const UNIQUE_SYNERGIES = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i)
+
 /** Reverse map: building type → list of specialty role labels that benefit it. */
 const BUILDING_SPECIALTY_HINTS: Record<string, string> = (() => {
   const map: Record<string, string[]> = {}
@@ -167,25 +170,36 @@ export default function BuildingsPage() {
 
   // Derived: clamp tab to an available option
   const activeTab = availableTabs.some((t) => t.key === tab) ? tab : 'buildings'
-  const unlockedBuildings = sect.buildings.filter((building) => building.unlocked && building.level > 0)
-  const buildFocus =
-    [...unlockedBuildings]
-      .sort((left, right) => {
-        if (right.level !== left.level) return right.level - left.level
-        return left.type === 'mainHall' ? 1 : -1
-      })
-      .map((building) => BUILDING_DEFS.find((def) => def.type === building.type)?.name ?? building.type)[0] ?? '主殿'
-  const autoAssignableCount = sect.buildings.reduce((count, building) => {
-    if (!building.unlocked || building.level <= 0) return count
-    if (!AUTO_ASSIGNABLE_BUILDINGS.has(building.type)) return count
-    return count + getRecommendedIdleCount(building.type, sect.characters)
-  }, 0)
-  const activeSynergyCount = getActiveSynergies(sect.buildings).length
+  const unlockedBuildings = useMemo(
+    () => sect.buildings.filter((building) => building.unlocked && building.level > 0),
+    [sect.buildings]
+  )
+  const buildFocus = useMemo(
+    () =>
+      [...unlockedBuildings]
+        .sort((left, right) => {
+          if (right.level !== left.level) return right.level - left.level
+          return left.type === 'mainHall' ? 1 : -1
+        })
+        .map((building) => BUILDING_DEFS.find((def) => def.type === building.type)?.name ?? building.type)[0] ?? '主殿',
+    [unlockedBuildings]
+  )
+  const autoAssignableCount = useMemo(
+    () =>
+      sect.buildings.reduce((count, building) => {
+        if (!building.unlocked || building.level <= 0) return count
+        if (!AUTO_ASSIGNABLE_BUILDINGS.has(building.type)) return count
+        return count + getRecommendedIdleCount(building.type, sect.characters)
+      }, 0),
+    [sect.buildings, sect.characters]
+  )
+  const activeSynergies = useMemo(() => getActiveSynergies(sect.buildings), [sect.buildings])
+  const activeSynergyCount = activeSynergies.length
   const activeTabMeta = availableTabs.find((item) => item.key === activeTab)
 
   const content =
     activeTab === 'buildings' ? (
-      <BuildingsTab />
+      <BuildingsTab activeSynergies={activeSynergies} autoAssignableCount={autoAssignableCount} />
     ) : activeTab === 'recruit' ? (
       <RecruitTab />
     ) : activeTab === 'vault' ? (
@@ -246,14 +260,19 @@ export default function BuildingsPage() {
 // BuildingsTab
 // ---------------------------------------------------------------------------
 
-function BuildingsTab() {
+function BuildingsTab({
+  activeSynergies,
+  autoAssignableCount,
+}: {
+  activeSynergies: ReturnType<typeof getActiveSynergies>
+  autoAssignableCount: number
+}) {
   const sect = useSectStore((s) => s.sect)
   const tryUpgradeBuilding = useSectStore((s) => s.tryUpgradeBuilding)
   const tryExpandBuilding = useSectStore((s) => s.tryExpandBuilding)
   const setProductionRecipe = useSectStore((s) => s.setProductionRecipe)
   const autoAssignToBuilding = useSectStore((s) => s.autoAssignToBuilding)
   const autoOptimizeBuildingAssignments = useSectStore((s) => s.autoOptimizeBuildingAssignments)
-  const activeSynergies = getActiveSynergies(sect.buildings)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
   const [drawerBuilding, setDrawerBuilding] = useState<string | null>(null)
 
@@ -303,11 +322,6 @@ function BuildingsTab() {
     setTimeout(() => setMessage(null), 2000)
   }
 
-  const autoAssignableCount = sect.buildings.reduce((count, building) => {
-    if (!building.unlocked || building.level <= 0) return count
-    if (!AUTO_ASSIGNABLE_BUILDINGS.has(building.type)) return count
-    return count + getRecommendedIdleCount(building.type, sect.characters)
-  }, 0)
   const mainHallLevel = sect.buildings.find((building) => building.type === 'mainHall')?.level ?? 1
   const resourceNodeCap = getBuildingNodeCap(mainHallLevel)
   return (
@@ -497,7 +511,7 @@ function BuildingsTab() {
       <section className={styles.synergySection}>
         <div className={styles.sectionTitle}>建筑协同</div>
         <div className={styles.synergyList}>
-          {SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i).map((synergy) => {
+          {UNIQUE_SYNERGIES.map((synergy) => {
             const isActive = activeSynergies.some((a) => a.id === synergy.id)
             const reqProgress = synergy.requirements.map((req) => {
               const building = sect.buildings.find((b) => b.type === req.building)
@@ -562,7 +576,10 @@ function RecruitTab() {
   const [targetedQuality, setTargetedQuality] = useState<CharacterQuality>('spirit')
   const [targetedMessage, setTargetedMessage] = useState<string | null>(null)
 
-  const maxChars = calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute)
+  const maxChars = useMemo(
+    () => calcMaxDisciplesByResources(sect.buildings, sect.characters, sect.activeRoute),
+    [sect.buildings, sect.characters, sect.activeRoute]
+  )
 
   const recruitmentPavilionLevel = sect.buildings.find((b) => b.type === 'recruitmentPavilion')?.level ?? 0
   const hasTargetedRecruit = recruitmentPavilionLevel >= 3

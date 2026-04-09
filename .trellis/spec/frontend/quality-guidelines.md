@@ -176,6 +176,7 @@ npx vitest run path    # Run specific test file
 11. **Disabled buttons without explanation** — Every disabled button must have adjacent text explaining WHY
 12. **Rendering the same full component on multiple pages** — Show summary on overview, detail on dedicated page
 13. **Hardcoded static hint text** — Sidebar/status hints must reflect game state dynamically
+14. **Hooks after conditional returns** — All hooks must run before any `if (...) return` early return. Use ternary null guards inside hooks instead
 
 ---
 
@@ -189,6 +190,9 @@ npx vitest run path    # Run specific test file
 6. **Section separators** using `// ---...--- Section Name ---...---` for long files
 7. **Co-located CSS Modules** — one `.module.css` per component, same directory
 8. **Default export** for components, named exports for system functions
+9. **`useMemo` for expensive derivations in tick-subscribed components** — Components subscribing to `sect` re-render every second; wrap `.filter()`, `.reduce()`, and system function calls in `useMemo`
+10. **Module-level constants for static data** — Computations depending only on static imports (e.g., deduplicating `SYNERGIES`) should be computed once at module scope, not inside components
+11. **Pass shared derivations via props** — When parent and child compute the same derived value, compute once in parent and pass as prop to avoid duplicate work
 
 ---
 

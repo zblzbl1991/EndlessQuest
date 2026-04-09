@@ -56,20 +56,30 @@ function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStor
 
 const RARITY_ORDER: Record<FateGridRarity, number> = { legendary: 4, epic: 3, rare: 2, common: 1 }
 
+/** Static data — computed once at module level. */
+const UNIQUE_SYNERGY_TOTAL = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i).length
+
 export default function SectPage() {
   const sect = useSectStore((s) => s.sect)
   const resetSect = useSectStore((s) => s.reset)
   const resetGame = useGameStore((s) => s.reset)
 
   const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
-  const spiritFieldLevel = sect.buildings.find((b) => b.type === 'spiritField')?.level ?? 0
-  const spiritFieldCount = sect.buildings.find((b) => b.type === 'spiritField')?.count ?? 0
+
+  const { spiritFieldLevel, spiritFieldCount, mainHallLevel } = useMemo(() => {
+    const sf = sect.buildings.find((b) => b.type === 'spiritField')
+    const mh = sect.buildings.find((b) => b.type === 'mainHall')
+    return {
+      spiritFieldLevel: sf?.level ?? 0,
+      spiritFieldCount: sf?.count ?? 0,
+      mainHallLevel: mh?.level ?? 1,
+    }
+  }, [sect.buildings])
+
   const herbRate = spiritFieldLevel > 0 ? 0.1 * spiritFieldLevel * spiritFieldCount : 0
-  const mainHallLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
   const spiritStoneCap = calcSpiritStoneCap(mainHallLevel)
   const spiritStoneRatio = sect.resources.spiritStone / spiritStoneCap
-  const activeSynergyCount = getActiveSynergies(sect.buildings).length
-  const uniqueSynergyTotal = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) => o.id === s.id) === i).length
+  const activeSynergyCount = useMemo(() => getActiveSynergies(sect.buildings).length, [sect.buildings])
 
   const policyName = SECT_RISK_POLICY_LIST.find((p) => p.id === sect.strategySettings.activePolicy)?.name ?? '均衡'
 
@@ -177,7 +187,7 @@ export default function SectPage() {
       <div className={styles.synergySummary}>
         <PixelIcon name="buildingMainHall" size={14} className={styles.inlineIcon} aria-label="协同" />
         <span>
-          建筑协同已激活 {activeSynergyCount}/{uniqueSynergyTotal}
+          建筑协同已激活 {activeSynergyCount}/{UNIQUE_SYNERGY_TOTAL}
         </span>
       </div>
 

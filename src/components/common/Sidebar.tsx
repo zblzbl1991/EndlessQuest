@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSectStore } from '../../stores/sectStore'
 import { primaryNavigation } from '../../data/navigation'
@@ -27,7 +28,7 @@ function getSidebarHint(sect: ReturnType<typeof useSectStore.getState>['sect']):
 
 export default function Sidebar() {
   const sect = useSectStore((s) => s.sect)
-  const hint = getSidebarHint(sect)
+  const hint = useMemo(() => getSidebarHint(sect), [sect])
 
   return (
     <aside className={styles.sidebar} data-testid="shell-sidebar">

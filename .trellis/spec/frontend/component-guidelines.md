@@ -203,11 +203,23 @@ const [message, setMessage] = useState<{ success: boolean; text: string } | null
 
 ### Derived state
 
-Use `useMemo` for expensive computations:
+Use `useMemo` for expensive computations — especially in components subscribed to `sect` (which re-renders every second due to the game tick):
 
 ```tsx
-const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
+// Expensive: iterates buildings, calculates synergies
+const activeSynergies = useMemo(() => getActiveSynergies(sect.buildings), [sect.buildings])
+
+// Expensive: iterates all characters for each building
+const autoAssignableCount = useMemo(
+  () => sect.buildings.reduce((count, b) => count + getRecommendedIdleCount(b.type, sect.characters), 0),
+  [sect.buildings, sect.characters],
+)
+
+// Lightweight: simple property access — no useMemo needed
+const mainHallLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 1
 ```
+
+**Rule of thumb**: If it involves `.filter()`, `.reduce()`, or calling a system function, wrap in `useMemo` when the component subscribes to `sect`.
 
 ### Event handlers
 
@@ -385,3 +397,16 @@ Required visual indicators:
 4. **Adding useCallback/useMemo unnecessarily** — Only useMemo for expensive derivations; no useCallback
 5. **Creating separate files for one-off helper components** — Keep them in the same file
 6. **Orphaned CSS grid columns** — When removing a JSX child from a multi-column grid container, also remove the corresponding `grid-template-columns` rule. A grid like `minmax(260px, 320px) minmax(0, 1fr)` with only one child squeezes content into the narrow first column while the rest is blank. **Prevention**: After deleting a child element, grep the CSS for the parent's grid definition and update it to match the new child count.
+7. **Placing hooks after conditional returns** — All hooks (`useMemo`, `useState`, store selectors) must run before any `if (...) return null` early return. When a component has a nullable dependency (like `character` from a `.find()`), use ternary guards inside the hook and move the early return after all hooks:
+
+```tsx
+// WRONG — hooks after early return violate rules-of-hooks
+const character = useSectStore((s) => s.sect.characters.find(c => c.id === id))
+if (!character) return null
+const speed = useMemo(() => calcSpeed(sect, character), [sect, character]) // ERROR
+
+// CORRECT — hooks before early return, with null guards
+const character = useSectStore((s) => s.sect.characters.find(c => c.id === id))
+const speed = useMemo(() => character ? calcSpeed(sect, character) : 0, [sect, character])
+if (!character) return null
+```

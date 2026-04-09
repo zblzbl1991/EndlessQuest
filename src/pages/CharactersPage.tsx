@@ -236,31 +236,53 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
 
   const [selectedBackpackIdx, setSelectedBackpackIdx] = useState<number | null>(null)
 
+  const effectiveCultivationSpeed = useMemo(
+    () => (character ? calcEffectiveCultivationRate(sect, character) : 0),
+    [sect, character]
+  )
+  const primaryRole = useMemo(() => (character ? getPrimaryRole(character) : null), [character])
+  const combatStyle = useMemo(() => (character ? getCombatStyleProfile(character) : null), [character])
+  const recommendedLoadout = useMemo(() => (character ? buildCharacterSkillLoadout(character) : []), [character])
+  const skillFrame = useMemo(
+    () => (character ? syncCharacterSkillLoadout(character) : { equippedSkills: [] as (string | null)[] }),
+    [character]
+  )
+  const buildStyle = useMemo(
+    () => (combatStyle ? { label: combatStyle.styleName, description: combatStyle.summary } : null),
+    [combatStyle]
+  )
+  const activeSkillIds = useMemo(
+    () => (skillFrame.equippedSkills ?? recommendedLoadout).filter((skillId): skillId is string => Boolean(skillId)),
+    [skillFrame.equippedSkills, recommendedLoadout]
+  )
+  const activeSkills = useMemo(
+    () =>
+      activeSkillIds
+        .map((skillId) => getActiveSkillById(skillId))
+        .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill)),
+    [activeSkillIds]
+  )
+  const buildSourceTags = useMemo(
+    () =>
+      character
+        ? [
+            character.cultivationPath !== 'none'
+              ? `修行路线: ${getPathDef(character.cultivationPath)?.name ?? '未定'}`
+              : '修行路线: 未定',
+            `风格画像: ${combatStyle?.styleName ?? ''}`,
+            primaryRole ? `专长: ${getRoleLabel(primaryRole)}` : '专长: 待补强',
+            `功法 ${character.learnedTechniques.length} 门`,
+            character.fateGrid ? `命格 ${getFateGridDef(character.fateGrid).name}` : '命格基础',
+          ].slice(0, 4)
+        : [],
+    [character, combatStyle, primaryRole]
+  )
+
   if (!character) return null
 
   const realmName = getRealmName(character.realm, character.realmStage)
   const needed = getCultivationNeeded(character.realm, character.realmStage)
-  const effectiveCultivationSpeed = calcEffectiveCultivationRate(sect, character)
-  const primaryRole = getPrimaryRole(character)
-  const combatStyle = getCombatStyleProfile(character)
-  const recommendedLoadout = buildCharacterSkillLoadout(character)
-  const skillFrame = syncCharacterSkillLoadout(character)
-  const buildStyle = { label: combatStyle.styleName, description: combatStyle.summary }
-  const activeSkillIds = (skillFrame.equippedSkills ?? recommendedLoadout).filter((skillId): skillId is string =>
-    Boolean(skillId)
-  )
-  const activeSkills = activeSkillIds
-    .map((skillId) => getActiveSkillById(skillId))
-    .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill))
-  const buildSourceTags = [
-    character.cultivationPath !== 'none'
-      ? `修行路线: ${getPathDef(character.cultivationPath)?.name ?? '未定'}`
-      : '修行路线: 未定',
-    `风格画像: ${combatStyle.styleName}`,
-    primaryRole ? `专长: ${getRoleLabel(primaryRole)}` : '专长: 待补强',
-    `功法 ${character.learnedTechniques.length} 门`,
-    character.fateGrid ? `命格 ${getFateGridDef(character.fateGrid).name}` : '命格基础',
-  ].slice(0, 4)
+  const buildStyleFinal = buildStyle ?? { label: '', description: '' }
 
   function formatBonusValue(type: string, value: number): string {
     if (type === 'crit' || type === 'critDmg' || type === 'cultivationRate') {
@@ -501,18 +523,18 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           <FoldSection
             icon="technique"
             title="战斗画像"
-            summary={`${buildStyle.label} · 主动技 ${activeSkills.length}/${MAX_CHARACTER_SKILL_SLOTS}`}
+            summary={`${buildStyleFinal.label} · 主动技 ${activeSkills.length}/${MAX_CHARACTER_SKILL_SLOTS}`}
           >
             <div className={styles.buildSummary}>
               <div className={styles.buildStyleCard}>
                 <div className={styles.buildStyleHeader}>
-                  <span className={styles.buildStyleLabel}>{buildStyle.label}</span>
+                  <span className={styles.buildStyleLabel}>{buildStyleFinal.label}</span>
                   <span className={styles.buildStyleCount}>
                     主动技 {activeSkills.length}/{MAX_CHARACTER_SKILL_SLOTS} · 功法 {character.learnedTechniques.length}{' '}
                     门
                   </span>
                 </div>
-                <div className={styles.buildStyleDesc}>{buildStyle.description}</div>
+                <div className={styles.buildStyleDesc}>{buildStyleFinal.description}</div>
               </div>
 
               <div className={styles.buildSourceCard}>
