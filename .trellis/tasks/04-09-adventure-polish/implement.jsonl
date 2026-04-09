@@ -1,0 +1,8 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "src/data/events.ts", "reason": "DUNGEONS array - need to add 5 new dungeons"}
+{"file": "src/data/enemies.ts", "reason": "Enemy templates and DUNGEON_ENEMY_MAP - add enemies for new dungeons"}
+{"file": "src/systems/roguelike/AutoRunEngine.ts", "reason": "Bug fix: pass enemyUnitSnapshot to stepMeta"}
+{"file": "src/pages/AdventurePage.tsx", "reason": "Report list UI simplification"}
+{"file": "src/pages/AdventurePage.module.css", "reason": "Report card CSS updates"}
+{"file": "src/pages/AdventureReportPage.tsx", "reason": "Remove boss pre-combat comparison"}

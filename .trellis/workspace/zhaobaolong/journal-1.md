@@ -452,3 +452,35 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 9: fix(characters): 桌面端弟子列表页布局修复
+
+**Date**: 2026-04-09
+**Task**: fix(characters): 桌面端弟子列表页布局修复
+
+### Summary
+
+修复桌面端弟子列表页被挤入 260-320px 窄列的问题。根因是 overviewLayout 的双列 CSS grid 定义（为已移除的自动化面板预留）只剩一个子元素。删除孤儿 grid-template-columns 后恢复正常全宽布局。同步更新 frontend code-spec 添加 Common Mistake #6。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `a816f78` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

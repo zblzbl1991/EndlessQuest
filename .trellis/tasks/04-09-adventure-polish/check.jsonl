@@ -1,0 +1,7 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": "src/data/events.ts", "reason": "Verify new dungeon definitions"}
+{"file": "src/data/enemies.ts", "reason": "Verify enemy templates and mappings"}
+{"file": "src/systems/roguelike/AutoRunEngine.ts", "reason": "Verify bug fix"}
+{"file": "src/pages/AdventurePage.tsx", "reason": "Verify report list simplification"}
+{"file": "src/pages/AdventureReportPage.tsx", "reason": "Verify boss comparison removal"}
