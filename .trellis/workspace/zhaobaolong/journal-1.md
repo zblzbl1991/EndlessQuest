@@ -584,3 +584,70 @@ Tab switching lag — every tab change felt sluggish.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 12: 并行开发：丰富挂机惊喜体验（4阶段）
+
+**Date**: 2026-04-09
+**Task**: 并行开发：丰富挂机惊喜体验（4阶段）
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Summary
+
+4 个任务并行 worktree 开发 + 合并，丰富挂机期间的游戏体验。
+
+## Completed Tasks
+
+| Task | Key Changes | Files |
+|------|-------------|-------|
+| P1 内容池扩充 | 功法12→30, 天赋12→30, 命格10→20, 技能8→16 | 6 data/type files + 6 test files |
+| P2 事件文案丰富 | 修复6处mojibake, 替换英文消息, 全叙事描述 | 6 store/system files |
+| P3 里程碑扩展 | 3→15个里程碑, 覆盖弟子/境界/秘境/功法/特殊 | 6 type/data/store files |
+| P4 随机事件系统 | 24种事件, 纯函数架构, tick集成 | 3 new + 9 modified files |
+
+## Code-Spec Updates
+
+- `directory-structure.md`: 新增 randomEvent.ts, RandomEventSystem.ts 等文件
+- `state-management.md`: Sect Interface Extension Pattern, Random Event Contracts, Milestone Contracts
+- `type-safety.md`: Data Table Extension Pattern, 新类型文件
+- `cross-layer-thinking-guide.md`: Parallel Development Conflict Zones
+
+## Key Learnings
+
+1. **Sect 接口扩展 5 处必改**: types/sect.ts, initial.ts, SaveSystem.ts, testFixture.ts, LegacySystem.ts
+2. **联合类型与数据表必须同步**: FateGridId/ArchiveMilestoneId 扩展时对应 data 文件也要加
+3. **并行高冲突文件**: tickSlice, characterSlice, adventureStore, eventLogStore, sect.ts
+4. **python3 在 Windows 是 Store 占位**: 实际用 python 命令
+
+## Verification
+
+- Typecheck: 0 errors
+- Lint: 0 errors (1 pre-existing warning)
+- Tests: 340 files / 5215 tests all pass
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `5c74d5f` | (see git log) |
+| `b026c69` | (see git log) |
+| `5f029a5` | (see git log) |
+| `57dbff0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
