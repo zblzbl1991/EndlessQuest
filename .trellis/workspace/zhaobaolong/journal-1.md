@@ -484,3 +484,56 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 10: perf(ui): memoize tick-driven re-renders
+
+**Date**: 2026-04-09
+**Task**: perf(ui): memoize tick-driven re-renders
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Problem
+Tab switching lag — every tab change felt sluggish.
+
+## Root Cause
+`tickAll` replaces entire `sect` object every second via `set({ sect: newSect })`, causing 20+ components subscribed to `(s) => s.sect` to re-render. Heavy pages (BuildingsPage 874 lines, CharacterDetail) had un-memoized expensive computations re-running each tick.
+
+## Changes
+
+| File | Change |
+|------|--------|
+| `BuildingsPage.tsx` | useMemo for unlockedBuildings, buildFocus, autoAssignableCount, activeSynergies; pass to BuildingsTab via props instead of duplicate computation; hoist SYNERGIES dedup to module constant |
+| `CharactersPage.tsx` | useMemo for CharacterDetail's 10 expensive computations (calcEffectiveCultivationRate, buildCharacterSkillLoadout, syncCharacterSkillLoadout, etc.) |
+| `SectPage.tsx` | useMemo for getActiveSynergies + building level lookups; hoist uniqueSynergyTotal to module constant |
+| `Sidebar.tsx` | useMemo for getSidebarHint |
+| `.trellis/spec/frontend/*.md` | Updated 3 code-spec files with tick-driven re-render performance patterns |
+
+## Key Learnings
+- Fine-grained Zustand selectors don't help when tickAll replaces all nested references
+- Hooks must be placed BEFORE conditional returns (if (!character) return null) — use ternary null guards
+- Static data computations (SYNERGIES dedup) should be module-level constants
+- Shared derivations should be computed in parent and passed via props
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `afdd688` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
