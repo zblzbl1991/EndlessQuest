@@ -44,6 +44,7 @@ interface SaveMeta {
   currentGameDay?: number
   dayProgressSec?: number
   autoRunDayCounter?: number
+  lastRandomEventTime?: number
 }
 
 type SavedAdventureRunRecord = {
@@ -198,6 +199,7 @@ export async function saveGame(): Promise<void> {
       automationSettings: sect.automationSettings,
       strategySettings: sect.strategySettings,
       autoRunDayCounter: sect.autoRunDayCounter,
+      lastRandomEventTime: sect.lastRandomEventTime,
       currentGameDay: gameState.currentGameDay,
       dayProgressSec: gameState.dayProgressSec,
     })
@@ -399,6 +401,7 @@ export async function loadGame(): Promise<boolean> {
             lastSwitchedAt: null,
           },
       autoRunDayCounter: meta.autoRunDayCounter ?? 0,
+      lastRandomEventTime: meta.lastRandomEventTime ?? 0,
     }
 
     useSectStore.setState({ sect })

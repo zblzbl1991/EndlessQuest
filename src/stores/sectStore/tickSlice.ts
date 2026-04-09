@@ -35,6 +35,7 @@ import { tickRecoveryDays } from '../../systems/character/DiscipleRecoverySystem
 import { buildAutomationRunConfig, shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 import { buildPathEffectMap, getMultEffect } from '../../systems/sect/SectPathEffects'
+import { evaluateRandomEvents } from '../../systems/idle/RandomEventSystem'
 
 export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   tickAll: (deltaSec: number) => {
@@ -392,8 +393,92 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       },
     }
 
+    // --- Random Events ---
+    // Evaluate random events using the pure system function
+    const randomEventResult = evaluateRandomEvents(sect, deltaSec, sect.lastRandomEventTime ?? 0)
+    let sectWithEvent = newSect
+
+    if (randomEventResult.triggered && randomEventResult.event) {
+      // Apply resource effects
+      const eventResources = { ...newSect.resources }
+      for (const effect of randomEventResult.effects) {
+        if (effect.type === 'resource' && effect.target) {
+          const key = effect.target as keyof typeof eventResources
+          if (key in eventResources) {
+            eventResources[key] = Math.max(0, eventResources[key] + effect.value)
+          }
+        }
+      }
+
+      // Apply character experience effects to a random idle character
+      let eventCharacters = newSect.characters
+      for (const effect of randomEventResult.effects) {
+        if (effect.type === 'character_exp' && effect.value > 0) {
+          const idleIndices = eventCharacters.map((c, i) => (c.status === 'idle' ? i : -1)).filter((i) => i >= 0)
+          if (idleIndices.length > 0) {
+            const pickIdx = idleIndices[Math.floor(Math.random() * idleIndices.length)]
+            eventCharacters = eventCharacters.map((c, i) =>
+              i === pickIdx
+                ? {
+                    ...c,
+                    cultivation: c.cultivation + effect.value,
+                    totalCultivation: c.totalCultivation + effect.value,
+                  }
+                : c
+            )
+          }
+        }
+      }
+
+      // Apply technique insight effects to a random idle character with techniques
+      for (const effect of randomEventResult.effects) {
+        if (effect.type === 'technique_insight' && effect.value > 0) {
+          const candidates = eventCharacters.filter((c) => c.status === 'idle' && c.learnedTechniques.length > 0)
+          if (candidates.length > 0) {
+            const target = candidates[Math.floor(Math.random() * candidates.length)]
+            eventCharacters = eventCharacters.map((c) => {
+              if (c.id !== target.id) return c
+              const newComprehension = { ...c.techniqueComprehension }
+              // Pick a random learned technique to boost
+              const techId = c.learnedTechniques[Math.floor(Math.random() * c.learnedTechniques.length)]
+              newComprehension[techId] = Math.min(100, (newComprehension[techId] ?? 0) + effect.value)
+              return { ...c, techniqueComprehension: newComprehension }
+            })
+          }
+        }
+      }
+
+      // Apply character status effects (injury)
+      for (const effect of randomEventResult.effects) {
+        if (effect.type === 'character_status' && effect.target === 'injured' && effect.value > 0) {
+          // Injure up to effect.value idle characters
+          let injured = 0
+          eventCharacters = eventCharacters.map((c) => {
+            if (c.status === 'idle' && injured < effect.value) {
+              injured++
+              return { ...c, status: 'injured' as const, injuryTimer: 300 } // 5 minute injury
+            }
+            return c
+          })
+        }
+      }
+
+      sectWithEvent = {
+        ...newSect,
+        resources: eventResources,
+        characters: eventCharacters,
+        lastRandomEventTime: newSect.stats.totalPlayTime,
+      }
+
+      emitEvent('random_event', randomEventResult.message, {
+        eventId: randomEventResult.event.id,
+        rarity: randomEventResult.event.rarity,
+        category: randomEventResult.event.category,
+      })
+    }
+
     set({
-      sect: newSect,
+      sect: sectWithEvent,
     })
 
     useGameStore.setState({
