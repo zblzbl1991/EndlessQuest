@@ -9,7 +9,9 @@ function roundStat(value: number, digits: number): number {
   return Math.round(value * factor) / factor
 }
 
-export function needsCultivationPathChoice(character: Pick<Character, 'cultivationPath' | 'realm' | 'realmStage'>): boolean {
+export function needsCultivationPathChoice(
+  character: Pick<Character, 'cultivationPath' | 'realm' | 'realmStage'>
+): boolean {
   const realm = REALMS[character.realm]
   if (!realm) return false
   return (

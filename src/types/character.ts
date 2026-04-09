@@ -51,6 +51,8 @@ export interface Character {
   quality: CharacterQuality
   realm: number
   realmStage: RealmStage
+  level: number
+  xp: number
   cultivation: number
   baseStats: BaseStats
   cultivationStats: CultivationStats

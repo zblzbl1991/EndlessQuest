@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
+import { getRealmLevelCap, calcXpToNextLevel } from '../data/levelSystem'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getActiveSkillById } from '../data/activeSkills'
 import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
@@ -22,6 +23,7 @@ import EquipPanel from '../components/inventory/EquipPanel'
 import ItemCard from '../components/inventory/ItemCard'
 import { formatCultivationValue } from '../utils/format'
 import {
+  ACTIVE_SKILLS,
   buildCharacterSkillLoadout,
   getCombatStyleProfile,
   MAX_CHARACTER_SKILL_SLOTS,
@@ -95,6 +97,71 @@ function getSkillIconName(skillId: string): string {
   if (skill.element === 'healing') return 'eventRest'
   if (skill.category === 'defense') return 'bodyPath'
   return 'technique'
+}
+
+/** Realm-based tier unlock thresholds for skill filtering */
+function getMaxSkillTier(realm: number): number {
+  if (realm >= 4) return 5
+  if (realm >= 3) return 4
+  if (realm >= 2) return 3
+  if (realm >= 1) return 2
+  return 1
+}
+
+function SkillPicker({
+  character,
+  slotIndex,
+  activeSkillIds,
+  recommendedLoadout,
+  onSelect,
+  onClose,
+}: {
+  character: { realm: number; equippedSkills: (string | null)[] }
+  slotIndex: number
+  activeSkillIds: string[]
+  recommendedLoadout: (string | null)[]
+  onSelect: (slotIndex: number, skillId: string | null) => void
+  onClose: () => void
+}) {
+  const maxTier = getMaxSkillTier(character.realm)
+  const available = ACTIVE_SKILLS.filter((s) => s.tier <= maxTier)
+  const currentId = activeSkillIds[slotIndex] ?? null
+  const recommendedId = recommendedLoadout[slotIndex] ?? null
+
+  return (
+    <div className={styles.skillPicker}>
+      <div className={styles.skillPickerTitle}>
+        选择技能（槽位 {slotIndex + 1}）
+        <button className={styles.skillPickerClose} onClick={onClose}>
+          收起
+        </button>
+      </div>
+      {available.map((skill) => {
+        const isActive = currentId === skill.id
+        const isRecommended = recommendedId === skill.id
+        return (
+          <button
+            key={skill.id}
+            className={`${styles.skillPickerItem} ${isActive ? styles.skillPickerActive : ''}`}
+            onClick={() => onSelect(slotIndex, isActive ? null : skill.id)}
+          >
+            <span className={styles.skillPickerName}>
+              <PixelIcon name={getSkillIconName(skill.id)} size={14} className={styles.inlineIcon} />
+              {skill.name}
+            </span>
+            <span className={styles.skillPickerMeta}>
+              {skill.tier}阶 · {skill.category} · {skill.spiritCost}灵力
+              {isRecommended && <span className={styles.recommendedTag}>推荐</span>}
+            </span>
+          </button>
+        )
+      })}
+      <button className={styles.skillPickerItem} onClick={() => onSelect(slotIndex, null)}>
+        <span className={styles.skillPickerName}>— 清空此槽位 —</span>
+        <span className={styles.skillPickerMeta}></span>
+      </button>
+    </div>
+  )
 }
 
 function FoldSection({
@@ -233,8 +300,10 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
   const transferItemToVault = useSectStore((s) => s.transferItemToVault)
   const sellCharacterItem = useSectStore((s) => s.sellCharacterItem)
   const unassignFromBuilding = useSectStore((s) => s.unassignFromBuilding)
+  const updateCharacterSkill = useSectStore((s) => s.updateCharacterSkill)
 
   const [selectedBackpackIdx, setSelectedBackpackIdx] = useState<number | null>(null)
+  const [editingSlot, setEditingSlot] = useState<number | null>(null)
 
   const effectiveCultivationSpeed = useMemo(
     () => (character ? calcEffectiveCultivationRate(sect, character) : 0),
@@ -317,6 +386,13 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
               <StatusBadge status={character.status} />
             </div>
             <div className={styles.detailRealm}>{realmName}</div>
+
+            <div className={styles.detailLevel}>
+              <span className={styles.levelText}>
+                等级 {character.level ?? 1} / {getRealmLevelCap(character.realm)}
+              </span>
+              <ProgressBar value={character.xp ?? 0} max={calcXpToNextLevel(character.level ?? 1)} variant="ink" />
+            </div>
 
             {character.cultivationPath !== 'none' &&
               (() => {
@@ -407,16 +483,12 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
             </section>
           )}
 
-          <section className={styles.section}>
-            <div className={styles.sectionTitle}>
-              <PixelIcon
-                name={DETAIL_SECTION_ICONS.base}
-                size={16}
-                className={styles.inlineIcon}
-                aria-label="基础属性"
-              />
-              基础属性
-            </div>
+          <FoldSection
+            icon={DETAIL_SECTION_ICONS.base}
+            title="基础属性"
+            summary={`HP ${Math.floor(character.baseStats.hp)} · ATK ${Math.floor(character.baseStats.atk)} · DEF ${Math.floor(character.baseStats.def)}`}
+            defaultOpen={false}
+          >
             <div className={styles.statsGrid}>
               <div className={styles.statItem}>
                 <span className={styles.statLabel}>气血</span>
@@ -443,18 +515,14 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                 <span className={styles.statValue}>{(character.baseStats.critDmg * 100).toFixed(0)}%</span>
               </div>
             </div>
-          </section>
+          </FoldSection>
 
-          <section className={styles.section}>
-            <div className={styles.sectionTitle}>
-              <PixelIcon
-                name={DETAIL_SECTION_ICONS.aptitude}
-                size={16}
-                className={styles.inlineIcon}
-                aria-label="修炼资质"
-              />
-              修炼资质
-            </div>
+          <FoldSection
+            icon={DETAIL_SECTION_ICONS.aptitude}
+            title="修炼资质"
+            summary={`灵根 ${character.cultivationStats.spiritualRoot} · 悟性 ${character.cultivationStats.comprehension}`}
+            defaultOpen={false}
+          >
             <div className={styles.statsGrid}>
               <div className={styles.statItem}>
                 <span className={styles.statLabel}>灵根</span>
@@ -473,7 +541,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                 <span className={styles.statValue}>{Math.floor(character.cultivationStats.spiritPower)}</span>
               </div>
             </div>
-          </section>
+          </FoldSection>
 
           <section className={styles.section}>
             <div className={styles.sectionTitle}>
@@ -552,7 +620,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                 <div className={styles.buildSkillTitle}>当前主动技</div>
                 {activeSkills.length > 0 ? (
                   <div className={styles.buildSkillList}>
-                    {activeSkills.map((skill) => (
+                    {activeSkills.map((skill, slotIdx) => (
                       <div key={skill.id} className={styles.buildSkillItem}>
                         <span className={styles.buildSkillName}>
                           <PixelIcon
@@ -566,11 +634,30 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                         <span className={styles.buildSkillMeta}>
                           {skill.category} · {skill.spiritCost} 灵力 · CD {skill.cooldown}
                         </span>
+                        <button
+                          className={styles.skillEditBtn}
+                          onClick={() => setEditingSlot(editingSlot === slotIdx ? null : slotIdx)}
+                        >
+                          切换
+                        </button>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className={styles.noSkillState}>当前没有固定主动技，主要依赖功法、命格与基础面板。</div>
+                )}
+                {editingSlot !== null && (
+                  <SkillPicker
+                    character={character}
+                    slotIndex={editingSlot}
+                    activeSkillIds={activeSkillIds}
+                    recommendedLoadout={recommendedLoadout}
+                    onSelect={(slotIndex, skillId) => {
+                      updateCharacterSkill(character.id, slotIndex, skillId)
+                      setEditingSlot(null)
+                    }}
+                    onClose={() => setEditingSlot(null)}
+                  />
                 )}
               </div>
             </div>

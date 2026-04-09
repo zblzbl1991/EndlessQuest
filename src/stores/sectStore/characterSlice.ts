@@ -209,6 +209,20 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     }))
   },
 
+  updateCharacterSkill: (characterId, slotIndex, skillId) => {
+    const char = get().sect.characters.find((c) => c.id === characterId)
+    if (!char) return
+    const newSkills = [...(char.equippedSkills ?? [])]
+    while (newSkills.length <= slotIndex) newSkills.push(null)
+    newSkills[slotIndex] = skillId
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, equippedSkills: newSkills } : c)),
+      },
+    }))
+  },
+
   setAutomationSettings: (patch) => {
     set((s) => ({
       sect: {

@@ -98,6 +98,11 @@
   margin-top: 2px;
 }
 
+.xpProgress {
+  margin-top: var(--space-xs);
+  opacity: 0.7;
+}
+
 /* Quality border colors */
 .qualityCommon {
   border-left-color: var(--color-quality-common);

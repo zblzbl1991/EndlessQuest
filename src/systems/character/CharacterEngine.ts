@@ -412,6 +412,8 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     investedSpiritStone: getRecruitCost(quality),
     techniqueComprehension,
     fateGrid,
+    level: 1,
+    xp: 0,
   })
 }
 

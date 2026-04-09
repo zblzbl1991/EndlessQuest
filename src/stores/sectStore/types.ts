@@ -46,6 +46,7 @@ export interface SectStore {
   setCharacterStatus(id: string, status: CharacterStatus, opts?: { injuryTimer?: number }): void
   setCharacterRecovering(id: string, recoveryDays: number): void
   chooseCultivationPath(id: string, path: Exclude<CultivationPath, 'none'>): boolean
+  updateCharacterSkill(characterId: string, slotIndex: number, skillId: string | null): void
   setAutomationSettings(patch: Partial<SectAutomationSettings>): void
 
   // Technique management
