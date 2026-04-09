@@ -481,6 +481,8 @@ This contract applies to ANY field that stores entity IDs as references rather t
 9. **Removing character fields without fixture updates** — When removing fields from Character (like `fateTags`), ALL test fixtures across ALL test files must be updated. Use `grep -r "fateTags" src/__tests__/` to find every occurrence.
 10. **Using `Record<boolean, T>` as type** — TypeScript doesn't allow boolean as Record key. Use a string literal union like `'normal' | 'high'` instead.
 11. **Removing entities from their storage collection when only an ID reference is recorded** — If `equippedGear: (string | null)[]` only stores IDs, the actual item must remain in `backpack` (the real storage). Removing from backpack destroys the only copy of the data, making the ID a dangling reference. See "Equipment Ownership Contract" below.
+12. **Adding a field to `Sect` without updating all 5 locations** — Must update: `types/sect.ts`, `initial.ts`, `SaveSystem.ts` (write + load with `?? default`), `testFixture.ts`, `LegacySystem.ts`. Missing any one causes typecheck failure or save corruption. See "Sect Interface Extension Pattern".
+13. **Extending a union type without updating all consumers** — When adding to `FateGridId` or `ArchiveMilestoneId`, the data table entries must match exactly. Check `types/*.ts` union type, `data/*.ts` entries, and all test assertions with hardcoded counts.
 
 ---
 
@@ -581,20 +583,13 @@ Each character may have an optional `fateGrid: FateGridId` representing an innat
 | Recruitment — chaos | 80% |
 | Major realm breakthrough (no grid) | 20% |
 
-### 10 Fate Grids
+### 20 Fate Grids
 
-| ID | Name | Category | Rarity | Core Effect |
-|----|------|----------|--------|-------------|
-| `dragonPhoenix` | 龙凤之姿 | heavenly | epic | All stats +15%, breakthrough +10% |
-| `overlordBody` | 天生霸体 | heavenly | legendary | Constitution +35%, lethal reduction 20% |
-| `bloodSuppress` | 血镇 | heavenly | legendary | All stats +8%, enemy -5%, boss +15% |
-| `ghostly` | 万鬼缠身 | ghost | rare | Attack +18%, ghost strike 15%, heart demon +8% |
-| `undying` | 九死还魂 | ghost | epic | 40% survive lethal, recovery +30%, cultivation -10% |
-| `lastStand` | 破釜沉舟 | emotional | rare | Low HP attack bonus, retreat loot 60% |
-| `warSpirit` | 战意凌云 | emotional | rare | Consecutive battle stacking +5%/battle |
-| `wisdom` | 慧根深种 | cultivation | common | Cultivation +25%, comprehension +20% |
-| `defiance` | 逆天改命 | cultivation | epic | Breakthrough failure retention 60% |
-| `lucky` | 福星高照 | probability | rare | Rare events +25%, loot quality +20% |
+7 categories: heavenly (天命), ghost (鬼咒), emotional (情绪), cultivation (修炼), probability (机率), elemental (五行), solo (独行)
+
+Rarity distribution: common, rare, epic, legendary
+
+> See `src/data/fateGrids.ts` for the full list of 20 grids with their effects.
 
 ### Effect Query Pattern
 
@@ -636,7 +631,7 @@ export function getAttackModifier(character: Character): number
 | File | Purpose |
 |------|---------|
 | `src/types/destiny.ts` | FateGridId, FateGridDef, FateGridEffects, FateGridRarity types |
-| `src/data/fateGrids.ts` | 10 grid definitions, acquisition logic, roll functions |
+| `src/data/fateGrids.ts` | 20 grid definitions, acquisition logic, roll functions |
 | `src/systems/destiny/DestinySystem.ts` | Effect query functions, acquisition helpers |
 | `src/data/sectRiskPolicies.ts` | Simplified policy profiles (no destiny-specific fields) |
 
@@ -661,3 +656,158 @@ export function getAttackModifier(character: Character): number
 **Why preserve**: The underlying systems may be repurposed or re-enabled with different UI. Removing them from types would require a save migration for existing `patrolling` characters.
 
 **Implication for future work**: If re-adding dispatch UI, check `CharacterDispositionSystem`, `AdventureStore.dispatches`, and `data/missions.ts` — the data layer is already wired. If permanently removing dispatch, add a migration that converts `patrolling` characters to `idle` on load.
+
+---
+
+## Sect Interface Extension Pattern
+
+When adding a new field to the `Sect` interface, you **must** update all 5 locations. Missing any one causes type errors or save/load failures.
+
+### Mandatory Update Locations
+
+| File | What to update |
+|------|---------------|
+| `src/types/sect.ts` | Add field to `Sect` interface |
+| `src/stores/sectStore/initial.ts` | Add default value to initial state |
+| `src/systems/save/SaveSystem.ts` | Add to `SaveMeta` write + read with `?? defaultValue` |
+| `src/systems/save/testFixture.ts` | Add to test fixture metadata |
+| `src/systems/sect/LegacySystem.ts` | Add reset value for ascension |
+
+### Example: Adding `lastRandomEventTime`
+
+```tsx
+// 1. types/sect.ts
+export interface Sect {
+  // ... existing fields
+  lastRandomEventTime: number
+}
+
+// 2. initial.ts
+export const initialSect = (): Sect => ({
+  // ... existing fields
+  lastRandomEventTime: 0,
+})
+
+// 3. SaveSystem.ts — write
+meta: {
+  // ... existing fields
+  lastRandomEventTime: sect.lastRandomEventTime,
+}
+// SaveSystem.ts — read (with backward-compatible default)
+lastRandomEventTime: meta.lastRandomEventTime ?? 0,
+
+// 4. testFixture.ts
+lastRandomEventTime: 0,
+
+// 5. LegacySystem.ts (ascension reset)
+lastRandomEventTime: 0,
+```
+
+### Key Rules
+
+- Always use `?? defaultValue` in the load path for save compatibility (old saves won't have the field)
+- Test fixtures must include the field or tests will fail typecheck
+- If the field is a counter or timestamp, reset to `0` in LegacySystem for ascension
+
+---
+
+## Random Event System Contracts
+
+### Architecture
+
+Follows the project's pure-function pattern: data, system, and store are strictly separated.
+
+| Layer | File | Role |
+|-------|------|------|
+| Types | `src/types/randomEvent.ts` | `RandomEventDef`, `RandomEventEffect`, `RandomEventResult` |
+| Data | `src/data/randomEvents.ts` | 24 event definitions, rarity weights, category display names |
+| System | `src/systems/idle/RandomEventSystem.ts` | Pure function `evaluateRandomEvents()` |
+| Store | `src/stores/sectStore/tickSlice.ts` | Calls system, applies effects, emits event |
+
+### Key Function Signature
+
+```tsx
+// src/systems/idle/RandomEventSystem.ts
+function evaluateRandomEvents(
+  sect: Sect,
+  deltaSec: number,
+  lastEventSec: number
+): RandomEventResult
+```
+
+The system does **not** import any store. Store calls the system and applies effects.
+
+### Trigger Mechanics
+
+- Base rate: 1/3000 per tick (~50 minutes average)
+- Cooldown: 30 seconds minimum between events
+- Modified by average fortune stat (机缘) of idle disciples
+- Integrated in `tickAll()` after resource calculation, before `set()`
+
+### Event Structure
+
+```tsx
+interface RandomEventDef {
+  id: string
+  name: string
+  description: string    // 叙事模板，支持 ${name} 变量
+  rarity: RandomEventRarity
+  category: RandomEventCategory
+  effects: RandomEventEffect[]
+}
+
+interface RandomEventEffect {
+  type: 'resource' | 'character_status' | 'character_exp' | 'technique_insight'
+  target?: string
+  value: number
+}
+```
+
+### Effect Application (in tickSlice)
+
+| Effect Type | How Applied |
+|-------------|-------------|
+| `resource` | Add/subtract from `newSect.resources` |
+| `character_exp` | Random idle disciple gets cultivation bonus |
+| `technique_insight` | Random idle disciple with learned techniques gets comprehension |
+| `character_status` | Up to N idle disciples marked as `injured` for 5 minutes |
+
+---
+
+## Archive Milestone System Contracts
+
+### Overview
+
+Milestones track "first time" achievements. Currently 15 milestones across 4 categories.
+
+### Key Files
+
+| File | Purpose |
+|------|---------|
+| `src/types/sect.ts` | `ArchiveMilestoneId` union type (15 string literals) |
+| `src/data/archiveMilestones.ts` | `ARCHIVE_MILESTONES` record + `unlockArchiveMilestone()` helper |
+| `src/stores/sectStore/characterSlice.ts` | Triggers: firstRareRecruit, firstEpicRecruit, firstLegendaryRecruit, discipleCount5 |
+| `src/stores/sectStore/tickSlice.ts` | Triggers: firstTribulationSuccess, firstFoundationBreakthrough, firstGoldenCoreBreakthrough, firstNascentSoulBreakthrough, sectLevel5 |
+| `src/stores/adventureStore.ts` | Triggers: firstDungeonClear, firstDungeonLevel10, adventureRuns10, firstPetCapture |
+| `src/stores/sectStore/techniqueSlice.ts` | Triggers: firstTechniqueUnlock, firstItemCraft |
+
+### Adding New Milestones
+
+1. Add ID to `ArchiveMilestoneId` union type in `src/types/sect.ts`
+2. Add entry to `ARCHIVE_MILESTONES` in `src/data/archiveMilestones.ts`
+3. Add trigger point in the relevant store slice, following this pattern:
+
+```tsx
+const prev = sect.archiveMilestones
+const next = unlockArchiveMilestone(prev, 'newMilestoneId')
+if (next.length > prev.length) {
+  newSect.archiveMilestones = next
+  emitEvent('milestone', `宗门威名远播，达成里程碑：${getArchiveMilestoneDef('newMilestoneId').title}`)
+}
+```
+
+### Key Rules
+
+- Always use `unlockArchiveMilestone()` helper — it checks for duplicates and returns a new array
+- Compare `next.length > prev.length` to detect if milestone was newly unlocked
+- Milestone messages follow the narrative pattern: `宗门威名远播，达成里程碑：${title}`

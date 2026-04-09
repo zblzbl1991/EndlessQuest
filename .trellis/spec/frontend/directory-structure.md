@@ -60,7 +60,7 @@ src/
 │       └── miscSlice.ts
 │
 ├── systems/                          # Pure logic / game engine modules (no React)
-│   ├── idle/                         # IdleEngine (setInterval-based tick loop)
+│   ├── idle/                         # IdleEngine, RandomEventSystem (tick-driven systems)
 │   ├── combat/                       # CombatEngine, AffixSystem, TargetingSystem, SkillAI
 │   ├── economy/                      # ResourceEngine, AlchemySystem, ForgeSystem, SynergySystem
 │   ├── building/                     # ProductionSystem
@@ -85,10 +85,18 @@ src/
 │   ├── skill.ts
 │   ├── talent.ts
 │   ├── technique.ts
-│   └── runBuild.ts
+│   ├── runBuild.ts
+│   ├── destiny.ts                    # FateGridId, FateGridDef, FateGridEffects
+│   └── randomEvent.ts                # RandomEventDef, RandomEventEffect, RandomEventResult
 │
 ├── data/                             # Static game data tables
 │   ├── buildings.ts, recipes.ts, items.ts, skills.ts, affixes.ts, ...
+│   ├── techniquesTable.ts            # 30 techniques across 5 tiers
+│   ├── talents.ts                    # 30 talents across 3 rarities
+│   ├── fateGrids.ts                  # 20 fate grids across 7 categories
+│   ├── activeSkills.ts               # 16 active skills
+│   ├── archiveMilestones.ts          # 15 milestone definitions
+│   ├── randomEvents.ts               # 24 random idle events
 │   └── icons/                        # Icon name maps (buildings, characters, items, etc.)
 │
 ├── utils/

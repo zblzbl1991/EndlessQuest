@@ -92,3 +92,25 @@ Create detailed flow docs when:
 - Multiple teams are involved
 - Data format is complex
 - Feature has caused bugs before
+
+---
+
+## Parallel Development Conflict Zones
+
+When running parallel worktree agents, some files are high-conflict due to being modified by multiple independent tasks. Plan merge order accordingly.
+
+### High-Conflict Files
+
+| File | Why | Typical Changes |
+|------|-----|----------------|
+| `src/stores/sectStore/tickSlice.ts` | Central game loop — all tick-driven features modify this | New tick phases, milestone triggers, event system integration |
+| `src/stores/sectStore/characterSlice.ts` | Character lifecycle — recruitment, milestones, path assignment | New milestone triggers, narrative text updates |
+| `src/stores/adventureStore.ts` | Adventure lifecycle — run management, rewards, milestones | Narrative text, milestone triggers |
+| `src/stores/eventLogStore.ts` | Event types — any new game event adds to EventType union | New event type string literals |
+| `src/types/sect.ts` | Sect interface — any new persistent field | New fields, extended union types |
+
+### Strategy
+
+1. **Merge least-overlapping branches first** (data-only changes like content pools)
+2. **Expect text conflicts** in event messages when narrative and milestone tasks overlap
+3. **Use narrative-style text** as the canonical version when resolving event message conflicts

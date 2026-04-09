@@ -18,13 +18,15 @@ TypeScript strict mode is enabled with `noUnusedLocals` and `noUnusedParameters`
 src/types/
 ├── index.ts          # Barrel re-exports (export type + export)
 ├── character.ts      # Character, CharacterQuality, CharacterStatus, etc.
-├── sect.ts           # Sect, Resources, BuildingType, etc.
+├── sect.ts           # Sect, Resources, BuildingType, ArchiveMilestoneId, etc.
 ├── item.ts           # Item, Equipment, Consumable, AnyItem, etc.
 ├── adventure.ts      # DungeonRun, AdventureReport, etc.
 ├── skill.ts          # Skill, Element, active skill definitions
 ├── talent.ts         # Talent definitions
 ├── technique.ts      # Technique, TechniqueScroll
-└── runBuild.ts       # RunBuild types
+├── runBuild.ts       # RunBuild types
+├── destiny.ts        # FateGridId, FateGridDef, FateGridEffects, FateGridCategory
+└── randomEvent.ts    # RandomEventDef, RandomEventEffect, RandomEventResult, etc.
 ```
 
 ### Barrel re-export pattern
@@ -163,6 +165,34 @@ export function getCultivationSpeedModifier(character: Character): number {
 ```
 
 **Why**: Optional fields + query functions that default to `0` means every system can safely call the query without null checks, and new effects can be added to `FateGridEffects` without touching consumer code.
+
+### Data table extension pattern
+
+When extending a data table (e.g., techniques, talents, fate grids, skills), the type union and data entries must stay in sync:
+
+1. **Extend union type** in `src/types/` — add new literal values
+2. **Add data entries** in `src/data/` — match the interface exactly
+3. **Update tests** — hardcoded counts, ID lists, and distribution assertions must all be updated
+
+```ts
+// 1. types/destiny.ts — extend union
+export type FateGridId = 'existing1' | 'existing2' | ... | 'newId'
+
+// 2. data/fateGrids.ts — add matching entry
+export const FATE_GRIDS: Record<FateGridId, FateGridDef> = {
+  // ... existing entries
+  newId: {
+    id: 'newId',
+    name: '新命格名',
+    category: 'cultivation',
+    rarity: 'rare',
+    description: '叙事描述',
+    effects: { cultivationSpeedModifier: 0.15 },
+  },
+}
+```
+
+**Common mistake**: Adding data entries without extending the union type (or vice versa) causes typecheck errors. Always update both together.
 
 ---
 
