@@ -254,37 +254,54 @@ Pages should organize content into three layers of visibility:
 
 **Rule**: A page should never display all its sections fully expanded by default. Move secondary content (stats, settings, legacy info) into collapsible containers.
 
-### Collapsible sections with native `<details>`
+### FoldSection pattern for progressive disclosure
 
-Use HTML `<details>/<summary>` for collapsible content — no custom accordion component:
+Use the `FoldSection` helper component (or raw `<details>/<summary>`) for collapsible content — no custom accordion component:
 
 ```tsx
-<details className={styles.collapsibleSection}>
-  <summary className={styles.collapsibleSummary}>
-    <span>Section Title</span>
-    <span className={styles.collapsibleMeta}>展开详情</span>
-  </summary>
-  <ChildComponent />
-</details>
-```
-
-```css
-.collapsibleSummary {
-  list-style: none;
-}
-.collapsibleSummary::-webkit-details-marker {
-  display: none;
-}
-.collapsibleSummary::before {
-  content: '▸';
-  transition: transform 0.2s;
-}
-.collapsibleSection[open] > .collapsibleSummary::before {
-  transform: rotate(90deg);
+// Reusable FoldSection helper (defined at top of page file)
+function FoldSection({ icon, title, summary, children, defaultOpen = false }: {
+  icon: string
+  title: string
+  summary: string
+  children: ReactNode
+  defaultOpen?: boolean
+}) {
+  return (
+    <details className={styles.foldSection} open={defaultOpen}>
+      <summary className={styles.foldSummary}>
+        <span className={styles.foldTitle}>
+          <PixelIcon name={icon} size={16} className={styles.inlineIcon} />
+          {title}
+        </span>
+        <span className={styles.foldMeta}>{summary}</span>
+      </summary>
+      <div className={styles.foldBody}>{children}</div>
+    </details>
+  )
 }
 ```
 
-**Why**: No extra JS state, accessible by default, works on mobile without hover. Keep it simple.
+**Usage in detail pages** — wrap secondary sections to reduce information density:
+
+```tsx
+<FoldSection
+  icon="cultivation"
+  title="基础属性"
+  summary={`HP ${Math.floor(stats.hp)} · ATK ${Math.floor(stats.atk)} · DEF ${Math.floor(stats.def)}`}
+  defaultOpen={false}
+>
+  <StatsGrid stats={stats} />
+</FoldSection>
+```
+
+**Key rules**:
+- `summary` must show the most important 2-3 values so the user doesn't need to expand for a quick check
+- `defaultOpen={false}` for secondary info; use `true` only for sections users interact with frequently
+- `icon` uses `PixelIcon` name strings for consistent visual language
+- Styles: `.foldSection` has panel styling (border, background, shadow), `.foldSummary` is flex row with marker hidden
+
+**Why**: No extra JS state, accessible by default, works on mobile without hover. The summary line gives the "answer at a glance" while keeping full detail one click away.
 
 ### List-card info priority
 

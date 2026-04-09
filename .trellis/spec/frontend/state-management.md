@@ -28,7 +28,7 @@ The main store (`useSectStore`) is decomposed into 12 slices composed via object
 | Slice | File | Key Actions |
 |-------|------|-------------|
 | `createInitialSlice` | `initial.ts` | Owns `sect` and `shopState` base state |
-| `createCharacterSlice` | `characterSlice.ts` | addCharacter, removeCharacter, sacrificeCharacter, promoteCharacter, setCharacterStatus, chooseCultivationPath |
+| `createCharacterSlice` | `characterSlice.ts` | addCharacter, removeCharacter, sacrificeCharacter, promoteCharacter, setCharacterStatus, chooseCultivationPath, updateCharacterSkill |
 | `createBuildingSlice` | `buildingSlice.ts` | upgradeBuilding, expandBuilding, setProductionRecipe, assignToBuilding, autoAssignToBuilding |
 | `createResourceSlice` | `resourceSlice.ts` | spendResource, addResource, exchangeResources |
 | `createItemSlice` | `itemSlice.ts` | transferItemToCharacter, transferItemToVault, addToVault, sellItem, equipItem, unequipItem, enhanceItem |
@@ -360,7 +360,7 @@ for (const [charId, slots] of Object.entries(run.autoEquipAssignments)) {
 
 ### `calcDungeonGrowth(floorsCleared, quality)`
 
-Returns permanent stat boosts for surviving characters after a dungeon run.
+Returns growth rewards for surviving characters after a dungeon run.
 
 **File**: `src/systems/character/DungeonGrowthSystem.ts`
 
@@ -372,14 +372,17 @@ function calcDungeonGrowth(
 ): {
   statBoost: { hp: number; atk: number; def: number }
   cultivationGain: number
+  xpGain: number
 }
 ```
 
 **Formulas**:
-- HP boost: `floor(floors * 3 * qualityMultiplier)`
-- ATK/DEF boost: `floor(floors * 1 * qualityMultiplier)`
+- XP gain: `floorsCleared * 100` (the primary growth vector — stats come from level-ups)
+- Stat boost: `{ hp: 0, atk: 0, def: 0 }` (stats now come from level system via `tryLevelUp`)
 - Cultivation: `floor(floors * 10 * qualityMultiplier)`
-- Quality multipliers: common=1.0, uncommon=1.2, rare=1.5, epic=2.0, legendary=2.5
+- Quality multipliers: common=1.0, spirit=1.2, immortal=1.5, divine=2.0, chaos=2.5
+
+> **Note**: `statBoost` was previously populated with direct stat gains. Since the level system was introduced, stat growth comes from `tryLevelUp()` in `adventureStore.ts`, not from `calcDungeonGrowth()`.
 
 ### Application Rules
 
@@ -483,6 +486,7 @@ This contract applies to ANY field that stores entity IDs as references rather t
 11. **Removing entities from their storage collection when only an ID reference is recorded** — If `equippedGear: (string | null)[]` only stores IDs, the actual item must remain in `backpack` (the real storage). Removing from backpack destroys the only copy of the data, making the ID a dangling reference. See "Equipment Ownership Contract" below.
 12. **Adding a field to `Sect` without updating all 5 locations** — Must update: `types/sect.ts`, `initial.ts`, `SaveSystem.ts` (write + load with `?? default`), `testFixture.ts`, `LegacySystem.ts`. Missing any one causes typecheck failure or save corruption. See "Sect Interface Extension Pattern".
 13. **Extending a union type without updating all consumers** — When adding to `FateGridId` or `ArchiveMilestoneId`, the data table entries must match exactly. Check `types/*.ts` union type, `data/*.ts` entries, and all test assertions with hardcoded counts.
+14. **Adding Character fields without updating CharacterEngine defaults** — New fields must have defaults in both `generateCharacter()` (for new characters) and `SaveSystem.ts` load map (for existing saves). Missing either causes `undefined` at runtime.
 
 ---
 
@@ -774,7 +778,171 @@ interface RandomEventEffect {
 
 ---
 
-## Archive Milestone System Contracts
+## Disciple Level System Contracts
+
+### Design Decision: Quality → Stats, Realm → Cap, Adventure → XP
+
+**Context**: Players needed a way for same-realm disciples to differentiate through experience, not just innate quality.
+
+**Decision**: 
+- **Quality** determines stat gain per level (common: +2/+1/+1 to chaos: +12/+6/+6 HP/ATK/DEF)
+- **Cultivation realm** determines max level cap (10/20/30/40/50/60 for realms 0-5)
+- **Dungeon adventures** are the only XP source (100 XP per floor cleared)
+- Level curve: `calcXpToNextLevel(level) = level * 100`
+
+**Why**: Creates a natural progression loop — stronger disciples gain more per level, realm breakthroughs unlock more levels, dungeon runs are the progression activity.
+
+### Key File: `src/data/levelSystem.ts`
+
+```ts
+export const QUALITY_LEVEL_STATS: Record<CharacterQuality, { hp: number; atk: number; def: number }> = {
+  common:   { hp: 2,  atk: 1, def: 1 },
+  spirit:   { hp: 4,  atk: 2, def: 2 },
+  immortal: { hp: 6,  atk: 3, def: 3 },
+  divine:   { hp: 8,  atk: 4, def: 4 },
+  chaos:    { hp: 12, atk: 6, def: 6 },
+}
+
+export const REALM_LEVEL_CAPS = [10, 20, 30, 40, 50, 60] as const
+
+export function getRealmLevelCap(realmIndex: number): number
+export function calcXpToNextLevel(level: number): number
+export function tryLevelUp(
+  currentLevel: number,
+  currentXp: number,
+  xpGain: number,
+  quality: CharacterQuality,
+  realmIndex: number
+): { levelsGained: number; xpRemaining: number; statBoost: { hp: number; atk: number; def: number } }
+```
+
+### Character Type Extension
+
+Added `level: number` and `xp: number` to `Character` interface. Migration pattern:
+
+```ts
+// SaveSystem.ts loadGame() character map
+level: normalizeFiniteNumber((c as any).level, 1),
+xp: normalizeFiniteNumber((c as any).xp, 0),
+
+// CharacterEngine.ts generateCharacter() — defaults for new characters
+level: 1,
+xp: 0,
+```
+
+### Application Point
+
+Level-up is applied in `adventureStore.ts` on dungeon completion/retreat, NOT in tickSlice:
+
+```ts
+// adventureStore.ts — after dungeon growth calculation
+const result = tryLevelUp(char.level, char.xp, growth.xpGain, char.quality, char.realm)
+char.xp = result.xpRemaining
+char.level += result.levelsGained
+char.baseStats.hp += result.statBoost.hp
+char.baseStats.atk += result.statBoost.atk
+char.baseStats.def += result.statBoost.def
+```
+
+### UI Display
+
+- **CharacterCard**: Shows `Lv.{level}` after realm name + XP progress bar
+- **CharacterDetail**: Shows "等级 X / 上限 Y" with ProgressBar for level progress
+
+### Skill Tier Unlock by Realm
+
+Skills are gated by realm level for the SkillPicker UI:
+
+```ts
+function getMaxSkillTier(realm: number): number {
+  if (realm >= 4) return 5
+  if (realm >= 3) return 4
+  if (realm >= 2) return 3
+  if (realm >= 1) return 2
+  return 1
+}
+```
+
+---
+
+## Save Export/Import Contracts
+
+### Design Decision: JSON Blob Export/Import
+
+**Context**: Players need to back up and transfer save data across browsers/devices.
+
+**Decision**: Export all IndexedDB stores as a JSON string; import validates and overwrites all stores.
+
+### Signatures
+
+```ts
+// src/systems/save/SaveSystem.ts
+export async function exportSaveData(): Promise<string>
+export async function importSaveData(jsonString: string): Promise<boolean>
+```
+
+### Contracts
+
+**Export**: Reads all 8 IndexedDB stores (meta, characters, buildings, vault, pets, adventure, history, resources), returns `JSON.stringify()` result.
+
+**Import**:
+1. Parse JSON — fail fast on invalid JSON
+2. Validate required stores exist (meta must be present)
+3. Clear all existing stores in a single transaction
+4. Write all imported data
+5. Return `true` on success, `false` on failure
+
+### Error Matrix
+
+| Condition | Result |
+|-----------|--------|
+| Invalid JSON | `false` (try/catch) |
+| Missing `meta` store | `false` |
+| Transaction failure | `false` (try/catch) |
+| Valid import | `true` |
+
+### UI Integration (EventLogPage)
+
+- Export button: creates Blob, triggers download with filename `endless-quest-save-YYYY-MM-DD.json`
+- Import button: file picker → `window.confirm('确定要覆盖当前存档？此操作不可撤销')` → `importSaveData()` → `window.location.reload()`
+
+---
+
+## Skill Customization Store Action
+
+### Action: `updateCharacterSkill`
+
+```ts
+// types.ts
+updateCharacterSkill(characterId: string, slotIndex: number, skillId: string | null): void
+
+// characterSlice.ts implementation
+updateCharacterSkill: (characterId, slotIndex, skillId) => {
+  set((s) => ({
+    sect: {
+      ...s.sect,
+      characters: s.sect.characters.map((c) =>
+        c.id === characterId
+          ? {
+              ...c,
+              equippedSkills: Object.fromEntries(
+                Object.entries(c.equippedSkills ?? {}).map(([key, val], i) =>
+                  i === slotIndex ? [key, skillId] : [key, val]
+                )
+              ),
+            }
+          : c
+      ),
+    },
+  }))
+}
+```
+
+### UI: SkillPicker Component
+
+Defined as a private component in `CharactersPage.tsx`. Shows all `ACTIVE_SKILLS` filtered by `getMaxSkillTier(realm)`, marks recommended skills from `buildCharacterSkillLoadout(character)`. Each skill slot has a "切换" button that toggles the picker.
+
+---
 
 ### Overview
 

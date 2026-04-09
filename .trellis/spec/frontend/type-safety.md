@@ -213,6 +213,42 @@ normalizeFiniteNumber(value)   // prevents NaN/Infinity
 normalizeResources(resources)  // ensures all resource fields are valid numbers
 ```
 
+### New field migration pattern for Character
+
+When adding new fields to the `Character` interface, follow this checklist:
+
+| Location | What to update |
+|----------|---------------|
+| `src/types/character.ts` | Add field to `Character` interface |
+| `src/systems/character/CharacterEngine.ts` | Add default in `generateCharacter()` return |
+| `src/systems/save/SaveSystem.ts` | Add `normalizeFiniteNumber((c as any).field, default)` in character load map |
+| `src/stores/sectStore/testHelpers.ts` or test fixtures | Add to all `makeCharacter()` / `makeUnit()` factories |
+| UI components displaying character data | Use `character.field ?? default` for safety |
+
+Example (adding `level` and `xp`):
+
+```ts
+// types/character.ts
+export interface Character {
+  // ... existing fields
+  level: number
+  xp: number
+}
+
+// CharacterEngine.ts generateCharacter()
+return {
+  // ... existing fields
+  level: 1,
+  xp: 0,
+}
+
+// SaveSystem.ts loadGame() character map
+level: normalizeFiniteNumber((c as any).level, 1),
+xp: normalizeFiniteNumber((c as any).xp, 0),
+```
+
+**Key rule**: Always use `(c as any).field` for reading new fields from old saves, with a sensible default. `normalizeFiniteNumber` prevents NaN/Infinity corruption.
+
 ---
 
 ## Store Type Definition
