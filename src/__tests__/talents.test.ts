@@ -39,20 +39,20 @@ describe('TALENT_RARITY_NAMES', () => {
 })
 
 describe('talent data table', () => {
-  it('should have 12 talents', () => {
-    expect(ALL_TALENTS).toHaveLength(12)
+  it('should have 30 talents', () => {
+    expect(ALL_TALENTS).toHaveLength(30)
   })
 
   it('should have all talents with unique ids', () => {
     const ids = new Set(ALL_TALENTS.map((t) => t.id))
-    expect(ids.size).toBe(12)
+    expect(ids.size).toBe(30)
   })
 
   it('should have correct rarity distribution', () => {
     const byRarity = getTalentsByRarity()
-    expect(byRarity.common).toHaveLength(6)
-    expect(byRarity.rare).toHaveLength(4)
-    expect(byRarity.epic).toHaveLength(2)
+    expect(byRarity.common).toHaveLength(15)
+    expect(byRarity.rare).toHaveLength(10)
+    expect(byRarity.epic).toHaveLength(5)
   })
 
   it('getTalentById should return correct talent', () => {

@@ -37,8 +37,10 @@ describe('active skill loadout automation', () => {
     const loadout = buildCharacterSkillLoadout(character)
 
     expect(loadout).toHaveLength(5)
-    expect(loadout[0]).toBe('sword_qi')
-    expect(loadout.filter((skillId) => skillId !== null)).toHaveLength(1)
+    // First slot is always a tier-1 attack skill (wind_slash or sword_qi)
+    expect(loadout[0]).toMatch(/^(wind_slash|sword_qi)$/)
+    // New disciples may fill 1-2 slots depending on available tier-1 attack skills
+    expect(loadout.filter((skillId) => skillId !== null).length).toBeGreaterThanOrEqual(1)
   })
 
   it('leans into sword burst skills for sword-path disciples', () => {

@@ -1,7 +1,7 @@
 import type { FateGridDef, FateGridId, FateGridRarity, CharacterQuality } from '../types'
 
 // ---------------------------------------------------------------------------
-// 10 Fate Grid Definitions
+// 20 Fate Grid Definitions
 // ---------------------------------------------------------------------------
 
 export const FATE_GRIDS: Record<FateGridId, FateGridDef> = {
@@ -41,6 +41,18 @@ export const FATE_GRIDS: Record<FateGridId, FateGridDef> = {
       bossDamageBonus: 0.15,
     },
   },
+  starVeil: {
+    id: 'starVeil',
+    name: '星辰护体',
+    description: '星辰之力笼罩全身，修炼与战斗皆受星辉庇佑。',
+    category: 'heavenly',
+    rarity: 'epic',
+    effects: {
+      allStatBonus: 0.05,
+      cultivationSpeedModifier: 0.12,
+      inCombatRegenRate: 0.05,
+    },
+  },
 
   // --- 鬼咒格 ---
   ghostly: {
@@ -67,6 +79,19 @@ export const FATE_GRIDS: Record<FateGridId, FateGridDef> = {
       lethalSurvivalChance: 0.4,
       postBattleRecoveryBonus: 0.3,
       cultivationSpeedPenalty: 0.1,
+    },
+  },
+  poisonBloom: {
+    id: 'poisonBloom',
+    name: '毒花绽放',
+    description: '体内潜藏剧毒之力，战斗中以毒攻毒，伤敌亦伤己。',
+    category: 'ghost',
+    rarity: 'rare',
+    effects: {
+      attackModifier: 0.12,
+      darkSkillDamageBonus: 0.15,
+      heartDemonBonus: 0.05,
+      cultivationSpeedPenalty: 0.05,
     },
   },
 
@@ -97,6 +122,17 @@ export const FATE_GRIDS: Record<FateGridId, FateGridDef> = {
       battleRouteExpBonus: 0.1,
     },
   },
+  moonShadow: {
+    id: 'moonShadow',
+    name: '月影心',
+    description: '心如月影般变幻，战斗中攻守转换自如。',
+    category: 'emotional',
+    rarity: 'common',
+    effects: {
+      inCombatRegenRate: 0.04,
+      postBattleRecoveryBonus: 0.15,
+    },
+  },
 
   // --- 修炼格 ---
   wisdom: {
@@ -123,6 +159,18 @@ export const FATE_GRIDS: Record<FateGridId, FateGridDef> = {
       breakthroughFailStackBonus: 0.05,
     },
   },
+  thunderHeart: {
+    id: 'thunderHeart',
+    name: '雷心',
+    description: '心如雷霆般刚猛果决，修炼速度极快但易生心魔。',
+    category: 'cultivation',
+    rarity: 'rare',
+    effects: {
+      cultivationSpeedModifier: 0.2,
+      breakthroughSuccessBonus: 0.06,
+      heartDemonBonus: 0.1,
+    },
+  },
 
   // --- 机率格 ---
   lucky: {
@@ -136,6 +184,82 @@ export const FATE_GRIDS: Record<FateGridId, FateGridDef> = {
       lootQualityBonus: 0.2,
       equipmentUpgradeChance: 0.15,
       suddenInsightChance: 0.05,
+    },
+  },
+  bloodPact: {
+    id: 'bloodPact',
+    name: '血契',
+    description: '以鲜血为代价换取命运眷顾，冒险中收益更高但风险亦增。',
+    category: 'probability',
+    rarity: 'rare',
+    effects: {
+      lootQualityBonus: 0.25,
+      rareEventChanceBonus: 0.15,
+      lethalDamageReduction: -0.05, // increased risk
+    },
+  },
+
+  // --- 五行格 (elemental) ---
+  karmicFlame: {
+    id: 'karmicFlame',
+    name: '业火焚身',
+    description: '前世因果化为业火，攻击力极强但修炼速度受损。',
+    category: 'elemental',
+    rarity: 'epic',
+    effects: {
+      attackModifier: 0.22,
+      critRateBonus: 0.06,
+      cultivationSpeedPenalty: 0.1,
+    },
+  },
+  voidStep: {
+    id: 'voidStep',
+    name: '虚空步',
+    description: '虚空之力加持身法，速度极快，暴击率高。',
+    category: 'elemental',
+    rarity: 'rare',
+    effects: {
+      attackModifier: 0.1,
+      critRateBonus: 0.08,
+    },
+  },
+  ironWill: {
+    id: 'ironWill',
+    name: '铁壁意志',
+    description: '意志坚不可摧，防御与生存能力大增。',
+    category: 'elemental',
+    rarity: 'common',
+    effects: {
+      lethalDamageReduction: 0.1,
+      inCombatRegenRate: 0.03,
+      postBattleRecoveryBonus: 0.1,
+    },
+  },
+
+  // --- 独行格 (solo) ---
+  solitarySword: {
+    id: 'solitarySword',
+    name: '孤剑无依',
+    description: '独自一人时剑意更纯，单独作战攻击力大幅提升。',
+    category: 'solo',
+    rarity: 'epic',
+    effects: {
+      soloAttackBonus: 0.25,
+      teamAttackPenalty: 0.1,
+      battleRouteExpBonus: 0.1,
+    },
+  },
+  originDao: {
+    id: 'originDao',
+    name: '原始道体',
+    description: '道体返璞归真，修炼全面增益，适合长期培养。',
+    category: 'solo',
+    rarity: 'legendary',
+    effects: {
+      cultivationSpeedModifier: 0.3,
+      techniqueComprehensionModifier: 0.15,
+      breakthroughSuccessBonus: 0.15,
+      allStatGrowthModifier: 0.1,
     },
   },
 }

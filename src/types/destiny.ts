@@ -24,8 +24,18 @@ export type FateGridId =
   | 'wisdom'
   | 'defiance'
   | 'lucky'
+  | 'starVeil'
+  | 'solitarySword'
+  | 'karmicFlame'
+  | 'voidStep'
+  | 'poisonBloom'
+  | 'ironWill'
+  | 'thunderHeart'
+  | 'moonShadow'
+  | 'bloodPact'
+  | 'originDao'
 
-export type FateGridCategory = 'heavenly' | 'ghost' | 'emotional' | 'cultivation' | 'probability'
+export type FateGridCategory = 'heavenly' | 'ghost' | 'emotional' | 'cultivation' | 'probability' | 'elemental' | 'solo'
 
 export type FateGridRarity = 'common' | 'rare' | 'epic' | 'legendary'
 
@@ -35,6 +45,8 @@ export const FATE_GRID_CATEGORY_NAMES: Record<FateGridCategory, string> = {
   emotional: '情绪格',
   cultivation: '修炼格',
   probability: '机率格',
+  elemental: '五行格',
+  solo: '独行格',
 }
 
 export const FATE_GRID_RARITY_NAMES: Record<FateGridRarity, string> = {

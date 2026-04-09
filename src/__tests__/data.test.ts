@@ -15,8 +15,8 @@ import type { Character } from '../types/character'
 // ─── Techniques Table ────────────────────────────────────────────────
 
 describe('Techniques Table', () => {
-  it('should define exactly 12 techniques', () => {
-    expect(TECHNIQUES).toHaveLength(12)
+  it('should define exactly 30 techniques', () => {
+    expect(TECHNIQUES).toHaveLength(30)
   })
 
   it('should have correct tier distribution', () => {
@@ -25,16 +25,16 @@ describe('Techniques Table', () => {
     const immortal = TECHNIQUES.filter((t) => t.tier === 'immortal')
     const divine = TECHNIQUES.filter((t) => t.tier === 'divine')
     const chaos = TECHNIQUES.filter((t) => t.tier === 'chaos')
-    expect(mortal).toHaveLength(3)
-    expect(spirit).toHaveLength(3)
-    expect(immortal).toHaveLength(3)
-    expect(divine).toHaveLength(2)
-    expect(chaos).toHaveLength(1)
+    expect(mortal).toHaveLength(6)
+    expect(spirit).toHaveLength(8)
+    expect(immortal).toHaveLength(8)
+    expect(divine).toHaveLength(6)
+    expect(chaos).toHaveLength(2)
   })
 
-  it('should have all required technique IDs', () => {
+  it('should have all original technique IDs', () => {
     const ids = TECHNIQUES.map((t) => t.id)
-    const expected = [
+    const original = [
       'qingxin',
       'lieyan',
       'houtu',
@@ -48,7 +48,7 @@ describe('Techniques Table', () => {
       'taishang',
       'hunduntiangong',
     ]
-    for (const id of expected) {
+    for (const id of original) {
       expect(ids).toContain(id)
     }
   })

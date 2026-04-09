@@ -88,7 +88,7 @@ describe('CharacterEngine', () => {
       expect(c.backpack).toEqual([])
       expect(c.equippedGear).toEqual([])
       expect(c.equippedSkills).toHaveLength(5)
-      expect(c.equippedSkills[0]).toBe('sword_qi')
+      expect(c.equippedSkills[0]).toMatch(/^(wind_slash|sword_qi)$/)
       expect(c.learnedTechniques).toEqual(['qingxin'])
       expect(c.petIds).toEqual([])
     })

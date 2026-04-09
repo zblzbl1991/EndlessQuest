@@ -4,6 +4,7 @@ import {
   pickTechniqueForFloor,
   tryComprehendOnBreakthrough,
 } from '../systems/technique/TechniqueSystem'
+import { TECHNIQUES } from '../data/techniquesTable'
 
 describe('tryComprehendOnBreakthrough', () => {
   const codex = ['qingxin', 'lieyan', 'fentian', 'xuanbing', 'leishen']
@@ -100,17 +101,20 @@ describe('tryComprehendOnBreakthrough', () => {
 describe('pickTechniqueForFloor', () => {
   it('should return spirit-or-higher dungeon techniques for early floors', () => {
     const id = pickTechniqueForFloor(3, () => 0.5)
-    expect(['fentian', 'xuanbing', 'leiyu']).toContain(id)
+    const spiritIds = TECHNIQUES.filter((t) => t.tier === 'spirit' && t.origin === 'dungeon').map((t) => t.id)
+    expect(spiritIds).toContain(id)
   })
 
   it('should return immortal tier for floor 8 with high roll', () => {
     const id = pickTechniqueForFloor(8, () => 0.9)
-    expect(['leishen', 'bumiejinshen', 'jiuzhuan']).toContain(id)
+    const immortalIds = TECHNIQUES.filter((t) => t.tier === 'immortal' && t.origin === 'dungeon').map((t) => t.id)
+    expect(immortalIds).toContain(id)
   })
 
   it('should return divine tier for floor 12 with high roll', () => {
     const id = pickTechniqueForFloor(12, () => 0.9)
-    expect(['wanjianguizong', 'taishang']).toContain(id)
+    const divineIds = TECHNIQUES.filter((t) => t.tier === 'divine' && t.origin === 'dungeon').map((t) => t.id)
+    expect(divineIds).toContain(id)
   })
 })
 

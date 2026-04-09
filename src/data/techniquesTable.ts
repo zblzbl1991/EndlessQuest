@@ -1,14 +1,14 @@
 import type { Technique } from '../types/technique'
 
 /**
- * All 12 techniques organized by tier.
+ * All 30 techniques organized by tier.
  *
  * bonuses are flat additive stat bonuses — all active as soon as the technique
  * is learned (no comprehension thresholds).
  */
 
 export const TECHNIQUES: Technique[] = [
-  // ─── Mortal (凡品) — 3 techniques ──────────────────────────────
+  // ─── Mortal (凡品) — 6 techniques ──────────────────────────────
   {
     id: 'qingxin',
     name: '清心诀',
@@ -56,8 +56,53 @@ export const TECHNIQUES: Technique[] = [
     ],
     requirements: { minRealm: 0, minComprehension: 8 },
   },
+  {
+    id: 'yinfeng',
+    name: '吟风诀',
+    description: '轻灵如风，修炼速度加快，适合追求速成的弟子。',
+    tier: 'mortal',
+    element: 'neutral',
+    origin: 'starter',
+    family: 'qi',
+    styles: ['tempo', 'cultivation'],
+    bonuses: [
+      { type: 'spd', value: 2 },
+      { type: 'cultivationRate', value: 0.05 },
+    ],
+    requirements: { minRealm: 0, minComprehension: 5 },
+  },
+  {
+    id: 'hanbingzhang',
+    name: '寒冰掌',
+    description: '以寒冰之气凝结掌力，攻防兼顾，入门弟子也能施展。',
+    tier: 'mortal',
+    element: 'ice',
+    origin: 'starter',
+    family: 'qi',
+    styles: ['balanced'],
+    bonuses: [
+      { type: 'atk', value: 3 },
+      { type: 'def', value: 3 },
+    ],
+    requirements: { minRealm: 0, minComprehension: 6 },
+  },
+  {
+    id: 'cuoti',
+    name: '淬体术',
+    description: '以灵力反复淬炼肉身，虽缓慢却根基扎实，适合体修入门。',
+    tier: 'mortal',
+    element: 'neutral',
+    origin: 'starter',
+    family: 'body',
+    styles: ['survival'],
+    bonuses: [
+      { type: 'hp', value: 15 },
+      { type: 'def', value: 2 },
+    ],
+    requirements: { minRealm: 0, minComprehension: 6 },
+  },
 
-  // ─── Spirit (灵品) — 3 techniques ─────────────────────────────
+  // ─── Spirit (灵品) — 8 techniques ─────────────────────────────
   {
     id: 'fentian',
     name: '焚天诀',
@@ -104,8 +149,84 @@ export const TECHNIQUES: Technique[] = [
     ],
     requirements: { minRealm: 1, minComprehension: 12 },
   },
+  {
+    id: 'biyunxinjing',
+    name: '碧云心经',
+    description: '以碧云之气温养经脉，修炼效率与突破成功率皆有所增益。',
+    tier: 'spirit',
+    element: 'neutral',
+    origin: 'dungeon',
+    family: 'qi',
+    styles: ['cultivation'],
+    bonuses: [
+      { type: 'cultivationRate', value: 0.12 },
+      { type: 'def', value: 3 },
+    ],
+    requirements: { minRealm: 1, minComprehension: 14 },
+  },
+  {
+    id: 'mingyuejue',
+    name: '明月诀',
+    description: '如明月般柔和却坚定的功法，均衡提升攻守与灵力。',
+    tier: 'spirit',
+    element: 'ice',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced', 'survival'],
+    bonuses: [
+      { type: 'hp', value: 20 },
+      { type: 'atk', value: 4 },
+      { type: 'def', value: 4 },
+    ],
+    requirements: { minRealm: 1, minComprehension: 12 },
+  },
+  {
+    id: 'fengshenying',
+    name: '风神影',
+    description: '速度型功法，身形如风，攻击虽轻却连绵不绝。',
+    tier: 'spirit',
+    element: 'lightning',
+    origin: 'dungeon',
+    family: 'weapon',
+    styles: ['tempo', 'burst'],
+    bonuses: [
+      { type: 'spd', value: 6 },
+      { type: 'crit', value: 0.03 },
+    ],
+    requirements: { minRealm: 1, minComprehension: 14 },
+  },
+  {
+    id: 'lieyanjianjing',
+    name: '烈焰剑经',
+    description: '以火系灵力灌注剑意，攻击与暴击兼备，适合剑修。',
+    tier: 'spirit',
+    element: 'fire',
+    origin: 'dungeon',
+    family: 'weapon',
+    styles: ['burst'],
+    bonuses: [
+      { type: 'atk', value: 8 },
+      { type: 'crit', value: 0.04 },
+    ],
+    requirements: { minRealm: 1, minComprehension: 14 },
+  },
+  {
+    id: 'shuimuyangshen',
+    name: '水木养神',
+    description: '以水木之气滋养神魂，生命与修炼效率并重，适合辅助修炼。',
+    tier: 'spirit',
+    element: 'ice',
+    origin: 'dungeon',
+    family: 'qi',
+    styles: ['survival', 'cultivation'],
+    bonuses: [
+      { type: 'hp', value: 25 },
+      { type: 'cultivationRate', value: 0.06 },
+    ],
+    requirements: { minRealm: 1, minComprehension: 12 },
+  },
 
-  // ─── Immortal (仙品) — 3 techniques ──────────────────────────
+  // ─── Immortal (仙品) — 8 techniques ──────────────────────────
   {
     id: 'leishen',
     name: '雷神体',
@@ -154,8 +275,88 @@ export const TECHNIQUES: Technique[] = [
     ],
     requirements: { minRealm: 2, minComprehension: 18 },
   },
+  {
+    id: 'zhiyanggong',
+    name: '至阳功',
+    description: '阳刚至极的火系功法，攻击力与暴击伤害并重，以力破万法。',
+    tier: 'immortal',
+    element: 'fire',
+    origin: 'dungeon',
+    family: 'qi',
+    styles: ['burst'],
+    bonuses: [
+      { type: 'atk', value: 14 },
+      { type: 'critDmg', value: 0.15 },
+      { type: 'hp', value: 15 },
+    ],
+    requirements: { minRealm: 2, minComprehension: 20 },
+  },
+  {
+    id: 'youmingzhou',
+    name: '幽冥咒',
+    description: '以幽冥之力侵蚀敌人意志，攻击虽缓却附带诡异暴击。',
+    tier: 'immortal',
+    element: 'ice',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['burst', 'guard'],
+    bonuses: [
+      { type: 'atk', value: 10 },
+      { type: 'crit', value: 0.05 },
+      { type: 'def', value: 6 },
+    ],
+    requirements: { minRealm: 2, minComprehension: 20 },
+  },
+  {
+    id: 'wuxingshenjue',
+    name: '五行神诀',
+    description: '参悟五行生克之道，内息生生不息，全面增益攻守。',
+    tier: 'immortal',
+    element: 'neutral',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced'],
+    bonuses: [
+      { type: 'hp', value: 35 },
+      { type: 'atk', value: 7 },
+      { type: 'def', value: 7 },
+      { type: 'spd', value: 4 },
+    ],
+    requirements: { minRealm: 2, minComprehension: 18 },
+  },
+  {
+    id: 'guangmingshenyin',
+    name: '光明神印',
+    description: '正道至高的疗愈功法，以光明之力护体续命，修炼亦有所增益。',
+    tier: 'immortal',
+    element: 'neutral',
+    origin: 'dungeon',
+    family: 'qi',
+    styles: ['guard', 'cultivation'],
+    bonuses: [
+      { type: 'hp', value: 50 },
+      { type: 'cultivationRate', value: 0.08 },
+    ],
+    requirements: { minRealm: 2, minComprehension: 20 },
+  },
+  {
+    id: 'tianyinzhenjue',
+    name: '天音镇诀',
+    description: '以音波之力镇慑敌方，攻守兼备，速度与暴击皆有增益。',
+    tier: 'immortal',
+    element: 'neutral',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced', 'tempo'],
+    bonuses: [
+      { type: 'spd', value: 6 },
+      { type: 'atk', value: 8 },
+      { type: 'def', value: 6 },
+    ],
+    requirements: { minRealm: 2, minComprehension: 20 },
+  },
 
-  // ─── Divine (神品) — 2 techniques ─────────────────────────────
+  // ─── Divine (神品) — 6 techniques ─────────────────────────────
   {
     id: 'wanjianguizong',
     name: '万剑归宗',
@@ -189,8 +390,74 @@ export const TECHNIQUES: Technique[] = [
     ],
     requirements: { minRealm: 3, minComprehension: 25 },
   },
+  {
+    id: 'longxiangbanruo',
+    name: '龙象般若',
+    description: '远古龙象之力灌体，肉身强横无匹，一力降十会。',
+    tier: 'divine',
+    element: 'neutral',
+    origin: 'dungeon',
+    family: 'body',
+    styles: ['burst', 'guard'],
+    bonuses: [
+      { type: 'hp', value: 60 },
+      { type: 'atk', value: 18 },
+      { type: 'def', value: 10 },
+    ],
+    requirements: { minRealm: 3, minComprehension: 26 },
+  },
+  {
+    id: 'hundunhuo',
+    name: '混沌火',
+    description: '混沌未分之火，焚烧一切法则，攻击暴击兼备。',
+    tier: 'divine',
+    element: 'fire',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['burst', 'tempo'],
+    bonuses: [
+      { type: 'atk', value: 22 },
+      { type: 'crit', value: 0.07 },
+      { type: 'critDmg', value: 0.25 },
+    ],
+    requirements: { minRealm: 3, minComprehension: 26 },
+  },
+  {
+    id: 'tiandaowuxing',
+    name: '天道无情',
+    description: '以天道之力加身，攻守兼备，进退自如，近乎圆满。',
+    tier: 'divine',
+    element: 'lightning',
+    origin: 'dungeon',
+    family: 'weapon',
+    styles: ['balanced', 'burst'],
+    bonuses: [
+      { type: 'atk', value: 18 },
+      { type: 'spd', value: 10 },
+      { type: 'crit', value: 0.06 },
+    ],
+    requirements: { minRealm: 3, minComprehension: 25 },
+  },
+  {
+    id: 'taixudaojing',
+    name: '太虚道经',
+    description: '参悟太虚之境的至高道经，均衡增益全属性，修炼效率亦有所提升。',
+    tier: 'divine',
+    element: 'neutral',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced', 'cultivation'],
+    bonuses: [
+      { type: 'hp', value: 35 },
+      { type: 'atk', value: 12 },
+      { type: 'def', value: 10 },
+      { type: 'spd', value: 6 },
+      { type: 'cultivationRate', value: 0.08 },
+    ],
+    requirements: { minRealm: 3, minComprehension: 26 },
+  },
 
-  // ─── Chaos (混沌品) — 1 technique ─────────────────────────────
+  // ─── Chaos (混沌品) — 2 techniques ─────────────────────────────
   {
     id: 'hunduntiangong',
     name: '混沌天功',
@@ -209,6 +476,25 @@ export const TECHNIQUES: Technique[] = [
       { type: 'critDmg', value: 0.4 },
     ],
     requirements: { minRealm: 4, minComprehension: 30 },
+  },
+  {
+    id: 'hongmengdaojue',
+    name: '鸿蒙道诀',
+    description: '鸿蒙开辟前的至高道法，悟透者可通天彻地，超脱轮回。',
+    tier: 'chaos',
+    element: 'neutral',
+    origin: 'dungeon',
+    family: 'mystic',
+    styles: ['balanced', 'burst', 'survival', 'cultivation'],
+    bonuses: [
+      { type: 'hp', value: 50 },
+      { type: 'atk', value: 28 },
+      { type: 'def', value: 18 },
+      { type: 'spd', value: 12 },
+      { type: 'crit', value: 0.08 },
+      { type: 'cultivationRate', value: 0.15 },
+    ],
+    requirements: { minRealm: 4, minComprehension: 32 },
   },
 ]
 

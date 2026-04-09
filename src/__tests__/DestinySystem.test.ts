@@ -237,17 +237,27 @@ describe('FATE_GRIDS data integrity', () => {
     'wisdom',
     'defiance',
     'lucky',
+    'starVeil',
+    'solitarySword',
+    'karmicFlame',
+    'voidStep',
+    'poisonBloom',
+    'ironWill',
+    'thunderHeart',
+    'moonShadow',
+    'bloodPact',
+    'originDao',
   ]
 
-  it('defines all 10 grids', () => {
-    expect(Object.keys(FATE_GRIDS)).toHaveLength(10)
+  it('defines all 20 grids', () => {
+    expect(Object.keys(FATE_GRIDS)).toHaveLength(20)
     for (const id of ALL_GRID_IDS) {
       expect(FATE_GRIDS[id]).toBeDefined()
     }
   })
 
-  it('FATE_GRID_LIST contains all 10 grids', () => {
-    expect(FATE_GRID_LIST).toHaveLength(10)
+  it('FATE_GRID_LIST contains all 20 grids', () => {
+    expect(FATE_GRID_LIST).toHaveLength(20)
     const listIds = FATE_GRID_LIST.map((g) => g.id).sort()
     const expectedIds = [...ALL_GRID_IDS].sort()
     expect(listIds).toEqual(expectedIds)
@@ -281,13 +291,23 @@ describe('grid categories', () => {
     dragonPhoenix: 'heavenly',
     overlordBody: 'heavenly',
     bloodSuppress: 'heavenly',
+    starVeil: 'heavenly',
     ghostly: 'ghost',
     undying: 'ghost',
+    poisonBloom: 'ghost',
     lastStand: 'emotional',
     warSpirit: 'emotional',
+    moonShadow: 'emotional',
     wisdom: 'cultivation',
     defiance: 'cultivation',
+    thunderHeart: 'cultivation',
     lucky: 'probability',
+    bloodPact: 'probability',
+    karmicFlame: 'elemental',
+    voidStep: 'elemental',
+    ironWill: 'elemental',
+    solitarySword: 'solo',
+    originDao: 'solo',
   }
 
   it('each grid has the correct category', () => {
@@ -296,9 +316,9 @@ describe('grid categories', () => {
     }
   })
 
-  it('has 5 distinct categories', () => {
+  it('has 7 distinct categories', () => {
     const categories = new Set(FATE_GRID_LIST.map((g) => g.category))
-    expect(categories.size).toBe(5)
+    expect(categories.size).toBe(7)
   })
 })
 
@@ -311,13 +331,23 @@ describe('grid rarities', () => {
     dragonPhoenix: 'epic',
     overlordBody: 'legendary',
     bloodSuppress: 'legendary',
+    starVeil: 'epic',
     ghostly: 'rare',
     undying: 'epic',
+    poisonBloom: 'rare',
     lastStand: 'rare',
     warSpirit: 'rare',
+    moonShadow: 'common',
     wisdom: 'common',
     defiance: 'epic',
+    thunderHeart: 'rare',
     lucky: 'rare',
+    bloodPact: 'rare',
+    karmicFlame: 'epic',
+    voidStep: 'rare',
+    ironWill: 'common',
+    solitarySword: 'epic',
+    originDao: 'legendary',
   }
 
   it('each grid has the correct rarity', () => {
@@ -345,13 +375,23 @@ describe('rollFateGrid', () => {
     'dragonPhoenix',
     'overlordBody',
     'bloodSuppress',
+    'starVeil',
     'ghostly',
     'undying',
+    'poisonBloom',
     'lastStand',
     'warSpirit',
+    'moonShadow',
     'wisdom',
     'defiance',
+    'thunderHeart',
     'lucky',
+    'bloodPact',
+    'karmicFlame',
+    'voidStep',
+    'ironWill',
+    'solitarySword',
+    'originDao',
   ])
 
   it('returns a valid FateGridId for each quality', () => {
