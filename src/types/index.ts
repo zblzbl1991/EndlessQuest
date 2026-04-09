@@ -84,3 +84,11 @@ export type {
   RunExecutorBias,
 } from './destiny'
 export { SECT_RISK_POLICY_ORDER, FATE_GRID_CATEGORY_NAMES, FATE_GRID_RARITY_NAMES } from './destiny'
+export type {
+  RandomEventRarity,
+  RandomEventCategory,
+  RandomEventEffectType,
+  RandomEventEffect,
+  RandomEventDef,
+  RandomEventResult,
+} from './randomEvent'

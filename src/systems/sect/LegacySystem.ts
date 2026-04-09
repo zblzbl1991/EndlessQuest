@@ -118,6 +118,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     // Preserve strategy settings across ascensions
     strategySettings: sect.strategySettings,
     autoRunDayCounter: 0,
+    lastRandomEventTime: 0,
   }
 
   const report: AscensionReport = {

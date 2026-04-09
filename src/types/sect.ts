@@ -120,4 +120,5 @@ export interface Sect {
   automationSettings: SectAutomationSettings
   strategySettings: SectStrategySettings
   autoRunDayCounter: number
+  lastRandomEventTime: number
 }

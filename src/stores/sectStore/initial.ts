@@ -134,6 +134,7 @@ export function createInitialState(): { sect: Sect } {
         lastSwitchedAt: null,
       },
       autoRunDayCounter: 0,
+      lastRandomEventTime: 0,
     },
   }
 }

@@ -84,6 +84,7 @@ const META = {
   },
   currentGameDay: 12,
   dayProgressSec: 28800,
+  lastRandomEventTime: 172700,
 }
 
 // ---------------------------------------------------------------------------
