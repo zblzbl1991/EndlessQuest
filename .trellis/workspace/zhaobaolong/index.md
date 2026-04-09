@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-04-08
+- **Total Sessions**: 8
+- **Last Active**: 2026-04-09
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~398 | Active |
+| `journal-1.md` | ~454 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 8 | 2026-04-09 | Fix equipment display: equippedGear as index, not ownership | `d5ad84f` |
 | 7 | 2026-04-08 | Balance Fix: auto-run interval, combat risk, resource caps, event log | `1214874` |
 | 6 | 2026-04-08 | 命格系统重设计：替换命运系统 | pending |
 | 5 | 2026-04-08 | Remove dispatch UI and auto-operation panel | uncommitted |

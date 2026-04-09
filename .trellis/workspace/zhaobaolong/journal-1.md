@@ -1,4 +1,4 @@
-# Journal - zhaobaolong (Part 1)
+ # Journal - zhaobaolong (Part 1)
 
 > AI development session journal
 > Started: 2026-04-03
@@ -384,6 +384,62 @@
 | Hash | Message |
 |------|---------|
 | `1214874` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 8: Fix equipment display: equippedGear as index, not ownership
+
+**Date**: 2026-04-09
+**Task**: Fix equipment display: equippedGear as index, not ownership
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Bug Fix: Equipment items invisible after equipping
+
+**Root Cause**: `equipItem` removed items from `backpack` but `equippedGear` only stored IDs. `findEquipmentById()` searches vault+backpack — equipped items were deleted from both, making them unreachable "ghost data".
+
+## Changes
+
+| File | Change |
+|------|--------|
+| `itemSlice.ts` | `equipItem` no longer removes from backpack, only sets `equippedGear[slot] = id` |
+| `itemSlice.ts` | `unequipItem` no longer adds to backpack, only clears `equippedGear[slot] = null` |
+| `itemSlice.ts` | Block `transferItemToVault`/`sellCharacterItem` for equipped items |
+| `CharactersPage.tsx` | Filter equipped items from backpack display and slot-click offer |
+| `stores.test.ts` | Updated 2 tests to match new in-backpack behavior |
+| `state-management.md` | Added Equipment Ownership Contract + Common Mistake #11 |
+
+## Pattern Discovered
+
+**ID-Reference Arrays must not imply ownership transfer.** When a field like `equippedGear: (string | null)[]` only stores IDs, the real entity must remain in its storage collection (`backpack`). The reference array is an index, not a separate storage location.
+
+## Verification
+
+- TypeScript: 0 errors
+- ESLint: 0 errors  
+- Tests: 68 files, 1043 passed
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d5ad84f` | (see git log) |
 
 ### Testing
 
