@@ -469,7 +469,7 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
               onSlotClick={() => {
                 const eqItems = character.backpack
                   .map((stack, idx) => ({ item: stack.item, idx }))
-                  .filter(({ item }) => item.type === 'equipment')
+                  .filter(({ item }) => item.type === 'equipment' && !character.equippedGear.includes(item.id))
                 if (eqItems.length > 0) {
                   setSelectedBackpackIdx(eqItems[0].idx)
                 }
@@ -627,43 +627,48 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
           <FoldSection
             icon="building"
             title="背包"
-            summary={`${character.backpack.length}/${character.maxBackpackSlots} 格`}
+            summary={`${character.backpack.filter((s) => !character.equippedGear.includes(s.item.id)).length}/${character.maxBackpackSlots} 格`}
           >
             <div className={styles.backpackGrid}>
-              {character.backpack.map((stack, idx) => (
-                <div key={`${stack.item.id}-${idx}`} className={styles.backpackItemWrapper}>
-                  <ItemCard
-                    item={stack.item}
-                    selected={selectedBackpackIdx === idx}
-                    onClick={() => setSelectedBackpackIdx(selectedBackpackIdx === idx ? null : idx)}
-                  />
-                  {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
-                  {selectedBackpackIdx === idx && (
-                    <div className={styles.itemActions}>
-                      {stack.item.type === 'equipment' && <span className={styles.itemHint}>点装备空槽即可穿戴</span>}
-                      <button
-                        className={styles.itemActionBtn}
-                        onClick={() => {
-                          transferItemToVault(characterId, idx)
-                          setSelectedBackpackIdx(null)
-                        }}
-                      >
-                        转入仓库
-                      </button>
-                      <button
-                        className={`${styles.itemActionBtn} ${styles.sellAction}`}
-                        onClick={() => {
-                          sellCharacterItem(characterId, idx)
-                          setSelectedBackpackIdx(null)
-                        }}
-                      >
-                        出售 ({stack.item.sellPrice} 灵石)
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {character.backpack.length === 0 && <div className={styles.empty}>背包为空</div>}
+              {character.backpack
+                .map((stack, idx) => ({ stack, idx }))
+                .filter(({ stack }) => !character.equippedGear.includes(stack.item.id))
+                .map(({ stack, idx }) => (
+                  <div key={`${stack.item.id}-${idx}`} className={styles.backpackItemWrapper}>
+                    <ItemCard
+                      item={stack.item}
+                      selected={selectedBackpackIdx === idx}
+                      onClick={() => setSelectedBackpackIdx(selectedBackpackIdx === idx ? null : idx)}
+                    />
+                    {stack.quantity > 1 && <span className={styles.quantityBadge}>x{stack.quantity}</span>}
+                    {selectedBackpackIdx === idx && (
+                      <div className={styles.itemActions}>
+                        {stack.item.type === 'equipment' && <span className={styles.itemHint}>点装备空槽即可穿戴</span>}
+                        <button
+                          className={styles.itemActionBtn}
+                          onClick={() => {
+                            transferItemToVault(characterId, idx)
+                            setSelectedBackpackIdx(null)
+                          }}
+                        >
+                          转入仓库
+                        </button>
+                        <button
+                          className={`${styles.itemActionBtn} ${styles.sellAction}`}
+                          onClick={() => {
+                            sellCharacterItem(characterId, idx)
+                            setSelectedBackpackIdx(null)
+                          }}
+                        >
+                          出售 ({stack.item.sellPrice} 灵石)
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              {character.backpack.filter((s) => !character.equippedGear.includes(s.item.id)).length === 0 && (
+                <div className={styles.empty}>背包为空</div>
+              )}
             </div>
           </FoldSection>
         </aside>

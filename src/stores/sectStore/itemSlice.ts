@@ -1,7 +1,6 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
 import type { AnyItem, Consumable, Equipment } from '../../types'
-import { findEquipmentById } from './initial'
 import { attemptEnhance } from '../../systems/equipment/EquipmentEngine'
 import { getBuildingLevel, getForgeBuff } from '../../systems/economy/BuildingEffects'
 import { addItemToStacks, removeStackAtIndex } from '../../systems/item/ItemStackUtils'
@@ -44,6 +43,9 @@ export const createItemSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     if (!char) return false
     const stack = char.backpack[backpackIndex]
     if (!stack) return false
+
+    // Block transferring equipped items
+    if (char.equippedGear.includes(stack.item.id)) return false
 
     const isStackable = stack.item.type === 'consumable' && (stack.item as Consumable).recipeId
     if (isStackable) {
@@ -119,29 +121,21 @@ export const createItemSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     const stack = char.backpack[backpackIndex]
     if (!stack || stack.item.type !== 'equipment') return false
-    const item = stack.item as Equipment
+
+    // Don't equip if already equipped in a different slot
+    if (char.equippedGear.includes(stack.item.id)) return false
 
     // Ensure equippedGear array has enough slots
     const gear = [...char.equippedGear]
     while (gear.length <= slotIndex) gear.push(null)
 
-    // If there's already something in that slot, swap it to backpack
-    const prevGearId = gear[slotIndex]
-    let newBackpack = [...char.backpack]
-    newBackpack.splice(backpackIndex, 1)
-    if (prevGearId) {
-      const prevItem = findEquipmentById(sect, prevGearId)
-      if (prevItem) newBackpack = addItemToStacks(newBackpack, prevItem)
-    }
-
-    gear[slotIndex] = item.id
+    // Items stay in backpack — only update the gear slot reference
+    gear[slotIndex] = stack.item.id
 
     set((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId ? { ...c, backpack: newBackpack, equippedGear: gear } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, equippedGear: gear } : c)),
       },
     }))
     return true
@@ -158,21 +152,13 @@ export const createItemSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const gearId = gear[slotIndex]
     if (!gearId) return false
 
-    // Find the equipment
-    const equipment = findEquipmentById(sect, gearId)
-    if (!equipment) return false
-
-    // Check backpack space
-    if (char.backpack.length >= char.maxBackpackSlots) return false
-
+    // Item stays in backpack — just clear the slot reference
     gear[slotIndex] = null
 
     set((s) => ({
       sect: {
         ...s.sect,
-        characters: s.sect.characters.map((c) =>
-          c.id === characterId ? { ...c, equippedGear: gear, backpack: addItemToStacks(c.backpack, equipment) } : c
-        ),
+        characters: s.sect.characters.map((c) => (c.id === characterId ? { ...c, equippedGear: gear } : c)),
       },
     }))
     return true
@@ -236,6 +222,10 @@ export const createItemSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     if (!char) return false
     const stack = char.backpack[backpackIndex]
     if (!stack) return false
+
+    // Block selling equipped items
+    if (char.equippedGear.includes(stack.item.id)) return false
+
     const { stacks: newBackpack, removed } = removeStackAtIndex(char.backpack, backpackIndex)
     if (!removed) return false
     set((s) => ({

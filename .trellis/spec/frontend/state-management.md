@@ -348,6 +348,74 @@ Comprehension growth (+2 per technique per combat) accumulates across all events
 
 ---
 
+## Equipment Ownership Contract
+
+### Core Rule: Backpack is the single source of truth
+
+Equipment items are always stored in `character.backpack[]`. The `equippedGear: (string | null)[]` array is an **index** that references backpack items by ID — it is NOT a separate storage location.
+
+```
+backpack: [{ item: { id: "sword_01", type: "equipment", ... } }, ...]
+equippedGear: [null, null, null, null, null, "sword_01", null, null, null]
+                                           ↑ references backpack item
+```
+
+### Why this matters
+
+The previous implementation removed items from backpack on equip, treating `equippedGear` IDs as pointers to objects that no longer existed. All lookup functions (`findEquipmentById` in both `EquipPanel.tsx` and `initial.ts`) search `sect.vault` + `character.backpack` — they never search `equippedGear` because it only contains IDs. Equipped items became unreachable "ghost data".
+
+### Action Contracts
+
+| Action | What it does | Backpack change | equippedGear change |
+|--------|-------------|-----------------|---------------------|
+| `equipItem(charId, bpIdx, slotIdx)` | Mark item as equipped | None | `gear[slotIdx] = item.id` |
+| `unequipItem(charId, slotIdx)` | Clear gear slot | None | `gear[slotIdx] = null` |
+| `transferItemToVault(charId, bpIdx)` | Move to shared vault | Removes item | Blocked if item is equipped |
+| `sellCharacterItem(charId, bpIdx)` | Sell for spirit stones | Removes item | Blocked if item is equipped |
+
+### UI Implications
+
+- **Backpack display** must filter out items whose IDs appear in `character.equippedGear` — equipped items should not show as "loose" inventory
+- **onSlotClick** (empty gear slot clicked) must also filter equipped items when offering backpack equipment to equip
+- The filter must preserve original array indices for all operations (use `.map().filter().map()` pattern, not just `.filter()`)
+
+### Wrong vs Correct
+
+#### Wrong (old behavior — items vanish)
+
+```tsx
+equipItem: (charId, bpIdx, slotIdx) => {
+  const item = char.backpack[bpIdx].item
+  newBackpack.splice(bpIdx, 1)        // Item removed from backpack!
+  gear[slotIdx] = item.id             // Only ID stored — item object is gone
+  // findEquipmentById() can never find it again
+}
+```
+
+#### Correct (new behavior — items stay)
+
+```tsx
+equipItem: (charId, bpIdx, slotIdx) => {
+  // Item stays in backpack — only update the reference index
+  gear[slotIdx] = char.backpack[bpIdx].item.id
+  // findEquipmentById() finds it in backpack as expected
+}
+```
+
+### General Pattern: ID-Reference Arrays
+
+This contract applies to ANY field that stores entity IDs as references rather than owning the data:
+
+| Field | References | Storage |
+|-------|-----------|---------|
+| `equippedGear` | Equipment IDs | `character.backpack[]` |
+| `equippedSkills` | Skill IDs | `data/activeSkills.ts` (static data, always accessible) |
+| `learnedTechniques` | Technique IDs | `data/techniquesTable.ts` (static data, always accessible) |
+
+**Rule**: If the referenced entity is dynamic (stored in mutable state), the reference array is an index, not an owner. The entity must remain in its storage collection.
+
+---
+
 ## Common Mistakes
 
 1. **Mutating state directly** — Always use `set()` with immutable spread patterns
@@ -360,6 +428,7 @@ Comprehension growth (+2 per technique per combat) accumulates across all events
 8. **Removing union type members without migration** — Old save data still contains the removed values; always add a migration map and apply it at the load boundary
 9. **Removing character fields without fixture updates** — When removing fields from Character (like `fateTags`), ALL test fixtures across ALL test files must be updated. Use `grep -r "fateTags" src/__tests__/` to find every occurrence.
 10. **Using `Record<boolean, T>` as type** — TypeScript doesn't allow boolean as Record key. Use a string literal union like `'normal' | 'high'` instead.
+11. **Removing entities from their storage collection when only an ID reference is recorded** — If `equippedGear: (string | null)[]` only stores IDs, the actual item must remain in `backpack` (the real storage). Removing from backpack destroys the only copy of the data, making the ID a dangling reference. See "Equipment Ownership Contract" below.
 
 ---
 

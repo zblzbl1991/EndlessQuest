@@ -654,7 +654,9 @@ describe('SectStore - Character Inventory', () => {
     expect(result).toBe(true)
     const updatedChar = getStore().sect.characters[0]
     expect(updatedChar.equippedGear[5]).toBe('sword_eq')
-    expect(updatedChar.backpack).toHaveLength(0)
+    // Item stays in backpack after equipping
+    expect(updatedChar.backpack).toHaveLength(1)
+    expect(updatedChar.backpack[0].item.id).toBe('sword_eq')
   })
 
   it('equipItem should fail if item not equipment', () => {
@@ -675,25 +677,30 @@ describe('SectStore - Character Inventory', () => {
     expect(result).toBe(false)
   })
 
-  it('unequipItem should move equipment from gear to backpack', () => {
+  it('unequipItem should clear gear slot', () => {
     const char = getFirstCharacter()
     const sword = makeEquipment('sword_uneq', { slot: 'weapon' })
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) =>
-          c.id === char.id ? { ...c, equippedGear: [...new Array(9).fill(null)] as Character['equippedGear'] } : c
+          c.id === char.id
+            ? {
+                ...c,
+                backpack: [{ item: sword, quantity: 1 }],
+                equippedGear: [...new Array(9).fill(null)] as Character['equippedGear'],
+              }
+            : c
         ),
       },
     }))
 
-    // Manually set gear
+    // Manually set gear (item stays in backpack)
     const updatedGear = [...new Array(9).fill(null)]
     updatedGear[5] = 'sword_uneq'
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        vault: [{ item: sword, quantity: 1 }], // Put the equipment in vault so unequip can find it
         characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, equippedGear: updatedGear } : c)),
       },
     }))
@@ -702,6 +709,8 @@ describe('SectStore - Character Inventory', () => {
     expect(result).toBe(true)
     const updatedChar = getStore().sect.characters[0]
     expect(updatedChar.equippedGear[5]).toBeNull()
+    // Item was already in backpack, still there after unequip
+    expect(updatedChar.backpack).toHaveLength(1)
     expect(updatedChar.backpack).toHaveLength(1)
   })
 
