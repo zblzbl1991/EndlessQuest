@@ -38,7 +38,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
 
     // Deduct stones
     const character = { ...generateCharacter(quality, sect.activeRoute), investedSpiritStone: cost }
-    emitEvent('recruit', `招收弟子 ${character.name} (${CHAR_QUALITY_NAMES[quality] ?? quality})`)
+    emitEvent('recruit', `一位${CHAR_QUALITY_NAMES[quality] ?? quality}修士 ${character.name} 慕名而来，拜入宗门`)
     set((s) => ({
       sect: {
         ...s.sect,
@@ -101,7 +101,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     const refund = calcDiscipleDeathRefund(target)
     const eventType = context.source === 'breakthrough' ? 'breakthrough_failure' : 'adventure_fail'
 
-    emitEvent(eventType, `${target.name}${context.reason}，返还灵石 ${refund}`, {
+    emitEvent(eventType, `${target.name}${context.reason}，遗泽散归宗门，获灵石 ${refund}`, {
       characterId: target.id,
       source: context.source,
       refund,
@@ -190,7 +190,7 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     if (changed) {
       const character = get().sect.characters.find((c) => c.id === id)
       if (character) {
-        emitEvent('milestone', `${character.name} 定下修行方向：${getPathName(path)}`)
+        emitEvent('milestone', `${character.name} 叩问内心，定下修行方向：${getPathName(path)}`)
       }
     }
 
