@@ -384,3 +384,4 @@ Required visual indicators:
 3. **Using inline styles** — Always use CSS Modules and theme variables
 4. **Adding useCallback/useMemo unnecessarily** — Only useMemo for expensive derivations; no useCallback
 5. **Creating separate files for one-off helper components** — Keep them in the same file
+6. **Orphaned CSS grid columns** — When removing a JSX child from a multi-column grid container, also remove the corresponding `grid-template-columns` rule. A grid like `minmax(260px, 320px) minmax(0, 1fr)` with only one child squeezes content into the narrow first column while the rest is blank. **Prevention**: After deleting a child element, grep the CSS for the parent's grid definition and update it to match the new child count.
