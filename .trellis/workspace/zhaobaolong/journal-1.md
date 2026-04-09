@@ -537,3 +537,50 @@ Tab switching lag — every tab change felt sluggish.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 11: 秘境探险体验优化与数值平衡
+
+**Date**: 2026-04-09
+**Task**: 秘境探险体验优化与数值平衡
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+| 改动 | 描述 |
+|------|------|
+| 报告列表精简 | 可折叠 `<details>`，每条记录缩至 3 行（秘境+结果 / 队伍+层数+收获 / 查看详情） |
+| 修复战斗回合明细 bug | AutoRunEngine 未传递 enemyUnitSnapshot，导致普通战斗回合明细为空 |
+| 移除 Boss 战前对比 | 删除 BossCombatReport 中的战前属性对比区块 |
+| 新增 5 个过渡秘境 | 碧泉溪/暗鸦林/寒冰石窟/噬魂沼泽/万妖殿，平滑 11 点难度曲线 |
+
+**修改文件**:
+- `src/systems/roguelike/AutoRunEngine.ts` — 修复 enemyUnit 传递
+- `src/pages/AdventurePage.tsx` — 报告列表精简
+- `src/pages/AdventurePage.module.css` — 精简卡片样式
+- `src/pages/AdventureReportPage.tsx` — 移除 Boss 战前对比
+- `src/data/events.ts` — 5 个新秘境定义
+- `src/data/enemies.ts` — 15 个新敌人模板 + 映射
+- `src/__tests__/` — 更新 3 个测试文件适配新 UI
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `ef4af69` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
