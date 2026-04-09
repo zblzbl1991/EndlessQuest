@@ -490,7 +490,9 @@ function applyManualRunGrowth(run: DungeonRun, result: 'completed' | 'retreated'
   }
 }
 
-function unlockSectMilestone(id: 'firstDungeonClear'): void {
+function unlockSectMilestone(
+  id: 'firstDungeonClear' | 'firstDungeonLevel10' | 'adventureRuns10' | 'firstPetCapture'
+): void {
   const { sect } = useSectStore.getState()
   const nextMilestones = unlockArchiveMilestone(sect.archiveMilestones, id)
   if (nextMilestones.length === sect.archiveMilestones.length) return
@@ -1305,6 +1307,19 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         },
       },
     }))
+
+    // Floor depth milestone
+    if (run.currentFloor - 1 >= 10) {
+      unlockSectMilestone('firstDungeonLevel10')
+    }
+
+    // Adventure runs count milestone
+    {
+      const { sect } = useSectStore.getState()
+      if (sect.stats.totalAdventureCompletions >= 10) {
+        unlockSectMilestone('adventureRuns10')
+      }
+    }
     // 1. Deposit 100% of totalRewards
     depositResourcesToSect(run.totalRewards)
 
@@ -1565,6 +1580,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           },
         },
       }))
+
+      // First pet capture milestone
+      unlockSectMilestone('firstPetCapture')
 
       // Log the capture
       const newLog = [...run.eventLog, { timestamp: Date.now(), message: `灵兽收服！${pet.name}归入宗门麾下` }]

@@ -5,7 +5,22 @@ import type { SectRouteId } from '../data/sectRoutes'
 import type { SectStrategySettings } from './destiny'
 
 export type SectPath = 'none' | 'pill' | 'sword' | 'beast'
-export type ArchiveMilestoneId = 'firstRareRecruit' | 'firstTribulationSuccess' | 'firstDungeonClear'
+export type ArchiveMilestoneId =
+  | 'firstRareRecruit'
+  | 'firstTribulationSuccess'
+  | 'firstDungeonClear'
+  | 'firstEpicRecruit'
+  | 'firstLegendaryRecruit'
+  | 'discipleCount5'
+  | 'firstFoundationBreakthrough'
+  | 'firstGoldenCoreBreakthrough'
+  | 'firstNascentSoulBreakthrough'
+  | 'firstDungeonLevel10'
+  | 'adventureRuns10'
+  | 'firstTechniqueUnlock'
+  | 'firstPetCapture'
+  | 'firstItemCraft'
+  | 'sectLevel5'
 export type CasualtyTolerance = 'conservative' | 'balanced' | 'risky'
 
 export type BuildingType =

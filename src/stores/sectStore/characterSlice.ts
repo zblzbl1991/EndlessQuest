@@ -69,6 +69,54 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
       }
     }
 
+    // Quality-specific recruit milestones (immortal=仙品 or above for firstEpicRecruit, divine=神品 for firstLegendaryRecruit)
+    const qualityIndex = CHAR_QUALITY_ORDER.indexOf(character.quality)
+    if (qualityIndex >= CHAR_QUALITY_ORDER.indexOf('immortal')) {
+      const currentMilestones = get().sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstEpicRecruit')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstEpicRecruit').title}`)
+      }
+    }
+
+    if (qualityIndex >= CHAR_QUALITY_ORDER.indexOf('divine')) {
+      const currentMilestones = get().sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstLegendaryRecruit')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstLegendaryRecruit').title}`)
+      }
+    }
+
+    // Disciple count milestone
+    {
+      const sect = get().sect
+      if (sect.characters.length >= 5) {
+        const currentMilestones = sect.archiveMilestones
+        const nextMilestones = unlockArchiveMilestone(currentMilestones, 'discipleCount5')
+        if (nextMilestones.length !== currentMilestones.length) {
+          set((s) => ({
+            sect: {
+              ...s.sect,
+              archiveMilestones: nextMilestones,
+            },
+          }))
+          emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('discipleCount5').title}`)
+        }
+      }
+    }
+
     return character
   },
 
@@ -263,6 +311,54 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
           },
         }))
         emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstRareRecruit').title}`)
+      }
+    }
+
+    // Quality-specific recruit milestones (targeted recruit)
+    const qualityIndex = CHAR_QUALITY_ORDER.indexOf(character.quality)
+    if (qualityIndex >= CHAR_QUALITY_ORDER.indexOf('immortal')) {
+      const currentMilestones = get().sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstEpicRecruit')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstEpicRecruit').title}`)
+      }
+    }
+
+    if (qualityIndex >= CHAR_QUALITY_ORDER.indexOf('divine')) {
+      const currentMilestones = get().sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstLegendaryRecruit')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstLegendaryRecruit').title}`)
+      }
+    }
+
+    // Disciple count milestone (targeted recruit)
+    {
+      const sect = get().sect
+      if (sect.characters.length >= 5) {
+        const currentMilestones = sect.archiveMilestones
+        const nextMilestones = unlockArchiveMilestone(currentMilestones, 'discipleCount5')
+        if (nextMilestones.length !== currentMilestones.length) {
+          set((s) => ({
+            sect: {
+              ...s.sect,
+              archiveMilestones: nextMilestones,
+            },
+          }))
+          emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('discipleCount5').title}`)
+        }
       }
     }
 
