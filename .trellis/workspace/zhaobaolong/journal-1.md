@@ -651,3 +651,35 @@ Tab switching lag — every tab change felt sluggish.
 ### Next Steps
 
 - None - task complete
+
+
+## Session 13: CharacterCard info priority redesign
+
+**Date**: 2026-04-09
+**Task**: CharacterCard info priority redesign
+
+### Summary
+
+Redesigned CharacterCard to show decision-critical info (core stats HP/ATK/DEF, quality badge, always-visible cultivation progress). Removed techniques, specialties, role tags from list card. Added list-card info priority rule to component-guidelines spec.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `42b0b21` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
