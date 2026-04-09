@@ -77,7 +77,9 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
         <span className={styles.name}>{character.name}</span>
         <StatusBadge status={character.status} />
       </div>
-      <div className={styles.realm}>{realmName}</div>
+      <div className={styles.realm}>
+        {realmName} Lv.{character.level ?? 1}
+      </div>
       {character.cultivationPath !== 'none' && (
         <span className={styles.pathTag}>
           <PixelIcon
@@ -132,6 +134,21 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           </div>
         </div>
       )}
+      {(() => {
+        const level = character.level ?? 1
+        const xp = character.xp ?? 0
+        const xpNeeded = level * 100
+        return (
+          <div className={styles.xpProgress}>
+            <ProgressBar value={xp} max={xpNeeded} variant="ink" />
+            <div className={styles.progressStats}>
+              <span>
+                经验 {xp}/{xpNeeded}
+              </span>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

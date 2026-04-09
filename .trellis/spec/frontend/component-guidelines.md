@@ -286,6 +286,33 @@ Use HTML `<details>/<summary>` for collapsible content — no custom accordion c
 
 **Why**: No extra JS state, accessible by default, works on mobile without hover. Keep it simple.
 
+### List-card info priority
+
+CharacterCard is the primary example. List-level cards should show **decision-critical** data for quick comparison, not descriptive details:
+
+| Show in list card | Show in detail page only |
+|---|---|
+| Core combat stats (HP/ATK/DEF) | Full 6-stat breakdown |
+| Cultivation progress (always visible) | Aptitude details (灵根/悟性/机缘) |
+| Quality badge + Realm name | Technique breakdown with tier bonuses |
+| Path + Fate grid tags | Specialty level details |
+| Status badge | Equipment slot-by-slot management |
+
+**Rule**: If a data point helps the player decide "which disciple should I send / level / equip", it belongs in the card. If it only matters once they've already chosen a disciple, it belongs in detail.
+
+```tsx
+// Good — compact stats row for quick comparison
+<div className={styles.statsRow}>
+  <span className={styles.statChip}>
+    <span className={styles.statLabel}>气血</span>
+    <span className={styles.statValue}>{Math.floor(char.baseStats.hp).toLocaleString()}</span>
+  </span>
+  {/* ATK, DEF */}
+</div>
+```
+
+Cultivation progress (`ProgressBar`) should always be visible on the card, not gated by character status — players need to see who's close to breakthrough regardless of what the disciple is currently doing.
+
 ### Avoid cross-page data duplication
 
 If data appears in multiple pages, show a **summary** on the overview page and the **full detail** on the dedicated page — never render the same full component twice:
