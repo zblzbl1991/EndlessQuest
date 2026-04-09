@@ -127,7 +127,10 @@ export function processBreakthrough(
         if (btResult.success) {
           const nextName = getRealmName(btResult.newRealm, btResult.newStage)
           const events: BreakthroughEvent[] = [
-            { type: 'breakthrough_success', message: `${char.name} 渡过天劫，突破至 ${nextName}！` },
+            {
+              type: 'breakthrough_success',
+              message: `天雷散去，${char.name} 气息一变，周身灵力涌动，成功踏入${nextName}！`,
+            },
           ]
           let updatedChar: Character = {
             ...char,
@@ -145,7 +148,10 @@ export function processBreakthrough(
               techniqueComprehension: seedComprehension(updatedChar.techniqueComprehension ?? {}, comprehendedId),
             }
             const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
-            events.push({ type: 'breakthrough_comprehension', message: `${updatedChar.name} 顿悟了 ${compName}` })
+            events.push({
+              type: 'breakthrough_comprehension',
+              message: `${updatedChar.name} 豁然开朗，顿悟了 ${compName} 之妙`,
+            })
           }
           return {
             updatedChar,
@@ -164,7 +170,7 @@ export function processBreakthrough(
           const failedName = getRealmName(btResult.newRealm, btResult.newStage)
           return {
             updatedChar: char,
-            events: [{ type: 'breakthrough_failure', message: `${char.name} 天劫虽过，却在突破中身死道消` }],
+            events: [{ type: 'breakthrough_failure', message: `${char.name} 渡过天劫，却在破关之际力竭，身死道消` }],
             resourceCost,
             died: true,
             comprehendedTechniqueId: null,
@@ -184,8 +190,8 @@ export function processBreakthrough(
             {
               type: 'breakthrough_failure',
               message: tribResult.severe
-                ? `${char.name} 未能渡过天劫，当场身死道消`
-                : `${char.name} 渡劫失败，身死道消`,
+                ? `${char.name} 未能扛过天劫，雷光之中当场身死道消`
+                : `${char.name} 功力不济，未能渡过天劫，身死道消`,
             },
           ],
           resourceCost,
@@ -205,7 +211,7 @@ export function processBreakthrough(
       if (btResult.success) {
         const nextName = getRealmName(btResult.newRealm, btResult.newStage)
         const events: BreakthroughEvent[] = [
-          { type: 'breakthrough_success', message: `${char.name} 突破至 ${nextName}` },
+          { type: 'breakthrough_success', message: `${char.name} 灵力贯通，气息蜕变，成功突破至 ${nextName}` },
         ]
         let updatedChar: Character = {
           ...char,
@@ -223,7 +229,10 @@ export function processBreakthrough(
             techniqueComprehension: seedComprehension(updatedChar.techniqueComprehension ?? {}, comprehendedId),
           }
           const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
-          events.push({ type: 'breakthrough_comprehension', message: `${updatedChar.name} 顿悟了 ${compName}` })
+          events.push({
+            type: 'breakthrough_comprehension',
+            message: `${updatedChar.name} 豁然开朗，顿悟了 ${compName} 之妙`,
+          })
         }
         return {
           updatedChar,
@@ -242,7 +251,7 @@ export function processBreakthrough(
         const failedName = getRealmName(char.realm + 1, 0)
         return {
           updatedChar: char,
-          events: [{ type: 'breakthrough_failure', message: `${char.name} 突破失败，身死道消` }],
+          events: [{ type: 'breakthrough_failure', message: `${char.name} 突破关口功亏一篑，灵力反噬，身死道消` }],
           resourceCost,
           died: true,
           comprehendedTechniqueId: null,
@@ -269,7 +278,9 @@ export function processBreakthrough(
     const btResult = performBreakthrough(char, failureRate)
     if (btResult.success) {
       const nextName = getRealmName(btResult.newRealm, btResult.newStage)
-      const events: BreakthroughEvent[] = [{ type: 'breakthrough_success', message: `${char.name} 突破至 ${nextName}` }]
+      const events: BreakthroughEvent[] = [
+        { type: 'breakthrough_success', message: `${char.name} 修为精进，突破至 ${nextName}` },
+      ]
       let updatedChar: Character = {
         ...char,
         realm: btResult.newRealm,
@@ -286,7 +297,10 @@ export function processBreakthrough(
           techniqueComprehension: seedComprehension(updatedChar.techniqueComprehension ?? {}, comprehendedId),
         }
         const compName = getTechniqueById(comprehendedId)?.name ?? comprehendedId
-        events.push({ type: 'breakthrough_comprehension', message: `${updatedChar.name} 顿悟了 ${compName}` })
+        events.push({
+          type: 'breakthrough_comprehension',
+          message: `${updatedChar.name} 豁然开朗，顿悟了 ${compName} 之妙`,
+        })
       }
       return {
         updatedChar,
@@ -304,7 +318,7 @@ export function processBreakthrough(
       // Sub-level breakthrough failure -> death
       return {
         updatedChar: char,
-        events: [{ type: 'breakthrough_failure', message: `${char.name} 突破失败，身死道消` }],
+        events: [{ type: 'breakthrough_failure', message: `${char.name} 修为不足，突破失利，灵力溃散而亡` }],
         resourceCost,
         died: true,
         comprehendedTechniqueId: null,

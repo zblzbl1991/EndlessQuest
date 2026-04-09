@@ -65,7 +65,7 @@ export const useEventLogStore = create<EventLogStore>((set) => ({
         const count = ((prev.data?.mergedCount as number) ?? 1) + 1
         const merged: GameEvent = {
           ...prev,
-          message: `批量秘境探索 x${count}`,
+          message: `弟子连番出征秘境，共探索 x${count}`,
           data: { ...prev.data, mergedCount: count },
         }
         return {

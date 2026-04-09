@@ -270,7 +270,7 @@ function settleFailedRunMembers(run: DungeonRun): Record<string, AdventureMember
     if (failureOutcome.outcome === 'recovering') {
       sectStore.setCharacterRecovering(charId, failureOutcome.recoveryDays)
       outcomes[charId] = { outcome: 'recovering', recoveryDays: failureOutcome.recoveryDays }
-      emitEvent('adventure_fail', `${character.name}重伤归宗，需休养 ${failureOutcome.recoveryDays} 天`, {
+      emitEvent('adventure_fail', `${character.name} 伤痕累累回到宗门，需闭关休养 ${failureOutcome.recoveryDays} 天`, {
         characterId: charId,
         recoveryDays: failureOutcome.recoveryDays,
       })
@@ -502,7 +502,7 @@ function unlockSectMilestone(id: 'firstDungeonClear'): void {
       archiveMilestones: nextMilestones,
     },
   }))
-  emitEvent('milestone', `Sect milestone unlocked: ${def.title}`)
+  emitEvent('milestone', `宗门威名远播，达成里程碑：${def.title}`)
 }
 
 /** Count vault items matching a given recipeId */
@@ -723,7 +723,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       },
     }))
 
-    emitEvent('adventure_start', `队伍进入秘境${dungeon.name}`)
+    emitEvent('adventure_start', `弟子整装出发，踏入秘境${dungeon.name}，前途未卜`)
 
     return run
   },
@@ -820,7 +820,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       postRunMemberOutcomes = get().failRun(startedRun.id, reportEventData)
     } else {
       postRunMemberOutcomes = get().retreat(startedRun.id)
-      emitEvent('adventure_fail', `秘境${dungeon.name}撤退`, reportEventData)
+      emitEvent('adventure_fail', `秘境${dungeon.name}形势不利，弟子仓皇撤退`, reportEventData)
     }
 
     // Apply dungeon growth to surviving characters
@@ -969,18 +969,18 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           const techniqueName = getTechniqueById(discoveredId)?.name ?? discoveredId
           newLog.push({
             timestamp: Date.now(),
-            message: `Discovered technique manual: ${techniqueName}`,
+            message: `秘境深处偶得功法残卷：${techniqueName}`,
           })
-          emitEvent('technique_unlocked', `Technique codex unlocked: ${techniqueName}`)
+          emitEvent('technique_unlocked', `秘境中偶获功法残卷，${techniqueName}录入藏经阁`)
         } else if (sectStore.sect.techniqueCodex.length >= codexCapacity) {
           newLog.push({
             timestamp: Date.now(),
-            message: 'Scripture Hall codex is full. Upgrade it before claiming more manuals.',
+            message: '藏经阁已满，无法收录更多功法，需先扩建',
           })
         } else {
           newLog.push({
             timestamp: Date.now(),
-            message: 'Found a duplicate manual fragment. No new codex entry gained.',
+            message: '所得功法残卷与已有重复，未能收录',
           })
         }
       }
@@ -1063,7 +1063,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         newRelics.push(relicReward)
         newLog.push({
           timestamp: Date.now(),
-          message: `Obtained relic: ${RELIC_DEFS[relicReward].name}`,
+          message: `深处秘宝显现，获得秘物：${RELIC_DEFS[relicReward].name}`,
         })
       }
 
@@ -1095,7 +1095,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       if (newBlessingOptions.length > 0) {
         newLog.push({
           timestamp: Date.now(),
-          message: 'Felt a new blessing. Choose one.',
+          message: '冥冥中感应到新的赐福之力，请择一而受',
         })
       }
     }
@@ -1132,7 +1132,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const nextBlessings = run.blessings.includes(blessingId) ? run.blessings : [...run.blessings, blessingId]
     const nextLog = [
       ...run.eventLog,
-      { timestamp: Date.now(), message: `Obtained blessing: ${BLESSING_DEFS[blessingId].name}` },
+      { timestamp: Date.now(), message: `受到赐福加持：${BLESSING_DEFS[blessingId].name}` },
     ]
 
     set((s) => ({
@@ -1154,36 +1154,36 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') {
-      return { success: false, message: 'Cannot advance: no active dungeon run found.' }
+      return { success: false, message: '无法推进：未找到进行中的秘境探索' }
     }
 
     // Check if there are alive members
     const hasAlive = run.teamCharacterIds.some((cid) => run.memberStates[cid]?.status !== 'dead')
     if (!hasAlive) {
       get().failRun(runId)
-      return { success: false, message: 'All team members have fallen.' }
+      return { success: false, message: '队伍已全员陨落' }
     }
 
     // Check if already at or past the end
     if (run.currentFloor > run.floors.length) {
-      return { success: false, message: 'Already beyond the final floor.' }
+      return { success: false, message: '已到达秘境尽头' }
     }
 
     // Auto-pick safest route and resolve
     const floor = run.floors[run.currentFloor - 1]
     if (!floor) {
-      return { success: false, message: 'Current floor data is missing.' }
+      return { success: false, message: '当前层数据缺失' }
     }
 
     const safestIdx = pickSafestRoute(floor)
     const success = state.selectRoute(runId, safestIdx)
 
     if (success) {
-      return { success: true, message: 'Advanced successfully.' }
+      return { success: true, message: '顺利推进至下一层' }
     }
 
     // selectRoute handles failRun internally if needed
-    return { success: false, message: 'Advance failed.' }
+    return { success: false, message: '推进失败' }
   },
 
   retreat: (runId) => {
@@ -1291,7 +1291,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!run || run.status !== 'active') return null
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_complete', `秘境${dungeonName}通关`, eventData)
+    emitEvent('adventure_complete', `历经艰险，弟子们凯旋归来，秘境${dungeonName}通关`, eventData)
     unlockSectMilestone('firstDungeonClear')
 
     // Update stats: adventure completion + max floor
@@ -1341,7 +1341,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     if (!run || run.status !== 'active') return null
 
     const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_fail', `秘境${dungeonName}探索失败`, eventData)
+    emitEvent('adventure_fail', `秘境${dungeonName}探索失利，弟子折戟而归`, eventData)
 
     // Update stats: adventure failure
     useSectStore.setState((s) => ({
@@ -1435,7 +1435,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }
     }
     depositResourcesToSect(resources)
-    emitEvent('dispatch_complete', `Dispatch completed: ${mission.name}`)
+    emitEvent('dispatch_complete', `${mission.name}差事已毕，弟子归来复命`)
 
     // Return character to idle
     useSectStore.getState().setCharacterStatus(characterId, 'idle')
@@ -1472,10 +1472,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         const healAmount = Math.floor(ms.maxHp * offer.value)
         ms.currentHp = Math.min(ms.maxHp, ms.currentHp + healAmount)
       }
-      newLog.push({ timestamp: Date.now(), message: `Used ${offer.name} and restored HP.` })
+      newLog.push({ timestamp: Date.now(), message: `使用${offer.name}，伤势渐愈` })
     } else if (offer.effect === 'skip') {
       // Skip current floor by advancing
-      newLog.push({ timestamp: Date.now(), message: `Used ${offer.name} and skipped the floor.` })
+      newLog.push({ timestamp: Date.now(), message: `使用${offer.name}，略过此层` })
     }
 
     // Remove used offer
@@ -1567,7 +1567,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }))
 
       // Log the capture
-      const newLog = [...run.eventLog, { timestamp: Date.now(), message: `Successfully captured ${pet.name}.` }]
+      const newLog = [...run.eventLog, { timestamp: Date.now(), message: `灵兽收服！${pet.name}归入宗门麾下` }]
       set((s) => ({
         activeRuns: {
           ...s.activeRuns,

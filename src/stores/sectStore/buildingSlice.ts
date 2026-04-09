@@ -162,9 +162,9 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
     if (success) {
       const newLevel = get().sect.buildings.find((b) => b.type === type)?.level ?? 0
       if (isNewBuilding) {
-        emitEvent('building_build', `瀵ゆ椽鈧?${bDef?.name ?? type}`)
+        emitEvent('building_build', `${bDef?.name ?? type}拔地而起，灵光初现，一座新建筑落成`)
       } else {
-        emitEvent('building_upgrade', `${bDef?.name ?? type} 閸楀洨楠囬懛?Lv${newLevel}`)
+        emitEvent('building_upgrade', `${bDef?.name ?? type}灵光大盛，威能更胜从前，升至 Lv${newLevel}`)
       }
     }
 
@@ -189,7 +189,7 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
     const success = get().expandBuilding(type)
     if (success) {
       const nextCount = get().sect.buildings.find((b) => b.type === type)?.count ?? building.count
-      emitEvent('building_upgrade', `${def.name} 扩建至 ${nextCount} 座`)
+      emitEvent('building_upgrade', `${def.name} 再添新舍，扩建至 ${nextCount} 座`)
     }
 
     return { success, reason: '' }
@@ -235,14 +235,13 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
     const { sect } = get()
     const building = sect.buildings.find((b) => b.type === buildingType)
     if (!building?.unlocked || building.level <= 0) {
-      return { success: false, assigned: 0, reason: '寤虹瓚灏氭湭鍙敤' }
+      return { success: false, assigned: 0, reason: '建筑尚未启用' }
     }
 
     const result = buildAutoAssignmentResult(sect.characters, buildingType)
     if (result.assigned === 0) {
-      return { success: false, assigned: 0, reason: '褰撳墠娌℃湁鍚堥€傜殑绌洪棽寮熷瓙' }
+      return { success: false, assigned: 0, reason: '当前没有合适的空闲弟子' }
     }
-
 
     set((s) => ({
       sect: {
@@ -251,7 +250,7 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
       },
     }))
 
-    emitEvent('milestone', 'auto-assigned disciples to building')
+    emitEvent('milestone', '弟子已就位，各司其职')
 
     return { success: true, assigned: result.assigned, reason: '' }
   },
@@ -264,7 +263,7 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
     })
 
     if (assignableBuildings.length === 0) {
-      return { success: false, assigned: 0, reason: '褰撳墠娌℃湁鍙嚜鍔ㄦ淳椹荤殑寤虹瓚' }
+      return { success: false, assigned: 0, reason: '当前没有可自动指派的建筑' }
     }
 
     let characters = sect.characters
@@ -279,7 +278,7 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
     }
 
     if (assigned === 0) {
-      return { success: false, assigned: 0, reason: '褰撳墠娌℃湁鍚堥€傜殑绌洪棽寮熷瓙' }
+      return { success: false, assigned: 0, reason: '当前没有合适的空闲弟子' }
     }
 
     set((s) => ({
@@ -289,7 +288,7 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
       },
     }))
 
-    emitEvent('milestone', 'sect auto-optimized assignments')
+    emitEvent('milestone', '宗门统筹安排，弟子各归其位')
 
     return { success: true, assigned, reason: '' }
   },

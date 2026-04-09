@@ -216,7 +216,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           const path = rollCultivationPath(updatedChar.quality)
           updatedChar = syncCharacterSkillLoadout({ ...updatedChar, cultivationPath: path })
           if (path !== 'none') {
-            pathAssignedEvents.push(`${updatedChar.name} 随缘定下修行方向：${getPathName(path)}`)
+            pathAssignedEvents.push(`${updatedChar.name} 机缘所至，定下修行方向：${getPathName(path)}`)
           }
         }
 
