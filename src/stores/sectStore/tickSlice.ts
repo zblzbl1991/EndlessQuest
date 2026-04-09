@@ -184,6 +184,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     let statBreakthroughAttempts = 0
     let statBreakthroughSuccesses = 0
     let unlockedFirstTribulationSuccess = false
+    const realmsReachedByBreakthrough: Set<number> = new Set()
     const pathAssignedEvents: string[] = []
     const breakthroughDeaths: Character[] = []
     const updatedCharacters = sect.characters.map((char) => {
@@ -247,6 +248,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
           if (btResult.unlockedTribulationMilestone) {
             unlockedFirstTribulationSuccess = true
+          }
+
+          if (btResult.breakthroughSuccess) {
+            realmsReachedByBreakthrough.add(btResult.updatedChar.realm)
           }
 
           // Track breakthroughs for offline accumulator from events
@@ -335,6 +340,35 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       if (nextMilestones.length !== archiveMilestones.length) {
         archiveMilestones = nextMilestones
         emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstTribulationSuccess').title}`)
+      }
+    }
+
+    // Realm breakthrough milestones
+    // REALMS index: 0=炼气, 1=筑基, 2=金丹, 3=元婴
+    const realmMilestones: {
+      realm: number
+      milestoneId: 'firstFoundationBreakthrough' | 'firstGoldenCoreBreakthrough' | 'firstNascentSoulBreakthrough'
+    }[] = [
+      { realm: 1, milestoneId: 'firstFoundationBreakthrough' },
+      { realm: 2, milestoneId: 'firstGoldenCoreBreakthrough' },
+      { realm: 3, milestoneId: 'firstNascentSoulBreakthrough' },
+    ]
+    for (const { realm, milestoneId } of realmMilestones) {
+      if (realmsReachedByBreakthrough.has(realm)) {
+        const nextMilestones = unlockArchiveMilestone(archiveMilestones, milestoneId)
+        if (nextMilestones.length !== archiveMilestones.length) {
+          archiveMilestones = nextMilestones
+          emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef(milestoneId).title}`)
+        }
+      }
+    }
+
+    // Sect level milestone
+    if (newSectLevel >= 5) {
+      const nextMilestones = unlockArchiveMilestone(archiveMilestones, 'sectLevel5')
+      if (nextMilestones.length !== archiveMilestones.length) {
+        archiveMilestones = nextMilestones
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('sectLevel5').title}`)
       }
     }
 

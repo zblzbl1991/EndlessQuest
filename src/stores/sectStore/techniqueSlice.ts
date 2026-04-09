@@ -9,6 +9,8 @@ import { FORGE_RECIPES, canForge, forgeEquipment as forgeEquipmentSystem } from 
 import { getForgeBuff } from '../../systems/economy/BuildingEffects'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { getTechniqueCodexCapacity } from '../../systems/technique/TechniqueSystem'
+import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archiveMilestones'
+import { emitEvent } from '../eventLogStore'
 
 function getScriptureHallLevel(store: Pick<SectStore, 'sect'>): number {
   return store.sect.buildings.find((building) => building.type === 'scriptureHall')?.level ?? 0
@@ -29,6 +31,23 @@ export const createTechniqueSlice: StateCreator<SectStore, [], [], Partial<SectS
         techniqueCodex: [...state.sect.techniqueCodex, techniqueId],
       },
     }))
+
+    // First technique unlock milestone
+    {
+      const { sect } = get()
+      const currentMilestones = sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstTechniqueUnlock')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstTechniqueUnlock').title}`)
+      }
+    }
+
     return true
   },
 
@@ -53,9 +72,7 @@ export const createTechniqueSlice: StateCreator<SectStore, [], [], Partial<SectS
           item.id === characterId
             ? syncCharacterSkillLoadout({
                 ...item,
-                learnedTechniques: alreadyLearned
-                  ? item.learnedTechniques
-                  : [...item.learnedTechniques, techniqueId],
+                learnedTechniques: alreadyLearned ? item.learnedTechniques : [...item.learnedTechniques, techniqueId],
               })
             : item
         ),
@@ -70,7 +87,9 @@ export const createTechniqueSlice: StateCreator<SectStore, [], [], Partial<SectS
     const furnaceLevel = sect.buildings.find((building) => building.type === 'alchemyFurnace')?.level ?? 0
     const recipe = ALCHEMY_RECIPES.find((item) => item.id === recipeId)
     if (!recipe) return { success: false, reason: 'Unknown alchemy recipe.' }
-    if (!canCraftAlchemy(recipe, { herb: sect.resources.herb, spiritStone: sect.resources.spiritStone }, furnaceLevel)) {
+    if (
+      !canCraftAlchemy(recipe, { herb: sect.resources.herb, spiritStone: sect.resources.spiritStone }, furnaceLevel)
+    ) {
       return { success: false, reason: 'Insufficient alchemy resources.' }
     }
 
@@ -117,6 +136,23 @@ export const createTechniqueSlice: StateCreator<SectStore, [], [], Partial<SectS
     }))
 
     get().addToVault(item)
+
+    // First item craft milestone
+    {
+      const { sect } = get()
+      const currentMilestones = sect.archiveMilestones
+      const nextMilestones = unlockArchiveMilestone(currentMilestones, 'firstItemCraft')
+      if (nextMilestones.length !== currentMilestones.length) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            archiveMilestones: nextMilestones,
+          },
+        }))
+        emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstItemCraft').title}`)
+      }
+    }
+
     return { success: true, reason: '' }
   },
 
