@@ -70,9 +70,9 @@ describe('Roguelike MapGenerator', () => {
   })
 
   it('should generate different dungeons with correct layer counts', () => {
-    expect(generateDungeonRun(DUNGEONS[1])).toHaveLength(8) // 落云洞
-    expect(generateDungeonRun(DUNGEONS[2])).toHaveLength(10) // 血魔渊
-    expect(generateDungeonRun(DUNGEONS[5])).toHaveLength(20) // 天劫秘境
+    expect(generateDungeonRun(DUNGEONS[2])).toHaveLength(8) // 落云洞
+    expect(generateDungeonRun(DUNGEONS[4])).toHaveLength(10) // 血魔渊
+    expect(generateDungeonRun(DUNGEONS[10])).toHaveLength(20) // 天劫秘境
   })
 
   it('routes should have valid risk levels', () => {

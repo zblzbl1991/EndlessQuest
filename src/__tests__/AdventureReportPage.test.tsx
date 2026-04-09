@@ -127,17 +127,10 @@ describe('Adventure report pages', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('最近探索记录')).toBeInTheDocument()
-    expect(screen.getByText('守成')).toBeInTheDocument()
-    expect(screen.getByText('查看过程')).toBeInTheDocument()
-    expect(
-      screen.getAllByText((_, node) => {
-        const text = node?.textContent ?? ''
-        return text.includes('核心') && text.includes('测试弟子')
-      }).length
-    ).toBeGreaterThan(0)
-    expect(screen.getByText('构筑与转折')).toBeInTheDocument()
-    expect(screen.getByText('构筑')).toBeInTheDocument()
+    expect(screen.getByText(/最近探索记录/)).toBeInTheDocument()
+    // Compact report card: result badge and detail link
+    expect(screen.getAllByText('通关').length).toBeGreaterThan(0)
+    expect(screen.getByText('查看详情')).toBeInTheDocument()
   })
 
   it('renders the dedicated exploration report detail route', () => {

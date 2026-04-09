@@ -5,14 +5,13 @@ import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
 import { getRealmName } from '../data/realms'
 import { getRunIntentDef } from '../data/runIntents'
-import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
-import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
+import { REPORT_RESULT_LABELS } from '../data/uiCopy'
 import type { CharacterQuality } from '../types/character'
-import type { AdventureReport } from '../types'
+
 import type { AutomationStrategy, TacticalPreset } from '../types/adventure'
 import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
-import RunBuildSummary from '../components/adventure/RunBuildSummary'
+
 import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
 import styles from './AdventurePage.module.css'
 
@@ -22,35 +21,29 @@ function getDungeonIconName(dungeonId: string): string {
   switch (dungeonId) {
     case 'lingCaoValley':
       return 'dungeonValley'
+    case 'biQuanStream':
+      return 'dungeonCave'
     case 'luoYunCave':
       return 'dungeonCave'
+    case 'anYaForest':
+      return 'dungeonWasteland'
     case 'bloodDemonAbyss':
       return 'dungeonAbyss'
+    case 'hanBingCave':
+      return 'dungeonCave'
     case 'dragonBoneWasteland':
       return 'dungeonWasteland'
+    case 'shiHunSwamp':
+      return 'dungeonAbyss'
     case 'nineNetherPurgatory':
       return 'dungeonPurgatory'
+    case 'wanYaoPalace':
+      return 'dungeonTribulation'
     case 'heavenlyTribulationRealm':
       return 'dungeonTribulation'
     default:
       return 'dungeonCave'
   }
-}
-
-function extractRouteDirections(detail: AdventureReport | undefined): string[] {
-  if (!detail) return []
-
-  const labels: string[] = []
-  for (const step of detail.steps) {
-    if (step.type !== 'route_selected' && step.type !== 'route_considered') continue
-    const text = `${step.summary} ${step.detail}`.toLowerCase()
-    if (text.includes('稳') || text.includes('stable route') || text.includes('stable')) labels.push('stable')
-    if (text.includes('战斗') || text.includes('combat route') || text.includes('combat')) labels.push('combat')
-    if (text.includes('收益') || text.includes('profit route') || text.includes('profit')) labels.push('profit')
-    if (text.includes('异变') || text.includes('mutation route') || text.includes('mutation')) labels.push('mutation')
-  }
-
-  return [...new Set(labels)]
 }
 
 export default function AdventurePage() {
@@ -220,105 +213,58 @@ export default function AdventurePage() {
 
       <div className={styles.contentLayout}>
         <section className={styles.section}>
-          <div className={styles.sectionTitle}>最近探索记录</div>
-          {reports.length === 0 ? (
-            <div className={styles.empty}>还没有探索战报。</div>
-          ) : (
-            <div className={styles.reportList}>
-              {reports.map((report) => {
-                const dungeon = dungeons.find((item) => item.id === report.dungeonId)
-                const detail = reportDetails[report.id]
-                const insight = detail ? buildAdventureReportInsight(detail, characterNameMap) : null
-                const teamNames = report.teamCharacterIds
-                  .map((id) => detail?.teamSnapshot?.[id]?.name ?? characterNameMap.get(id) ?? id)
-                  .join('、')
-                const rewardBits = [
-                  report.rewards.spiritStone > 0 ? `${report.rewards.spiritStone} 灵石` : null,
-                  report.rewards.herb > 0 ? `${report.rewards.herb} 灵草` : null,
-                  report.rewards.ore > 0 ? `${report.rewards.ore} 矿材` : null,
-                  report.itemRewardCount > 0 ? `${report.itemRewardCount} 件物品` : null,
-                ].filter(Boolean)
+          <details open={reports.length > 0} className={styles.reportSection}>
+            <summary className={styles.sectionTitle}>
+              最近探索记录
+              <span className={styles.reportCount}>{reports.length > 0 ? `(${reports.length})` : ''}</span>
+            </summary>
+            {reports.length === 0 ? (
+              <div className={styles.empty}>还没有探索战报。</div>
+            ) : (
+              <div className={styles.reportList}>
+                {reports.map((report) => {
+                  const dungeon = dungeons.find((item) => item.id === report.dungeonId)
+                  const detail = reportDetails[report.id]
+                  const teamNames = report.teamCharacterIds
+                    .map((id) => detail?.teamSnapshot?.[id]?.name ?? characterNameMap.get(id) ?? id)
+                    .join('、')
+                  const rewardBits = [
+                    report.rewards.spiritStone > 0 ? `${report.rewards.spiritStone}灵石` : null,
+                    report.rewards.herb > 0 ? `${report.rewards.herb}灵草` : null,
+                    report.rewards.ore > 0 ? `${report.rewards.ore}矿材` : null,
+                    report.itemRewardCount > 0 ? `${report.itemRewardCount}物品` : null,
+                  ].filter(Boolean)
 
-                return (
-                  <article key={report.id} className={styles.reportCard}>
-                    <div className={styles.reportHeader}>
-                      <div className={styles.reportTitleGroup}>
-                        <div className={styles.reportName}>
+                  return (
+                    <article key={report.id} className={styles.reportCard}>
+                      <div className={styles.reportCompactRow}>
+                        <span className={styles.reportName}>
                           <PixelIcon
                             name={getDungeonIconName(report.dungeonId)}
-                            size={18}
+                            size={16}
                             className={styles.inlineIcon}
                             aria-label={dungeon?.name ?? report.dungeonId}
                           />
                           {dungeon?.name ?? report.dungeonId}
-                        </div>
-                        <div className={styles.reportMeta}>队伍：{teamNames}</div>
-                      </div>
-                      <div className={styles.reportBadges}>
-                        <span className={styles.reportBadge}>{getRunIntentDef(report.strategy).label}</span>
+                        </span>
                         <span className={`${styles.reportBadge} ${styles[`result${report.result}`] ?? ''}`}>
                           {REPORT_RESULT_LABELS[report.result]}
                         </span>
                       </div>
-                    </div>
-
-                    <div className={styles.reportStats}>
-                      <span>战术：{getTacticalPresetLabel(report.tacticalPreset)}</span>
-                      <span>推进至第 {report.floorsCleared} 层</span>
-                    </div>
-
-                    <div className={styles.reportRewardLine}>
-                      <span className={styles.rewardLabel}>所得</span>
-                      <span className={styles.rewardValues}>
-                        {rewardBits.length > 0 ? rewardBits.join(' · ') : '暂无收获'}
-                      </span>
-                    </div>
-
-                    <div className={styles.reportRewardLine}>
-                      <span className={styles.rewardLabel}>回宗</span>
-                      <span className={styles.rewardValues}>{insight?.returnOutcome.summary ?? '暂无记录'}</span>
-                    </div>
-
-                    <details className={styles.reportDetails}>
-                      <summary className={styles.reportDetailsSummary}>
-                        <span>构筑与转折</span>
-                        <span className={styles.reportDetailsMeta}>展开细节</span>
-                      </summary>
-
-                      <div className={styles.reportDetailsBody}>
-                        <div className={styles.reportOutcomeLine}>
-                          <span className={styles.rewardLabel}>核心</span>
-                          <span className={styles.rewardValues}>{insight?.coreName ?? '暂无'}</span>
-                        </div>
-                        <div className={styles.reportOutcomeLine}>
-                          <span className={styles.rewardLabel}>构筑</span>
-                          <span className={styles.rewardValues}>{insight?.keyBuild ?? '暂无'}</span>
-                        </div>
-                        <div className={styles.reportOutcomeLine}>
-                          <span className={styles.rewardLabel}>转折</span>
-                          <span className={styles.rewardValues}>
-                            {insight?.turningPoint ?? (report.result === 'completed' ? '稳定推进至终局' : '暂无')}
-                          </span>
-                        </div>
-
-                        <RunBuildSummary
-                          tacticalPreset={report.tacticalPreset}
-                          blessings={[]}
-                          relics={[]}
-                          branchTags={[]}
-                          routeDirections={extractRouteDirections(detail)}
-                        />
+                      <div className={styles.reportCompactInfo}>
+                        <span>{teamNames}</span>
+                        <span>第{report.floorsCleared}层</span>
+                        <span>{rewardBits.length > 0 ? rewardBits.join(' ') : '暂无'}</span>
                       </div>
-                    </details>
-
-                    <Link className={styles.detailLink} to={`/adventure/report/${report.id}`}>
-                      查看过程
-                    </Link>
-                  </article>
-                )
-              })}
-            </div>
-          )}
+                      <Link className={styles.detailLink} to={`/adventure/report/${report.id}`}>
+                        查看详情
+                      </Link>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </details>
         </section>
 
         <aside className={styles.sideColumn}>

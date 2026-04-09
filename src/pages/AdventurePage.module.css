@@ -47,8 +47,7 @@
   border-top: 1px solid rgba(95, 122, 141, 0.08);
 }
 
-.automationSummary,
-.reportDetailsSummary {
+.automationSummary {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -57,8 +56,7 @@
   list-style: none;
 }
 
-.automationSummary::-webkit-details-marker,
-.reportDetailsSummary::-webkit-details-marker {
+.automationSummary::-webkit-details-marker {
   display: none;
 }
 
@@ -67,8 +65,7 @@
   color: var(--color-text);
 }
 
-.automationSummaryMeta,
-.reportDetailsMeta {
+.automationSummaryMeta {
   font-size: 11px;
   color: var(--color-text-tertiary);
 }
@@ -174,6 +171,48 @@
   padding: 12px;
 }
 
+/* ─── Compact Report Card ─── */
+.reportSection {
+  margin-bottom: 0;
+}
+
+.reportSection > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.reportSection > summary::-webkit-details-marker {
+  display: none;
+}
+
+.reportSection > summary .sectionTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.reportCount {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+}
+
+.reportCompactRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.reportCompactInfo {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
 .reportHeader,
 .dungeonHeader,
 .launchSummary {
@@ -196,17 +235,15 @@
 }
 
 .reportTitleGroup {
-  min-width: 0;
+  display: none;
 }
 
 .inlineIcon {
   opacity: 0.95;
 }
 
-.reportMeta,
 .dungeonInfo,
 .dungeonHint,
-.reportStats,
 .targetMeta,
 .teamBuilderHint,
 .strategyDesc,
@@ -247,14 +284,8 @@
   color: #c62828;
 }
 
-.reportRewardLine,
 .reportOutcomeLine {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(95, 122, 141, 0.08);
+  display: none;
 }
 
 .rewardLabel {
@@ -269,15 +300,11 @@
 }
 
 .reportDetails {
-  margin-top: 10px;
-  border-top: 1px solid rgba(95, 122, 141, 0.08);
-  padding-top: 10px;
+  display: none;
 }
 
 .reportDetailsBody {
-  display: grid;
-  gap: 8px;
-  padding-top: 10px;
+  display: none;
 }
 
 .detailLink {
@@ -502,12 +529,10 @@
   .reportHeader,
   .dungeonHeader,
   .launchSummary,
-  .reportRewardLine,
-  .reportOutcomeLine,
+  .reportCompactRow,
   .teamBuilderHeader,
   .teamActions,
-  .automationSummary,
-  .reportDetailsSummary {
+  .automationSummary {
     flex-direction: column;
     align-items: flex-start;
   }

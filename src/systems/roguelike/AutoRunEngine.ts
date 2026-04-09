@@ -384,6 +384,7 @@ export function resolveAutomatedRun(input: ResolveAutomatedRunInput): AdventureR
         stepMeta.eventType = 'combat'
         stepMeta.combatResult = eventResult.combatResult
         stepMeta.teamUnits = teamUnits.map((u) => ({ ...u }))
+        stepMeta.enemyUnit = eventResult.enemyUnitSnapshot
       }
 
       // Accumulate comprehension growth from combat

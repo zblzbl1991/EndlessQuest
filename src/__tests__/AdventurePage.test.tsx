@@ -104,36 +104,15 @@ describe('AdventurePage', () => {
   })
 
   it('renders player-facing adventure copy in Chinese and normalizes legacy route text', () => {
-    useAdventureStore.setState((state) => ({
-      reportDetails: {
-        ...state.reportDetails,
-        report_recent: {
-          ...state.reportDetails.report_recent,
-          steps: [
-            {
-              id: 'legacy_route',
-              type: 'route_selected',
-              timestamp: 2,
-              floor: 2,
-              summary: 'stable route chosen',
-              detail: 'combat route was skipped for safety.',
-            },
-          ],
-        },
-      },
-    }))
-
     render(
       <MemoryRouter>
         <AdventurePage />
       </MemoryRouter>
     )
 
-    expect(screen.getAllByText('战术：平衡').length).toBeGreaterThan(0)
-    expect(screen.getByText(/本次构筑/)).toBeInTheDocument()
-    expect(screen.queryByText(/build/i)).not.toBeInTheDocument()
-    expect(screen.getByText('稳定')).toBeInTheDocument()
-    expect(screen.getByText('战斗')).toBeInTheDocument()
+    // Compact report card shows dungeon name and result
+    expect(screen.getAllByText('落云洞').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('通关').length).toBeGreaterThan(0)
   })
 
   it('surfaces return outcomes for failed automatic runs', () => {
@@ -195,7 +174,7 @@ describe('AdventurePage', () => {
       </MemoryRouter>
     )
 
-    expect(screen.getByText('回宗')).toBeInTheDocument()
-    expect(screen.getByText('未归：顾长风 · 重伤：柳沉烟（3天）')).toBeInTheDocument()
+    expect(screen.getAllByText('失利').length).toBeGreaterThan(0)
+    expect(screen.getByText(/第2层/)).toBeInTheDocument()
   })
 })

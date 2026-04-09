@@ -5,8 +5,7 @@ import { useAdventureStore } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
-import { AFFIX_DEFS } from '../data/affixes'
-import { ELEMENT_NAMES } from '../data/skills'
+
 import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
 import type { CombatAction, CombatResult, CombatUnit } from '../systems/combat/CombatEngine'
@@ -231,55 +230,9 @@ function BossCombatReport({ meta }: { meta: BossStepMeta }) {
 
   const keyActions = extractKeyActions(combatResult.actions)
   const { teamOutput, teamReceived, bossOutput } = buildDamageStats(combatResult.actions, bossUnit, teamUnits)
-  const affixNames = (bossUnit.affixes ?? []).map((a) => AFFIX_DEFS[a]?.name ?? a)
 
   return (
     <div className={styles.bossPanel}>
-      {/* Pre-fight attribute comparison */}
-      <div className={styles.bossSectionTitle}>战前对比</div>
-      <div className={styles.bossCompareGrid}>
-        {/* Boss column */}
-        <div className={styles.bossCompareCol}>
-          <div className={styles.bossUnitHeader}>
-            <span className={styles.bossName}>{bossUnit.name}</span>
-            <span className={styles.bossAffixes}>{affixNames.length > 0 ? affixNames.join(' / ') : ''}</span>
-          </div>
-          <div className={styles.bossStatGrid}>
-            <span className={styles.bossStatLabel}>HP</span>
-            <strong>{bossUnit.maxHp}</strong>
-            <span className={styles.bossStatLabel}>ATK</span>
-            <strong>{bossUnit.atk}</strong>
-            <span className={styles.bossStatLabel}>DEF</span>
-            <strong>{bossUnit.def}</strong>
-            <span className={styles.bossStatLabel}>SPD</span>
-            <strong>{bossUnit.spd}</strong>
-            <span className={styles.bossStatLabel}>元素</span>
-            <strong>{ELEMENT_NAMES[bossUnit.element] ?? bossUnit.element}</strong>
-          </div>
-        </div>
-        {/* Team column */}
-        <div className={styles.bossCompareCol}>
-          <div className={styles.bossUnitHeader}>
-            <span className={styles.bossName}>我方队伍</span>
-          </div>
-          {teamUnits.map((unit) => (
-            <div key={unit.id} className={styles.bossTeamMember}>
-              <div className={styles.bossTeamMemberName}>{unit.name}</div>
-              <div className={styles.bossStatGrid}>
-                <span className={styles.bossStatLabel}>HP</span>
-                <strong>{unit.maxHp}</strong>
-                <span className={styles.bossStatLabel}>ATK</span>
-                <strong>{unit.atk}</strong>
-                <span className={styles.bossStatLabel}>DEF</span>
-                <strong>{unit.def}</strong>
-                <span className={styles.bossStatLabel}>SPD</span>
-                <strong>{unit.spd}</strong>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Victory status */}
       <div className={styles.bossResultLine}>
         {combatResult.victory ? '击败首领' : '首领战失利'} -- 共 {combatResult.turns} 回合
