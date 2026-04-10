@@ -11,7 +11,7 @@ import {
   rollRecruitQuality,
 } from '../systems/character/CharacterEngine'
 import { observeBuildingLevel, resetObservedBuildingLevels } from '../data/buildings'
-import type { CharacterQuality } from '../types/character'
+import type { CharacterQuality, Character } from '../types/character'
 import type { Equipment } from '../types/item'
 
 // --- Test helpers ---
@@ -150,58 +150,97 @@ describe('CharacterEngine', () => {
   })
 
   describe('calcCharacterTotalStats', () => {
+    // Helper: create a bare character with deterministic stats (no random affixes)
+    function makeBareCharacter(overrides: Partial<Character> = {}): Character {
+      return {
+        id: 'test_char',
+        name: '测试弟子',
+        title: 'disciple',
+        quality: 'common',
+        realm: 0,
+        realmStage: 0,
+        level: 1,
+        xp: 0,
+        cultivation: 0,
+        baseStats: { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 },
+        cultivationStats: {
+          spiritPower: 0,
+          maxSpiritPower: 100,
+          comprehension: 10,
+          spiritualRoot: 10,
+          fortune: 5,
+        },
+        learnedTechniques: ['qingxin'],
+        equippedGear: [],
+        equippedSkills: [],
+        backpack: [],
+        maxBackpackSlots: 20,
+        petIds: [],
+        talents: [],
+        status: 'idle',
+        injuryTimer: 0,
+        recoveryDaysRemaining: 0,
+        createdAt: Date.now(),
+        totalCultivation: 0,
+        specialties: [],
+        assignedBuilding: null,
+        cultivationPath: 'none',
+        investedSpiritStone: 0,
+        techniqueComprehension: {},
+        elementAffinity: { primary: 'metal' },
+        growthMultipliers: { hp: 1, atk: 1, def: 1, spd: 1, crit: 1, critDmg: 1 },
+        ...overrides,
+      }
+    }
+
     it('should return base stats + default technique when no equipment', () => {
-      const c = generateCharacter('common')
+      const c = makeBareCharacter()
       const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
       // default technique qingxin: hp +10, atk +2, def +2, spd +1
-      expect(result.hp).toBe(c.baseStats.hp + 10)
-      expect(result.atk).toBe(c.baseStats.atk + 2)
-      expect(result.def).toBe(c.baseStats.def + 2)
-      expect(result.spd).toBe(c.baseStats.spd + 1)
+      expect(result.hp).toBe(110)
+      expect(result.atk).toBe(17)
+      expect(result.def).toBe(10)
+      expect(result.spd).toBe(11)
     })
 
     it('should add equipment stats', () => {
-      const c = generateCharacter('common')
-      c.equippedGear = ['eq_1']
+      const c = makeBareCharacter({ equippedGear: ['eq_1'] })
       const eq = makeEquipment({ hp: 50, atk: 10 })
       const result = calcCharacterTotalStats(c, c.learnedTechniques, (id) => (id === 'eq_1' ? eq : undefined))
       // base + qingxin bonuses + equipment
-      expect(result.hp).toBe(c.baseStats.hp + 10 + 50)
-      expect(result.atk).toBe(c.baseStats.atk + 2 + 10)
-      expect(result.def).toBe(c.baseStats.def + 2)
+      expect(result.hp).toBe(160)
+      expect(result.atk).toBe(27)
+      expect(result.def).toBe(10)
     })
 
     it('should sum flat bonuses from all learned techniques', () => {
-      const c = generateCharacter('common')
+      const c = makeBareCharacter({ learnedTechniques: ['qingxin', 'lieyan'] })
       // qingxin: hp +10, atk +2, def +2, spd +1
       // lieyan: atk +5, crit +0.02
-      c.learnedTechniques = ['qingxin', 'lieyan']
       const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
-      expect(result.hp).toBe(c.baseStats.hp + 10)
-      expect(result.atk).toBe(c.baseStats.atk + 2 + 5)
-      expect(result.def).toBe(c.baseStats.def + 2)
-      expect(result.spd).toBe(c.baseStats.spd + 1)
-      expect(result.crit).toBeCloseTo(c.baseStats.crit + 0.02, 3)
+      expect(result.hp).toBe(110)
+      expect(result.atk).toBe(22)
+      expect(result.def).toBe(10)
+      expect(result.spd).toBe(11)
+      expect(result.crit).toBeCloseTo(0.07, 3)
     })
 
     it('should return base stats when no techniques learned', () => {
-      const c = generateCharacter('common')
-      c.learnedTechniques = []
+      const c = makeBareCharacter({ learnedTechniques: [] })
       const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
-      expect(result.hp).toBe(c.baseStats.hp)
-      expect(result.atk).toBe(c.baseStats.atk)
-      expect(result.def).toBe(c.baseStats.def)
-      expect(result.spd).toBe(c.baseStats.spd)
-      expect(result.crit).toBeCloseTo(c.baseStats.crit, 3)
+      expect(result.hp).toBe(100)
+      expect(result.atk).toBe(15)
+      expect(result.def).toBe(8)
+      expect(result.spd).toBe(10)
+      expect(result.crit).toBeCloseTo(0.05, 3)
     })
 
     it('should apply cultivation path bonuses to total stats', () => {
-      const c = generateCharacter('common')
-      c.cultivationPath = 'sword'
+      const c = makeBareCharacter({ cultivationPath: 'sword' })
       const result = calcCharacterTotalStats(c, c.learnedTechniques, () => undefined)
 
-      expect(result.atk).toBe(Math.floor((c.baseStats.atk + 2) * 1.2))
-      expect(result.spd).toBe(Math.floor((c.baseStats.spd + 1) * 1.1))
+      expect(result.atk).toBe(Math.floor((15 + 2) * 1.2))
+      expect(result.spd).toBe(Math.floor((10 + 1) * 1.1))
     })
   })
 
@@ -327,17 +366,50 @@ describe('generateCharacter with variance', () => {
     }
   })
 
-  it('should have talents array on every character', () => {
+  it('should have talents array on every character (empty for new chars)', () => {
     const c = generateCharacter('common')
     expect(Array.isArray(c.talents)).toBe(true)
+    expect(c.talents.length).toBe(0) // New characters use prefix/suffix instead
   })
 
-  it('should not have duplicate talents', () => {
-    for (let i = 0; i < 100; i++) {
-      const c = generateCharacter('immortal')
-      const ids = c.talents.map((t) => t.id)
-      expect(new Set(ids).size).toBe(ids.length)
+  it('should generate elementAffinity with valid primary element', () => {
+    const validElements = ['metal', 'wood', 'earth', 'water', 'fire']
+    for (let i = 0; i < 50; i++) {
+      const c = generateCharacter('common')
+      expect(validElements).toContain(c.elementAffinity.primary)
+      expect(c.elementAffinity.primary).not.toBe('neutral')
+      if (c.elementAffinity.secondary) {
+        expect(validElements).toContain(c.elementAffinity.secondary)
+        expect(c.elementAffinity.secondary).not.toBe(c.elementAffinity.primary)
+      }
     }
+  })
+
+  it('should generate growthMultipliers within quality range', () => {
+    for (let i = 0; i < 50; i++) {
+      const c = generateCharacter('common')
+      const gm = c.growthMultipliers
+      for (const key of ['hp', 'atk', 'def', 'spd', 'crit', 'critDmg'] as const) {
+        expect(gm[key]).toBeGreaterThanOrEqual(0.6)
+        expect(gm[key]).toBeLessThanOrEqual(1.3)
+      }
+    }
+  })
+
+  it('common quality should not have secondary affinity', () => {
+    for (let i = 0; i < 100; i++) {
+      const c = generateCharacter('common')
+      expect(c.elementAffinity.secondary).toBeUndefined()
+    }
+  })
+
+  it('chaos quality should frequently have secondary affinity', () => {
+    let secondaryCount = 0
+    for (let i = 0; i < 100; i++) {
+      const c = generateCharacter('chaos')
+      if (c.elementAffinity.secondary) secondaryCount++
+    }
+    expect(secondaryCount).toBeGreaterThan(60) // ~80%
   })
 })
 
@@ -392,39 +464,45 @@ describe('chaos upgrade from divine', () => {
   })
 })
 
-describe('talent weight distribution', () => {
-  it('common quality: ~40% should have exactly 1 talent', () => {
-    let countWithTalent = 0
+describe('talent affix distribution', () => {
+  it('common quality: ~60% should have prefix, ~30% suffix', () => {
+    let prefixCount = 0
+    let suffixCount = 0
     const n = 500
     for (let i = 0; i < n; i++) {
       const c = generateCharacter('common')
-      if (c.talents.length >= 1) countWithTalent++
-    }
-    expect(countWithTalent).toBeGreaterThan(n * 0.25)
-    expect(countWithTalent).toBeLessThan(n * 0.55)
-  })
-
-  it('divine quality: all should have at least 1 talent', () => {
-    for (let i = 0; i < 100; i++) {
-      const c = generateCharacter('divine')
-      expect(c.talents.length).toBeGreaterThanOrEqual(1)
-    }
-  })
-
-  it('talent rarity distribution should follow weights', () => {
-    const rarityCounts = { common: 0, rare: 0, epic: 0 }
-    for (let i = 0; i < 500; i++) {
-      const c = generateCharacter('immortal')
-      for (const t of c.talents) {
-        rarityCounts[t.rarity]++
+      if (c.prefix) {
+        prefixCount++
+        expect(c.prefix.rarity).toBe('common')
+      }
+      if (c.suffix) {
+        suffixCount++
+        expect(c.suffix.rarity).toBe('common')
       }
     }
-    const total = rarityCounts.common + rarityCounts.rare + rarityCounts.epic
-    if (total > 0) {
-      expect(rarityCounts.common / total).toBeGreaterThan(0.3)
-      expect(rarityCounts.rare / total).toBeGreaterThan(0.2)
-      if (rarityCounts.epic > 0) {
-        expect(rarityCounts.epic / total).toBeLessThan(0.3)
+    expect(prefixCount).toBeGreaterThan(n * 0.45)
+    expect(prefixCount).toBeLessThan(n * 0.75)
+    expect(suffixCount).toBeGreaterThan(n * 0.15)
+    expect(suffixCount).toBeLessThan(n * 0.45)
+  })
+
+  it('chaos quality: prefix/suffix should be epic or legendary', () => {
+    for (let i = 0; i < 100; i++) {
+      const c = generateCharacter('chaos')
+      if (c.prefix) expect(['epic', 'legendary']).toContain(c.prefix.rarity)
+      if (c.suffix) expect(['epic', 'legendary']).toContain(c.suffix.rarity)
+    }
+  })
+
+  it('affix resolved effects should have positive values', () => {
+    for (let i = 0; i < 100; i++) {
+      const c = generateCharacter('immortal')
+      for (const affix of [c.prefix, c.suffix]) {
+        if (affix) {
+          for (const eff of affix.resolvedEffects) {
+            expect(eff.value).toBeGreaterThan(0)
+          }
+        }
       }
     }
   })

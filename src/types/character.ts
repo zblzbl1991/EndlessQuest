@@ -1,6 +1,7 @@
 import type { ItemStack } from './item'
-import type { Talent } from './talent'
+import type { Talent, TalentAffixInstance } from './talent'
 import type { FateGridId } from './destiny'
+import type { Element } from './skill'
 
 export type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
 
@@ -36,6 +37,11 @@ export interface GrowthMultipliers {
   spd: number
   crit: number
   critDmg: number
+}
+
+export interface ElementAffinity {
+  primary: Element
+  secondary?: Element // Not primary, not neutral
 }
 
 export type SpecialtyType =
@@ -83,4 +89,9 @@ export interface Character {
   investedSpiritStone: number
   techniqueComprehension: Record<string, number>
   fateGrid?: FateGridId
+  // --- Deep randomization fields ---
+  elementAffinity: ElementAffinity
+  growthMultipliers: GrowthMultipliers
+  prefix?: TalentAffixInstance
+  suffix?: TalentAffixInstance
 }

@@ -7,6 +7,7 @@ export type {
   BaseStats,
   CultivationStats,
   GrowthMultipliers,
+  ElementAffinity,
   CultivationPath,
 } from './character'
 export type { Technique, TechniqueTier, TechniqueBonus } from './technique'

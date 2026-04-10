@@ -1,13 +1,15 @@
-import type { Character, CharacterQuality, BaseStats, CultivationStats } from '../../types/character'
+import type { Character, CharacterQuality, BaseStats, CultivationStats, ElementAffinity } from '../../types/character'
 import type { Equipment } from '../../types/item'
-import type { Talent, TalentRarity } from '../../types/talent'
-import { ALL_TALENTS } from '../../data/talents'
+import type { Talent, TalentAffixInstance } from '../../types/talent'
+import type { Element } from '../../types/skill'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { getTechniqueById } from '../../data/techniquesTable'
 import type { SectRouteId } from '../../data/sectRoutes'
 import { rollSpecialties } from './SpecialtySystem'
 import { applyPathStatBonuses } from './CultivationPathSystem'
 import { tryAcquireFateGrid } from '../../systems/destiny/DestinySystem'
+import { generateGrowthMultipliers } from './GrowthMultiplierSystem'
+import { rollAffixes } from './TalentAffixGenerator'
 
 // ---------------------------------------------------------------------------
 // Quality stat table
@@ -31,39 +33,6 @@ const QUALITY_VARIANCE: Record<CharacterQuality, number> = {
   immortal: 0.15,
   divine: 0.12,
   chaos: 0.1,
-}
-
-// ---------------------------------------------------------------------------
-// Talent configuration per quality
-// ---------------------------------------------------------------------------
-
-const QUALITY_TALENT_CONFIG: Record<
-  CharacterQuality,
-  {
-    talentCount: { min: number; max: number; probabilities: number[] }
-    rarityWeights: Record<TalentRarity, number>
-  }
-> = {
-  common: {
-    talentCount: { min: 0, max: 1, probabilities: [0.6, 0.4] },
-    rarityWeights: { common: 0.7, rare: 0.3, epic: 0 },
-  },
-  spirit: {
-    talentCount: { min: 0, max: 1, probabilities: [0.5, 0.5] },
-    rarityWeights: { common: 0.6, rare: 0.35, epic: 0.05 },
-  },
-  immortal: {
-    talentCount: { min: 0, max: 2, probabilities: [0.4, 0.35, 0.25] },
-    rarityWeights: { common: 0.5, rare: 0.4, epic: 0.1 },
-  },
-  divine: {
-    talentCount: { min: 1, max: 2, probabilities: [0.6, 0.4] },
-    rarityWeights: { common: 0.4, rare: 0.45, epic: 0.15 },
-  },
-  chaos: {
-    talentCount: { min: 1, max: 3, probabilities: [0.5, 0.3, 0.2] },
-    rarityWeights: { common: 0.3, rare: 0.45, epic: 0.25 },
-  },
 }
 
 const BASE_STAT_KEYS = ['hp', 'atk', 'def', 'spd', 'crit', 'critDmg'] as const satisfies ReadonlyArray<keyof BaseStats>
@@ -121,56 +90,6 @@ function applyRouteIdentityBiases(
   }
 
   return next
-}
-
-function rollTalents(quality: CharacterQuality): Talent[] {
-  const config = QUALITY_TALENT_CONFIG[quality]
-  const { min, max, probabilities } = config.talentCount
-
-  // Determine talent count
-  let count = min
-  const roll = Math.random()
-  let cumulative = 0
-  for (let i = 0; i < probabilities.length; i++) {
-    cumulative += probabilities[i]
-    if (roll < cumulative) {
-      count = min + i
-      break
-    }
-  }
-  count = Math.min(count, max)
-
-  if (count === 0) return []
-
-  // Select talents by rarity weight
-  const available = [...ALL_TALENTS]
-  const talents: Talent[] = []
-
-  for (let i = 0; i < count && available.length > 0; i++) {
-    const rarityRoll = Math.random()
-    let cumulativeRarity = 0
-    let selectedRarity: TalentRarity = 'common'
-    for (const [rarity, weight] of Object.entries(config.rarityWeights)) {
-      cumulativeRarity += weight
-      if (rarityRoll < cumulativeRarity) {
-        selectedRarity = rarity as TalentRarity
-        break
-      }
-    }
-
-    const candidates = available.filter((t) => t.rarity === selectedRarity)
-    if (candidates.length > 0) {
-      const talent = candidates[Math.floor(Math.random() * candidates.length)]
-      talents.push(talent)
-      available.splice(available.indexOf(talent), 1)
-    } else {
-      // Fallback: pick any remaining
-      const talent = available.splice(Math.floor(Math.random() * available.length), 1)[0]
-      talents.push(talent)
-    }
-  }
-
-  return talents
 }
 
 // ---------------------------------------------------------------------------
@@ -326,6 +245,49 @@ export function getQualityStats(quality: CharacterQuality): {
   return { ...QUALITY_STATS[quality] }
 }
 
+// ---------------------------------------------------------------------------
+// Element affinity generation
+// ---------------------------------------------------------------------------
+
+const WUXING_ELEMENTS: Element[] = ['metal', 'wood', 'earth', 'water', 'fire']
+
+const SECONDARY_AFFINITY_CHANCE: Record<CharacterQuality, number> = {
+  common: 0,
+  spirit: 0.2,
+  immortal: 0.4,
+  divine: 0.6,
+  chaos: 0.8,
+}
+
+function rollElementAffinity(quality: CharacterQuality): ElementAffinity {
+  const primary = randomPick(WUXING_ELEMENTS)
+  const secondaryChance = SECONDARY_AFFINITY_CHANCE[quality]
+  const secondary =
+    Math.random() < secondaryChance ? randomPick(WUXING_ELEMENTS.filter((e) => e !== primary)) : undefined
+  return { primary, secondary }
+}
+
+// ---------------------------------------------------------------------------
+// Talent affix stat application
+// ---------------------------------------------------------------------------
+
+function applyAffixEffects(
+  affix: TalentAffixInstance | undefined,
+  baseStats: BaseStats,
+  cultivationStats: CultivationStats
+): void {
+  if (!affix) return
+  for (const eff of affix.resolvedEffects) {
+    if (eff.type === 'flatStat' && eff.stat) {
+      if (isBaseStatKey(eff.stat)) {
+        baseStats[eff.stat] += eff.value
+      } else if (isCultivationStatKey(eff.stat)) {
+        cultivationStats[eff.stat] += eff.value
+      }
+    }
+  }
+}
+
 /**
  * Generate a new character with the given quality.
  */
@@ -350,24 +312,28 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     fortune: applyVariance(qStats.fortune, variance, false),
   }
 
-  // Roll talents
-  const talents = rollTalents(quality)
-
-  // Apply talent effects to stats
-  for (const talent of talents) {
-    for (const eff of talent.effect) {
-      if (isBaseStatKey(eff.stat)) {
-        baseStats[eff.stat] += eff.value
-      } else if (isCultivationStatKey(eff.stat)) {
-        cultivationStats[eff.stat] += eff.value
-      }
-    }
-  }
-
   // Chaos upgrade: divine has 0.5% chance to become chaos
   if (quality === 'divine' && Math.random() < 0.005) {
     quality = 'chaos'
   }
+
+  // --- Deep randomization dimensions ---
+
+  // 1. Element affinity
+  const elementAffinity = rollElementAffinity(quality)
+
+  // 2. Growth multipliers
+  const growthMultipliers = generateGrowthMultipliers(quality)
+
+  // 3. Talent affixes (prefix + suffix)
+  const { prefix, suffix } = rollAffixes(quality)
+
+  // Apply affix effects to stats (flatStat effects only)
+  applyAffixEffects(prefix, baseStats, cultivationStats)
+  applyAffixEffects(suffix, baseStats, cultivationStats)
+
+  // Legacy talents (kept for save migration compatibility, empty for new characters)
+  const talents: Talent[] = []
 
   const learnedTechniques = ['qingxin']
   const specialties = applyRouteIdentityBiases(rollSpecialties(quality), activeRoute)
@@ -414,6 +380,10 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     fateGrid,
     level: 1,
     xp: 0,
+    elementAffinity,
+    growthMultipliers,
+    prefix,
+    suffix,
   })
 }
 
