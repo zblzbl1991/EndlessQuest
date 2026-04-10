@@ -1,0 +1,12 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "src/stores/sectStore/techniqueSlice.ts", "reason": "Existing codex pattern to follow"}
+{"file": "src/components/building/CodexPanel.tsx", "reason": "Existing codex UI pattern"}
+{"file": "src/data/enemies.ts", "reason": "Enemy templates and data"}
+{"file": "src/data/equipmentSets.ts", "reason": "Equipment set definitions"}
+{"file": "src/systems/save/SaveSystem.ts", "reason": "Save migration pattern"}
+{"file": "src/types/sect.ts", "reason": "Sect type definition"}
+{"file": "src/stores/sectStore/types.ts", "reason": "SectStore interface"}
+{"file": "src/stores/sectStore/initial.ts", "reason": "Initial state factory"}
+{"file": "src/systems/roguelike/EventSystem.ts", "reason": "Combat resolution hook point"}
+{"file": "src/systems/roguelike/LootSystem.ts", "reason": "Loot generation hook point"}

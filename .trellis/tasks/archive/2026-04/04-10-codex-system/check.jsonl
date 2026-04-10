@@ -1,0 +1,8 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": "src/stores/sectStore/techniqueSlice.ts", "reason": "Codex pattern reference"}
+{"file": "src/components/building/CodexPanel.tsx", "reason": "Codex UI pattern"}
+{"file": "src/data/enemies.ts", "reason": "Enemy data verification"}
+{"file": "src/data/equipmentSets.ts", "reason": "Equipment set verification"}
+{"file": "src/systems/save/SaveSystem.ts", "reason": "Save migration check"}
+{"file": "src/types/sect.ts", "reason": "Type completeness check"}
