@@ -114,3 +114,50 @@ When running parallel worktree agents, some files are high-conflict due to being
 1. **Merge least-overlapping branches first** (data-only changes like content pools)
 2. **Expect text conflicts** in event messages when narrative and milestone tasks overlap
 3. **Use narrative-style text** as the canonical version when resolving event message conflicts
+
+---
+
+## Character Type Extension Cross-Layer Impact
+
+When adding new fields to the `Character` interface, the change cascades through ALL layers. Missing any layer causes either type errors or runtime failures.
+
+### Complete Impact Map
+
+```
+src/types/character.ts          → Add interface field + new types
+src/types/index.ts              → Re-export new types
+src/systems/character/          → Generation logic (CharacterEngine, new systems)
+src/data/                       → Data tables if needed (new constants, lookup tables)
+src/systems/cultivation/        → If field affects cultivation/breakthrough
+src/systems/combat/             → If field affects combat calculations
+src/systems/save/SaveSystem.ts  → Save migration (version bump + fill defaults)
+src/systems/save/testFixture.ts → Update ALL character fixtures
+src/pages/*.tsx                 → UI display of new fields
+src/__tests__/*.test.ts         → ALL test files with character factories
+```
+
+### The Test Fixture Trap
+
+> **Warning**: Test files are excluded from `tsconfig.json` (`"exclude": ["src/__tests__"]`). TypeScript will NOT catch missing new fields in test character objects. You must run `vitest` to find these errors.
+
+When a new required field is added to `Character`, every test file that creates character objects will fail at runtime. The fastest fix pattern:
+
+```ts
+// Add to every test character factory:
+elementAffinity: { primary: 'metal' },
+growthMultipliers: { hp: 1, atk: 1, def: 1, spd: 1, crit: 1, critDmg: 1 },
+```
+
+### Save Migration Version Pattern
+
+Save migrations use `meta.version < N` checks in `loadGame()`:
+
+```ts
+if (meta.version < 9) {
+  // Migration logic: fill missing fields on rawCharacters
+  migrateV8ToV9(rawCharacters)
+  meta.version = 9
+}
+```
+
+**Key rule**: Migration happens BEFORE character normalization, so operate on the raw `SavedCharacter[]` with `(char as any)` casts. After migration, the normal load path treats the data as v9.

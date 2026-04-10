@@ -21,8 +21,8 @@ src/types/
 ├── sect.ts           # Sect, Resources, BuildingType, ArchiveMilestoneId, etc.
 ├── item.ts           # Item, Equipment, Consumable, AnyItem, etc.
 ├── adventure.ts      # DungeonRun, AdventureReport, etc.
-├── skill.ts          # Skill, Element, active skill definitions
-├── talent.ts         # Talent definitions
+├── skill.ts          # Element (wuxing), COUNTER_MAP, ELEMENT_NAMES, ActiveSkill
+├── talent.ts         # Talent (legacy), TalentAffix, TalentAffixInstance, TalentAffixEffect
 ├── technique.ts      # Technique, TechniqueScroll
 ├── runBuild.ts       # RunBuild types
 ├── destiny.ts        # FateGridId, FateGridDef, FateGridEffects, FateGridCategory
@@ -114,12 +114,22 @@ export type AnyItem = Equipment | Consumable | Material | TechniqueScroll
 Runtime maps are co-located with their type definitions:
 
 ```ts
-export type Element = 'fire' | 'ice' | 'lightning' | 'healing' | 'neutral'
+export type Element = 'metal' | 'wood' | 'earth' | 'water' | 'fire' | 'neutral'
 
 export const ELEMENT_NAMES: Record<Element, string> = {
-  fire: '火', ice: '冰', lightning: '雷', healing: '治愈', neutral: '无'
+  metal: '金', wood: '木', earth: '土', water: '水', fire: '火', neutral: '无'
+}
+
+export const COUNTER_MAP: Partial<Record<Element, Element>> = {
+  metal: 'wood',    // 金克木
+  wood: 'earth',    // 木克土
+  earth: 'water',   // 土克水
+  water: 'fire',    // 水克火
+  fire: 'metal',    // 火克金
 }
 ```
+
+> **Warning**: Element was migrated from a 3-element system (fire/ice/lightning) to wuxing (5-element). When adding new content that references elements, use the wuxing set only. The old values (`ice`, `lightning`, `healing`) no longer exist in the type union.
 
 ### Override pattern for test factories
 
@@ -248,6 +258,55 @@ xp: normalizeFiniteNumber((c as any).xp, 0),
 ```
 
 **Key rule**: Always use `(c as any).field` for reading new fields from old saves, with a sensible default. `normalizeFiniteNumber` prevents NaN/Infinity corruption.
+
+### Global type migration pattern (union value replacement)
+
+When replacing values in a shared union type (e.g., changing `Element` from `ice|lightning|fire` to wuxing), the migration must touch ALL consumers in one coordinated pass:
+
+**Checklist (in order):**
+1. Update the type definition in `src/types/` (union + constants)
+2. Update data tables using those values (`src/data/` files)
+3. Update system functions with logic tied to old values (`src/systems/`)
+4. Update all test fixtures and test assertions (`src/__tests__/`)
+5. Update UI components that switch on old values
+6. Run `npx tsc -b` — type errors reveal missed consumers
+7. Run `npx vitest run` — test failures reveal hardcoded old values
+
+**Gotcha**: Test files are excluded from `tsconfig.json` (`"exclude": ["src/__tests__"]`), so `tsc -b` will NOT catch type errors in test files. You must run `vitest` to find stale test values.
+
+```ts
+// Wrong — tsc won't catch this in test files
+const c = { element: 'ice' }  // 'ice' no longer in Element union
+
+// Correct — run vitest to find these
+npx vitest run  // will fail on type mismatch at runtime
+```
+
+### Structured effect union types
+
+For systems with diverse effect types (talent affixes, item bonuses), use a discriminated union with `type` field:
+
+```ts
+// types/talent.ts
+export type TalentAffixEffect =
+  | { type: 'flatStat'; stat: TalentStat; minValue: number; maxValue: number }
+  | { type: 'elementDamage'; element: string; minValue: number; maxValue: number }
+  | { type: 'modifier'; target: string; minValue: number; maxValue: number }
+
+// Data: define templates with ranges
+const affix = {
+  effects: [{ type: 'flatStat', stat: 'atk', minValue: 2, maxValue: 5 }]
+}
+
+// Instance: resolved to fixed values at generation time
+interface TalentAffixInstance {
+  resolvedEffects: Array<{ type: string; value: number; stat?: string }>
+}
+```
+
+**Why**: Template → Instance separation means data definitions have ranges for randomization, while runtime instances have fixed values. The `type` discriminant lets consumers pattern-match safely.
+
+**Common mistake**: When iterating `TalentAffixEffect` union members, not all variants have `minValue`/`maxValue` at the top level (e.g., `conditional` has `effect.minValue`). Use `'minValue' in eff` guard or cast with `(eff as any).minValue` in migration code.
 
 ---
 
