@@ -792,3 +792,85 @@ Implemented discovery-based codex for monsters (layered: encounter/kill) and equ
 ### Next Steps
 
 - None - task complete
+
+
+## Session 16: Disciple deep randomization: wuxing + growth + affixes
+
+**Date**: 2026-04-10
+**Task**: Disciple deep randomization: wuxing + growth + affixes
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## What Was Done
+
+Implemented the "Disciple Deep Randomization" feature — transforming character generation from quality-determines-everything to multi-dimensional independent random stacking (Diablo-style).
+
+### Phase 1: 3 Parallel Tracks (worktree agents)
+
+| Track | Scope | Key Files |
+|-------|-------|-----------|
+| A. Wuxing Elements | 3-element → 5-element migration + combat affinity bonus | `types/skill.ts`, `data/skills.ts`, `data/activeSkills.ts`, `data/techniquesTable.ts`, `data/enemies.ts`, `systems/combat/CombatEngine.ts` |
+| B. Growth Multipliers | Type + generation algorithm + level/breakthrough/dungeon integration | `types/character.ts`, `systems/character/GrowthMultiplierSystem.ts`, `data/levelSystem.ts`, `systems/cultivation/CultivationEngine.ts`, `systems/cultivation/BreakthroughCoordinator.ts`, `systems/character/DungeonGrowthSystem.ts` |
+| C. Talent Affixes | 80 affixes data + generator + quality-gated rarity | `types/talent.ts`, `data/talentAffixes.ts`, `systems/character/TalentAffixGenerator.ts` |
+
+### Phase 2: Sequential Integration (in-session)
+
+| Task | Scope | Key Files |
+|------|-------|-----------|
+| D. CharacterEngine rewrite | Integrate 3 dimensions into `generateCharacter()` | `systems/character/CharacterEngine.ts`, `types/character.ts`, `types/index.ts` |
+| E. Save migration v8→v9 | Old talents → prefix/suffix, fill defaults | `systems/save/SaveSystem.ts` |
+| F. UI updates | Display affinity, growth, affixes | `pages/CharactersPage.tsx`, `pages/BuildingsPage.tsx` |
+| G. CLAUDE.md update | Roguelike → deep randomization description | `CLAUDE.md` |
+| H. Code-spec updates | Capture patterns and contracts | `.trellis/spec/backend/character-generation.md`, `frontend/type-safety.md`, `guides/*` |
+
+### Key Design Decisions
+
+1. **Quality = random pool width, not absolute power** — Common disciple can beat immortal in specific dimensions
+2. **Affix effects baked into baseStats** — Simpler runtime model, no re-derivation needed
+3. **talents array kept empty** — Not removed yet, avoids massive test fixture rewrite
+4. **Element migration**: ice→water, lightning→metal, healing→wood
+
+### Test Results
+
+- 70 test files, 1071 tests, all green
+- New test files: `GrowthMultiplierSystem.test.ts`, `TalentAffixGenerator.test.ts`
+- Rewritten: `CharacterEngine.test.ts` (affix distribution + new dimension tests)
+
+### Lessons Learned
+
+- Test files excluded from tsconfig → `tsc -b` won't catch stale values in tests, must run vitest
+- Parallel track merge: shared type files are conflict magnets, let one agent own types
+- `git stash pop` often conflicts on `tsconfig.tsbuildinfo`, use `--theirs`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `3041dfe` | (see git log) |
+| `eb18d62` | (see git log) |
+| `7c689ce` | (see git log) |
+| `6cf916f` | (see git log) |
+| `d4868d1` | (see git log) |
+| `407ea4d` | (see git log) |
+| `da83e45` | (see git log) |
+| `60d2d2a` | (see git log) |
+| `45ec977` | (see git log) |
+| `81779f2` | (see git log) |
+| `9175b40` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
