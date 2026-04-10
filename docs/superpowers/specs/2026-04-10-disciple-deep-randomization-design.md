@@ -50,21 +50,49 @@
 
 ### 需要同步修改的文件
 
-- `src/types/character.ts` — 新增 `elementAffinity` 字段
+- `src/types/skill.ts` — 替换现有 `Element` 类型和 `COUNTER_MAP`（这是元素类型的唯一定义源）
+- `src/types/character.ts` — 新增 `ElementAffinity` 字段（复用 skill.ts 的 Element）
 - `src/data/skills.ts` — 元素克制表从三元素改为五行
-- `src/data/activeSkills.ts` — 技能元素从 fire/ice/lightning 改为 metal/wood/earth/water/fire
+- `src/data/activeSkills.ts` — 技能元素类型更新
 - `src/data/techniquesTable.ts` — 功法元素同步更新
 - `src/systems/combat/CombatEngine.ts` — 元素克制计算更新
 - `src/data/enemies.ts` — 敌人元素更新
 
+### 元素迁移映射
+
+现有三元素 → 五行的映射（技能、功法、敌人统一迁移）：
+
+| 旧元素 | 新元素 | 理由 |
+|--------|--------|------|
+| fire | fire | 直接对应 |
+| ice | water | 冰→水，自然映射 |
+| lightning | metal | 雷→金，金属性带锐利/穿透感 |
+| healing | wood | 治愈→木，木主生发 |
+| neutral | neutral | 保留无属性 |
+
+`src/types/skill.ts` 中 `Element` 类型改为：
+```typescript
+export type Element = 'metal' | 'wood' | 'earth' | 'water' | 'fire' | 'neutral'
+```
+
+`COUNTER_MAP` 改为：
+```typescript
+export const COUNTER_MAP: Partial<Record<Element, Element>> = {
+  metal: 'wood',    // 金克木
+  wood: 'earth',    // 木克土
+  earth: 'water',   // 土克水
+  water: 'fire',    // 水克火
+  fire: 'metal',    // 火克金
+}
+```
+
 ### 类型定义
 
 ```typescript
-export type Element = 'metal' | 'wood' | 'earth' | 'water' | 'fire'
-
+// Element 定义在 src/types/skill.ts，全局复用
 export interface ElementAffinity {
   primary: Element
-  secondary?: Element
+  secondary?: Element  // 不为 primary，且不为 neutral
 }
 ```
 
@@ -93,9 +121,12 @@ export interface ElementAffinity {
 
 ### 生效场景
 
-- **等级提升**：`QUALITY_LEVEL_STATS` 的每级属性增长 × 成长倍率
-- **境界突破**：突破时的属性倍增 × 成长倍率（叠加）
+- **等级提升（hp/atk/def）**：`QUALITY_LEVEL_STATS` 的每级属性增长 × 对应成长倍率。当前等级系统只对 hp/atk/def 有增长，成长倍率中这三个直接生效。
+- **等级提升（spd/crit/critDmg）**：当前等级系统不提供 spd/crit/critDmg 的每级增长。这三个倍率作为**隐藏潜力**存在——未来等级系统扩展时可加入这些属性的成长，当前不影响数值平衡。
+- **境界突破**：突破时的属性倍增 × 对应成长倍率（叠加）。当前突破只倍增 hp/atk/def/spd（见 BreakthroughCoordinator），对应的成长倍率生效。crit/critDmg 成长倍率暂不参与突破计算。
 - **不受影响**：装备加成、功法加成、天赋词缀加成（这些是固定值或固定比例，不受成长倍率影响）
+
+> **设计备注**：crit/critDmg 成长倍率纳入类型定义但当前不参与数值计算，是为未来"每级 crit/critDmg 微增"预留的设计空间。实现时这两个维度保持为 1.0 不影响平衡即可，随机生成仍然给出值以保持组合多样性。
 
 ### 品质的重新定位
 
@@ -137,28 +168,70 @@ export interface GrowthMultipliers {
 | 传说 | 5 | 5 |
 | **合计** | **40** | **40** |
 
-### 数值随机
+### 词缀效果类型系统
 
-每个词缀有固定效果类型和数值范围，生成时在范围内随机：
+词缀效果不只是 `stat + value`，需要支持多种效果类型。定义结构化联合类型：
 
 ```typescript
-interface TalentAffix {
-  id: string
-  name: string
-  position: 'prefix' | 'suffix'
-  rarity: 'common' | 'rare' | 'epic' | 'legendary'
-  effects: Array<{
+// 基础属性加成（纯数值）
+type FlatStatEffect = {
+  type: 'flatStat'
+  stat: TalentStat  // 复用现有 TalentStat 联合类型
+  minValue: number
+  maxValue: number
+}
+
+// 元素伤害加成（百分比）
+type ElementDamageEffect = {
+  type: 'elementDamage'
+  element: Element  // 金/木/水/火/土
+  minValue: number  // 0.08 = 8%
+  maxValue: number  // 0.15 = 15%
+}
+
+// 条件触发效果
+type ConditionalEffect = {
+  type: 'conditional'
+  trigger: 'lowHp' | 'onKill' | 'onCrit' | 'onBattleStart' | 'onBossKill'
+  effect: {
     stat: string
     minValue: number
     maxValue: number
-  }>
+  }
+  threshold?: number  // 触发阈值（如 lowHp 的 0.3 表示 30% HP）
 }
+
+// 被动概率效果
+type ChanceEffect = {
+  type: 'chance'
+  description: string  // 如 "闪避攻击"
+  minValue: number     // 触发概率 0.05~0.10
+  maxValue: number
+  effect: {
+    stat: string
+    value: number
+  }
+}
+
+// 修饰器效果（修炼/掉落/经验等百分比加成）
+type ModifierEffect = {
+  type: 'modifier'
+  target: 'cultivationSpeed' | 'breakthroughSuccess' | 'lootQuality' | 'xpGain' | 'techniqueComprehension'
+  minValue: number  // 0.10 = +10%
+  maxValue: number  // 0.25 = +25%
+}
+
+type TalentAffixEffect = FlatStatEffect | ElementDamageEffect | ConditionalEffect | ChanceEffect | ModifierEffect
 ```
 
+### 数值随机
+
+每个词缀使用上述效果类型，生成时在 `minValue` ~ `maxValue` 范围内随机取值。
+
 例如：
-- "烈焰之"（前缀，稀有）：火元素伤害 +8%~15%
-- "之破军"（后缀，稀有）：ATK +5~12, 对 BOSS 伤害 +5~10%
-- "灵慧的"（前缀，普通）：灵根 +3~8, 悟性 +2~5
+- "烈焰之"（前缀，稀有）：`{ type: 'elementDamage', element: 'fire', min: 0.08, max: 0.15 }`
+- "之破军"（后缀，稀有）：`[{ type: 'flatStat', stat: 'atk', min: 5, max: 12 }, { type: 'modifier', target: 'lootQuality', min: 0.05, max: 0.10 }]`
+- "灵慧的"（前缀，普通）：`[{ type: 'flatStat', stat: 'spiritualRoot', min: 3, max: 8 }, { type: 'flatStat', stat: 'comprehension', min: 2, max: 5 }]`
 
 ### 分配规则
 
@@ -195,7 +268,7 @@ interface TalentAffix {
 - 数值取新词缀范围的中值
 - 写入新的 `affix` 字段，清空旧 `talents` 字段
 
-### 类型定义
+### 词缀完整类型定义
 
 ```typescript
 export interface TalentAffix {
@@ -204,22 +277,52 @@ export interface TalentAffix {
   position: 'prefix' | 'suffix'
   rarity: 'common' | 'rare' | 'epic' | 'legendary'
   description: string
-  effects: Array<{
-    stat: string
-    minValue: number
-    maxValue: number
-  }>
-}
-
-// Character 上新增
-export interface Character {
-  // ... 现有字段 ...
-  elementAffinity: ElementAffinity
-  growthMultipliers: GrowthMultipliers
-  prefix?: TalentAffix   // 替代 talents
-  suffix?: TalentAffix   // 替代 talents
+  effects: TalentAffixEffect[]
 }
 ```
+
+### 存档迁移映射表
+
+旧天赋 ID → 新词缀的具体映射（30 个旧天赋 → 对应新词缀）：
+
+| 旧天赋 ID | 旧名 | 效果 | 映射策略 |
+|-----------|------|------|---------|
+| wugu | 武骨 | atk+3 | → 前缀"武体"(flatStat atk 2~5) |
+| tiebi | 铁壁 | def+2 | → 前缀"铁壁"(flatStat def 1~4) |
+| feiying | 飞影 | spd+2 | → 前缀"疾风"(flatStat spd 1~4) |
+| huixin_combat | 会心 | crit+0.03 | → 前缀"锐目"(flatStat crit 0.02~0.05) |
+| shayi | 杀意 | critDmg+0.2 | → 前缀"杀心"(flatStat critDmg 0.1~0.3) |
+| lingxin | 灵心 | maxSpiritPower+20 | → 前缀"灵海"(flatStat maxSpiritPower 10~30) |
+| jingangti | 金刚体 | hp+8 | → 前缀"金刚"(flatStat hp 5~15) |
+| minjie | 敏捷 | spd+1, crit+0.01 | → 前缀"灵巧"(flatStat spd 1~3, flatStat crit 0.01~0.02) |
+| tongling | 通灵 | spiritualRoot+2 | → 前缀"通灵"(flatStat spiritualRoot 1~4) |
+| mingrui | 敏锐 | comprehension+2 | → 前缀"慧觉"(flatStat comprehension 1~4) |
+| jiaqiang | 坚韧 | hp+5, def+1 | → 前缀"坚韧"(flatStat hp 3~10, flatStat def 1~3) |
+| lieyan_zhi | 烈焰志 | atk+2 | → 前缀"烈焰"(flatStat atk 1~4) |
+| hanlin | 寒凛 | def+1, atk+1 | → 前缀"冰心"(flatStat def 1~3, flatStat atk 1~3) |
+| fuxing | 福星 | fortune+2 | → 前缀"福运"(flatStat fortune 1~4) |
+| zhuanzhu | 专注 | critDmg+0.1 | → 前缀"专注"(flatStat critDmg 0.05~0.15) |
+| tianmai | 天脉 | spiritualRoot+5 | → 前缀"天脉"(flatStat spiritualRoot 3~8) |
+| huixin | 慧心 | comprehension+5 | → 前缀"慧心"(flatStat comprehension 3~8) |
+| qiyun | 气运 | fortune+5 | → 前缀"天运"(flatStat fortune 3~8) |
+| xianti | 仙体 | hp+15 | → 前缀"仙体"(flatStat hp 10~25) |
+| pozhan | 破阵 | atk+4, crit+0.02 | → 前缀"破阵"(flatStat atk 3~7, flatStat crit 0.01~0.03) |
+| fengxing | 风行 | spd+4 | → 前缀"风行"(flatStat spd 3~7) |
+| tiegu | 铁骨 | def+4, hp+8 | → 前缀"铁骨"(flatStat def 3~6, flatStat hp 5~12) |
+| mingxin | 明心 | comprehension+3, maxSpiritPower+15 | → 前缀"明心"(flatStat comprehension 2~5, flatStat maxSpiritPower 10~20) |
+| shashen | 杀神 | critDmg+0.35 | → 前缀"杀神"(flatStat critDmg 0.2~0.45) |
+| lingyuan | 灵源 | maxSpiritPower+35 | → 前缀"灵源"(flatStat maxSpiritPower 20~45) |
+| taiji | 太极 | spiritualRoot+8, comprehension+3 | → 前缀"太极"(flatStat spiritualRoot 5~12, flatStat comprehension 2~5) |
+| busizun | 不死尊 | hp+30, def+5 | → 前缀"不死"(flatStat hp 20~40, flatStat def 3~8) |
+| tiandao | 天道 | fortune+8, comprehension+4 | → 前缀"天道"(flatStat fortune 5~12, flatStat comprehension 3~6) |
+| zhanhun | 战魂 | atk+6, spd+3, crit+0.03 | → 前缀"战魂"(flatStat atk 4~9, flatStat spd 2~5, flatStat crit 0.02~0.04) |
+| xuanming | 玄冥 | spiritualRoot+6, def+4, hp+12 | → 前缀"玄冥"(flatStat spiritualRoot 4~8, flatStat def 3~6, flatStat hp 8~18) |
+
+迁移规则：
+- 旧天赋数量 > 1 时：第一个映射为前缀，第二个映射为后缀，第三个丢弃
+- 旧天赋数量 = 0 时：无词缀
+- 迁移后的词缀数值 = 新词缀范围的中值
+- 旧天赋全部是 flatStat 类型，无需处理复杂效果类型
 
 ## 四、Character 类型变更汇总
 
@@ -293,37 +396,61 @@ CLAUDE.md 中关于 Roguelike 的描述需要修正为强调实体随机性：
 ### 需要修改的文件
 
 **类型层**：
-- `src/types/character.ts` — 新增 Element、ElementAffinity、GrowthMultipliers、TalentAffinity 类型
-- `src/types/talent.ts` — 保留或标记废弃
-- `src/types/index.ts` — 新增类型导出
+-  — 替换 Element 类型和 COUNTER_MAP（核心变更）
+-  — 新增 ElementAffinity、GrowthMultipliers、TalentAffix 类型
+-  — 标记废弃，迁移完成后移除
+-  — 新增类型导出
 
 **数据层**：
-- `src/data/talentAffixes.ts` — 新文件，80+ 词缀定义
-- `src/data/skills.ts` — 元素克制表从三元素改为五行
-- `src/data/activeSkills.ts` — 技能元素类型更新
-- `src/data/techniquesTable.ts` — 功法元素类型更新
-- `src/data/enemies.ts` — 敌人元素类型更新
-- `src/data/cultivationPaths.ts` — 可能需要元素亲和关联
+-  — **新文件**，80+ 词缀定义（含完整效果类型）
+-  — 元素克制表从三元素改为五行
+-  — 16 个技能的 element 字段全部迁移（ice→water, lightning→metal, healing→wood）
+-  — 30 个功法的 element 字段迁移
+-  — 敌人元素类型迁移
+-  — 可能需要元素亲和关联
+-  — 等级成长需应用成长倍率
 
 **系统层**：
-- `src/systems/character/CharacterEngine.ts` — 重写 generateCharacter，加入亲和/倍率/词缀生成
-- `src/systems/combat/CombatEngine.ts` — 五行克制计算
-- `src/systems/cultivation/CultivationEngine.ts` — 元素亲和影响修炼
-- `src/systems/character/DungeonGrowthSystem.ts` — 成长倍率影响升级
-- `src/systems/cultivation/BreakthroughCoordinator.ts` — 成长倍率影响突破
+-  — 重写 generateCharacter，加入亲和/倍率/词缀生成
+-  — 五行克制计算 + 元素亲和伤害加成
+-  — 元素亲和影响功法参悟速度
+-  — 成长倍率影响升级属性增长
+-  — 成长倍率影响突破属性增长
 
 **存储层**：
-- `src/systems/save/SaveSystem.ts` — 存档迁移逻辑（旧 talents → 新 affix）
-- `src/stores/sectStore/characterSlice.ts` — 适配新字段
-- `src/stores/sectStore/initial.ts` — 初始状态包含新字段
+-  — 存档迁移逻辑（version 8→9，旧 talents → 新 affix）
+-  — 适配新字段
+-  — 初始状态包含新字段
+-  — calcDungeonGrowth 使用新成长倍率
 
 **UI 层**：
-- 弟子详情页 — 展示亲和、成长倍率、词缀信息
-- 招募页面 — 展示新弟子的随机结果
-- 角色卡片 — 简要展示关键随机特征
+-  — 展示亲和、成长倍率、词缀信息
+- 招募组件 — 展示新弟子的随机结果
+- 角色卡片组件 — 简要展示关键随机特征（亲和色标、成长倾向条、词缀名）
+
+**测试层**：
+-  — 重写，覆盖新随机维度
+-  — 五行克制 + 亲和加成测试
+-  — 迁移正确性测试
+
 
 ### 存档兼容
 
-- 存档版本号升级（v2 → v3）
-- 加载旧存档时自动迁移：将旧 talents 映射为新 affix
-- 缺失字段填充默认值（无亲和 = 随机分配一个主亲和；无成长倍率 = 全 1.0）
+- `SaveSystem.ts` 中 `meta.version` 从 8 升级到 9（注意：`db.ts` 中 `DB_VERSION = 3` 是 IndexedDB schema 版本，不需要改动）
+- 加载旧存档（version < 9）时自动执行迁移：
+  1. 将旧 `talents: Talent[]` 映射为新的 `prefix`/`suffix`（按迁移映射表）
+  2. 缺失 `elementAffinity` → 随机分配主亲和
+  3. 缺失 `growthMultipliers` → 全部填充 1.0
+  4. 清空旧 `talents` 字段
+- 迁移逻辑在 `SaveSystem.ts` 的 `meta.version < 9` 分支中执行
+
+### 测试策略
+
+需要在以下方面补充测试：
+- `CharacterEngine.test.ts`：角色生成后 growthMultipliers 在品质对应范围内，总和在约束范围内
+- `CharacterEngine.test.ts`：elementAffinity 的 primary 不为 neutral，secondary 不等于 primary
+- `CharacterEngine.test.ts`：词缀按品质概率和稀有度约束生成
+- `SaveSystem.test.ts`：旧 talents → 新 prefix/suffix 迁移正确
+- `CombatEngine.test.ts`：五行克制矩阵正确（金>木>土>水>火>金）
+- `CombatEngine.test.ts`：元素亲和加成正确计算
+- 迁移后的角色在战斗/修炼/突破中行为正常
