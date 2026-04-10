@@ -223,6 +223,22 @@ normalizeFiniteNumber(value)   // prevents NaN/Infinity
 normalizeResources(resources)  // ensures all resource fields are valid numbers
 ```
 
+### SaveMeta version typing
+
+> **Gotcha**: When `SaveMeta.version` is typed as a numeric literal (e.g., `version: 10`), migration code that assigns older version numbers (`meta.version = 9` inside a `if (meta.version < 9)` block) fails typecheck because TypeScript narrows the literal type.
+>
+> **Fix**: Type `version` as `number`, not a literal:
+>
+> ```ts
+> // Wrong — can't assign 9 to type 10
+> interface SaveMeta { version: 10; ... }
+> if (meta.version < 10) { meta.version = 10 } // OK
+> if (meta.version < 9) { meta.version = 9 }    // Error: 9 not assignable to 10
+>
+> // Correct — allows any version number in migrations
+> interface SaveMeta { version: number; ... }
+> ```
+
 ### New field migration pattern for Character
 
 When adding new fields to the `Character` interface, follow this checklist:
@@ -230,6 +246,7 @@ When adding new fields to the `Character` interface, follow this checklist:
 | Location | What to update |
 |----------|---------------|
 | `src/types/character.ts` | Add field to `Character` interface |
+| `src/types/index.ts` | Add new type alias to barrel re-export (if new type added) |
 | `src/systems/character/CharacterEngine.ts` | Add default in `generateCharacter()` return |
 | `src/systems/save/SaveSystem.ts` | Add `normalizeFiniteNumber((c as any).field, default)` in character load map |
 | `src/stores/sectStore/testHelpers.ts` or test fixtures | Add to all `makeCharacter()` / `makeUnit()` factories |

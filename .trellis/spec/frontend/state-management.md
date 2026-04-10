@@ -23,7 +23,7 @@ State is managed with **Zustand** using a sliced store pattern. There is no serv
 
 ## SectStore Slice Architecture
 
-The main store (`useSectStore`) is decomposed into 12 slices composed via object spread:
+The main store (`useSectStore`) is decomposed into 13 slices composed via object spread:
 
 | Slice | File | Key Actions |
 |-------|------|-------------|
@@ -38,6 +38,7 @@ The main store (`useSectStore`) is decomposed into 12 slices composed via object
 | `createShopSlice` | `shopSlice.ts` | initShop, buyFromShop, refreshDailyShop |
 | `createSectPathSlice` | `sectPathSlice.ts` | chooseSectPath, unlockPathNode, resetSectPath, setActiveRoute |
 | `createLegacySlice` | `legacySlice.ts` | performAscension |
+| `createCodexSlice` | `codexSlice.ts` | encounterMonster, killMonster, discoverEquipment |
 | `createMiscSlice` | `miscSlice.ts` | healCharacter, clearOfflineAccumulator, reset |
 
 ### Slice Composition
@@ -50,7 +51,7 @@ export const useSectStore = create<SectStore>()(
       ...createInitialSlice(...a),
       ...createCharacterSlice(...a),
       ...createBuildingSlice(...a),
-      // ... all 12 slices
+      // ... all 13 slices
     }) as SectStore
 )
 ```
@@ -484,7 +485,7 @@ This contract applies to ANY field that stores entity IDs as references rather t
 9. **Removing character fields without fixture updates** — When removing fields from Character (like `fateTags`), ALL test fixtures across ALL test files must be updated. Use `grep -r "fateTags" src/__tests__/` to find every occurrence.
 10. **Using `Record<boolean, T>` as type** — TypeScript doesn't allow boolean as Record key. Use a string literal union like `'normal' | 'high'` instead.
 11. **Removing entities from their storage collection when only an ID reference is recorded** — If `equippedGear: (string | null)[]` only stores IDs, the actual item must remain in `backpack` (the real storage). Removing from backpack destroys the only copy of the data, making the ID a dangling reference. See "Equipment Ownership Contract" below.
-12. **Adding a field to `Sect` without updating all 5 locations** — Must update: `types/sect.ts`, `initial.ts`, `SaveSystem.ts` (write + load with `?? default`), `testFixture.ts`, `LegacySystem.ts`. Missing any one causes typecheck failure or save corruption. See "Sect Interface Extension Pattern".
+12. **Adding a field to `Sect` without updating all 6 locations** — Must update: `types/sect.ts`, `types/index.ts` (barrel export if new type), `initial.ts`, `SaveSystem.ts` (write + load with `?? default`), `testFixture.ts`, `LegacySystem.ts`. Missing any one causes typecheck failure or save corruption. See "Sect Interface Extension Pattern".
 13. **Extending a union type without updating all consumers** — When adding to `FateGridId` or `ArchiveMilestoneId`, the data table entries must match exactly. Check `types/*.ts` union type, `data/*.ts` entries, and all test assertions with hardcoded counts.
 14. **Adding Character fields without updating CharacterEngine defaults** — New fields must have defaults in both `generateCharacter()` (for new characters) and `SaveSystem.ts` load map (for existing saves). Missing either causes `undefined` at runtime.
 
@@ -665,13 +666,14 @@ export function getAttackModifier(character: Character): number
 
 ## Sect Interface Extension Pattern
 
-When adding a new field to the `Sect` interface, you **must** update all 5 locations. Missing any one causes type errors or save/load failures.
+When adding a new field to the `Sect` interface, you **must** update all 6 locations. Missing any one causes type errors or save/load failures.
 
 ### Mandatory Update Locations
 
 | File | What to update |
 |------|---------------|
 | `src/types/sect.ts` | Add field to `Sect` interface |
+| `src/types/index.ts` | Add type to barrel re-export (if new type alias added) |
 | `src/stores/sectStore/initial.ts` | Add default value to initial state |
 | `src/systems/save/SaveSystem.ts` | Add to `SaveMeta` write + read with `?? defaultValue` |
 | `src/systems/save/testFixture.ts` | Add to test fixture metadata |
@@ -775,6 +777,55 @@ interface RandomEventEffect {
 | `character_exp` | Random idle disciple gets cultivation bonus |
 | `technique_insight` | Random idle disciple with learned techniques gets comprehension |
 | `character_status` | Up to N idle disciples marked as `injured` for 5 minutes |
+
+---
+
+## Codex Discovery Pattern
+
+### Architecture
+
+Codex discovery follows the project's pure-function data flow: pure systems produce discovery data → store actions apply it.
+
+| Layer | File | Role |
+|-------|------|------|
+| Types | `src/types/sect.ts` | `MonsterCodexState`, fields on `Sect` |
+| System (pure) | `src/systems/roguelike/EventSystem.ts` | Produces `enemyTemplateId`, `equipmentCodexDiscoveries` in `EventResult` |
+| Store (trigger) | `src/stores/adventureStore.ts` | Reads `EventResult` fields, calls codex slice actions |
+| Store (state) | `src/stores/sectStore/codexSlice.ts` | `encounterMonster`, `killMonster`, `discoverEquipment` |
+
+### Data Flow
+
+```
+EventSystem.resolveEvent()  →  EventResult with enemyTemplateId / equipmentCodexDiscoveries
+                                    ↓
+adventureStore.selectRoute()  →  reads result, calls sectStore actions
+                                    ↓
+codexSlice  →  mutates sect.monsterCodex / sect.equipmentCodex
+```
+
+### Why this pattern
+
+`EventSystem` is a pure function with no store dependencies — it cannot call `useSectStore` directly. Instead, it includes discovery metadata in its return value. The calling store (`adventureStore`) bridges the gap by calling codex slice actions after receiving the result.
+
+This same pattern applies whenever a pure system needs to trigger side effects: return metadata in the result, let the calling store apply it.
+
+### Set Serialization for IndexedDB
+
+`sect.equipmentCodex` uses `Record<string, Set<string>>` at runtime, but IndexedDB cannot serialize ES6 `Set` objects. The save/load boundary handles this:
+
+```ts
+// SaveSystem.ts — write (Set → Array)
+equipmentCodex: Object.fromEntries(
+  Object.entries(sect.equipmentCodex).map(([setId, qualities]) => [setId, [...qualities]])
+)
+
+// SaveSystem.ts — load (Array → Set)
+equipmentCodex: Object.fromEntries(
+  Object.entries(meta.equipmentCodex ?? {}).map(([setId, qualities]) => [setId, new Set(qualities as string[])])
+)
+```
+
+> **Warning**: When storing `Set` or `Map` in Zustand state, always check that the save/load boundary correctly serializes/deserializes. IndexedDB's structured clone algorithm handles `Set` in some browsers but not all — explicit conversion is safer.
 
 ---
 
