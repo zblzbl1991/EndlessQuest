@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 14
+- **Total Sessions**: 15
 - **Last Active**: 2026-04-10
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~762 | Active |
+| `journal-1.md` | ~794 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits |
 |---|------|-------|---------|
+| 15 | 2026-04-10 | Add monster and equipment codex system | `7d872b8` |
 | 14 | 2026-04-10 | Disciple level system + skill customization + UI density overhaul | `a54f4f9`, `19428db`, `ebc84a8`, `a7c164e` |
 | 13 | 2026-04-09 | CharacterCard info priority redesign | `42b0b21` |
 | 12 | 2026-04-09 | 并行开发：丰富挂机惊喜体验（4阶段） | `5c74d5f`, `b026c69`, `5f029a5`, `57dbff0` |

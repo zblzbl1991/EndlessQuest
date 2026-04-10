@@ -760,3 +760,35 @@ Redesigned CharacterCard to show decision-critical info (core stats HP/ATK/DEF, 
 ### Next Steps
 
 - None - task complete
+
+
+## Session 15: Add monster and equipment codex system
+
+**Date**: 2026-04-10
+**Task**: Add monster and equipment codex system
+
+### Summary
+
+Implemented discovery-based codex for monsters (layered: encounter/kill) and equipment (6 sets x 5 qualities). New codexSlice, SaveMeta v10 migration, EventSystem hooks, MonsterCodexPanel, EquipmentCodexPanel. Building page codex tab expanded to 3 sub-tabs. 1071 tests pass, lint/typecheck clean.
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7d872b8` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
