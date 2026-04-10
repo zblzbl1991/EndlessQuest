@@ -69,7 +69,19 @@ export type {
   SupplyCost,
 } from './adventure'
 export { SUPPLY_COSTS } from './adventure'
-export type { Talent, TalentEffect, TalentStat, TalentRarity, TalentId } from './talent'
+export type {
+  Talent,
+  TalentEffect,
+  TalentStat,
+  TalentRarity,
+  TalentId,
+  TalentAffixPosition,
+  TalentAffixRarity,
+  TalentAffixEffect,
+  TalentAffix,
+  ResolvedAffixEffect,
+  TalentAffixInstance,
+} from './talent'
 export { TALENT_RARITY_NAMES } from './talent'
 export type {
   SectRiskPolicyId,
