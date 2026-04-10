@@ -15,6 +15,7 @@ import type {
   ItemStack,
   SectAutomationSettings,
 } from '../../types'
+import type { ItemQuality } from '../../types/item'
 import type { ShopState } from '../../systems/trade/TradeSystem'
 import type { SectRouteDef, SectRouteId } from '../../data/sectRoutes'
 import type { SectRiskPolicyId, SectRiskPolicyProfile } from '../../types/destiny'
@@ -128,6 +129,11 @@ export interface SectStore {
   setPolicy(policyId: SectRiskPolicyId): { success: boolean; reason: string }
   getActivePolicy(): SectRiskPolicyProfile | null
   getCoreDiscipleIds(): string[]
+
+  // Codex
+  encounterMonster(enemyId: string): void
+  killMonster(enemyId: string): void
+  discoverEquipment(setId: string, quality: ItemQuality): void
 
   reset(): void
 }

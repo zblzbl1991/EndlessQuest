@@ -15,6 +15,7 @@ import type { CombatResult, CombatUnit } from '../combat/CombatEngine'
 import { hasAffix, calcShield } from '../combat/AffixSystem'
 import { simulateCombat } from '../combat/CombatEngine'
 import { generateEquipment } from '../item/ItemGenerator'
+import type { ItemQuality } from '../../types/item'
 import { pickTechniqueForFloor } from '../technique/TechniqueSystem'
 import { useSectStore } from '../../stores/sectStore'
 import type { LootResult } from './LootSystem'
@@ -50,6 +51,10 @@ export interface EventResult {
   teamUnitSnapshots?: CombatUnit[]
   /** Per-character comprehension growths from combat: characterId -> { techId -> growth } */
   comprehensionGrowth?: Record<string, Record<string, number>>
+  /** Enemy template ID for codex tracking */
+  enemyTemplateId?: string
+  /** Equipment drops for codex tracking */
+  equipmentCodexDiscoveries?: Array<{ setId: string; quality: ItemQuality }>
 }
 
 function getNonBossTemplates(dungeonId?: string): EnemyTemplate[] {
@@ -89,10 +94,16 @@ function buildCombatComprehensionGrowth(team: CombatUnit[]): Record<string, Reco
   return growth
 }
 
-function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyItem[]; hasPetCapture: boolean } {
+function resolveLoot(loot: LootResult[]): {
+  reward: Resources
+  itemRewards: AnyItem[]
+  hasPetCapture: boolean
+  equipmentDiscoveries: Array<{ setId: string; quality: ItemQuality }>
+} {
   const reward: Resources = { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 }
   const itemRewards: AnyItem[] = []
   let hasPetCapture = false
+  const equipmentDiscoveries: Array<{ setId: string; quality: ItemQuality }> = []
 
   for (const drop of loot) {
     switch (drop.type) {
@@ -109,7 +120,12 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
         if (!drop.quality) break
         const slot = EQUIP_SLOTS[Math.floor(Math.random() * EQUIP_SLOTS.length)]
         const equipment = generateEquipment(slot, drop.quality)
-        if (equipment) itemRewards.push(equipment)
+        if (equipment) {
+          itemRewards.push(equipment)
+          if (equipment.setId) {
+            equipmentDiscoveries.push({ setId: equipment.setId, quality: equipment.quality })
+          }
+        }
         break
       }
       case 'consumable':
@@ -120,7 +136,7 @@ function resolveLoot(loot: LootResult[]): { reward: Resources; itemRewards: AnyI
     }
   }
 
-  return { reward, itemRewards, hasPetCapture }
+  return { reward, itemRewards, hasPetCapture, equipmentDiscoveries }
 }
 
 function buildCombatTeam(team: CombatUnit[]): CombatUnit[] {
@@ -194,11 +210,12 @@ export function resolveEvent(
           hpChanges,
           enemyUnitSnapshot: enemySnapshot,
           teamUnitSnapshots: aliveTeam.map((u) => ({ ...u })),
+          enemyTemplateId: enemyTemplate.id,
         }
       }
 
       const loot = generateLoot(enemyTemplate.lootTable, enemyTemplate.dropsPerFight, floorNumber)
-      const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
+      const { reward, itemRewards, hasPetCapture, equipmentDiscoveries } = resolveLoot(loot)
       return {
         type: 'combat',
         success: true,
@@ -214,6 +231,8 @@ export function resolveEvent(
         comprehensionGrowth: buildCombatComprehensionGrowth(aliveTeam),
         enemyUnitSnapshot: enemySnapshot,
         teamUnitSnapshots: aliveTeam.map((u) => ({ ...u })),
+        enemyTemplateId: enemyTemplate.id,
+        equipmentCodexDiscoveries: equipmentDiscoveries.length > 0 ? equipmentDiscoveries : undefined,
       }
     }
 
@@ -360,11 +379,12 @@ export function resolveEvent(
           hpChanges,
           bossUnitSnapshot: bossSnapshot,
           teamUnitSnapshots: teamSnapshots,
+          enemyTemplateId: bossTemplate.id,
         }
       }
 
       const loot = generateLoot(bossTemplate.lootTable, bossTemplate.dropsPerFight, floorNumber)
-      const { reward, itemRewards, hasPetCapture } = resolveLoot(loot)
+      const { reward, itemRewards, hasPetCapture, equipmentDiscoveries } = resolveLoot(loot)
       return {
         type: 'boss',
         success: true,
@@ -380,6 +400,8 @@ export function resolveEvent(
         bossUnitSnapshot: bossSnapshot,
         teamUnitSnapshots: teamSnapshots,
         comprehensionGrowth: buildCombatComprehensionGrowth(aliveTeam),
+        enemyTemplateId: bossTemplate.id,
+        equipmentCodexDiscoveries: equipmentDiscoveries.length > 0 ? equipmentDiscoveries : undefined,
       }
     }
 

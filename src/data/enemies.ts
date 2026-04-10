@@ -803,7 +803,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
 // ─── Dungeon-Enemy Mapping ─────────────────────────────────────────────
 
 /** Maps dungeon IDs to their themed enemy template IDs. */
-const DUNGEON_ENEMY_MAP: Record<string, { regular: string[]; boss: string }> = {
+export const DUNGEON_ENEMY_MAP: Record<string, { regular: string[]; boss: string }> = {
   lingCaoValley: {
     regular: ['valley_vine_spirit', 'valley_herb_guardian'],
     boss: 'valley_ancient_treant',

@@ -938,6 +938,21 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           }
         }
       }
+
+      // Codex discovery: monster encounter/kill and equipment
+      if (result.enemyTemplateId) {
+        const sectStore = useSectStore.getState()
+        sectStore.encounterMonster(result.enemyTemplateId)
+        if (result.success) {
+          sectStore.killMonster(result.enemyTemplateId)
+        }
+      }
+      if (result.equipmentCodexDiscoveries) {
+        const sectStore = useSectStore.getState()
+        for (const disc of result.equipmentCodexDiscoveries) {
+          sectStore.discoverEquipment(disc.setId, disc.quality)
+        }
+      }
       // Apply HP changes to member states
       for (const charId of run.teamCharacterIds) {
         const hpChange = result.hpChanges[charId]

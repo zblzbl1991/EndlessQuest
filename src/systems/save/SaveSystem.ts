@@ -1,4 +1,4 @@
-import type { Sect, SectStats, Resources } from '../../types'
+import type { Sect, SectStats, Resources, MonsterCodexState } from '../../types'
 import type { SectStrategySettings } from '../../types/destiny'
 import type { DungeonRun, AdventureReport } from '../../types'
 import type { TalentAffixInstance, ResolvedAffixEffect } from '../../types/talent'
@@ -24,7 +24,7 @@ const OLD_SAVE_KEY = 'endlessquest_save'
 
 interface SaveMeta {
   slot: number
-  version: 9
+  version: number
   lastOnlineTime: number
   sectName: string
   sectLevel: number
@@ -47,6 +47,8 @@ interface SaveMeta {
   dayProgressSec?: number
   autoRunDayCounter?: number
   lastRandomEventTime?: number
+  monsterCodex?: Record<string, MonsterCodexState>
+  equipmentCodex?: Record<string, string[]>
 }
 
 type SavedAdventureRunRecord = {
@@ -181,7 +183,7 @@ export async function saveGame(): Promise<void> {
     // Write meta
     await tx.objectStore('meta').put({
       slot: 1,
-      version: 9,
+      version: 10,
       lastOnlineTime: Date.now(),
       sectName: sect.name,
       sectLevel: sect.level,
@@ -204,6 +206,10 @@ export async function saveGame(): Promise<void> {
       lastRandomEventTime: sect.lastRandomEventTime,
       currentGameDay: gameState.currentGameDay,
       dayProgressSec: gameState.dayProgressSec,
+      monsterCodex: sect.monsterCodex,
+      equipmentCodex: Object.fromEntries(
+        Object.entries(sect.equipmentCodex).map(([setId, qualities]) => [setId, [...qualities]])
+      ),
     })
 
     // Write characters
@@ -303,6 +309,10 @@ export async function loadGame(): Promise<boolean> {
     if (meta.version < 9) {
       migrateV8ToV9(rawCharacters)
       meta.version = 9
+    }
+    // v9 → v10: Monster and equipment codex
+    if (meta.version < 10) {
+      meta.version = 10
     }
     const rawVault = await db.getAll('vault')
     const pets = (await db.getAll('pets')) as Sect['pets']
@@ -410,6 +420,10 @@ export async function loadGame(): Promise<boolean> {
           },
       autoRunDayCounter: meta.autoRunDayCounter ?? 0,
       lastRandomEventTime: meta.lastRandomEventTime ?? 0,
+      monsterCodex: meta.monsterCodex ?? {},
+      equipmentCodex: Object.fromEntries(
+        Object.entries(meta.equipmentCodex ?? {}).map(([setId, qualities]) => [setId, new Set(qualities)])
+      ),
     }
 
     useSectStore.setState({ sect })

@@ -28,6 +28,8 @@ import AlchemyPanel from '../components/building/AlchemyPanel'
 import ForgePanel from '../components/building/ForgePanel'
 import StudyPanel from '../components/building/StudyPanel'
 import CodexPanel from '../components/building/CodexPanel'
+import MonsterCodexPanel from '../components/building/MonsterCodexPanel'
+import EquipmentCodexPanel from '../components/building/EquipmentCodexPanel'
 import MarketPanel from '../components/building/MarketPanel'
 import styles from './BuildingsPage.module.css'
 
@@ -36,6 +38,7 @@ import styles from './BuildingsPage.module.css'
 // ---------------------------------------------------------------------------
 
 type TabKey = 'buildings' | 'recruit' | 'vault' | 'alchemy' | 'forge' | 'study' | 'codex' | 'market'
+type CodexSubTab = 'technique' | 'monster' | 'equipment'
 
 const TAB_ICON_NAMES: Record<TabKey, string> = {
   buildings: 'building',
@@ -140,6 +143,7 @@ function formatProductionTime(seconds: number): string {
 
 export default function BuildingsPage() {
   const [tab, setTab] = useState<TabKey>('buildings')
+  const [codexSubTab, setCodexSubTab] = useState<CodexSubTab>('technique')
   const sect = useSectStore((s) => s.sect)
 
   const availableTabs = useMemo(() => {
@@ -204,7 +208,7 @@ export default function BuildingsPage() {
     ) : activeTab === 'study' ? (
       <StudyPanel />
     ) : activeTab === 'codex' ? (
-      <CodexPanel />
+      <CodexSubPanel subTab={codexSubTab} onSubTabChange={setCodexSubTab} />
     ) : (
       <MarketPanel />
     )
@@ -245,6 +249,43 @@ export default function BuildingsPage() {
           <div className={styles.subpanelBody}>{content}</div>
         </section>
       )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// CodexSubPanel
+// ---------------------------------------------------------------------------
+
+const CODEX_SUB_TABS: { key: CodexSubTab; label: string }[] = [
+  { key: 'technique', label: '功法' },
+  { key: 'monster', label: '怪物' },
+  { key: 'equipment', label: '装备' },
+]
+
+function CodexSubPanel({
+  subTab,
+  onSubTabChange,
+}: {
+  subTab: CodexSubTab
+  onSubTabChange: (tab: CodexSubTab) => void
+}) {
+  return (
+    <div>
+      <div className={styles.tabs} style={{ marginBottom: 8 }}>
+        {CODEX_SUB_TABS.map((t) => (
+          <button
+            key={t.key}
+            className={`${styles.tab} ${subTab === t.key ? styles.tabActive : ''}`}
+            onClick={() => onSubTabChange(t.key)}
+          >
+            <span className={styles.tabLabel}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+      {subTab === 'technique' && <CodexPanel />}
+      {subTab === 'monster' && <MonsterCodexPanel />}
+      {subTab === 'equipment' && <EquipmentCodexPanel />}
     </div>
   )
 }

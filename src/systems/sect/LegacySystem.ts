@@ -119,6 +119,8 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     strategySettings: sect.strategySettings,
     autoRunDayCounter: 0,
     lastRandomEventTime: 0,
+    monsterCodex: sect.monsterCodex,
+    equipmentCodex: sect.equipmentCodex,
   }
 
   const report: AscensionReport = {

@@ -103,6 +103,9 @@ export interface SectStats {
   longestOfflineSeconds: number
 }
 
+/** 怪物图鉴条目状态 */
+export type MonsterCodexState = 'encountered' | 'killed'
+
 export interface SectAutomationSettings {
   reserveSpiritStone: number
   reserveSpiritEnergy: number
@@ -136,4 +139,6 @@ export interface Sect {
   strategySettings: SectStrategySettings
   autoRunDayCounter: number
   lastRandomEventTime: number
+  monsterCodex: Record<string, MonsterCodexState>
+  equipmentCodex: Record<string, Set<string>>
 }

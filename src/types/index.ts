@@ -43,6 +43,7 @@ export type {
   LegacyBonus,
   ArchiveMilestoneId,
   ArchiveMilestoneEntry,
+  MonsterCodexState,
 } from './sect'
 export type {
   EventType,

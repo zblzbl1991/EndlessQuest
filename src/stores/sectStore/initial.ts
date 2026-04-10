@@ -135,6 +135,8 @@ export function createInitialState(): { sect: Sect } {
       },
       autoRunDayCounter: 0,
       lastRandomEventTime: 0,
+      monsterCodex: {},
+      equipmentCodex: {},
     },
   }
 }
