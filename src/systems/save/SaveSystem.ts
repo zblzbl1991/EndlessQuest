@@ -1,6 +1,7 @@
 import type { Sect, SectStats, Resources } from '../../types'
 import type { SectStrategySettings } from '../../types/destiny'
 import type { DungeonRun, AdventureReport } from '../../types'
+import type { TalentAffixInstance, ResolvedAffixEffect } from '../../types/talent'
 import { useSectStore } from '../../stores/sectStore'
 import { useAdventureStore } from '../../stores/adventureStore'
 import type { DispatchState } from '../../stores/adventureStore'
@@ -12,6 +13,7 @@ import { migrateToItemStacks } from '../item/ItemStackUtils'
 import { migratePolicyId } from '../../data/sectRiskPolicies'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { BUILDING_DEFS } from '../../data/buildings'
+import { getAffixById } from '../../data/talentAffixes'
 
 const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
@@ -22,7 +24,7 @@ const OLD_SAVE_KEY = 'endlessquest_save'
 
 interface SaveMeta {
   slot: number
-  version: 8
+  version: 9
   lastOnlineTime: number
   sectName: string
   sectLevel: number
@@ -179,7 +181,7 @@ export async function saveGame(): Promise<void> {
     // Write meta
     await tx.objectStore('meta').put({
       slot: 1,
-      version: 8,
+      version: 9,
       lastOnlineTime: Date.now(),
       sectName: sect.name,
       sectLevel: sect.level,
@@ -296,6 +298,12 @@ export async function loadGame(): Promise<boolean> {
     // Read per-entity stores
     const rawCharacters = (await db.getAll('characters')) as SavedCharacter[]
     const rawBuildings = (await db.getAll('buildings')) as Partial<Sect['buildings'][number]>[]
+
+    // v8 → v9: Deep randomization (element affinity, growth multipliers, talent affixes)
+    if (meta.version < 9) {
+      migrateV8ToV9(rawCharacters)
+      meta.version = 9
+    }
     const rawVault = await db.getAll('vault')
     const pets = (await db.getAll('pets')) as Sect['pets']
 
@@ -508,5 +516,122 @@ export async function clearSaveData(): Promise<void> {
     await tx.done
   } catch (e) {
     console.error('Clear failed:', e)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// v8 → v9 migration: deep randomization
+// ---------------------------------------------------------------------------
+
+// Old talent ID → new affix ID mapping
+const TALENT_TO_AFFIX_MAP: Record<string, { prefixId?: string; suffixId?: string }> = {
+  wugu: { prefixId: 'prefix_common_wuti' },
+  tiebi: { prefixId: 'prefix_common_tiebi' },
+  feiying: { prefixId: 'prefix_common_jifeng' },
+  huixin_combat: { prefixId: 'prefix_common_ruimu' },
+  shayi: { prefixId: 'prefix_common_shaxin' },
+  lingxin: { prefixId: 'prefix_common_linghai' },
+  jingangti: { prefixId: 'prefix_common_jingang' },
+  minjie: { prefixId: 'prefix_common_lingqiao' },
+  tongling: { prefixId: 'prefix_common_tongling' },
+  mingrui: { prefixId: 'prefix_common_huijue' },
+  jiaqiang: { prefixId: 'prefix_common_jianren' },
+  lieyan_zhi: { prefixId: 'prefix_common_lieyan' },
+  hanlin: { prefixId: 'prefix_common_bingxin' },
+  fuxing: { prefixId: 'prefix_common_fuyun' },
+  zhuanzhu: { prefixId: 'prefix_common_zhuanzhu' },
+  tianmai: { prefixId: 'prefix_rare_tianmai' },
+  huixin: { prefixId: 'prefix_rare_huixin' },
+  qiyun: { prefixId: 'prefix_rare_tianyun' },
+  xianti: { prefixId: 'prefix_rare_xianti' },
+  pozhan: { prefixId: 'prefix_rare_pozhen' },
+  fengxing: { prefixId: 'prefix_rare_fengxing' },
+  tiegu: { prefixId: 'prefix_rare_tiegu' },
+  mingxin: { prefixId: 'prefix_rare_mingxin' },
+  shashen: { prefixId: 'prefix_rare_shashen' },
+  lingyuan: { prefixId: 'prefix_rare_lingyuan' },
+  taiji: { prefixId: 'prefix_epic_taiji' },
+  busizun: { prefixId: 'prefix_epic_busizun' },
+  tiandao: { prefixId: 'prefix_epic_tiandao' },
+  zhanhun: { prefixId: 'prefix_epic_zhanhun' },
+  xuanming: { prefixId: 'prefix_epic_xuanming' },
+}
+
+function migrateOldTalents(talents: Array<{ id: string }>): {
+  prefix?: TalentAffixInstance
+  suffix?: TalentAffixInstance
+} {
+  const result: { prefix?: TalentAffixInstance; suffix?: TalentAffixInstance } = {}
+
+  for (let i = 0; i < Math.min(talents.length, 2); i++) {
+    const talentId = talents[i].id
+    const mapping = TALENT_TO_AFFIX_MAP[talentId]
+    if (!mapping) continue
+
+    const affixId = i === 0 ? mapping.prefixId : (mapping.suffixId ?? mapping.prefixId)
+    if (!affixId) continue
+
+    const affixDef = getAffixById(affixId)
+    if (!affixDef) continue
+
+    // Resolve with midpoint values (migration produces stable, deterministic values)
+    const resolvedEffects: ResolvedAffixEffect[] = affixDef.effects.map((eff) => {
+      const min = 'minValue' in eff ? (eff as any).minValue : 0
+      const max = 'maxValue' in eff ? (eff as any).maxValue : 0
+      const midValue = Math.round(((min + max) / 2) * 1000) / 1000
+      const base: ResolvedAffixEffect = { type: eff.type, value: midValue }
+      if ('stat' in eff) base.stat = (eff as any).stat
+      if ('element' in eff) base.element = (eff as any).element
+      if ('target' in eff) base.target = (eff as any).target
+      return base
+    })
+
+    const instance: TalentAffixInstance = {
+      affixId: affixDef.id,
+      name: affixDef.name,
+      position: affixDef.position,
+      rarity: affixDef.rarity,
+      description: affixDef.description,
+      resolvedEffects,
+    }
+
+    if (i === 0) {
+      result.prefix = instance
+    } else {
+      result.suffix = instance
+    }
+  }
+
+  return result
+}
+
+function migrateV8ToV9(characters: SavedCharacter[]): void {
+  const wuxingElements = ['metal', 'wood', 'earth', 'water', 'fire']
+
+  for (const char of characters) {
+    // Migrate talents → prefix/suffix
+    const oldTalents = (char as any).talents as Array<{ id: string }> | undefined
+    if (oldTalents && oldTalents.length > 0 && !(char as any).prefix) {
+      const mapped = migrateOldTalents(oldTalents)
+      if (mapped.prefix) (char as any).prefix = mapped.prefix
+      if (mapped.suffix) (char as any).suffix = mapped.suffix
+      delete (char as any).talents
+    }
+
+    // Ensure talents array exists (kept for type compatibility)
+    if (!(char as any).talents) {
+      ;(char as any).talents = []
+    }
+
+    // Fill elementAffinity
+    if (!(char as any).elementAffinity) {
+      const primary = wuxingElements[Math.floor(Math.random() * 5)]
+      ;(char as any).elementAffinity = { primary }
+    }
+
+    // Fill growthMultipliers
+    if (!(char as any).growthMultipliers) {
+      ;(char as any).growthMultipliers = { hp: 1, atk: 1, def: 1, spd: 1, crit: 1, critDmg: 1 }
+    }
   }
 }
