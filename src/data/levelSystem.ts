@@ -1,4 +1,4 @@
-import type { CharacterQuality } from '../types/character'
+import type { CharacterQuality, GrowthMultipliers } from '../types/character'
 
 export const QUALITY_LEVEL_STATS: Record<CharacterQuality, { hp: number; atk: number; def: number }> = {
   common: { hp: 2, atk: 1, def: 1 },
@@ -29,10 +29,12 @@ export function tryLevelUp(
   currentXp: number,
   xpGain: number,
   quality: CharacterQuality,
-  realmIndex: number
+  realmIndex: number,
+  growthMultipliers?: GrowthMultipliers
 ): LevelUpResult {
   const cap = getRealmLevelCap(realmIndex)
   const perLevel = QUALITY_LEVEL_STATS[quality]
+  const gm = growthMultipliers ?? { hp: 1, atk: 1, def: 1 }
   let level = currentLevel
   let xp = currentXp + xpGain
   let levelsGained = 0
@@ -44,9 +46,9 @@ export function tryLevelUp(
     xp -= calcXpToNextLevel(level)
     level++
     levelsGained++
-    hp += perLevel.hp
-    atk += perLevel.atk
-    def += perLevel.def
+    hp += Math.round(perLevel.hp * gm.hp)
+    atk += Math.round(perLevel.atk * gm.atk)
+    def += Math.round(perLevel.def * gm.def)
   }
 
   return { levelsGained, xpRemaining: xp, statBoost: { hp, atk, def } }

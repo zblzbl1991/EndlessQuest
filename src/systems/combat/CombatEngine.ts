@@ -1,4 +1,4 @@
-import type { ActiveSkill } from '../../types/skill'
+import type { ActiveSkill, Element } from '../../types/skill'
 import type { EnemyAffix, TacticalPreset } from '../../types/adventure'
 import type { TacticPreset } from '../../types/runBuild'
 import { getElementMultiplier } from '../../data/skills'
@@ -31,6 +31,8 @@ export interface CombatUnit {
   spiritRegenBonus?: number
   /** Heal this ratio of maxHp when killing an enemy (from reaper_mark blessing) */
   healOnKillRatio?: number
+  /** Element affinity bonus: primary = 20%, secondary = 10% extra multiplier */
+  elementAffinity?: { primary: Element; secondary?: Element }
 }
 
 export interface DamageBreakdown {
@@ -233,7 +235,13 @@ export function simulateCombat(
 
       if (usedSkill && usedSkill.category === 'attack') {
         // Skill attack
-        const elementMult = getElementMultiplier(usedSkill.element, target.element)
+        let elementMult = getElementMultiplier(usedSkill.element, target.element)
+        // Element affinity bonus
+        if (actor.elementAffinity?.primary === usedSkill.element) {
+          elementMult *= 1.2
+        } else if (actor.elementAffinity?.secondary === usedSkill.element) {
+          elementMult *= 1.1
+        }
         breakdown.skillMultiplier = usedSkill.multiplier
         breakdown.elementMultiplier = elementMult
         damage = Math.max(1, Math.floor(effectiveAtk * usedSkill.multiplier * elementMult - target.def / 2))

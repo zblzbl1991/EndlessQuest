@@ -1,4 +1,4 @@
-import type { Character, BaseStats, RealmStage } from '../../types/character'
+import type { Character, BaseStats, RealmStage, GrowthMultipliers } from '../../types/character'
 import { REALMS, getCultivationNeeded } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { getCultivationSpeedModifier, getBreakthroughSuccessBonus } from '../destiny/DestinySystem'
@@ -214,13 +214,19 @@ export function canBreakthrough(
 /**
  * Calculate base stat growth for a breakthrough.
  */
-function calcStatGrowth(currentStats: BaseStats, isMajorRealm: boolean): BaseStats {
+function calcStatGrowth(
+  currentStats: BaseStats,
+  isMajorRealm: boolean,
+  growthMultipliers?: GrowthMultipliers
+): BaseStats {
+  const gm = growthMultipliers ?? { hp: 1, atk: 1, def: 1, spd: 1 }
+
   if (isMajorRealm) {
     return {
-      hp: Math.floor(currentStats.hp * MAJOR_REALM_STAT_MULT),
-      atk: Math.floor(currentStats.atk * MAJOR_REALM_STAT_MULT),
-      def: Math.floor(currentStats.def * MAJOR_REALM_STAT_MULT),
-      spd: Math.floor(currentStats.spd * MAJOR_REALM_STAT_MULT),
+      hp: Math.floor(currentStats.hp * MAJOR_REALM_STAT_MULT * gm.hp),
+      atk: Math.floor(currentStats.atk * MAJOR_REALM_STAT_MULT * gm.atk),
+      def: Math.floor(currentStats.def * MAJOR_REALM_STAT_MULT * gm.def),
+      spd: Math.floor(currentStats.spd * MAJOR_REALM_STAT_MULT * gm.spd),
       crit: Math.min(currentStats.crit, 0.75),
       critDmg: currentStats.critDmg,
     }
@@ -228,10 +234,10 @@ function calcStatGrowth(currentStats: BaseStats, isMajorRealm: boolean): BaseSta
 
   // Sub-level: ~15% growth toward next major realm stats
   const nextRealmStats: BaseStats = {
-    hp: Math.floor(currentStats.hp * MAJOR_REALM_STAT_MULT),
-    atk: Math.floor(currentStats.atk * MAJOR_REALM_STAT_MULT),
-    def: Math.floor(currentStats.def * MAJOR_REALM_STAT_MULT),
-    spd: Math.floor(currentStats.spd * MAJOR_REALM_STAT_MULT),
+    hp: Math.floor(currentStats.hp * MAJOR_REALM_STAT_MULT * gm.hp),
+    atk: Math.floor(currentStats.atk * MAJOR_REALM_STAT_MULT * gm.atk),
+    def: Math.floor(currentStats.def * MAJOR_REALM_STAT_MULT * gm.def),
+    spd: Math.floor(currentStats.spd * MAJOR_REALM_STAT_MULT * gm.spd),
     crit: currentStats.crit,
     critDmg: currentStats.critDmg,
   }
@@ -257,7 +263,11 @@ function calcStatGrowth(currentStats: BaseStats, isMajorRealm: boolean): BaseSta
  * failureRate: probability of failure (0~1). On failure, realm/stage stay the same
  * and the caller should reset cultivation to 0.
  */
-export function breakthrough(character: Character, failureRate: number = 0): BreakthroughResult {
+export function breakthrough(
+  character: Character,
+  failureRate: number = 0,
+  growthMultipliers?: GrowthMultipliers
+): BreakthroughResult {
   if (!canBreakthrough(character)) {
     return {
       success: false,
@@ -284,7 +294,7 @@ export function breakthrough(character: Character, failureRate: number = 0): Bre
   const nextStage = (character.realmStage + 1) as RealmStage
   const isMajorRealm = nextStage >= realm.stages.length
 
-  const newStats = calcStatGrowth(oldStats, isMajorRealm)
+  const newStats = calcStatGrowth(oldStats, isMajorRealm, growthMultipliers)
 
   return {
     success: true,

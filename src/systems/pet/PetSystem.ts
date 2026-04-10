@@ -47,8 +47,8 @@ export const PET_QUALITY_NAMES: Record<PetQuality, string> = {
 export const PET_INNATE_SKILLS: PetSkill[] = [
   { id: 'claw', name: '\u5229\u722a', multiplier: 1.2, element: 'neutral', description: '\u5229\u722a\u653b\u51fb' },
   { id: 'bite', name: '\u6495\u54ac', multiplier: 1.4, element: 'fire', description: '\u70c8\u7130\u6495\u54ac' },
-  { id: 'roar', name: '\u6012\u543c', multiplier: 1.0, element: 'ice', description: '\u5bd2\u51b0\u6012\u543c' },
-  { id: 'bolt', name: '\u96f7\u7535', multiplier: 1.6, element: 'lightning', description: '\u96f7\u7535\u4e4b\u51fb' },
+  { id: 'roar', name: '\u6012\u543c', multiplier: 1.0, element: 'water', description: '\u5bd2\u51b0\u6012\u543c' },
+  { id: 'bolt', name: '\u96f7\u7535', multiplier: 1.6, element: 'metal', description: '\u96f7\u7535\u4e4b\u51fb' },
 ]
 
 let _petIdCounter = 0
@@ -65,7 +65,7 @@ export function generatePet(quality: PetQuality): Pet {
     spd: Math.floor(4 * mult * (1 + talent / 200)),
   }
 
-  const elements = ['fire', 'ice', 'lightning', 'neutral']
+  const elements = ['fire', 'water', 'metal', 'neutral']
   const innate = PET_INNATE_SKILLS[Math.floor(Math.random() * PET_INNATE_SKILLS.length)]
 
   const names = [

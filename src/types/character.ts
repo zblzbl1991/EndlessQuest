@@ -29,6 +29,15 @@ export interface CultivationStats {
   fortune: number
 }
 
+export interface GrowthMultipliers {
+  hp: number
+  atk: number
+  def: number
+  spd: number
+  crit: number
+  critDmg: number
+}
+
 export type SpecialtyType =
   | 'alchemy'
   | 'forging'

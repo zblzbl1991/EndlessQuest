@@ -6,6 +6,7 @@ export type {
   RealmStage,
   BaseStats,
   CultivationStats,
+  GrowthMultipliers,
   CultivationPath,
 } from './character'
 export type { Technique, TechniqueTier, TechniqueBonus } from './technique'

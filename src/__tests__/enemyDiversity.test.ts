@@ -138,21 +138,21 @@ describe('Enemy Diversity - Dungeon-Specific Stats', () => {
 })
 
 describe('Enemy Diversity - Dungeon-Specific Elements', () => {
-  it('LingCao Valley uses neutral and ice elements', () => {
+  it('LingCao Valley uses neutral and water elements', () => {
     const enemies = getEnemiesForDungeon('lingCaoValley')
     const boss = getBossForDungeon('lingCaoValley')
     const allElements = [...enemies, boss].map((e) => e.element)
     for (const el of allElements) {
-      expect(['neutral', 'ice']).toContain(el)
+      expect(['neutral', 'water']).toContain(el)
     }
   })
 
-  it('LuoYun Cave uses ice and fire elements', () => {
+  it('LuoYun Cave uses water and fire elements', () => {
     const enemies = getEnemiesForDungeon('luoYunCave')
     const boss = getBossForDungeon('luoYunCave')
     const allElements = [...enemies, boss].map((e) => e.element)
     for (const el of allElements) {
-      expect(['ice', 'fire']).toContain(el)
+      expect(['water', 'fire']).toContain(el)
     }
   })
 
@@ -165,30 +165,30 @@ describe('Enemy Diversity - Dungeon-Specific Elements', () => {
     }
   })
 
-  it('Dragon Bone Wasteland uses lightning and neutral elements', () => {
+  it('Dragon Bone Wasteland uses metal and neutral elements', () => {
     const enemies = getEnemiesForDungeon('dragonBoneWasteland')
     const boss = getBossForDungeon('dragonBoneWasteland')
     const allElements = [...enemies, boss].map((e) => e.element)
     for (const el of allElements) {
-      expect(['lightning', 'neutral']).toContain(el)
+      expect(['metal', 'neutral']).toContain(el)
     }
   })
 
-  it('Nine Nether Purgatory uses ice and fire elements', () => {
+  it('Nine Nether Purgatory uses water and fire elements', () => {
     const enemies = getEnemiesForDungeon('nineNetherPurgatory')
     const boss = getBossForDungeon('nineNetherPurgatory')
     const allElements = [...enemies, boss].map((e) => e.element)
     for (const el of allElements) {
-      expect(['ice', 'fire']).toContain(el)
+      expect(['water', 'fire']).toContain(el)
     }
   })
 
-  it('Heavenly Tribulation Realm uses lightning element', () => {
+  it('Heavenly Tribulation Realm uses metal element', () => {
     const enemies = getEnemiesForDungeon('heavenlyTribulationRealm')
     const boss = getBossForDungeon('heavenlyTribulationRealm')
     const allElements = [...enemies, boss].map((e) => e.element)
     for (const el of allElements) {
-      expect(el).toBe('lightning')
+      expect(el).toBe('metal')
     }
   })
 })

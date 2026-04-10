@@ -208,8 +208,8 @@ describe('Skill types', () => {
   })
 
   it('Element should include neutral', () => {
-    const elements: Element[] = ['fire', 'ice', 'lightning', 'healing', 'neutral']
-    expect(elements).toHaveLength(5)
+    const elements: Element[] = ['metal', 'wood', 'earth', 'water', 'fire', 'neutral']
+    expect(elements).toHaveLength(6)
   })
 
   it('ELEMENT_NAMES should include neutral', () => {

@@ -32,8 +32,8 @@ function formatBonusValue(type: string, value: number): string {
 function getTechniqueIconName(technique: Technique): string {
   if (technique.family === 'weapon') return 'swordManual'
   if (technique.family === 'body') return 'bodyPath'
-  if (technique.element === 'lightning') return 'thunderArt'
-  if (technique.element === 'fire' || technique.element === 'ice') return 'spellPath'
+  if (technique.element === 'metal') return 'thunderArt'
+  if (technique.element === 'fire' || technique.element === 'water') return 'spellPath'
   return 'techniqueScroll'
 }
 

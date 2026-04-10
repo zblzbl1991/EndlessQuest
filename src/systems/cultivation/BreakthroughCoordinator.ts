@@ -1,4 +1,4 @@
-import type { Character } from '../../types/character'
+import type { Character, GrowthMultipliers } from '../../types/character'
 import { canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from './CultivationEngine'
 import { shouldTriggerTribulation, resolveTribulation } from './TribulationSystem'
 import { tryComprehendOnBreakthrough } from '../technique/TechniqueSystem'
@@ -76,7 +76,8 @@ export function processBreakthrough(
   availableSpiritEnergy: number,
   techniqueCodex: string[],
   currentCostAccumulator: { spiritStone: number; spiritEnergy: number },
-  pathEffects?: PathEffectMap
+  pathEffects?: PathEffectMap,
+  growthMultipliers?: GrowthMultipliers
 ): BreakthroughResult {
   const noChange: BreakthroughResult = {
     updatedChar: char,
@@ -123,7 +124,7 @@ export function processBreakthrough(
       const tribResult = resolveTribulation(char)
       if (tribResult.success) {
         const failureRate = calcBreakthroughFailureRate(char)
-        const btResult = performBreakthrough(char, failureRate)
+        const btResult = performBreakthrough(char, failureRate, growthMultipliers)
         if (btResult.success) {
           const nextName = getRealmName(btResult.newRealm, btResult.newStage)
           const events: BreakthroughEvent[] = [
@@ -207,7 +208,7 @@ export function processBreakthrough(
     } else {
       // Non-tribulation major breakthrough
       const failureRate = calcBreakthroughFailureRate(char)
-      const btResult = performBreakthrough(char, failureRate)
+      const btResult = performBreakthrough(char, failureRate, growthMultipliers)
       if (btResult.success) {
         const nextName = getRealmName(btResult.newRealm, btResult.newStage)
         const events: BreakthroughEvent[] = [
@@ -275,7 +276,7 @@ export function processBreakthrough(
 
     const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: cost.spiritEnergy }
     const failureRate = calcBreakthroughFailureRate(char)
-    const btResult = performBreakthrough(char, failureRate)
+    const btResult = performBreakthrough(char, failureRate, growthMultipliers)
     if (btResult.success) {
       const nextName = getRealmName(btResult.newRealm, btResult.newStage)
       const events: BreakthroughEvent[] = [

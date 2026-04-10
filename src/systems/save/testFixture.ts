@@ -741,7 +741,7 @@ const PETS: Pet[] = [
     element: 'neutral',
     level: 15,
     talent: 72,
-    innateSkill: { id: 'roar', name: '怒吼', multiplier: 1.0, element: 'ice', description: '寒冰怒吼' },
+    innateSkill: { id: 'roar', name: '怒吼', multiplier: 1.0, element: 'water', description: '寒冰怒吼' },
     equippedSkills: [{ id: 'claw', name: '利爪', multiplier: 1.2, element: 'neutral', description: '利爪攻击' }, null],
     stats: { hp: 52, atk: 12, def: 8, spd: 10 },
   },

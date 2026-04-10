@@ -7,22 +7,25 @@ export const TECHNIQUE_TYPE_NAMES: Record<string, string> = {
 export const TECHNIQUE_TIER_NAMES = ['初级', '中级', '高级', '顶级']
 
 export const ELEMENT_NAMES: Record<string, string> = {
+  metal: '金',
+  wood: '木',
+  earth: '土',
+  water: '水',
   fire: '火',
-  ice: '冰',
-  lightning: '雷',
-  healing: '治愈',
   neutral: '无属性',
 }
 
 /**
- * Element counter relationships.
+ * Element counter relationships (wuxing / 五行相克).
  * neutral has NO counter relationships — it is not included in this map.
  * Key = element, Value = the element it is strong against.
  */
 export const COUNTER_MAP: Record<string, string> = {
-  fire: 'ice',
-  ice: 'lightning',
-  lightning: 'fire',
+  metal: 'wood', // 金克木
+  wood: 'earth', // 木克土
+  earth: 'water', // 土克水
+  water: 'fire', // 水克火
+  fire: 'metal', // 火克金
 }
 
 /**
@@ -31,11 +34,8 @@ export const COUNTER_MAP: Record<string, string> = {
  * - Weakness: 0.75x (defender's counter target is attacker's element)
  * - Neutral vs any (or any vs neutral): 1.0x (no counter, no weakness)
  * - Same element: 1.0x
- * - Healing: 1.0x (no combat interaction)
  */
 export function getElementMultiplier(attackerElement: string, defenderElement: string): number {
-  // Healing has no element interaction
-  if (attackerElement === 'healing' || defenderElement === 'healing') return 1.0
   // Neutral has no counter relationships in either direction
   if (attackerElement === 'neutral' || defenderElement === 'neutral') return 1.0
   // Counter: attacker strong against defender

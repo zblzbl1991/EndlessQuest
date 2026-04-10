@@ -50,10 +50,20 @@ describe('CombatEngine', () => {
   })
 
   it('should apply elemental advantage', () => {
-    // fire > ice = 1.5x
-    const allies = [makeUnit({ id: 'p1', name: 'Fire', team: 'ally', element: 'fire', atk: 10, spd: 10 })]
+    // water > fire = 1.5x (wuxing: 水克火)
+    const allies = [makeUnit({ id: 'p1', name: 'Water', team: 'ally', element: 'water', atk: 10, spd: 10 })]
     const enemies = [
-      makeUnit({ id: 'e1', name: 'Ice', team: 'enemy', element: 'ice', hp: 1000, maxHp: 1000, atk: 0, def: 0, spd: 5 }),
+      makeUnit({
+        id: 'e1',
+        name: 'Fire',
+        team: 'enemy',
+        element: 'fire',
+        hp: 1000,
+        maxHp: 1000,
+        atk: 0,
+        def: 0,
+        spd: 5,
+      }),
     ]
     const result = simulateCombat(allies, enemies)
     // With fire > ice, damage should be higher. Hard to test exact value due to variance, but check combat completes.
@@ -284,7 +294,7 @@ describe('CombatEngine - Tactic Presets', () => {
     id: 'ice_shard',
     name: '冰锥术',
     category: 'attack' as const,
-    element: 'ice' as const,
+    element: 'water' as const,
     multiplier: 1.2,
     spiritCost: 10,
     cooldown: 1,
@@ -381,7 +391,7 @@ describe('CombatEngine - Tactic Presets', () => {
     id: 'ice_shard',
     name: '冰锥术',
     category: 'attack' as const,
-    element: 'ice' as const,
+    element: 'water' as const,
     multiplier: 1.2,
     spiritCost: 10,
     cooldown: 1,

@@ -86,15 +86,15 @@ describe('Techniques Table', () => {
     expect(t.bonuses.some((b) => b.type === 'atk' && b.value === 25)).toBe(true)
   })
 
-  it('should have taishang with ice element and balanced bonuses', () => {
+  it('should have taishang with water element and balanced bonuses', () => {
     const t = getTechniqueById('taishang')!
-    expect(t.element).toBe('ice')
+    expect(t.element).toBe('water')
     expect(t.bonuses.some((b) => b.type === 'atk' && b.value === 15)).toBe(true)
   })
 
-  it('should have leishen with lightning element', () => {
+  it('should have leishen with metal element', () => {
     const t = getTechniqueById('leishen')!
-    expect(t.element).toBe('lightning')
+    expect(t.element).toBe('metal')
     expect(t.bonuses.some((b) => b.type === 'spd' && b.value === 12)).toBe(true)
   })
 
@@ -140,24 +140,34 @@ describe('Skills data', () => {
 
   it('getElementMultiplier should return 1.0 for neutral attacker vs any', () => {
     expect(getElementMultiplier('neutral', 'fire')).toBe(1.0)
-    expect(getElementMultiplier('neutral', 'ice')).toBe(1.0)
-    expect(getElementMultiplier('neutral', 'lightning')).toBe(1.0)
+    expect(getElementMultiplier('neutral', 'water')).toBe(1.0)
+    expect(getElementMultiplier('neutral', 'metal')).toBe(1.0)
     expect(getElementMultiplier('neutral', 'neutral')).toBe(1.0)
   })
 
   it('getElementMultiplier should return 1.0 for any attacker vs neutral defender', () => {
     expect(getElementMultiplier('fire', 'neutral')).toBe(1.0)
-    expect(getElementMultiplier('ice', 'neutral')).toBe(1.0)
-    expect(getElementMultiplier('lightning', 'neutral')).toBe(1.0)
+    expect(getElementMultiplier('water', 'neutral')).toBe(1.0)
+    expect(getElementMultiplier('metal', 'neutral')).toBe(1.0)
   })
 
-  it('should preserve existing counter relationships', () => {
-    expect(getElementMultiplier('fire', 'ice')).toBe(1.5)
-    expect(getElementMultiplier('ice', 'fire')).toBe(0.75)
-    expect(getElementMultiplier('ice', 'lightning')).toBe(1.5)
-    expect(getElementMultiplier('lightning', 'ice')).toBe(0.75)
-    expect(getElementMultiplier('lightning', 'fire')).toBe(1.5)
-    expect(getElementMultiplier('fire', 'lightning')).toBe(0.75)
+  it('should preserve wuxing counter relationships', () => {
+    // metal counters wood
+    expect(getElementMultiplier('metal', 'wood')).toBe(1.5)
+    expect(getElementMultiplier('wood', 'metal')).toBe(0.75)
+    // wood counters earth
+    expect(getElementMultiplier('wood', 'earth')).toBe(1.5)
+    expect(getElementMultiplier('earth', 'wood')).toBe(0.75)
+    // earth counters water
+    expect(getElementMultiplier('earth', 'water')).toBe(1.5)
+    expect(getElementMultiplier('water', 'earth')).toBe(0.75)
+    // water counters fire
+    expect(getElementMultiplier('water', 'fire')).toBe(1.5)
+    expect(getElementMultiplier('fire', 'water')).toBe(0.75)
+    // fire counters metal
+    expect(getElementMultiplier('fire', 'metal')).toBe(1.5)
+    expect(getElementMultiplier('metal', 'fire')).toBe(0.75)
+    // same element = 1.0
     expect(getElementMultiplier('fire', 'fire')).toBe(1.0)
   })
 })

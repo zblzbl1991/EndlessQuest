@@ -17,7 +17,7 @@ const dummyPlayer: CombatUnit = {
   spd: 10,
   crit: 0.05,
   critDmg: 1.5,
-  element: 'lightning',
+  element: 'metal',
   spiritPower: 50,
   maxSpiritPower: 50,
   skills: [],

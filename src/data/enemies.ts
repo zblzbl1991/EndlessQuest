@@ -149,7 +149,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'spirit_boss',
     name: '灵脉守卫',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 220, atk: 24, def: 14, spd: 9 },
     isBoss: true,
     affixPool: ['berserk', 'shield', 'tribulationBane'],
@@ -187,7 +187,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'valley_herb_guardian',
     name: '草灵守卫',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 55, atk: 10, def: 6, spd: 4 },
     isBoss: false,
     affixPool: ['shield'],
@@ -225,7 +225,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'stream_water_sprite',
     name: '清泉灵',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 58, atk: 11, def: 5, spd: 7 },
     isBoss: false,
     affixPool: ['swift'],
@@ -259,7 +259,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'stream_tide_serpent',
     name: '潮汐蛟',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 78, atk: 15, def: 8, spd: 7 },
     isBoss: true,
     affixPool: ['swift', 'shield'],
@@ -279,7 +279,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'cave_shadow_fiend',
     name: '影魇',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 80, atk: 14, def: 7, spd: 10 },
     isBoss: false,
     affixPool: ['swift'],
@@ -314,7 +314,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'cave_void_phantom',
     name: '虚空幻影',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 110, atk: 18, def: 10, spd: 9 },
     isBoss: true,
     affixPool: ['swift', 'spiritDrain'],
@@ -371,7 +371,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'forest_nightshade_queen',
     name: '夜影女王',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 145, atk: 22, def: 13, spd: 11 },
     isBoss: true,
     affixPool: ['swift', 'spiritDrain'],
@@ -449,7 +449,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'cave_ice_elemental',
     name: '冰晶灵',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 195, atk: 30, def: 16, spd: 11 },
     isBoss: false,
     affixPool: ['shield', 'swift'],
@@ -467,7 +467,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'cave_frost_golem',
     name: '霜岩傀儡',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 225, atk: 26, def: 22, spd: 7 },
     isBoss: false,
     affixPool: ['shield', 'berserk'],
@@ -485,7 +485,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'cave_blizzard_dragon',
     name: '暴雪冰龙',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 235, atk: 32, def: 18, spd: 10 },
     isBoss: true,
     affixPool: ['berserk', 'shield', 'tribulationBane'],
@@ -506,7 +506,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'wasteland_bone_drake',
     name: '骨龙崽',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 240, atk: 32, def: 22, spd: 12 },
     isBoss: false,
     affixPool: ['shield'],
@@ -542,7 +542,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'wasteland_elder_dragon_lord',
     name: '远古龙皇骸骨',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 260, atk: 38, def: 22, spd: 12 },
     isBoss: true,
     affixPool: ['berserk', 'shield', 'tribulationBane'],
@@ -623,7 +623,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'purgatory_wraith',
     name: '幽魂',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 320, atk: 40, def: 24, spd: 14 },
     isBoss: false,
     affixPool: ['swift'],
@@ -661,7 +661,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'purgatory_nether_king',
     name: '冥王',
-    element: 'ice',
+    element: 'water',
     stats: { hp: 380, atk: 48, def: 26, spd: 14 },
     isBoss: true,
     affixPool: ['berserk', 'shield', 'spiritDrain', 'tribulationBane'],
@@ -702,7 +702,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'palace_shadow_assassin',
     name: '影刺',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 370, atk: 52, def: 20, spd: 20 },
     isBoss: false,
     affixPool: ['swift', 'tribulationBane'],
@@ -721,7 +721,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'palace_demon_emperor',
     name: '妖帝残影',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 460, atk: 52, def: 30, spd: 16 },
     isBoss: true,
     affixPool: ['berserk', 'shield', 'swift', 'spiritDrain', 'tribulationBane'],
@@ -743,7 +743,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'tribulation_lightning_elemental',
     name: '雷灵',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 420, atk: 50, def: 30, spd: 18 },
     isBoss: false,
     affixPool: ['swift', 'tribulationBane'],
@@ -762,7 +762,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'tribulation_thunder_golem',
     name: '雷岩巨像',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 480, atk: 44, def: 36, spd: 14 },
     isBoss: false,
     affixPool: ['shield', 'tribulationBane'],
@@ -781,7 +781,7 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
   {
     id: 'tribulation_heavenly_tribulation_spirit',
     name: '天劫之灵',
-    element: 'lightning',
+    element: 'metal',
     stats: { hp: 500, atk: 56, def: 32, spd: 16 },
     isBoss: true,
     affixPool: ['berserk', 'shield', 'swift', 'tribulationBane'],

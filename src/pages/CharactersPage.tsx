@@ -81,7 +81,7 @@ const DETAIL_SECTION_ICONS = {
 function getTechniqueIconName(name: string, element?: string): string {
   if (name.includes('剑')) return 'swordManual'
   if (name.includes('兽')) return 'beastTaming'
-  if (element === 'lightning') return 'thunderArt'
+  if (element === 'metal') return 'thunderArt'
   if (name.includes('体') || name.includes('金身')) return 'bodyPath'
   if (name.includes('丹')) return 'alchemyPath'
   return 'techniqueScroll'
@@ -91,10 +91,10 @@ function getSkillIconName(skillId: string): string {
   const skill = getActiveSkillById(skillId)
   if (!skill) return 'technique'
   if (skill.category === 'ultimate') return 'eventBoss'
-  if (skill.element === 'lightning') return 'thunderArt'
+  if (skill.element === 'metal') return 'thunderArt'
   if (skill.element === 'fire') return 'spellPath'
-  if (skill.element === 'ice') return skill.category === 'attack' ? 'swordManual' : 'spellPath'
-  if (skill.element === 'healing') return 'eventRest'
+  if (skill.element === 'water') return skill.category === 'attack' ? 'swordManual' : 'spellPath'
+  if (skill.element === 'wood') return 'eventRest'
   if (skill.category === 'defense') return 'bodyPath'
   return 'technique'
 }

@@ -43,7 +43,7 @@ function getPathFamilyBonus(path: CultivationPath | undefined, technique: Techni
     case 'body':
       return technique.family === 'body' || technique.styles.includes('guard') ? 4 : 0
     case 'alchemy':
-      return technique.styles.includes('cultivation') || technique.element === 'fire' || technique.element === 'ice'
+      return technique.styles.includes('cultivation') || technique.element === 'fire' || technique.element === 'water'
         ? 4
         : 0
     case 'formation':
