@@ -19,8 +19,7 @@ import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
 import type { BuildingType, CharacterQuality } from '../types'
 import type { ItemStack } from '../types/item'
 import type { Character } from '../types/character'
-import type { Talent } from '../types/talent'
-import { TALENT_RARITY_NAMES } from '../types/talent'
+import { ELEMENT_NAMES } from '../types/skill'
 import { CHAR_QUALITY_NAMES } from '../data/uiCopy'
 import ItemCard from '../components/inventory/ItemCard'
 import { PixelIcon } from '../components/common/PixelIcon'
@@ -87,12 +86,6 @@ function getStatClass(value: number, baseValue: number): string {
 function formatStat(key: string, value: number): string {
   if (key === 'crit') return `${Math.round(value * 100)}%`
   return String(Math.round(value * 10) / 10)
-}
-
-function getTalentClass(rarity: Talent['rarity']): string {
-  if (rarity === 'epic') return styles.talentEpic
-  if (rarity === 'rare') return styles.talentRare
-  return ''
 }
 
 /** Building types that support auto-production queues. */
@@ -725,15 +718,37 @@ function RecruitResultModal({ character, onClose }: { character: Character; onCl
           ))}
         </div>
 
-        {character.talents.length > 0 && (
+        {/* Element affinity */}
+        <div className={styles.recruitTalents}>
+          <div className={styles.recruitTalentTitle}>五行亲和</div>
+          <div className={styles.recruitTalentList}>
+            <span className={styles.recruitTalent}>
+              {ELEMENT_NAMES[character.elementAffinity.primary]}
+              {character.elementAffinity.secondary && ` / ${ELEMENT_NAMES[character.elementAffinity.secondary]}`}
+            </span>
+          </div>
+        </div>
+
+        {/* Growth multipliers */}
+        <div className={styles.recruitTalents}>
+          <div className={styles.recruitTalentTitle}>成长倾向</div>
+          <div className={styles.recruitTalentList}>
+            {(['hp', 'atk', 'def', 'spd'] as const).map((key) => (
+              <span key={key} className={styles.recruitTalent}>
+                {key === 'hp' ? '生命' : key === 'atk' ? '攻击' : key === 'def' ? '防御' : '速度'}{' '}
+                {(character.growthMultipliers[key] * 100).toFixed(0)}%
+              </span>
+            ))}
+          </div>
+        </div>
+
+        {/* Talent affixes */}
+        {(character.prefix || character.suffix) && (
           <div className={styles.recruitTalents}>
-            <div className={styles.recruitTalentTitle}>天赋</div>
+            <div className={styles.recruitTalentTitle}>天赋词缀</div>
             <div className={styles.recruitTalentList}>
-              {character.talents.map((talent) => (
-                <span key={talent.id} className={`${styles.recruitTalent} ${getTalentClass(talent.rarity)}`}>
-                  {TALENT_RARITY_NAMES[talent.rarity]} {talent.name}
-                </span>
-              ))}
+              {character.prefix && <span className={styles.recruitTalent}>{character.prefix.name}</span>}
+              {character.suffix && <span className={styles.recruitTalent}>{character.suffix.name}</span>}
             </div>
           </div>
         )}

@@ -11,6 +11,7 @@ import { getPathDef } from '../data/cultivationPaths'
 import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
 import type { CharacterStatus } from '../types/character'
+import { ELEMENT_NAMES } from '../types/skill'
 import { CHAR_QUALITY_SHORT } from '../data/uiCopy'
 import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
 import { PixelIcon } from '../components/common/PixelIcon'
@@ -432,6 +433,69 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                       {getRoleLabel(specialty.type)} Lv.{specialty.level}
                     </span>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Element affinity */}
+            <div className={styles.identityBlock}>
+              <span className={styles.pathLabel}>亲和</span>
+              <div className={styles.identityTags}>
+                <span className={styles.identityTag}>
+                  {ELEMENT_NAMES[character.elementAffinity.primary]}
+                  {character.elementAffinity.secondary && ` / ${ELEMENT_NAMES[character.elementAffinity.secondary]}`}
+                </span>
+              </div>
+            </div>
+
+            {/* Growth multipliers */}
+            <div className={styles.identityBlock}>
+              <span className={styles.pathLabel}>成长</span>
+              <div className={styles.identityTags}>
+                {(['hp', 'atk', 'def', 'spd'] as const).map((key) => (
+                  <span key={key} className={styles.identityTag}>
+                    {key === 'hp' ? '生命' : key === 'atk' ? '攻击' : key === 'def' ? '防御' : '速度'}
+                    {(character.growthMultipliers[key] * 100).toFixed(0)}%
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* Talent affixes */}
+            {(character.prefix || character.suffix) && (
+              <div className={styles.identityBlock}>
+                <span className={styles.pathLabel}>天赋</span>
+                <div className={styles.identityTags}>
+                  {character.prefix && (
+                    <span className={styles.identityTag}>
+                      {character.prefix.name}
+                      <span style={{ opacity: 0.6, marginLeft: 4 }}>
+                        {character.prefix.resolvedEffects
+                          .filter((e) => e.stat)
+                          .map((e) => {
+                            const val =
+                              e.type === 'crit' || e.type === 'critDmg' ? `${Math.round(e.value * 100)}%` : `${e.value}`
+                            return `${e.stat}+${val}`
+                          })
+                          .join(' ')}
+                      </span>
+                    </span>
+                  )}
+                  {character.suffix && (
+                    <span className={styles.identityTag}>
+                      {character.suffix.name}
+                      <span style={{ opacity: 0.6, marginLeft: 4 }}>
+                        {character.suffix.resolvedEffects
+                          .filter((e) => e.stat)
+                          .map((e) => {
+                            const val =
+                              e.type === 'crit' || e.type === 'critDmg' ? `${Math.round(e.value * 100)}%` : `${e.value}`
+                            return `${e.stat}+${val}`
+                          })
+                          .join(' ')}
+                      </span>
+                    </span>
+                  )}
                 </div>
               </div>
             )}
