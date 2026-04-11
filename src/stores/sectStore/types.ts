@@ -3,6 +3,8 @@ import type {
   CharacterTitle,
   CharacterQuality,
   CharacterStatus,
+  CharacterManagementTier,
+  CharacterAutomationRole,
   CultivationPath,
 } from '../../types/character'
 import type {
@@ -46,6 +48,9 @@ export interface SectStore {
   promoteCharacter(id: string, newTitle: CharacterTitle): void
   setCharacterStatus(id: string, status: CharacterStatus, opts?: { injuryTimer?: number }): void
   setCharacterRecovering(id: string, recoveryDays: number): void
+  setCharacterManagementTier(id: string, tier: CharacterManagementTier): void
+  setCharacterAutomationRole(id: string, role: CharacterAutomationRole): void
+  autoArrangeCharacterDuties(): number
   chooseCultivationPath(id: string, path: Exclude<CultivationPath, 'none'>): boolean
   updateCharacterSkill(characterId: string, slotIndex: number, skillId: string | null): void
   setAutomationSettings(patch: Partial<SectAutomationSettings>): void

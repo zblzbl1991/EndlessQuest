@@ -36,6 +36,16 @@ import { buildAutomationRunConfig, shouldAutoRecruit } from '../../systems/sect/
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 import { buildPathEffectMap, getMultEffect } from '../../systems/sect/SectPathEffects'
 import { evaluateRandomEvents } from '../../systems/idle/RandomEventSystem'
+import { getLegacyRecoveryBonusDays } from '../../data/legacy'
+
+function getMarketLossRate(marketLevel: number): number {
+  return Math.max(0.3, 0.667 - 0.05 * marketLevel)
+}
+
+function sellOverflowResource(amount: number, marketLevel: number): number {
+  if (amount <= 0) return 0
+  return Math.floor((amount / 3) * (1 - getMarketLossRate(marketLevel)))
+}
 
 export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   tickAll: (deltaSec: number) => {
@@ -311,8 +321,52 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
     }
 
+    const overflowTriggerRatio = Math.min(0.98, Math.max(0.5, sect.automationSettings.overflowTriggerRatio ?? 0.9))
+    const stoneCap = calcSpiritStoneCap(mhLevel) * 5
+    const marketLevel = sect.buildings.find((building) => building.type === 'market')?.level ?? 0
+    const overflowAdjustedResources = { ...newResources }
+    let overflowStoneEarned = 0
+
+    const herbTrigger = caps.herb * overflowTriggerRatio
+    if (sect.automationSettings.herbOverflowRule === 'sell' && overflowAdjustedResources.herb > herbTrigger) {
+      const sellAmount = Math.floor(overflowAdjustedResources.herb - herbTrigger)
+      const gainedStone = sellOverflowResource(sellAmount, marketLevel)
+      overflowAdjustedResources.herb -= sellAmount
+      overflowAdjustedResources.spiritStone += gainedStone
+      overflowStoneEarned += gainedStone
+    }
+
+    const oreTrigger = caps.ore * overflowTriggerRatio
+    if (sect.automationSettings.oreOverflowRule === 'sell' && overflowAdjustedResources.ore > oreTrigger) {
+      const sellAmount = Math.floor(overflowAdjustedResources.ore - oreTrigger)
+      const gainedStone = sellOverflowResource(sellAmount, marketLevel)
+      overflowAdjustedResources.ore -= sellAmount
+      overflowAdjustedResources.spiritStone += gainedStone
+      overflowStoneEarned += gainedStone
+    }
+
+    const stoneTrigger = stoneCap * overflowTriggerRatio
+    const targetResource =
+      sect.automationSettings.spiritStoneOverflowRule === 'buyHerb'
+        ? 'herb'
+        : sect.automationSettings.spiritStoneOverflowRule === 'buyOre'
+          ? 'ore'
+          : null
+
+    if (targetResource && overflowAdjustedResources.spiritStone > stoneTrigger) {
+      const targetTrigger = targetResource === 'herb' ? herbTrigger : oreTrigger
+      const targetRoom = Math.max(0, Math.floor(targetTrigger - overflowAdjustedResources[targetResource]))
+      const stoneExcess = Math.floor(overflowAdjustedResources.spiritStone - stoneTrigger)
+      const spendableStone = Math.min(stoneExcess, Math.floor(targetRoom / 2))
+
+      if (spendableStone > 0) {
+        overflowAdjustedResources.spiritStone -= spendableStone
+        overflowAdjustedResources[targetResource] += spendableStone * 2
+      }
+    }
+
     // 13. Clamp resources to caps (with spirit stone hard cap = soft cap * 5)
-    const clampedResources = clampResources(newResources, caps, calcSpiritStoneCap(mhLevel) * 5)
+    const clampedResources = clampResources(overflowAdjustedResources, caps, stoneCap)
 
     // Dynamic vault capacity: 50 + (mainHallLevel - 1) * 20
     const dynamicMaxVaultSlots = 50 + (mhLevel - 1) * 20
@@ -321,7 +375,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const prevAcc = sect.offlineAccumulator
     const updatedAccumulator: OfflineAccumulator = {
       resourcesGained: {
-        spiritStone: prevAcc.resourcesGained.spiritStone + mineStoneProduced + taxProduced,
+        spiritStone: prevAcc.resourcesGained.spiritStone + mineStoneProduced + taxProduced + overflowStoneEarned,
         spiritEnergy: prevAcc.resourcesGained.spiritEnergy + spiritProduced,
         herb: prevAcc.resourcesGained.herb + rates.herb * deltaSec,
         ore: prevAcc.resourcesGained.ore + rates.ore * deltaSec,
@@ -332,7 +386,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     }
 
     // Calculate spirit stone income for stats
-    const spiritStoneEarned = mineStoneProduced + taxProduced
+    const spiritStoneEarned = mineStoneProduced + taxProduced + overflowStoneEarned
 
     // Build the updated sect for the set call
     let archiveMilestones = sect.archiveMilestones
@@ -496,7 +550,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
             characters: state.sect.characters.map((character) => {
               if (character.status !== 'recovering') return character
 
-              const result = tickRecoveryDays(character.recoveryDaysRemaining ?? 0, 1)
+              const result = tickRecoveryDays(
+                character.recoveryDaysRemaining ?? 0,
+                1 + getLegacyRecoveryBonusDays(state.sect.legacy.ascensionCount)
+              )
               return result.recovered
                 ? {
                     ...character,
@@ -544,6 +601,9 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
             spiritEnergy: currentState.sect.resources.spiritEnergy,
             playerRealm: maxRealmCharacter?.realm ?? 0,
             playerStage: maxRealmCharacter?.realmStage ?? 0,
+            ascensionCount: currentState.sect.legacy.ascensionCount,
+            unlockedLegacyDungeonIds: currentState.sect.legacy.unlockedDungeons,
+            archiveMilestones: currentState.sect.archiveMilestones,
           })
 
           if (autoRunConfig) {

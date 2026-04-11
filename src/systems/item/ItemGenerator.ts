@@ -169,7 +169,7 @@ const TIER_TO_QUALITY: Record<TechniqueTier, ItemQuality> = {
  * Generate a technique scroll item for a random technique of the given tier.
  */
 export function generateTechniqueScroll(tier: TechniqueTier): TechniqueScroll {
-  const techniquesOfTier = TECHNIQUES.filter((t) => t.tier === tier)
+  const techniquesOfTier = TECHNIQUES.filter((t) => t.tier === tier && t.origin !== 'legacy')
   if (techniquesOfTier.length === 0) {
     throw new Error(`No techniques found for tier: ${tier}`)
   }

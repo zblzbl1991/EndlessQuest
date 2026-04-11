@@ -1,6 +1,12 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
-import type { CharacterQuality, CultivationPath } from '../../types/character'
+import type {
+  Character,
+  CharacterAutomationRole,
+  CharacterManagementTier,
+  CharacterQuality,
+  CultivationPath,
+} from '../../types/character'
 import { generateCharacter, getRecruitCost, rollRecruitQuality } from '../../systems/character/CharacterEngine'
 import { calcDiscipleDeathRefund } from '../../systems/character/DiscipleSacrificeSystem'
 import { getRecruitCostMult } from '../../systems/economy/BuildingEffects'
@@ -17,6 +23,40 @@ const TARGETED_RECRUIT_MULT = 1.5
 
 function getAdjustedRecruitCost(baseCost: number, costMult: number): number {
   return Math.max(50, Math.floor(baseCost * costMult * DISCIPLE_POOL_RECRUIT_DISCOUNT))
+}
+
+function inferManagementTier(character: Character): CharacterManagementTier {
+  const qualityWeight = {
+    common: 0,
+    spirit: 1,
+    immortal: 2,
+    divine: 3,
+    chaos: 4,
+  }[character.quality]
+  const score = qualityWeight + character.realm
+
+  if (score >= 5) return 'core'
+  if (score >= 3) return 'main'
+  if (score >= 1) return 'reserve'
+  return 'support'
+}
+
+function inferAutomationRole(character: Character): CharacterAutomationRole {
+  if (character.status === 'recovering') return 'recovery'
+  if (character.status === 'adventuring' || character.status === 'patrolling') return 'expedition'
+  if (character.status === 'training') {
+    return character.assignedBuilding === 'scriptureHall' ? 'study' : 'production'
+  }
+  if (character.assignedBuilding) {
+    return character.assignedBuilding === 'scriptureHall' ? 'study' : 'production'
+  }
+  if (character.specialties.some((specialty) => specialty.type === 'combat' || specialty.type === 'fortune')) {
+    return 'expedition'
+  }
+  if (character.specialties.some((specialty) => specialty.type === 'comprehension')) {
+    return 'study'
+  }
+  return 'cultivation'
 }
 
 export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
@@ -207,6 +247,54 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
         ),
       },
     }))
+  },
+
+  setCharacterManagementTier: (id, tier) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) => (c.id === id ? { ...c, managementTier: tier } : c)),
+      },
+    }))
+  },
+
+  setCharacterAutomationRole: (id, role) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((c) => (c.id === id ? { ...c, automationRole: role } : c)),
+      },
+    }))
+  },
+
+  autoArrangeCharacterDuties: () => {
+    const currentCharacters = get().sect.characters
+    let changed = 0
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        characters: s.sect.characters.map((character) => {
+          const nextTier = inferManagementTier(character)
+          const nextRole = inferAutomationRole(character)
+          if (character.managementTier === nextTier && character.automationRole === nextRole) {
+            return character
+          }
+          changed += 1
+          return {
+            ...character,
+            managementTier: nextTier,
+            automationRole: nextRole,
+          }
+        }),
+      },
+    }))
+
+    if (changed > 0) {
+      emitEvent('milestone', `宗门重新梳理弟子分工，${changed}/${currentCharacters.length} 名弟子的梯队与职责已更新。`)
+    }
+
+    return changed
   },
 
   updateCharacterSkill: (characterId, slotIndex, skillId) => {

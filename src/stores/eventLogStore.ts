@@ -44,6 +44,10 @@ export interface EventLogStore {
 const MAX_EVENTS = 500
 let _counter = 0
 
+function isLegacyEventData(data: Record<string, unknown> | undefined): boolean {
+  return Boolean(data?.isLegacyEncounter || data?.legacyDungeonId || data?.legacyTechniqueId)
+}
+
 export const useEventLogStore = create<EventLogStore>((set) => ({
   events: [],
 
@@ -61,7 +65,14 @@ export const useEventLogStore = create<EventLogStore>((set) => ({
       const prev = s.events[0]
       const mergeableTypes: EventType[] = ['adventure_start', 'adventure_complete', 'adventure_fail']
 
-      if (prev && mergeableTypes.includes(prev.type) && prev.type === type && Date.now() - prev.timestamp < 60000) {
+      if (
+        prev &&
+        mergeableTypes.includes(prev.type) &&
+        prev.type === type &&
+        Date.now() - prev.timestamp < 60000 &&
+        !isLegacyEventData(prev.data) &&
+        !isLegacyEventData(data)
+      ) {
         // Merge: increment count in data
         const count = ((prev.data?.mergedCount as number) ?? 1) + 1
         const merged: GameEvent = {

@@ -227,6 +227,20 @@ function generateName(): string {
   return randomPick(SURNAMES) + randomPick(GIVEN_NAMES)
 }
 
+function getDefaultManagementTier(quality: CharacterQuality): Character['managementTier'] {
+  switch (quality) {
+    case 'chaos':
+    case 'divine':
+      return 'core'
+    case 'immortal':
+      return 'main'
+    case 'spirit':
+      return 'reserve'
+    default:
+      return 'support'
+  }
+}
+
 // Monotonic counter to guarantee unique IDs even within the same millisecond
 let _idCounter = 0
 
@@ -374,6 +388,8 @@ export function generateCharacter(quality: CharacterQuality, activeRoute: SectRo
     totalCultivation: 0,
     specialties,
     assignedBuilding: null,
+    managementTier: getDefaultManagementTier(quality),
+    automationRole: 'cultivation',
     cultivationPath: 'none',
     investedSpiritStone: getRecruitCost(quality),
     techniqueComprehension,

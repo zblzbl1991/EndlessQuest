@@ -1,7 +1,13 @@
 import type { Sect, Building } from '../../types/sect'
 import { BUILDING_DEFS } from '../../data/buildings'
 import { generateCharacter } from '../../systems/character/CharacterEngine'
-import { getLegacyBonus, LEGACY_REWARD_TIERS } from '../../data/legacy'
+import {
+  getLegacyBonus,
+  getLegacyTemplateCapacity,
+  LEGACY_REWARD_TIERS,
+  getUnlockedLegacyPerks,
+} from '../../data/legacy'
+import { createLegacyExpeditionTemplates, ensureUnlockedExpeditionTemplates } from '../../data/expeditionTemplates'
 
 // ---------------------------------------------------------------------------
 // Ascension Report
@@ -13,6 +19,7 @@ export interface AscensionReport {
   statBonus: number
   unlockedTechniques: string[]
   unlockedDungeons: string[]
+  unlockedPerks: string[]
 }
 
 // ---------------------------------------------------------------------------
@@ -72,6 +79,17 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     preferredDungeonId: 'lingCaoValley',
     casualtyTolerance: 'balanced',
     autoBreakthrough: true,
+    productionFocus: 'balanced',
+    overflowTriggerRatio: 0.9,
+    herbOverflowRule: 'sell',
+    oreOverflowRule: 'sell',
+    spiritStoneOverflowRule: 'buyHerb',
+    activeTemplateId: 'steadyHarvest',
+    expeditionTemplates: ensureUnlockedExpeditionTemplates(
+      createLegacyExpeditionTemplates(newAscensionCount),
+      sect.archiveMilestones,
+      getLegacyTemplateCapacity(newAscensionCount)
+    ),
   }
 
   const newSect: Sect = {
@@ -92,7 +110,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     totalAdventureRuns: sect.totalAdventureRuns,
     totalBreakthroughs: sect.totalBreakthroughs,
     lastTransmissionTime: 0,
-    techniqueCodex: ['qingxin', 'lieyan', 'houtu'],
+    techniqueCodex: Array.from(new Set(['qingxin', 'lieyan', 'houtu', ...legacyBonus.unlockedTechniques])),
     offlineAccumulator: {
       resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
       breakthroughs: [],
@@ -129,6 +147,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     statBonus: legacyBonus.statBonus,
     unlockedTechniques: legacyBonus.unlockedTechniques,
     unlockedDungeons: legacyBonus.unlockedDungeons,
+    unlockedPerks: getUnlockedLegacyPerks(newAscensionCount).map((perk) => perk.name),
   }
 
   return { newSect, report }

@@ -14,12 +14,14 @@ import { migratePolicyId } from '../../data/sectRiskPolicies'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { BUILDING_DEFS } from '../../data/buildings'
 import { getAffixById } from '../../data/talentAffixes'
+import { createLegacyExpeditionTemplates, ensureUnlockedExpeditionTemplates } from '../../data/expeditionTemplates'
+import { getLegacyTemplateCapacity } from '../../data/legacy'
 
 const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
 
 // ---------------------------------------------------------------------------
-// SaveMeta v8 — stored in IndexedDB 'meta' store (keyPath: slot)
+// SaveMeta v11 — stored in IndexedDB 'meta' store (keyPath: slot)
 // ---------------------------------------------------------------------------
 
 interface SaveMeta {
@@ -74,6 +76,8 @@ type SavedCharacter = Sect['characters'][number] & {
   assignedBuilding?: Sect['characters'][number]['assignedBuilding']
   specialties?: Sect['characters'][number]['specialties']
   cultivationPath?: Sect['characters'][number]['cultivationPath']
+  managementTier?: Sect['characters'][number]['managementTier']
+  automationRole?: Sect['characters'][number]['automationRole']
 }
 
 const DEFAULT_LEGACY: Sect['legacy'] = {
@@ -115,6 +119,13 @@ const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
   preferredDungeonId: 'lingCaoValley',
   casualtyTolerance: 'balanced',
   autoBreakthrough: true,
+  productionFocus: 'balanced',
+  overflowTriggerRatio: 0.9,
+  herbOverflowRule: 'sell',
+  oreOverflowRule: 'sell',
+  spiritStoneOverflowRule: 'buyHerb',
+  activeTemplateId: 'steadyHarvest',
+  expeditionTemplates: createLegacyExpeditionTemplates(0),
 }
 
 function normalizeFiniteNumber(value: unknown, fallback: number): number {
@@ -131,11 +142,42 @@ function normalizeResources(resources: Partial<Resources> | undefined): Resource
 }
 
 function normalizeAutomationSettings(
-  settings: Partial<Sect['automationSettings']> | undefined
+  settings: Partial<Sect['automationSettings']> | undefined,
+  ascensionCount = 0,
+  archiveMilestones: Sect['archiveMilestones'] = []
 ): Sect['automationSettings'] {
+  const defaultTemplates = createLegacyExpeditionTemplates(ascensionCount)
+  const incomingTemplates = settings?.expeditionTemplates ?? []
+  const templateCapacity = getLegacyTemplateCapacity(ascensionCount)
+  const mergedTemplatesBase =
+    incomingTemplates.length > 0
+      ? [
+          ...defaultTemplates.map((template, index) => ({
+            ...template,
+            ...(incomingTemplates[index] ?? {}),
+          })),
+          ...incomingTemplates.filter(
+            (template) => !defaultTemplates.some((baseTemplate) => baseTemplate.id === template.id)
+          ),
+        ]
+      : defaultTemplates
+  const mergedTemplates = ensureUnlockedExpeditionTemplates(mergedTemplatesBase, archiveMilestones, templateCapacity)
+
   return {
     ...DEFAULT_AUTOMATION_SETTINGS,
     ...settings,
+    activeTemplateId: mergedTemplates.some((template) => template.id === settings?.activeTemplateId)
+      ? (settings?.activeTemplateId as string)
+      : (mergedTemplates[0]?.id ?? DEFAULT_AUTOMATION_SETTINGS.activeTemplateId),
+    productionFocus: settings?.productionFocus ?? DEFAULT_AUTOMATION_SETTINGS.productionFocus,
+    overflowTriggerRatio: normalizeFiniteNumber(
+      settings?.overflowTriggerRatio,
+      DEFAULT_AUTOMATION_SETTINGS.overflowTriggerRatio
+    ),
+    herbOverflowRule: settings?.herbOverflowRule ?? DEFAULT_AUTOMATION_SETTINGS.herbOverflowRule,
+    oreOverflowRule: settings?.oreOverflowRule ?? DEFAULT_AUTOMATION_SETTINGS.oreOverflowRule,
+    spiritStoneOverflowRule: settings?.spiritStoneOverflowRule ?? DEFAULT_AUTOMATION_SETTINGS.spiritStoneOverflowRule,
+    expeditionTemplates: mergedTemplates,
   }
 }
 
@@ -183,7 +225,7 @@ export async function saveGame(): Promise<void> {
     // Write meta
     await tx.objectStore('meta').put({
       slot: 1,
-      version: 10,
+      version: 12,
       lastOnlineTime: Date.now(),
       sectName: sect.name,
       sectLevel: sect.level,
@@ -314,6 +356,13 @@ export async function loadGame(): Promise<boolean> {
     if (meta.version < 10) {
       meta.version = 10
     }
+    // v10 → v11: automation templates in SectAutomationSettings
+    if (meta.version < 11) {
+      meta.version = 11
+    }
+    if (meta.version < 12) {
+      meta.version = 12
+    }
     const rawVault = await db.getAll('vault')
     const pets = (await db.getAll('pets')) as Sect['pets']
 
@@ -370,6 +419,26 @@ export async function loadGame(): Promise<boolean> {
         backpack: migrateToItemStacks(c.backpack),
         specialties: c.specialties ?? [],
         assignedBuilding: normalizedStatus === 'training' && hasValidTrainingAssignment ? rawAssignedBuilding : null,
+        managementTier:
+          c.managementTier ??
+          (c.quality === 'chaos' || c.quality === 'divine'
+            ? 'core'
+            : c.quality === 'immortal'
+              ? 'main'
+              : c.quality === 'spirit'
+                ? 'reserve'
+                : 'support'),
+        automationRole:
+          c.automationRole ??
+          (normalizedStatus === 'recovering'
+            ? 'recovery'
+            : normalizedStatus === 'adventuring' || normalizedStatus === 'patrolling'
+              ? 'expedition'
+              : normalizedStatus === 'training'
+                ? rawAssignedBuilding === 'scriptureHall'
+                  ? 'study'
+                  : 'production'
+                : 'cultivation'),
         cultivationPath: c.cultivationPath ?? 'none',
         fateGrid: (c as any).fateGrid ?? undefined,
         recoveryDaysRemaining: normalizedStatus === 'recovering' ? recoveryDaysRemaining : 0,
@@ -380,6 +449,10 @@ export async function loadGame(): Promise<boolean> {
             : Object.fromEntries((c.learnedTechniques ?? []).map((techId) => [techId, 50])),
       })
     })
+
+    const techniqueCodex = Array.from(
+      new Set([...(meta.techniqueCodex ?? []), ...(meta.legacy?.unlockedTechniques ?? [])])
+    )
 
     const sect: Sect = {
       name: meta.sectName,
@@ -393,7 +466,7 @@ export async function loadGame(): Promise<boolean> {
       totalAdventureRuns: meta.totalAdventureRuns,
       totalBreakthroughs: meta.totalBreakthroughs,
       lastTransmissionTime: meta.lastTransmissionTime,
-      techniqueCodex: meta.techniqueCodex,
+      techniqueCodex,
       offlineAccumulator: {
         resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
         breakthroughs: [],
@@ -406,7 +479,11 @@ export async function loadGame(): Promise<boolean> {
       pathUnlockedAt: meta.pathUnlockedAt ?? null,
       legacy: meta.legacy ?? DEFAULT_LEGACY,
       archiveMilestones: meta.archiveMilestones ?? [],
-      automationSettings: normalizeAutomationSettings(meta.automationSettings),
+      automationSettings: normalizeAutomationSettings(
+        meta.automationSettings,
+        meta.legacy?.ascensionCount ?? 0,
+        meta.archiveMilestones ?? []
+      ),
       stats: meta.stats ?? DEFAULT_STATS,
       strategySettings: meta.strategySettings
         ? {

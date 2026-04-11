@@ -92,8 +92,15 @@ export function getTechniqueCodexCapacity(scriptureHallLevel: number): number {
   return BASE_TECHNIQUE_CODEX_CAPACITY + Math.max(0, scriptureHallLevel) * SCRIPTURE_HALL_CAPACITY_PER_LEVEL
 }
 
+export function countTechniqueCodexSlots(knownTechniqueIds: string[]): number {
+  return knownTechniqueIds.reduce((count, techniqueId) => {
+    const technique = TECHNIQUES.find((item) => item.id === techniqueId)
+    return technique?.origin === 'legacy' ? count : count + 1
+  }, 0)
+}
+
 export function hasTechniqueCodexCapacity(knownTechniqueIds: string[], scriptureHallLevel: number): boolean {
-  return knownTechniqueIds.length < getTechniqueCodexCapacity(scriptureHallLevel)
+  return countTechniqueCodexSlots(knownTechniqueIds) < getTechniqueCodexCapacity(scriptureHallLevel)
 }
 
 export function canLearnTechnique(character: Character, technique: Technique): boolean {

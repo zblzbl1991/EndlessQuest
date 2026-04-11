@@ -41,6 +41,13 @@ import { BLESSING_DEFS } from '../data/blessings'
 import { RELIC_DEFS } from '../data/relics'
 import { getTechniqueById } from '../data/techniquesTable'
 import {
+  buildAdventureResultMessage,
+  buildTechniqueUnlockMessage,
+  isLegacyDungeonId,
+  isLegacyTechniqueId,
+} from '../data/legacyFlavor'
+import { resolveLegacyExpeditionOutcome } from '../data/legacyExpeditions'
+import {
   calcAdventureRouteCombatBonus,
   calcAdventureRouteRewardBonus,
   calcPetCaptureRouteBonus,
@@ -145,6 +152,19 @@ function findDungeon(dungeonId: string): Dungeon | undefined {
   return DUNGEONS.find((d) => d.id === dungeonId)
 }
 
+function buildLegacyAdventureEventData(
+  dungeon: Dungeon | undefined,
+  extra: Record<string, unknown> = {}
+): Record<string, unknown> {
+  if (!dungeon) return extra
+
+  return {
+    ...extra,
+    legacyDungeonId: dungeon.legacyUnlockId ?? undefined,
+    isLegacyEncounter: Boolean(dungeon.legacyUnlockId || isLegacyDungeonId(dungeon.id)),
+  }
+}
+
 /** Pick safest route index (lowest risk) from a floor */
 function pickSafestRoute(floor: DungeonFloor): number {
   const riskOrder: Record<string, number> = { low: 0, medium: 1, high: 2 }
@@ -190,6 +210,34 @@ function applyRouteRewardModifiers(reward: Resources): Resources {
     herb: Math.floor(reward.herb * calcAdventureRouteRewardBonus(routeId, 'herb')),
     ore: Math.floor(reward.ore * calcAdventureRouteRewardBonus(routeId, 'ore')),
   }
+}
+
+function mergeResources(base: Resources, extra: Partial<Resources>): Resources {
+  return {
+    spiritStone: base.spiritStone + (extra.spiritStone ?? 0),
+    spiritEnergy: base.spiritEnergy + (extra.spiritEnergy ?? 0),
+    herb: base.herb + (extra.herb ?? 0),
+    ore: base.ore + (extra.ore ?? 0),
+  }
+}
+
+function appendLegacyReportEntries(
+  report: AdventureReport,
+  entries: ReturnType<typeof resolveLegacyExpeditionOutcome>['reportEntries']
+): AdventureReport['steps'] {
+  if (entries.length === 0) return report.steps
+
+  return [
+    ...report.steps,
+    ...entries.map((entry, index) => ({
+      id: `legacy_step_${report.id}_${index + 1}`,
+      type: entry.type,
+      timestamp: report.finishedAt + index + 1,
+      floor: entry.floor,
+      summary: entry.summary,
+      detail: entry.detail,
+    })),
+  ]
 }
 
 function applyRouteCombatModifiers(unit: CombatUnit): CombatUnit {
@@ -239,7 +287,7 @@ function settleRunMembers(run: DungeonRun): Record<string, AdventureMemberReturn
     if (!memberState) continue
 
     if (memberState.status === 'dead') {
-      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境中陨落' })
+      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: 'Fell inside the dungeon.' })
       outcomes[charId] = { outcome: 'sacrificed' }
     } else {
       sectStore.setCharacterStatus(charId, 'idle')
@@ -261,7 +309,7 @@ function settleFailedRunMembers(run: DungeonRun): Record<string, AdventureMember
     if (!memberState || !character) continue
 
     if (memberState.status === 'dead') {
-      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境中陨落' })
+      sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: 'Failed to return from the dungeon.' })
       outcomes[charId] = { outcome: 'sacrificed' }
       continue
     }
@@ -270,14 +318,18 @@ function settleFailedRunMembers(run: DungeonRun): Record<string, AdventureMember
     if (failureOutcome.outcome === 'recovering') {
       sectStore.setCharacterRecovering(charId, failureOutcome.recoveryDays)
       outcomes[charId] = { outcome: 'recovering', recoveryDays: failureOutcome.recoveryDays }
-      emitEvent('adventure_fail', `${character.name} 伤痕累累回到宗门，需闭关休养 ${failureOutcome.recoveryDays} 天`, {
-        characterId: charId,
-        recoveryDays: failureOutcome.recoveryDays,
-      })
+      emitEvent(
+        'adventure_fail',
+        `${character.name} returned badly wounded and must rest for ${failureOutcome.recoveryDays} days.`,
+        {
+          characterId: charId,
+          recoveryDays: failureOutcome.recoveryDays,
+        }
+      )
       continue
     }
 
-    sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: '在秘境失利后未能归来' })
+    sectStore.sacrificeCharacter(charId, { source: 'adventure', reason: 'Failed to return from the dungeon.' })
     outcomes[charId] = { outcome: 'sacrificed' }
   }
 
@@ -305,7 +357,7 @@ function executeAutoEquip(characterIds: string[]): AutoEquipResult | null {
       const vaultIdx = sectStore.sect.vault.findIndex((s) => s.item.type === 'equipment' && s.item.id === itemId)
       if (vaultIdx === -1) continue
 
-      // Transfer vault → character backpack
+      // Transfer vault 闂?character backpack
       if (!sectStore.transferItemToCharacter(charId, vaultIdx)) continue
 
       // Re-read state after transfer
@@ -331,7 +383,7 @@ function returnAutoEquippedItems(run: DungeonRun): void {
 
   for (const [charId, slots] of Object.entries(run.autoEquipAssignments)) {
     for (const { slotIndex, itemId } of slots) {
-      // Unequip from slot → backpack
+      // Unequip from slot 闂?backpack
       if (!sectStore.unequipItem(charId, slotIndex)) continue
 
       // Re-read character after unequip
@@ -342,7 +394,7 @@ function returnAutoEquippedItems(run: DungeonRun): void {
       const bpIdx = char.backpack.findIndex((s) => s.item.id === itemId)
       if (bpIdx === -1) continue
 
-      // Transfer backpack → vault
+      // Transfer backpack 闂?vault
       sectStore.transferItemToVault(charId, bpIdx)
     }
   }
@@ -427,7 +479,7 @@ function applyDungeonGrowth(
   return anyGrowth ? growthApplied : undefined
 }
 
-/** Apply dungeon growth for manual run path (selectRoute → completeRun/retreat). */
+/** Apply dungeon growth for manual run path (selectRoute 闂?completeRun/retreat). */
 function applyManualRunGrowth(run: DungeonRun, result: 'completed' | 'retreated'): void {
   const sectStore = useSectStore.getState()
 
@@ -491,7 +543,7 @@ function applyManualRunGrowth(run: DungeonRun, result: 'completed' | 'retreated'
 }
 
 function unlockSectMilestone(
-  id: 'firstDungeonClear' | 'firstDungeonLevel10' | 'adventureRuns10' | 'firstPetCapture'
+  id: 'firstDungeonClear' | 'firstDungeonLevel10' | 'adventureRuns10' | 'firstPetCapture' | 'guixuRiftFirstClear'
 ): void {
   const { sect } = useSectStore.getState()
   const nextMilestones = unlockArchiveMilestone(sect.archiveMilestones, id)
@@ -504,7 +556,7 @@ function unlockSectMilestone(
       archiveMilestones: nextMilestones,
     },
   }))
-  emitEvent('milestone', `宗门威名远播，达成里程碑：${def.title}`)
+  emitEvent('milestone', `Milestone reached: ${def.title}`)
 }
 
 /** Count vault items matching a given recipeId */
@@ -695,7 +747,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       memberStates,
       totalRewards: emptyResources(),
       itemRewards: [],
-      eventLog: [{ timestamp: Date.now(), message: `进入${dungeon.name}` }],
+      eventLog: [{ timestamp: Date.now(), message: `Dungeon started: ${dungeon.name}` }],
       status: 'active',
       floorTimer: 0,
       supplyLevel,
@@ -725,7 +777,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       },
     }))
 
-    emitEvent('adventure_start', `弟子整装出发，踏入秘境${dungeon.name}，前途未卜`)
+    emitEvent('adventure_start', `Expedition departed for dungeon ${dungeon.name}`)
 
     return run
   },
@@ -784,9 +836,18 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       automationStrategy: config.automationStrategy,
       baseTeamUnits,
     })
+    const firstLegacyClear = rawReport.result === 'completed' && !state.completedDungeons.includes(config.dungeonId)
+    const legacyOutcome = resolveLegacyExpeditionOutcome({
+      dungeonId: config.dungeonId,
+      result: rawReport.result,
+      floorsCleared: rawReport.floorsCleared,
+      isFirstClear: firstLegacyClear,
+    })
     const report: AdventureReport = {
       ...rawReport,
-      rewards: applyRouteRewardModifiers(rawReport.rewards),
+      rewards: mergeResources(applyRouteRewardModifiers(rawReport.rewards), legacyOutcome.bonusResources),
+      itemRewards: [...rawReport.itemRewards, ...legacyOutcome.bonusItems],
+      steps: appendLegacyReportEntries(rawReport, legacyOutcome.reportEntries),
     }
 
     const finalRun: DungeonRun = {
@@ -807,12 +868,12 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       },
     }))
 
-    const reportEventData = {
+    const reportEventData = buildLegacyAdventureEventData(dungeon, {
       reportId: report.id,
       dungeonId: report.dungeonId,
       result: report.result,
       floorsCleared: report.floorsCleared,
-    }
+    })
 
     let postRunMemberOutcomes: Record<string, AdventureMemberReturnRecord> | null = null
 
@@ -822,7 +883,15 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       postRunMemberOutcomes = get().failRun(startedRun.id, reportEventData)
     } else {
       postRunMemberOutcomes = get().retreat(startedRun.id)
-      emitEvent('adventure_fail', `秘境${dungeon.name}形势不利，弟子仓皇撤退`, reportEventData)
+      emitEvent('adventure_fail', buildAdventureResultMessage(dungeon.id, 'retreated', dungeon.name), reportEventData)
+    }
+
+    if (legacyOutcome.milestoneMessage) {
+      emitEvent(
+        'milestone',
+        legacyOutcome.milestoneMessage,
+        buildLegacyAdventureEventData(dungeon, { reportId: report.id })
+      )
     }
 
     // Apply dungeon growth to surviving characters
@@ -986,18 +1055,21 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           const techniqueName = getTechniqueById(discoveredId)?.name ?? discoveredId
           newLog.push({
             timestamp: Date.now(),
-            message: `秘境深处偶得功法残卷：${techniqueName}`,
+            message: `A fragment of ${techniqueName} surfaced from the dungeon depths.`,
           })
-          emitEvent('technique_unlocked', `秘境中偶获功法残卷，${techniqueName}录入藏经阁`)
+          emitEvent('technique_unlocked', buildTechniqueUnlockMessage(discoveredId, techniqueName, 'adventure'), {
+            techniqueId: discoveredId,
+            legacyTechniqueId: isLegacyTechniqueId(discoveredId) ? discoveredId : undefined,
+          })
         } else if (sectStore.sect.techniqueCodex.length >= codexCapacity) {
           newLog.push({
             timestamp: Date.now(),
-            message: '藏经阁已满，无法收录更多功法，需先扩建',
+            message: '?????????????????????????',
           })
         } else {
           newLog.push({
             timestamp: Date.now(),
-            message: '所得功法残卷与已有重复，未能收录',
+            message: '???????????????????????',
           })
         }
       }
@@ -1080,7 +1152,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         newRelics.push(relicReward)
         newLog.push({
           timestamp: Date.now(),
-          message: `深处秘宝显现，获得秘物：${RELIC_DEFS[relicReward].name}`,
+          message: `A relic emerges from the deepest chamber: ${RELIC_DEFS[relicReward].name}`,
         })
       }
 
@@ -1112,7 +1184,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       if (newBlessingOptions.length > 0) {
         newLog.push({
           timestamp: Date.now(),
-          message: '冥冥中感应到新的赐福之力，请择一而受',
+          message: 'A new blessing resonance is felt within the dungeon. Choose one to accept.',
         })
       }
     }
@@ -1149,7 +1221,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const nextBlessings = run.blessings.includes(blessingId) ? run.blessings : [...run.blessings, blessingId]
     const nextLog = [
       ...run.eventLog,
-      { timestamp: Date.now(), message: `受到赐福加持：${BLESSING_DEFS[blessingId].name}` },
+      { timestamp: Date.now(), message: `Blessing accepted: ${BLESSING_DEFS[blessingId].name}` },
     ]
 
     set((s) => ({
@@ -1171,57 +1243,69 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') {
-      return { success: false, message: '无法推进：未找到进行中的秘境探索' }
+      return { success: false, message: 'Cannot advance: no active run found.' }
     }
 
     // Check if there are alive members
     const hasAlive = run.teamCharacterIds.some((cid) => run.memberStates[cid]?.status !== 'dead')
     if (!hasAlive) {
       get().failRun(runId)
-      return { success: false, message: '队伍已全员陨落' }
+      return { success: false, message: 'The entire team has fallen.' }
     }
 
     // Check if already at or past the end
     if (run.currentFloor > run.floors.length) {
-      return { success: false, message: '已到达秘境尽头' }
+      return { success: false, message: 'The expedition has already reached the final floor.' }
     }
 
     // Auto-pick safest route and resolve
     const floor = run.floors[run.currentFloor - 1]
     if (!floor) {
-      return { success: false, message: '当前层数据缺失' }
+      return { success: false, message: 'Current floor data is missing.' }
     }
 
     const safestIdx = pickSafestRoute(floor)
     const success = state.selectRoute(runId, safestIdx)
 
     if (success) {
-      return { success: true, message: '顺利推进至下一层' }
+      return { success: true, message: 'Advanced to the next floor.' }
     }
 
     // selectRoute handles failRun internally if needed
-    return { success: false, message: '推进失败' }
+    return { success: false, message: 'Advance failed.' }
   },
 
   retreat: (runId) => {
     const state = get()
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return null
+    const legacyOutcome = resolveLegacyExpeditionOutcome({
+      dungeonId: run.dungeonId,
+      result: 'retreated',
+      floorsCleared: Math.max(0, run.currentFloor - 1),
+      isFirstClear: false,
+    })
+    const settledRun: DungeonRun = {
+      ...run,
+      totalRewards: mergeResources(run.totalRewards, legacyOutcome.bonusResources),
+      itemRewards: [...run.itemRewards, ...legacyOutcome.bonusItems],
+      branchTags: [...new Set([...(run.branchTags ?? []), ...legacyOutcome.branchTags])],
+    }
 
     // 1. Deposit 50% of totalRewards
-    depositFractionResourcesToSect(run.totalRewards, 0.5)
+    depositFractionResourcesToSect(settledRun.totalRewards, 0.5)
 
     // 2. Deposit all itemRewards to vault
-    depositItemsToVault(run.itemRewards)
+    depositItemsToVault(settledRun.itemRewards)
 
     // 3. Survivors return to idle; dead disciples are removed with partial refund
-    const outcomes = settleRunMembers(run)
+    const outcomes = settleRunMembers(settledRun)
 
     // 3b. Return auto-equipped items to vault
-    returnAutoEquippedItems(run)
+    returnAutoEquippedItems(settledRun)
 
     // 3c. Apply dungeon growth for manual run path (comprehension only for retreat)
-    applyManualRunGrowth(run, 'retreated')
+    applyManualRunGrowth(settledRun, 'retreated')
 
     // 4. Remove run
     set((s) => {
@@ -1307,9 +1391,30 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return null
 
-    const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_complete', `历经艰险，弟子们凯旋归来，秘境${dungeonName}通关`, eventData)
+    const dungeon = findDungeon(run.dungeonId)
+    const dungeonName = dungeon?.name ?? run.dungeonId
+    const firstLegacyClear = !state.completedDungeons.includes(run.dungeonId)
+    const legacyOutcome = resolveLegacyExpeditionOutcome({
+      dungeonId: run.dungeonId,
+      result: 'completed',
+      floorsCleared: Math.max(0, run.currentFloor - 1),
+      isFirstClear: firstLegacyClear,
+    })
+    const settledRun: DungeonRun = {
+      ...run,
+      totalRewards: mergeResources(run.totalRewards, legacyOutcome.bonusResources),
+      itemRewards: [...run.itemRewards, ...legacyOutcome.bonusItems],
+      branchTags: [...new Set([...(run.branchTags ?? []), ...legacyOutcome.branchTags])],
+    }
+    emitEvent(
+      'adventure_complete',
+      buildAdventureResultMessage(run.dungeonId, 'completed', dungeonName),
+      buildLegacyAdventureEventData(dungeon, eventData)
+    )
     unlockSectMilestone('firstDungeonClear')
+    if (firstLegacyClear && run.dungeonId === 'guixuRift') {
+      unlockSectMilestone('guixuRiftFirstClear')
+    }
 
     // Update stats: adventure completion + max floor
     useSectStore.setState((s) => ({
@@ -1336,19 +1441,27 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }
     }
     // 1. Deposit 100% of totalRewards
-    depositResourcesToSect(run.totalRewards)
+    depositResourcesToSect(settledRun.totalRewards)
 
     // 2. Deposit all itemRewards to vault
-    depositItemsToVault(run.itemRewards)
+    depositItemsToVault(settledRun.itemRewards)
 
     // 3. Survivors return to idle; dead disciples are removed with partial refund
-    const outcomes = settleRunMembers(run)
+    const outcomes = settleRunMembers(settledRun)
 
     // 3b. Return auto-equipped items to vault
-    returnAutoEquippedItems(run)
+    returnAutoEquippedItems(settledRun)
 
     // 3c. Apply dungeon growth for manual run path
-    applyManualRunGrowth(run, 'completed')
+    applyManualRunGrowth(settledRun, 'completed')
+
+    if (legacyOutcome.milestoneMessage && typeof eventData.reportId !== 'string') {
+      emitEvent(
+        'milestone',
+        legacyOutcome.milestoneMessage,
+        buildLegacyAdventureEventData(dungeon, { legacyFirstClear: true })
+      )
+    }
 
     // 4. Add to completed dungeons
     set((s) => {
@@ -1370,8 +1483,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
     const run = state.activeRuns[runId]
     if (!run || run.status !== 'active') return null
 
-    const dungeonName = DUNGEONS.find((d) => d.id === run.dungeonId)?.name ?? run.dungeonId
-    emitEvent('adventure_fail', `秘境${dungeonName}探索失利，弟子折戟而归`, eventData)
+    const dungeon = findDungeon(run.dungeonId)
+    const dungeonName = dungeon?.name ?? run.dungeonId
+    emitEvent(
+      'adventure_fail',
+      buildAdventureResultMessage(run.dungeonId, 'failed', dungeonName),
+      buildLegacyAdventureEventData(dungeon, eventData)
+    )
 
     // Update stats: adventure failure
     useSectStore.setState((s) => ({
@@ -1465,7 +1583,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }
     }
     depositResourcesToSect(resources)
-    emitEvent('dispatch_complete', `${mission.name}差事已毕，弟子归来复命`)
+    emitEvent('dispatch_complete', `${mission.name} is complete, and the disciple has returned.`)
 
     // Return character to idle
     useSectStore.getState().setCharacterStatus(characterId, 'idle')
@@ -1502,10 +1620,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         const healAmount = Math.floor(ms.maxHp * offer.value)
         ms.currentHp = Math.min(ms.maxHp, ms.currentHp + healAmount)
       }
-      newLog.push({ timestamp: Date.now(), message: `使用${offer.name}，伤势渐愈` })
+      newLog.push({ timestamp: Date.now(), message: `Used ${offer.name}, the team stabilizes.` })
     } else if (offer.effect === 'skip') {
       // Skip current floor by advancing
-      newLog.push({ timestamp: Date.now(), message: `使用${offer.name}，略过此层` })
+      newLog.push({ timestamp: Date.now(), message: `Used ${offer.name}, this floor is skipped.` })
     }
 
     // Remove used offer
@@ -1600,7 +1718,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       unlockSectMilestone('firstPetCapture')
 
       // Log the capture
-      const newLog = [...run.eventLog, { timestamp: Date.now(), message: `灵兽收服！${pet.name}归入宗门麾下` }]
+      const newLog = [...run.eventLog, { timestamp: Date.now(), message: `Pet captured: ${pet.name} joins the sect.` }]
       set((s) => ({
         activeRuns: {
           ...s.activeRuns,
@@ -1615,7 +1733,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         ...run.eventLog,
         {
           timestamp: Date.now(),
-          message: '灵兽挣脱了束缚，未能捕获。',
+          message: 'The spirit beast broke free before it could be captured.',
         },
       ]
       set((s) => ({
@@ -1661,10 +1779,19 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 // Backward-compatible helper
 // ---------------------------------------------------------------------------
 
-function isDungeonUnlocked(dungeon: Dungeon, playerRealm: number, playerStage: number): boolean {
-  return (
+function isDungeonUnlocked(
+  dungeon: Dungeon,
+  playerRealm: number,
+  playerStage: number,
+  unlockedLegacyDungeonIds: string[] = []
+): boolean {
+  const realmUnlocked =
     playerRealm > dungeon.unlockRealm || (playerRealm === dungeon.unlockRealm && playerStage >= dungeon.unlockStage)
-  )
+
+  if (!realmUnlocked) return false
+  if (!dungeon.legacyUnlockId) return true
+
+  return unlockedLegacyDungeonIds.includes(dungeon.legacyUnlockId)
 }
 
 export { isDungeonUnlocked }

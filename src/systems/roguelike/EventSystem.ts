@@ -170,6 +170,299 @@ function makeNoTeamResult(type: DungeonEvent['type']): EventResult {
   }
 }
 
+function createLegacyMaterialDrop(
+  idPrefix: string,
+  name: string,
+  quality: ItemQuality,
+  description: string,
+  sellPrice: number
+): AnyItem {
+  return {
+    id: `${idPrefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    name,
+    quality,
+    type: 'material',
+    description,
+    sellPrice,
+    category: 'other',
+  }
+}
+
+function hasArchiveMilestone(id: string): boolean {
+  return useSectStore.getState().sect.archiveMilestones.some((milestone) => milestone.id === id)
+}
+
+function resolveGuixuRandomEvent(team: CombatUnit[], floorNumber: number, roll: number): EventResult {
+  const aliveTeam = getAliveTeam(team)
+  const maxHp = totalTeamMaxHp(team)
+  const emptyReward = { spiritStone: 0, herb: 0, ore: 0 }
+  const hasLegacyPair = hasArchiveMilestone('legacyForgePair')
+
+  if (roll < (hasLegacyPair ? 0.48 : 0.38)) {
+    return {
+      type: 'random',
+      success: true,
+      reward: {
+        spiritStone: (hasLegacyPair ? 55 : 40) * floorNumber,
+        herb: 0,
+        ore: (hasLegacyPair ? 4 : 3) * floorNumber,
+      },
+      itemRewards: hasLegacyPair
+        ? [
+            createLegacyMaterialDrop(
+              'guixu_tide_crystal_event',
+              '归墟潮晶',
+              'spirit',
+              '裂隙回潮时凝成的异晶，可作为后续遗产锻造的引子。',
+              180
+            ),
+            createLegacyMaterialDrop(
+              'guixu_tide_crystal_event_bonus',
+              '归墟潮晶',
+              'spirit',
+              '双遗共鸣后，裂隙回响会额外凝出一枚潮晶。',
+              180
+            ),
+          ]
+        : [
+            createLegacyMaterialDrop(
+              'guixu_tide_crystal_event',
+              '归墟潮晶',
+              'spirit',
+              '裂隙回潮时凝成的异晶，可作为后续遗产锻造的引子。',
+              180
+            ),
+          ],
+      message: hasLegacyPair
+        ? '双遗共鸣牵动归墟潮声，队伍顺势捞起了两枚归墟潮晶。'
+        : '归墟潮声卷过断壁，队伍在回响中捞起了一枚归墟潮晶。',
+      hpChanges: {},
+      mutationTrigger: 'insight',
+    }
+  }
+
+  if (roll < (hasLegacyPair ? 0.78 : 0.72)) {
+    const healAmount = Math.floor(maxHp * 0.14)
+    const perUnitHeal = aliveTeam.length > 0 ? Math.floor(healAmount / aliveTeam.length) : 0
+    const hpChanges: Record<string, number> = {}
+    for (const unit of aliveTeam) hpChanges[unit.id] = perUnitHeal
+    return {
+      type: 'random',
+      success: true,
+      reward: { spiritStone: 20 * floorNumber, herb: 0, ore: 0 },
+      itemRewards: [],
+      message: hasLegacyPair
+        ? '双遗器在裂隙中短暂共鸣，渊壁灵潮被压稳，队伍得以从容调息。'
+        : '渊壁间残存的灵潮短暂平息，队伍借机调息并收拢了一缕散逸灵息。',
+      hpChanges,
+      mutationTrigger: 'rest',
+    }
+  }
+
+  if (roll < 0.9) {
+    const hpChanges: Record<string, number> = {}
+    for (const unit of aliveTeam) hpChanges[unit.id] = -Math.floor(unit.maxHp * 0.06)
+    return {
+      type: 'random',
+      success: false,
+      reward: { spiritStone: 25 * floorNumber, herb: 0, ore: 2 * floorNumber },
+      itemRewards: [],
+      message: hasLegacyPair
+        ? '裂隙余波反卷而来，双遗器勉强稳住了阵脚，但队伍仍耗去一轮护体灵力。'
+        : '裂隙余波反卷而来，虽强行收住战线，仍被逼得耗去一轮护体灵力。',
+      hpChanges,
+    }
+  }
+
+  const damageAmount = Math.floor(maxHp * 0.12)
+  const perUnitDamage = aliveTeam.length > 0 ? Math.floor(damageAmount / aliveTeam.length) : 0
+  const hpChanges: Record<string, number> = {}
+  for (const unit of aliveTeam) hpChanges[unit.id] = -perUnitDamage
+  return {
+    type: 'random',
+    success: false,
+    reward: emptyReward,
+    itemRewards: [],
+    message: hasLegacyPair
+      ? '归墟裂隙骤然塌陷，所幸双遗器先一步预警，队伍才勉强全身而退。'
+      : '归墟裂隙骤然塌陷，队伍仓促退避，几乎被回潮吞没。',
+    hpChanges,
+  }
+}
+
+function resolveEnhancedGuixuRandomEvent(team: CombatUnit[], floorNumber: number, roll: number): EventResult {
+  const hasLegacyTrinity = hasArchiveMilestone('legacyForgeTrinity')
+  if (!hasLegacyTrinity) {
+    return resolveGuixuRandomEvent(team, floorNumber, roll)
+  }
+
+  const aliveTeam = getAliveTeam(team)
+  const maxHp = totalTeamMaxHp(team)
+
+  if (roll < 0.56) {
+    return {
+      type: 'random',
+      success: true,
+      reward: { spiritStone: 72 * floorNumber, herb: 0, ore: 5 * floorNumber },
+      itemRewards: [
+        createLegacyMaterialDrop(
+          'guixu_tide_crystal_event',
+          '归墟潮晶',
+          'spirit',
+          '裂隙回潮时凝成的异晶，可作为后续遗产锻造的引子。',
+          180
+        ),
+        createLegacyMaterialDrop(
+          'guixu_tide_crystal_event_bonus',
+          '归墟潮晶',
+          'spirit',
+          '双遗共鸣后，裂隙回响会额外凝出一枚潮晶。',
+          180
+        ),
+        createLegacyMaterialDrop(
+          'abyss_echo_shard_event_trinity',
+          '渊息残片',
+          'divine',
+          '三遗齐鸣后，归墟更深处也会被拖拽出来，吐出新的残片。',
+          420
+        ),
+      ],
+      message: '三遗齐鸣牵动归墟回响，队伍不只捞起了潮晶，还从更深处带回了一枚渊息残片。',
+      hpChanges: {},
+      mutationTrigger: 'insight',
+    }
+  }
+
+  if (roll < 0.84) {
+    const healAmount = Math.floor(maxHp * 0.2)
+    const perUnitHeal = aliveTeam.length > 0 ? Math.floor(healAmount / aliveTeam.length) : 0
+    const hpChanges: Record<string, number> = {}
+    for (const unit of aliveTeam) hpChanges[unit.id] = perUnitHeal
+    return {
+      type: 'random',
+      success: true,
+      reward: { spiritStone: 20 * floorNumber, herb: 0, ore: 0 },
+      itemRewards: [],
+      message: '三件遗器短暂稳住了裂隙灵潮，队伍不仅得以调息，还借势固住了一层护身界力。',
+      hpChanges,
+      mutationTrigger: 'rest',
+    }
+  }
+
+  if (roll < 0.9) {
+    const hpChanges: Record<string, number> = {}
+    for (const unit of aliveTeam) hpChanges[unit.id] = -Math.floor(unit.maxHp * 0.06)
+    return {
+      type: 'random',
+      success: false,
+      reward: { spiritStone: 25 * floorNumber, herb: 0, ore: 2 * floorNumber },
+      itemRewards: [],
+      message: '裂隙余波反卷而来，三遗器勉强稳住了阵脚，队伍虽有损耗，但没有被乱潮冲散。',
+      hpChanges,
+    }
+  }
+
+  const damageAmount = Math.floor(maxHp * 0.12)
+  const perUnitDamage = aliveTeam.length > 0 ? Math.floor(damageAmount / aliveTeam.length) : 0
+  const hpChanges: Record<string, number> = {}
+  for (const unit of aliveTeam) hpChanges[unit.id] = -perUnitDamage
+  return {
+    type: 'random',
+    success: false,
+    reward: { spiritStone: 0, herb: 0, ore: 0 },
+    itemRewards: [],
+    message: '归墟裂隙骤然塌陷，三遗器先一步预警，队伍才得以及时抽身而退。',
+    hpChanges,
+  }
+}
+
+function resolveGuixuAncientCaveEvent(floorNumber: number, techniqueId: string, techniqueName: string): EventResult {
+  const hasLegacyPair = hasArchiveMilestone('legacyForgePair')
+  const hasLegacyTrinity = hasArchiveMilestone('legacyForgeTrinity')
+
+  if (hasLegacyTrinity) {
+    return {
+      type: 'ancient_cave',
+      success: true,
+      reward: { spiritStone: 120 * floorNumber, herb: 0, ore: 0 },
+      itemRewards: [
+        createLegacyMaterialDrop(
+          'abyss_echo_shard_event',
+          '渊息残片',
+          'divine',
+          '古修洞府深处震落的残片，仍残留着归墟最深处的低语。',
+          420
+        ),
+        createLegacyMaterialDrop(
+          'guixu_tide_crystal_cave_bonus',
+          '归墟潮晶',
+          'spirit',
+          '双遗共鸣后，遗府中的潮痕也更容易凝成遗材。',
+          180
+        ),
+        createLegacyMaterialDrop(
+          'abyss_echo_shard_event_trinity_bonus',
+          '渊息残片',
+          'divine',
+          '三遗齐鸣时，遗府深处会再返回一枚深层残片。',
+          420
+        ),
+      ],
+      message: `三遗齐鸣引动归墟遗府，队伍在参得 ${techniqueName} 残痕的同时，不只带回潮晶，还多捞出了一枚深层残片。`,
+      hpChanges: {},
+      techniqueReward: { techniqueId },
+      mutationTrigger: 'insight',
+    }
+  }
+
+  if (hasLegacyPair) {
+    return {
+      type: 'ancient_cave',
+      success: true,
+      reward: { spiritStone: 90 * floorNumber, herb: 0, ore: 0 },
+      itemRewards: [
+        createLegacyMaterialDrop(
+          'abyss_echo_shard_event',
+          '渊息残片',
+          'divine',
+          '古修洞府深处震落的残片，仍残留着归墟最深处的低语。',
+          420
+        ),
+        createLegacyMaterialDrop(
+          'guixu_tide_crystal_cave_bonus',
+          '归墟潮晶',
+          'spirit',
+          '双遗共鸣后，遗府中的潮痕也更容易凝成遗材。',
+          180
+        ),
+      ],
+      message: `双遗共鸣引动归墟遗府，队伍在参得 ${techniqueName} 残痕的同时又收拢了一枚归墟潮晶。`,
+      hpChanges: {},
+      techniqueReward: { techniqueId },
+      mutationTrigger: 'insight',
+    }
+  }
+
+  return {
+    type: 'ancient_cave',
+    success: true,
+    reward: { spiritStone: 60 * floorNumber, herb: 0, ore: 0 },
+    itemRewards: [
+      createLegacyMaterialDrop(
+        'abyss_echo_shard_event',
+        '渊息残片',
+        'divine',
+        '古修洞府深处震落的残片，仍残留着归墟最深处的低语。',
+        420
+      ),
+    ],
+    message: `在归墟遗府中参得 ${techniqueName} 的残痕，并取回了一枚渊息残片。`,
+    hpChanges: {},
+    techniqueReward: { techniqueId },
+    mutationTrigger: 'insight',
+  }
+}
+
 export function resolveEvent(
   event: DungeonEvent,
   team: CombatUnit[],
@@ -240,6 +533,10 @@ export function resolveEvent(
       const aliveTeam = getAliveTeam(team)
       const maxHp = totalTeamMaxHp(team)
       const roll = Math.random()
+
+      if (dungeonId === 'guixuRift') {
+        return resolveEnhancedGuixuRandomEvent(team, floorNumber, roll)
+      }
 
       // Fortune-adjusted probabilities:
       // Base: treasure 50%, rest 30%, trap 20%
@@ -408,6 +705,47 @@ export function resolveEvent(
     case 'ancient_cave': {
       const techniqueId = pickTechniqueForFloor(floorNumber)
       const techniqueName = getTechniqueById(techniqueId)?.name ?? techniqueId
+      if (dungeonId === 'guixuRift') {
+        return resolveGuixuAncientCaveEvent(floorNumber, techniqueId, techniqueName)
+        const hasLegacyPair = hasArchiveMilestone('legacyForgePair')
+        return {
+          type: event.type,
+          success: true,
+          reward: { spiritStone: (hasLegacyPair ? 90 : 60) * floorNumber, herb: 0, ore: 0 },
+          itemRewards: hasLegacyPair
+            ? [
+                createLegacyMaterialDrop(
+                  'abyss_echo_shard_event',
+                  '渊息残片',
+                  'divine',
+                  '古修洞府深处震落的残片，仍残留着归墟最深处的低语。',
+                  420
+                ),
+                createLegacyMaterialDrop(
+                  'guixu_tide_crystal_cave_bonus',
+                  '归墟潮晶',
+                  'spirit',
+                  '双遗共鸣后，遗府中的潮痕也更容易凝成遗材。',
+                  180
+                ),
+              ]
+            : [
+                createLegacyMaterialDrop(
+                  'abyss_echo_shard_event',
+                  '渊息残片',
+                  'divine',
+                  '古修洞府深处震落的残片，仍残留着归墟最深处的低语。',
+                  420
+                ),
+              ],
+          message: hasLegacyPair
+            ? `双遗共鸣引动归墟遗府，队伍在参得 ${techniqueName} 残痕的同时又收拢了一枚归墟潮晶。`
+            : `在归墟遗府中参得 ${techniqueName} 的残痕，并取回了一枚渊息残片。`,
+          hpChanges: {},
+          techniqueReward: { techniqueId },
+          mutationTrigger: 'insight',
+        }
+      }
       return {
         type: event.type,
         success: true,

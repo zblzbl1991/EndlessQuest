@@ -93,6 +93,45 @@ export function countConsumablesByRecipeId(stacks: ItemStack[], recipeId: string
 }
 
 /**
+ * Count total quantity of items matching a display name.
+ */
+export function countItemsByName(stacks: ItemStack[], itemName: string): number {
+  return stacks.reduce((sum, stack) => {
+    if (stack.item.name === itemName) {
+      return sum + stack.quantity
+    }
+    return sum
+  }, 0)
+}
+
+/**
+ * Remove N items matching a display name. Works across stacked and non-stacked entries.
+ */
+export function removeItemsByName(
+  stacks: ItemStack[],
+  itemName: string,
+  count: number
+): { stacks: ItemStack[]; removed: number } {
+  let remaining = count
+  const next = [...stacks]
+
+  for (let i = next.length - 1; i >= 0 && remaining > 0; i--) {
+    const stack = next[i]
+    if (stack.item.name !== itemName) continue
+
+    if (stack.quantity <= remaining) {
+      remaining -= stack.quantity
+      next.splice(i, 1)
+    } else {
+      next[i] = { ...stack, quantity: stack.quantity - remaining }
+      remaining = 0
+    }
+  }
+
+  return { stacks: next, removed: count - remaining }
+}
+
+/**
  * Migrate old AnyItem[] to ItemStack[]. Wraps each item as { item, quantity: 1 }.
  * If already ItemStack[] (has .item and .quantity properties), returns as-is.
  */

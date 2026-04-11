@@ -1,5 +1,11 @@
-import type { Equipment, ItemQuality, EquipSlot } from '../../types/item'
+import type { ArchiveMilestoneId } from '../../types/sect'
+import type { Equipment, EquipSlot, ItemQuality } from '../../types/item'
 import { generateEquipment } from '../item/ItemGenerator'
+
+export interface ForgeMaterialCost {
+  itemName: string
+  quantity: number
+}
 
 export interface ForgeRecipe {
   id: string
@@ -8,6 +14,11 @@ export interface ForgeRecipe {
   quality: ItemQuality
   cost: { ore: number; spiritStone: number }
   successRate: number
+  description?: string
+  forcedSlot?: EquipSlot
+  materialCosts?: ForgeMaterialCost[]
+  legacy?: boolean
+  requiredMilestone?: ArchiveMilestoneId
 }
 
 export const FORGE_RECIPES: ForgeRecipe[] = [
@@ -91,6 +102,52 @@ export const FORGE_RECIPES: ForgeRecipe[] = [
     cost: { ore: 1200, spiritStone: 4500 },
     successRate: 0.3,
   },
+  {
+    id: 'forge_guixu_weapon',
+    name: '归墟道兵',
+    minForgeLevel: 7,
+    quality: 'chaos',
+    cost: { ore: 1600, spiritStone: 6800 },
+    successRate: 0.55,
+    forcedSlot: 'weapon',
+    materialCosts: [
+      { itemName: '归墟潮晶', quantity: 2 },
+      { itemName: '渊息残片', quantity: 1 },
+    ],
+    legacy: true,
+    description: '以归墟裂隙深处的遗材重铸道兵，为宗门主力准备高风险高收益的后期武器。',
+  },
+  {
+    id: 'forge_guixu_talisman',
+    name: '镇渊遗符',
+    minForgeLevel: 7,
+    quality: 'chaos',
+    cost: { ore: 900, spiritStone: 6200 },
+    successRate: 0.6,
+    forcedSlot: 'talisman',
+    materialCosts: [
+      { itemName: '归墟潮晶', quantity: 1 },
+      { itemName: '渊息残片', quantity: 1 },
+    ],
+    legacy: true,
+    description: '将归墟余响封入法符，可同时补足后期护持、节奏与爆发。',
+  },
+  {
+    id: 'forge_guixu_armor',
+    name: '归墟镇界袍',
+    minForgeLevel: 8,
+    quality: 'chaos',
+    cost: { ore: 2400, spiritStone: 9200 },
+    successRate: 0.45,
+    forcedSlot: 'armor',
+    materialCosts: [
+      { itemName: '归墟潮晶', quantity: 3 },
+      { itemName: '渊息残片', quantity: 2 },
+    ],
+    legacy: true,
+    requiredMilestone: 'legacyForgePair',
+    description: '双遗共鸣后才能锻成的第三件遗器，能把归墟回响固化为宗门的结界与维持力。',
+  },
 ]
 
 export const FORGE_SLOTS: EquipSlot[] = [
@@ -108,11 +165,19 @@ export const FORGE_SLOTS: EquipSlot[] = [
 export function canForge(
   recipe: ForgeRecipe,
   resources: { ore: number; spiritStone: number },
-  forgeLevel: number
+  forgeLevel: number,
+  materialCounts: Record<string, number> = {},
+  unlockedMilestones: ArchiveMilestoneId[] = []
 ): boolean {
   if (forgeLevel < recipe.minForgeLevel) return false
+  if (recipe.requiredMilestone && !unlockedMilestones.includes(recipe.requiredMilestone)) return false
   if (resources.ore < recipe.cost.ore) return false
   if (resources.spiritStone < recipe.cost.spiritStone) return false
+
+  for (const material of recipe.materialCosts ?? []) {
+    if ((materialCounts[material.itemName] ?? 0) < material.quantity) return false
+  }
+
   return true
 }
 
@@ -124,10 +189,11 @@ export function forgeEquipment(
   if (forgeLevel < recipe.minForgeLevel) return null
   const effectiveRate = Math.min(1, recipe.successRate + forgeBuffSuccessBonus)
   if (Math.random() > effectiveRate) return null
-  const slot = FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
+
+  const slot = recipe.forcedSlot ?? FORGE_SLOTS[Math.floor(Math.random() * FORGE_SLOTS.length)]
   return generateEquipment(slot, recipe.quality)
 }
 
 export function getAvailableForgeRecipes(forgeLevel: number): ForgeRecipe[] {
-  return FORGE_RECIPES.filter((r) => r.minForgeLevel <= forgeLevel)
+  return FORGE_RECIPES.filter((recipe) => recipe.minForgeLevel <= forgeLevel)
 }

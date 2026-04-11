@@ -1,6 +1,7 @@
 import type { RandomEventDef, RandomEventRarity, RandomEventResult } from '../../types/randomEvent'
 import type { Sect } from '../../types'
 import { RANDOM_EVENTS, EVENT_RARITY_WEIGHTS, EVENT_RARITY_NAMES } from '../../data/randomEvents'
+import { getLegacyPositiveEventBias } from '../../data/legacy'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -44,12 +45,18 @@ function rollRarity(): RandomEventRarity {
 }
 
 /** Pick a random event of the given rarity */
-function rollEvent(rarity: RandomEventRarity): RandomEventDef {
+function rollEvent(rarity: RandomEventRarity, positiveBias = 0): RandomEventDef {
   const candidates = RANDOM_EVENTS.filter((e) => e.rarity === rarity)
   if (candidates.length === 0) {
     // Fallback to common if the rolled rarity has no events
     return RANDOM_EVENTS.filter((e) => e.rarity === 'common')[0]
   }
+
+  const positiveCandidates = candidates.filter((event) => event.category !== 'disaster')
+  if (positiveBias > 0 && positiveCandidates.length > 0 && Math.random() < positiveBias) {
+    return positiveCandidates[Math.floor(Math.random() * positiveCandidates.length)]
+  }
+
   return candidates[Math.floor(Math.random() * candidates.length)]
 }
 
@@ -89,7 +96,7 @@ export function evaluateRandomEvents(sect: Sect, deltaSec: number, lastEventSec:
 
   // Roll rarity and pick event
   const rarity = rollRarity()
-  const event = rollEvent(rarity)
+  const event = rollEvent(rarity, getLegacyPositiveEventBias(sect.legacy.ascensionCount))
 
   // Build narrative message
   const rarityTag = EVENT_RARITY_NAMES[rarity]

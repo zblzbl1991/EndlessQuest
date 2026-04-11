@@ -8,6 +8,7 @@ import type { AutoRecipe } from '../../data/recipes'
 import { BUILDING_DEFS } from '../../data/buildings'
 import { generateCharacter } from '../../systems/character/CharacterEngine'
 import type { ShopState } from '../../systems/trade/TradeSystem'
+import { createLegacyExpeditionTemplates } from '../../data/expeditionTemplates'
 
 let _materialIdCounter = 0
 
@@ -109,6 +110,13 @@ export function createInitialState(): { sect: Sect } {
         preferredDungeonId: 'lingCaoValley',
         casualtyTolerance: 'balanced',
         autoBreakthrough: true,
+        productionFocus: 'balanced',
+        overflowTriggerRatio: 0.9,
+        herbOverflowRule: 'sell',
+        oreOverflowRule: 'sell',
+        spiritStoneOverflowRule: 'buyHerb',
+        activeTemplateId: 'steadyHarvest',
+        expeditionTemplates: createLegacyExpeditionTemplates(0),
       },
       stats: {
         totalSpiritStoneEarned: 0,
