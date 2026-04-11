@@ -5,6 +5,7 @@ import { BLESSINGS } from '../data/blessings'
 import { RELICS } from '../data/relics'
 import { applyRunBuild, type RunBuild } from '../systems/roguelike/RunBuildSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
+import { useSectStore } from '../stores/sectStore'
 
 const dummyPlayer: CombatUnit = {
   id: 'p1',
@@ -101,6 +102,10 @@ describe('Roguelike MapGenerator', () => {
 })
 
 describe('EventSystem', () => {
+  beforeEach(() => {
+    useSectStore.getState().reset()
+  })
+
   it('should resolve combat event', () => {
     const result = resolveEvent({ type: 'combat', id: 'test' }, dummyTeam, 1)
     expect(result.type).toBe('combat')
@@ -130,6 +135,74 @@ describe('EventSystem', () => {
     const result = resolveEvent({ type: 'boss', id: 'test' }, dummyTeam, 1)
     expect(result.type).toBe('boss')
     expect(result.combatResult).toBeDefined()
+  })
+
+  it('should resolve guixu random event with exclusive material rewards', () => {
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.2)
+    const result = resolveEvent({ type: 'random', id: 'test' }, dummyTeam, 6, undefined, 'guixuRift')
+    expect(result.type).toBe('random')
+    expect(result.message).toContain('归墟')
+    expect(result.itemRewards.some((item) => item.name === '归墟潮晶')).toBe(true)
+    randomSpy.mockRestore()
+  })
+
+  it('should strengthen guixu random rewards after the paired legacy forge milestone', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        archiveMilestones: [{ id: 'legacyForgePair', unlockedAt: 1 }],
+      },
+    }))
+
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.2)
+    const result = resolveEvent({ type: 'random', id: 'test' }, dummyTeam, 6, undefined, 'guixuRift')
+    expect(result.itemRewards.filter((item) => item.name === '归墟潮晶').length).toBeGreaterThanOrEqual(2)
+    expect(result.message).toContain('双遗')
+    randomSpy.mockRestore()
+  })
+
+  it('should resolve guixu ancient cave with a legacy shard reward', () => {
+    const result = resolveEvent({ type: 'ancient_cave', id: 'test' }, dummyTeam, 8, undefined, 'guixuRift')
+    expect(result.type).toBe('ancient_cave')
+    expect(result.techniqueReward).toBeDefined()
+    expect(result.itemRewards.some((item) => item.name === '渊息残片')).toBe(true)
+  })
+
+  it('should add a shard bonus to guixu random rewards after the trinity milestone', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        archiveMilestones: [
+          { id: 'legacyForgePair', unlockedAt: 1 },
+          { id: 'legacyForgeTrinity', unlockedAt: 2 },
+        ],
+      },
+    }))
+
+    const randomSpy = vi.spyOn(Math, 'random').mockReturnValue(0.2)
+    const result = resolveEvent({ type: 'random', id: 'test' }, dummyTeam, 6, undefined, 'guixuRift')
+    expect(result.itemRewards.filter((item) => item.name === '归墟潮晶').length).toBeGreaterThanOrEqual(2)
+    expect(result.itemRewards.some((item) => item.name === '渊息残片')).toBe(true)
+    expect(result.message).toContain('三遗齐鸣')
+    randomSpy.mockRestore()
+  })
+
+  it('should escalate guixu ancient cave rewards after the trinity milestone', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        archiveMilestones: [
+          { id: 'legacyForgePair', unlockedAt: 1 },
+          { id: 'legacyForgeTrinity', unlockedAt: 2 },
+        ],
+      },
+    }))
+
+    const result = resolveEvent({ type: 'ancient_cave', id: 'test' }, dummyTeam, 8, undefined, 'guixuRift')
+    expect(result.reward.spiritStone).toBe(960)
+    expect(result.itemRewards.filter((item) => item.name === '渊息残片').length).toBeGreaterThanOrEqual(2)
+    expect(result.itemRewards.some((item) => item.name === '归墟潮晶')).toBe(true)
+    expect(result.message).toContain('三遗齐鸣')
   })
 
   it('rest healing should scale with maxHp', () => {

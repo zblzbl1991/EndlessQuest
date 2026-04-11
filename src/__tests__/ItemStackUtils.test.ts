@@ -4,9 +4,11 @@ import {
   removeStackAtIndex,
   removeConsumablesByRecipeId,
   countConsumablesByRecipeId,
+  countItemsByName,
   migrateToItemStacks,
+  removeItemsByName,
 } from '../systems/item/ItemStackUtils'
-import type { Consumable } from '../types'
+import type { Consumable, Material } from '../types'
 
 function makeConsumable(id: string, recipeId?: string): Consumable {
   return {
@@ -34,6 +36,18 @@ function makeEquipment(id: string) {
     enhanceLevel: 0,
     refinementStats: null,
     setId: null,
+  }
+}
+
+function makeMaterial(id: string, name: string): Material {
+  return {
+    id,
+    name,
+    quality: 'spirit',
+    type: 'material',
+    description: '',
+    sellPrice: 20,
+    category: 'other',
   }
 }
 
@@ -118,6 +132,34 @@ describe('ItemStackUtils', () => {
       ]
       expect(countConsumablesByRecipeId(stacks, 'hp')).toBe(10)
       expect(countConsumablesByRecipeId(stacks, 'spirit')).toBe(0)
+    })
+  })
+
+  describe('countItemsByName', () => {
+    it('should sum matching item names across stacks', () => {
+      const stacks = [
+        { item: makeMaterial('m1', '归墟潮晶'), quantity: 1 },
+        { item: makeMaterial('m2', '归墟潮晶'), quantity: 2 },
+        { item: makeMaterial('m3', '渊息残片'), quantity: 1 },
+      ]
+
+      expect(countItemsByName(stacks, '归墟潮晶')).toBe(3)
+      expect(countItemsByName(stacks, '不存在')).toBe(0)
+    })
+  })
+
+  describe('removeItemsByName', () => {
+    it('should remove matching items across multiple stacks', () => {
+      const stacks = [
+        { item: makeMaterial('m1', '归墟潮晶'), quantity: 1 },
+        { item: makeMaterial('m2', '渊息残片'), quantity: 1 },
+        { item: makeMaterial('m3', '归墟潮晶'), quantity: 2 },
+      ]
+
+      const { stacks: result, removed } = removeItemsByName(stacks, '归墟潮晶', 2)
+      expect(removed).toBe(2)
+      expect(countItemsByName(result, '归墟潮晶')).toBe(1)
+      expect(countItemsByName(result, '渊息残片')).toBe(1)
     })
   })
 

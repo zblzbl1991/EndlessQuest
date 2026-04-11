@@ -28,6 +28,34 @@ describe('OfflineReportModal', () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
+  it('renders guixu loop rewards when legacy materials were brought back offline', () => {
+    render(
+      <OfflineReportModal
+        report={{
+          offlineSeconds: 7200,
+          resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+          breakthroughs: [],
+          itemsCrafted: [],
+          taxIncome: 0,
+          loopRewards: {
+            title: '归墟终盘收获',
+            detail: '离线期间共结算 2 份归墟战报，三遗齐鸣让回响稳定带回深层遗材。',
+            tideCrystalCount: 3,
+            abyssShardCount: 2,
+          },
+        }}
+        onClose={() => {}}
+      />
+    )
+
+    expect(screen.getByTestId('offline-loop-rewards')).toBeInTheDocument()
+    expect(screen.getByText('归墟终盘收获')).toBeInTheDocument()
+    expect(screen.getByText('归墟潮晶')).toBeInTheDocument()
+    expect(screen.getByText('渊息残片')).toBeInTheDocument()
+    expect(screen.getByText('x3')).toBeInTheDocument()
+    expect(screen.getByText('x2')).toBeInTheDocument()
+  })
+
   it('renders a calm empty-state fallback when there are no special gains', () => {
     render(
       <OfflineReportModal
@@ -42,6 +70,6 @@ describe('OfflineReportModal', () => {
       />
     )
 
-    expect(screen.getByText('离线期间无特殊收获')).toBeInTheDocument()
+    expect(screen.getByText('离线期间暂无特殊收获。')).toBeInTheDocument()
   })
 })

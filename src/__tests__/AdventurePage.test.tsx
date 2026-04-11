@@ -75,7 +75,7 @@ describe('AdventurePage', () => {
     seedAdventureState()
   })
 
-  it('shows the balanced daily page anchors', () => {
+  it('shows the idle automation anchors on the page', () => {
     render(
       <MemoryRouter>
         <AdventurePage />
@@ -110,8 +110,7 @@ describe('AdventurePage', () => {
       </MemoryRouter>
     )
 
-    // Compact report card shows dungeon name and result
-    expect(screen.getAllByText('落云洞').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('灵草谷').length).toBeGreaterThan(0)
     expect(screen.getAllByText('通关').length).toBeGreaterThan(0)
   })
 
@@ -175,6 +174,30 @@ describe('AdventurePage', () => {
     )
 
     expect(screen.getAllByText('失利').length).toBeGreaterThan(0)
-    expect(screen.getByText(/第2层/)).toBeInTheDocument()
+    expect(screen.getByText(/第 2 层/)).toBeInTheDocument()
+  })
+  it('marks guixu resonance as an endgame loop template after the trinity milestone', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        archiveMilestones: [
+          { id: 'legacyForgePair', unlockedAt: 1 },
+          { id: 'legacyForgeTrinity', unlockedAt: 2 },
+        ],
+        automationSettings: {
+          ...s.sect.automationSettings,
+          activeTemplateId: 'guixuResonance',
+        },
+      },
+    }))
+
+    render(
+      <MemoryRouter>
+        <AdventurePage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getAllByText('终盘循环').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/三遗齐鸣已成/).length).toBeGreaterThan(0)
   })
 })

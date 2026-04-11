@@ -455,6 +455,40 @@ describe('SaveSystem (per-entity IndexedDB)', () => {
     expect(useSectStore.getState().sect.archiveMilestones).toEqual([])
   })
 
+  it('should restore special expedition templates when paired legacy forge milestone exists', async () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        archiveMilestones: [{ id: 'legacyForgePair', unlockedAt: 1 }],
+      },
+    }))
+    useGameStore.getState().startGame()
+    await saveGame()
+
+    const db = await getDB()
+    const meta = await db.get('meta', 1)
+    await db.put('meta', {
+      ...meta,
+      automationSettings: {
+        ...meta.automationSettings,
+        expeditionTemplates: meta.automationSettings.expeditionTemplates.filter(
+          (template: { id: string }) => template.id !== 'guixuResonance'
+        ),
+      },
+    })
+
+    useSectStore.getState().reset()
+    useGameStore.getState().reset()
+
+    const result = await loadGame()
+    expect(result).toBe(true)
+    expect(
+      useSectStore
+        .getState()
+        .sect.automationSettings.expeditionTemplates.some((template) => template.id === 'guixuResonance')
+    ).toBe(true)
+  })
+
   it('should normalize missing saved resource fields to safe numeric defaults', async () => {
     useGameStore.getState().startGame()
     await saveGame()

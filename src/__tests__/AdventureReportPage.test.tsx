@@ -171,6 +171,49 @@ describe('Adventure report pages', () => {
     expect(screen.queryByText(/build/i)).not.toBeInTheDocument()
   })
 
+  it('renders exclusive loot in the reward summary when a report contains items', () => {
+    useAdventureStore.setState((s) => ({
+      reportDetails: {
+        ...s.reportDetails,
+        report_1: {
+          ...s.reportDetails.report_1,
+          itemRewards: [
+            {
+              id: 'legacy_material_1',
+              name: '归墟潮晶',
+              quality: 'spirit',
+              type: 'material',
+              description: '自归墟裂隙带回的遗产晶体。',
+              sellPrice: 180,
+              category: 'other',
+            },
+            {
+              id: 'legacy_scroll_1',
+              name: '鸿蒙道诀（遗产残卷）',
+              quality: 'chaos',
+              type: 'techniqueScroll',
+              description: '遗产首通带回的残卷。',
+              sellPrice: 3200,
+              techniqueId: 'hongmengdaojue',
+            },
+          ],
+        },
+      },
+    }))
+
+    render(
+      <MemoryRouter initialEntries={['/adventure/report/report_1']}>
+        <Routes>
+          <Route path="/adventure/report/:reportId" element={<AdventureReportPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('战利品')).toBeInTheDocument()
+    expect(screen.getByText('归墟潮晶')).toBeInTheDocument()
+    expect(screen.getByText('鸿蒙道诀（遗产残卷）')).toBeInTheDocument()
+  })
+
   it('keeps report names readable even after the disciple is removed from the live roster', () => {
     useSectStore.setState((s) => ({
       sect: {
@@ -289,5 +332,74 @@ describe('Adventure report pages', () => {
     useAdventureStore.getState().completeRun(run!.id)
 
     expect(useSectStore.getState().sect.characters.find((item) => item.id === character.id)).toBeUndefined()
+  })
+
+  it('surfaces the guixu endgame loop signal for trinity-state reports', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        archiveMilestones: [
+          { id: 'legacyForgePair', unlockedAt: 1 },
+          { id: 'legacyForgeTrinity', unlockedAt: 2 },
+        ],
+      },
+    }))
+
+    useAdventureStore.setState((s) => ({
+      reports: [
+        {
+          ...s.reports[0],
+          dungeonId: 'guixuRift',
+        },
+      ],
+      reportDetails: {
+        ...s.reportDetails,
+        report_1: {
+          ...s.reportDetails.report_1,
+          dungeonId: 'guixuRift',
+          itemRewards: [
+            {
+              id: 'legacy_tide_1',
+              name: '归墟潮晶',
+              quality: 'spirit',
+              type: 'material',
+              description: '',
+              sellPrice: 180,
+              category: 'other',
+            },
+            {
+              id: 'legacy_shard_1',
+              name: '渊息残片',
+              quality: 'divine',
+              type: 'material',
+              description: '',
+              sellPrice: 420,
+              category: 'other',
+            },
+            {
+              id: 'legacy_shard_2',
+              name: '渊息残片',
+              quality: 'divine',
+              type: 'material',
+              description: '',
+              sellPrice: 420,
+              category: 'other',
+            },
+          ],
+        },
+      },
+    }))
+
+    render(
+      <MemoryRouter initialEntries={['/adventure/report/report_1']}>
+        <Routes>
+          <Route path="/adventure/report/:reportId" element={<AdventureReportPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(screen.getByTestId('report-loop-signal')).toBeInTheDocument()
+    expect(screen.getByText('归墟终盘循环')).toBeInTheDocument()
+    expect(screen.getByText(/潮晶 1，残片 2/)).toBeInTheDocument()
   })
 })

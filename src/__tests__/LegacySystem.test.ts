@@ -79,32 +79,32 @@ describe('getLegacyBonus', () => {
   it('should unlock hidden technique at ascension count 3', () => {
     const bonus = getLegacyBonus(3)
     expect(bonus.statBonus).toBe(15)
-    expect(bonus.unlockedTechniques).toEqual(['hidden_1'])
+    expect(bonus.unlockedTechniques).toEqual(['hongmengdaojue'])
   })
 
   it('should unlock hidden dungeon at ascension count 5', () => {
     const bonus = getLegacyBonus(5)
     expect(bonus.statBonus).toBe(25)
-    expect(bonus.unlockedDungeons).toEqual(['hidden_dungeon_1'])
+    expect(bonus.unlockedDungeons).toEqual(['guixuRift'])
   })
 
   it('should return 50% stat bonus and all unlocks at ascension count 10', () => {
     const bonus = getLegacyBonus(10)
     expect(bonus.statBonus).toBe(50)
-    expect(bonus.unlockedTechniques).toEqual(['hidden_1'])
-    expect(bonus.unlockedDungeons).toEqual(['hidden_dungeon_1'])
+    expect(bonus.unlockedTechniques).toEqual(['hongmengdaojue'])
+    expect(bonus.unlockedDungeons).toEqual(['guixuRift'])
   })
 
   it('should cap at highest tier for count above 10', () => {
     const bonus = getLegacyBonus(20)
     expect(bonus.statBonus).toBe(50)
-    expect(bonus.unlockedTechniques).toEqual(['hidden_1'])
-    expect(bonus.unlockedDungeons).toEqual(['hidden_dungeon_1'])
+    expect(bonus.unlockedTechniques).toEqual(['hongmengdaojue'])
+    expect(bonus.unlockedDungeons).toEqual(['guixuRift'])
   })
 
   it('should accumulate techniques from multiple tiers', () => {
     // Add a hypothetical future tier to test accumulation
-    expect(getLegacyBonus(5).unlockedTechniques).toEqual(['hidden_1'])
+    expect(getLegacyBonus(5).unlockedTechniques).toEqual(['hongmengdaojue'])
   })
 })
 
@@ -224,6 +224,15 @@ describe('performAscension', () => {
     })
     const { newSect } = performAscension(sect)
     expect(newSect.legacy.ascensionCount).toBe(3)
+  })
+
+  it('should seed unlocked legacy techniques into the new codex after ascension', () => {
+    const sect = makeSect({
+      legacy: { ascensionCount: 2, statBonus: 10, unlockedTechniques: [], unlockedDungeons: [] },
+    })
+    const { newSect } = performAscension(sect)
+    expect(newSect.techniqueCodex).toContain('hongmengdaojue')
+    expect(newSect.legacy.unlockedTechniques).toEqual(['hongmengdaojue'])
   })
 
   it('should compute new statBonus from ascensionCount', () => {

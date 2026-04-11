@@ -125,6 +125,13 @@ describe('generateTechniqueScroll', () => {
     expect(ids.size).toBeGreaterThanOrEqual(2)
   })
 
+  it('should not roll legacy-only manuals from generic technique scrolls', () => {
+    for (let i = 0; i < 40; i += 1) {
+      const scroll = generateTechniqueScroll('chaos')
+      expect(scroll.techniqueId).not.toBe('hongmengdaojue')
+    }
+  })
+
   it('should have a positive sell price', () => {
     const scroll = generateTechniqueScroll('immortal')
     expect(scroll.sellPrice).toBeGreaterThan(0)

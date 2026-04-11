@@ -409,6 +409,13 @@ describe('Sect types', () => {
         preferredDungeonId: null,
         casualtyTolerance: 'balanced',
         autoBreakthrough: true,
+        productionFocus: 'balanced',
+        overflowTriggerRatio: 0.9,
+        herbOverflowRule: 'sell',
+        oreOverflowRule: 'sell',
+        spiritStoneOverflowRule: 'buyHerb',
+        activeTemplateId: 'steadyHarvest',
+        expeditionTemplates: [],
       },
       strategySettings: {
         activePolicy: 'balanced',

@@ -14,6 +14,30 @@ vi.mock('../systems/save/SaveSystem', async () => {
     ...actual,
     clearSaveData: vi.fn().mockResolvedValue(undefined),
   }
+  it('surfaces the guixu endgame loop signal on the sect hub', () => {
+    useSectStore.setState((state) => ({
+      sect: {
+        ...state.sect,
+        archiveMilestones: [
+          { id: 'legacyForgePair', unlockedAt: 1 },
+          { id: 'legacyForgeTrinity', unlockedAt: 2 },
+        ],
+        automationSettings: {
+          ...state.sect.automationSettings,
+          activeTemplateId: 'guixuResonance',
+        },
+      },
+    }))
+
+    render(
+      <MemoryRouter>
+        <SectPage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getAllByText('终盘循环').length).toBeGreaterThan(0)
+    expect(screen.getAllByText(/三遗齐鸣已成/).length).toBeGreaterThan(0)
+  })
 })
 
 describe('SectPage', () => {
@@ -24,36 +48,34 @@ describe('SectPage', () => {
     vi.mocked(clearSaveData).mockClear()
   })
 
-  it('renders a light overview instead of directive homepage guidance', () => {
+  it('renders the idle hub structure instead of the old directive homepage guidance', () => {
     render(
       <MemoryRouter>
         <SectPage />
       </MemoryRouter>
     )
 
-    // The page now renders StrategyPanel instead of ActionAgenda
-    // "宗门方针" appears in both the header metrics and StrategyPanel title
-    expect(screen.getAllByText('宗门方针').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getByText('今日宗务')).toBeInTheDocument()
+    expect(screen.getByText('瓶颈诊断')).toBeInTheDocument()
+    expect(screen.getByText('挂机策略')).toBeInTheDocument()
     expect(screen.getByTestId('sect-hero')).toBeInTheDocument()
     expect(screen.getByTestId('sect-midground-grid')).toBeInTheDocument()
-    expect(screen.queryByText('行动指引')).not.toBeInTheDocument()
-    expect(screen.queryByText('行动优先级')).not.toBeInTheDocument()
     expect(screen.getAllByRole('button').length).toBeGreaterThan(0)
   })
 
-  it('renders the focus summary from StatsPanel', () => {
+  it('renders bottleneck and forecast summaries for idle management', () => {
     render(
       <MemoryRouter>
         <SectPage />
       </MemoryRouter>
     )
 
-    expect(screen.getByText('当前重点')).toBeInTheDocument()
-    expect(screen.getByText('建设')).toBeInTheDocument()
-    expect(screen.getByText('流转正常')).toBeInTheDocument()
+    expect(screen.getByText('瓶颈诊断')).toBeInTheDocument()
+    expect(screen.getByText('下一轮预期')).toBeInTheDocument()
+    expect(screen.getByText('挂机策略')).toBeInTheDocument()
   })
 
-  it('renders page without inline adventure reports (reports moved to adventure page)', () => {
+  it('renders page without inline adventure reports', () => {
     useAdventureStore.setState({
       reports: [
         {
@@ -78,15 +100,12 @@ describe('SectPage', () => {
       </MemoryRouter>
     )
 
-    // Adventure reports are no longer rendered inline on SectPage
     expect(screen.queryByText('战报')).not.toBeInTheDocument()
-    expect(screen.queryByText(/进行中的秘境/)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '查看详情' })).not.toBeInTheDocument()
-    // Page still renders core sections
     expect(screen.getByTestId('sect-hero')).toBeInTheDocument()
   })
 
-  it('keeps disciple information at overview level without rendering the disciple list', () => {
+  it('keeps disciple information at overview level without rendering a full disciple list', () => {
     render(
       <MemoryRouter>
         <SectPage />
@@ -95,10 +114,8 @@ describe('SectPage', () => {
 
     expect(screen.getAllByText('弟子').length).toBeGreaterThan(0)
     expect(screen.queryByText('弟子列表')).not.toBeInTheDocument()
-    // The initial character may appear in fate grid section if they were randomly assigned one,
-    // but a dedicated disciple list should not be rendered
+
     const char = useSectStore.getState().sect.characters[0]!
-    // If the character has no fate grid, their name should not appear
     if (!char.fateGrid) {
       expect(screen.queryByText(char.name)).not.toBeInTheDocument()
     }
@@ -116,6 +133,7 @@ describe('SectPage', () => {
 
   it('resets the current save after confirmation', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+
     useSectStore.setState((state) => ({
       sect: {
         ...state.sect,

@@ -1,9 +1,10 @@
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
+import { useEventLogStore } from '../stores/eventLogStore'
 import * as autoRunEngine from '../systems/roguelike/AutoRunEngine'
 import * as recoverySystem from '../systems/character/DiscipleRecoverySystem'
-import type { Character, Equipment, Consumable, ItemStack } from '../types'
+import type { Character, Equipment, Consumable, ItemStack, Material } from '../types'
 import type { Pet } from '../systems/pet/PetSystem'
 
 // ---------------------------------------------------------------------------
@@ -40,6 +41,19 @@ function makeConsumable(id: string, overrides?: Partial<Consumable>): Consumable
   }
 }
 
+function makeMaterial(id: string, name: string, overrides?: Partial<Material>): Material {
+  return {
+    id,
+    name,
+    quality: 'spirit',
+    type: 'material',
+    description: '',
+    sellPrice: 20,
+    category: 'other',
+    ...overrides,
+  }
+}
+
 function makePet(id: string, overrides?: Partial<Pet>): Pet {
   return {
     id,
@@ -58,6 +72,7 @@ function makePet(id: string, overrides?: Partial<Pet>): Pet {
 function resetStore() {
   useSectStore.getState().reset()
   useGameStore.getState().reset()
+  useEventLogStore.getState().reset()
 }
 
 /** Upgrade spirit field so resource-based disciple cap is generous for tests. */
@@ -1527,6 +1542,16 @@ describe('AdventureStore - completeRun', () => {
 
     expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'firstDungeonClear')).toBe(true)
   })
+
+  it('should unlock the guixu rift first-clear archive milestone', () => {
+    const char = getStore().sect.characters[0]
+    const run = getAdventureStore().startRun('guixuRift', [char.id])
+    expect(run).not.toBeNull()
+
+    getAdventureStore().completeRun(run!.id)
+
+    expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'guixuRiftFirstClear')).toBe(true)
+  })
 })
 
 describe('AdventureStore - failRun', () => {
@@ -2522,5 +2547,143 @@ describe('SectStore - Offline Accumulator', () => {
     expect(acc.taxIncome).toBe(0)
     expect(acc.breakthroughs).toHaveLength(0)
     expect(acc.itemsCrafted).toHaveLength(0)
+  })
+})
+
+describe('SectStore - legacy forge recipes', () => {
+  beforeEach(() => resetStore())
+
+  it('should refuse a legacy forge recipe when vault materials are missing', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((building) =>
+          building.type === 'forge' ? { ...building, unlocked: true, level: 7 } : building
+        ),
+        resources: { ...s.sect.resources, ore: 9999, spiritStone: 9999 },
+      },
+    }))
+
+    const result = getStore().forgeEquipment('forge_guixu_weapon')
+    expect(result.success).toBe(false)
+    expect(result.reason).toContain('归墟潮晶')
+  })
+
+  it('should consume legacy materials and add the crafted relic to the vault', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((building) =>
+          building.type === 'forge' ? { ...building, unlocked: true, level: 7 } : building
+        ),
+        resources: { ...s.sect.resources, ore: 9999, spiritStone: 9999 },
+        vault: [
+          { item: makeMaterial('legacy_1', '归墟潮晶'), quantity: 1 },
+          { item: makeMaterial('legacy_2', '归墟潮晶'), quantity: 1 },
+          { item: makeMaterial('legacy_3', '渊息残片', { quality: 'divine' }), quantity: 1 },
+        ],
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.01)
+    const result = getStore().forgeEquipment('forge_guixu_weapon')
+
+    expect(result.success).toBe(true)
+    expect(getStore().sect.vault.some((stack) => stack.item.name === '归墟潮晶')).toBe(false)
+    expect(getStore().sect.vault.some((stack) => stack.item.name === '渊息残片')).toBe(false)
+    expect(
+      getStore().sect.vault.some(
+        (stack) => stack.item.type === 'equipment' && stack.item.quality === 'chaos' && stack.item.slot === 'weapon'
+      )
+    ).toBe(true)
+    expect(useEventLogStore.getState().events.some((event) => event.message.includes('归墟遗材在炼器坊中重铸为'))).toBe(
+      true
+    )
+    expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'firstLegacyForge')).toBe(true)
+
+    vi.restoreAllMocks()
+  })
+
+  it('should unlock the paired legacy forge milestone after completing both relic slots', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((building) =>
+          building.type === 'forge' ? { ...building, unlocked: true, level: 7 } : building
+        ),
+        resources: { ...s.sect.resources, ore: 99999, spiritStone: 99999 },
+        vault: [
+          { item: makeMaterial('legacy_tide_1', '归墟潮晶'), quantity: 2 },
+          { item: makeMaterial('legacy_tide_2', '归墟潮晶'), quantity: 1 },
+          { item: makeMaterial('legacy_shard_1', '渊息残片', { quality: 'divine' }), quantity: 1 },
+          { item: makeMaterial('legacy_shard_2', '渊息残片', { quality: 'divine' }), quantity: 1 },
+        ],
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.01)
+    expect(getStore().forgeEquipment('forge_guixu_weapon').success).toBe(true)
+    expect(getStore().forgeEquipment('forge_guixu_talisman').success).toBe(true)
+
+    expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'legacyForgePair')).toBe(true)
+    expect(useEventLogStore.getState().events.some((event) => String(event.message).includes('双遗共鸣'))).toBe(true)
+    expect(
+      getStore().sect.automationSettings.expeditionTemplates.some((template) => template.id === 'guixuResonance')
+    ).toBe(true)
+
+    vi.restoreAllMocks()
+  })
+
+  it('should require the paired resonance milestone before forging the third relic', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((building) =>
+          building.type === 'forge' ? { ...building, unlocked: true, level: 8 } : building
+        ),
+        resources: { ...s.sect.resources, ore: 99999, spiritStone: 99999 },
+        vault: [
+          { item: makeMaterial('legacy_tide_1', '归墟潮晶'), quantity: 3 },
+          { item: makeMaterial('legacy_shard_1', '渊息残片', { quality: 'divine' }), quantity: 2 },
+        ],
+      },
+    }))
+
+    const result = getStore().forgeEquipment('forge_guixu_armor')
+    expect(result.success).toBe(false)
+    expect(result.reason).toContain('双遗共鸣')
+  })
+
+  it('should unlock the trinity milestone after forging the third guixu relic', () => {
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((building) =>
+          building.type === 'forge' ? { ...building, unlocked: true, level: 8 } : building
+        ),
+        resources: { ...s.sect.resources, ore: 99999, spiritStone: 99999 },
+        archiveMilestones: [
+          { id: 'firstLegacyForge', unlockedAt: 1 },
+          { id: 'legacyForgePair', unlockedAt: 2 },
+        ],
+        vault: [
+          { item: makeMaterial('legacy_tide_1', '归墟潮晶'), quantity: 3 },
+          { item: makeMaterial('legacy_shard_1', '渊息残片', { quality: 'divine' }), quantity: 2 },
+        ],
+      },
+    }))
+
+    vi.spyOn(Math, 'random').mockReturnValue(0.01)
+    expect(getStore().forgeEquipment('forge_guixu_armor').success).toBe(true)
+
+    expect(getStore().sect.archiveMilestones.some((milestone) => milestone.id === 'legacyForgeTrinity')).toBe(true)
+    expect(
+      getStore().sect.vault.some(
+        (stack) => stack.item.type === 'equipment' && stack.item.quality === 'chaos' && stack.item.slot === 'armor'
+      )
+    ).toBe(true)
+    expect(useEventLogStore.getState().events.some((event) => String(event.message).includes('三遗齐鸣'))).toBe(true)
+
+    vi.restoreAllMocks()
   })
 })
