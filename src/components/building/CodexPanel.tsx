@@ -2,7 +2,7 @@ import { useSectStore } from '../../stores/sectStore'
 import { TECHNIQUES } from '../../data/techniquesTable'
 import { TECHNIQUE_TIER_NAMES } from '../../types/technique'
 import type { Technique, TechniqueBonus, TechniqueFamily, TechniqueStyle } from '../../types/technique'
-import { getTechniqueCodexCapacity } from '../../systems/technique/TechniqueSystem'
+import { countTechniqueCodexSlots, getTechniqueCodexCapacity } from '../../systems/technique/TechniqueSystem'
 import { PixelIcon } from '../common/PixelIcon'
 import styles from './CodexPanel.module.css'
 
@@ -41,6 +41,10 @@ export default function CodexPanel() {
   const sect = useSectStore((state) => state.sect)
   const scriptureLevel = sect.buildings.find((building) => building.type === 'scriptureHall')?.level ?? 0
   const capacity = getTechniqueCodexCapacity(scriptureLevel)
+  const occupiedSlots = countTechniqueCodexSlots(sect.techniqueCodex)
+  const legacyCount = sect.techniqueCodex.filter(
+    (techniqueId) => TECHNIQUES.find((technique) => technique.id === techniqueId)?.origin === 'legacy'
+  ).length
 
   const familyCounts = TECHNIQUES.reduce<Record<TechniqueFamily, number>>(
     (accumulator, technique) => {
@@ -59,7 +63,8 @@ export default function CodexPanel() {
         Technique Codex
       </div>
       <div className={styles.stats}>
-        Collected {sect.techniqueCodex.length} / {capacity} codex slots. Total manuals in game: {TECHNIQUES.length}
+        Occupied {occupiedSlots} / {capacity} codex slots. Legacy inheritances: {legacyCount}. Total manuals in game:{' '}
+        {TECHNIQUES.length}
       </div>
       <div className={styles.familyRow}>
         {Object.entries(FAMILY_LABELS).map(([family, label]) => (
@@ -87,6 +92,7 @@ export default function CodexPanel() {
               {unlocked && (
                 <>
                   <div className={styles.tagRow}>
+                    {technique.origin === 'legacy' && <span className={styles.legacyTag}>Legacy</span>}
                     <span className={styles.cardTag}>{FAMILY_LABELS[technique.family]}</span>
                     {technique.styles.map((style) => (
                       <span key={style} className={styles.cardTag}>

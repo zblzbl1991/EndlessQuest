@@ -73,10 +73,98 @@
   border-bottom: 1px solid rgba(95, 122, 141, 0.1);
 }
 
+.narrativeList {
+  display: grid;
+  gap: 10px;
+}
+
+.narrativeItem {
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(95, 122, 141, 0.08);
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.narrativeAccent {
+  border-color: rgba(95, 122, 141, 0.12);
+}
+
+.narrativeGood {
+  border-color: rgba(79, 122, 116, 0.18);
+  background: rgba(241, 248, 246, 0.82);
+}
+
+.narrativeWarn {
+  border-color: rgba(154, 101, 87, 0.18);
+  background: rgba(253, 246, 244, 0.84);
+}
+
+.narrativeTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.narrativeDetail {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
 .resourceGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-xs) var(--space-md);
+}
+
+.loopRewardCard {
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(112, 132, 148, 0.14);
+  background:
+    radial-gradient(circle at top right, rgba(146, 126, 102, 0.12), transparent 28%), rgba(255, 255, 255, 0.72);
+}
+
+.loopRewardTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.loopRewardDetail {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.loopRewardGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.loopRewardItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(246, 248, 250, 0.88);
+  border: 1px solid rgba(112, 132, 148, 0.08);
+}
+
+.loopRewardLabel {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.loopRewardValue {
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .resourceItem {
@@ -167,6 +255,16 @@
   padding: var(--space-sm);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.suggestionCard {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(95, 122, 141, 0.08);
 }
 

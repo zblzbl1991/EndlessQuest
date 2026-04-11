@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import type { Resources } from '../../types'
+import type { OfflineLoopRewardSummary, OfflineNarrativeItem } from '../../systems/sect/OfflineNarrativeSystem'
 import s from './OfflineReportModal.module.css'
 
 interface OfflineReportData {
@@ -8,6 +9,9 @@ interface OfflineReportData {
   breakthroughs: { characterName: string; targetRealm: string; success: boolean }[]
   itemsCrafted: { name: string; quantity: number }[]
   taxIncome: number
+  notableEvents?: OfflineNarrativeItem[]
+  nextSuggestion?: string
+  loopRewards?: OfflineLoopRewardSummary
 }
 
 interface OfflineReportModalProps {
@@ -18,8 +22,8 @@ interface OfflineReportModalProps {
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
-  if (hours > 0) return `${hours}小时${minutes}分钟`
-  return `${minutes}分钟`
+  if (hours > 0) return `${hours} 小时 ${minutes} 分钟`
+  return `${minutes} 分钟`
 }
 
 function fmt(n: number): string {
@@ -29,7 +33,6 @@ function fmt(n: number): string {
   return n.toFixed(2)
 }
 
-/** Animated list item for breakthrough events */
 function BreakthroughEventItem({
   bt,
   index,
@@ -47,9 +50,9 @@ function BreakthroughEventItem({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.4, ease: 'easeOut', delay: index * 0.1 }}
       >
-        <span className={s.eventSuccess}>{'✦'}</span>
+        <span className={s.eventSuccess}>突破</span>
         <span>
-          {bt.characterName} → {bt.targetRealm}
+          {bt.characterName} {'->'} {bt.targetRealm}
         </span>
       </motion.li>
     )
@@ -62,21 +65,26 @@ function BreakthroughEventItem({
       animate={{ opacity: 1, x: [0, -4, 4, -3, 3, 0] }}
       transition={{ duration: 0.3, ease: 'easeOut', delay: index * 0.1, x: { duration: 0.3 } }}
     >
-      <span className={s.eventFailure}>{'✧'}</span>
+      <span className={s.eventFailure}>受阻</span>
       <span>
-        {bt.characterName} → {bt.targetRealm}（失败）
+        {bt.characterName} {'->'} {bt.targetRealm}（失败）
       </span>
     </motion.li>
   )
 }
 
 export type { OfflineReportData }
+
 export default function OfflineReportModal({ report, onClose }: OfflineReportModalProps) {
   const r = report.resourcesGained
+  const notableEvents = report.notableEvents ?? []
+  const nextSuggestion = report.nextSuggestion ?? '继续按当前配置运转，优先处理宗门页提示的瓶颈。'
   const hasResources = r.spiritStone > 0 || r.spiritEnergy > 0 || r.herb > 0 || r.ore > 0
   const hasBreakthroughs = report.breakthroughs.length > 0
   const hasCrafted = report.itemsCrafted.length > 0
   const hasTax = report.taxIncome > 0
+  const hasNotableEvents = notableEvents.length > 0
+  const hasLoopRewards = Boolean(report.loopRewards)
 
   return (
     <div className={s.overlay} onClick={onClose}>
@@ -87,6 +95,49 @@ export default function OfflineReportModal({ report, onClose }: OfflineReportMod
           <div className={s.duration}>离开时长：{formatDuration(report.offlineSeconds)}</div>
           <div className={s.highlightHint}>静修之间，宗门诸务仍在运转，所得已整理成卷。</div>
         </div>
+
+        {hasNotableEvents && (
+          <div className={s.section}>
+            <div className={s.sectionTitle}>宗门发生了什么</div>
+            <div className={s.narrativeList}>
+              {notableEvents.map((event) => (
+                <div
+                  key={event.id}
+                  className={`${s.narrativeItem} ${
+                    event.tone === 'good'
+                      ? s.narrativeGood
+                      : event.tone === 'warn'
+                        ? s.narrativeWarn
+                        : s.narrativeAccent
+                  }`}
+                >
+                  <div className={s.narrativeTitle}>{event.title}</div>
+                  <div className={s.narrativeDetail}>{event.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasLoopRewards && report.loopRewards && (
+          <div className={s.section}>
+            <div className={s.sectionTitle}>归墟回响收获</div>
+            <div className={s.loopRewardCard} data-testid="offline-loop-rewards">
+              <div className={s.loopRewardTitle}>{report.loopRewards.title}</div>
+              <div className={s.loopRewardDetail}>{report.loopRewards.detail}</div>
+              <div className={s.loopRewardGrid}>
+                <div className={s.loopRewardItem}>
+                  <span className={s.loopRewardLabel}>归墟潮晶</span>
+                  <span className={s.loopRewardValue}>x{report.loopRewards.tideCrystalCount}</span>
+                </div>
+                <div className={s.loopRewardItem}>
+                  <span className={s.loopRewardLabel}>渊息残片</span>
+                  <span className={s.loopRewardValue}>x{report.loopRewards.abyssShardCount}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {hasResources && (
           <div className={s.section}>
@@ -152,8 +203,13 @@ export default function OfflineReportModal({ report, onClose }: OfflineReportMod
           </div>
         )}
 
-        {!hasResources && !hasBreakthroughs && !hasCrafted && !hasTax && (
-          <div className={s.emptyHint}>离线期间无特殊收获</div>
+        <div className={s.section}>
+          <div className={s.sectionTitle}>下一步建议</div>
+          <div className={s.suggestionCard}>{nextSuggestion}</div>
+        </div>
+
+        {!hasResources && !hasBreakthroughs && !hasCrafted && !hasTax && !hasNotableEvents && !hasLoopRewards && (
+          <div className={s.emptyHint}>离线期间暂无特殊收获。</div>
         )}
 
         <button className={s.collectBtn} onClick={onClose}>

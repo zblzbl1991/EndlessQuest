@@ -6,8 +6,10 @@ import { useSectStore } from '../stores/sectStore'
 import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
 
+import { QUALITY_NAMES } from '../data/items'
 import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
+import { getLegacyReportFlavor } from '../data/legacyFlavor'
 import type { CombatAction, CombatResult, CombatUnit } from '../systems/combat/CombatEngine'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import { getTechniqueById } from '../data/techniquesTable'
@@ -47,6 +49,63 @@ function getStepIconName(type: string): string {
 }
 
 // ─── Boss Combat Report Helpers ──────────────────────────────────────────
+
+function getRewardItemIconName(item: { type: string; category?: string; slot?: string; name: string }): string {
+  if (item.type === 'techniqueScroll') return 'techniqueScroll'
+  if (item.type === 'equipment') {
+    switch (item.slot) {
+      case 'head':
+        return 'equipHead'
+      case 'armor':
+        return 'equipArmor'
+      case 'bracer':
+        return 'equipBracer'
+      case 'belt':
+        return 'equipBelt'
+      case 'boots':
+        return 'equipBoots'
+      case 'weapon':
+        return 'equipWeapon'
+      case 'talisman':
+        return 'equipTalisman'
+      case 'accessory1':
+      case 'accessory2':
+        return 'equipAccessory'
+      default:
+        return 'typeEquipment'
+    }
+  }
+
+  if (item.type === 'consumable') return item.name.includes('丹') ? 'elixir' : 'typeConsumable'
+  if (item.category === 'herb') return 'herb'
+  if (item.category === 'ore') return 'ore'
+  return 'typeMaterial'
+}
+
+function getRewardItemMeta(item: {
+  type: string
+  quality: 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
+  category?: string
+  techniqueId?: string
+}): string {
+  const qualityLabel = QUALITY_NAMES[item.quality]
+
+  if (item.type === 'techniqueScroll') {
+    const techniqueName = item.techniqueId ? (getTechniqueById(item.techniqueId)?.name ?? item.techniqueId) : '未知功法'
+    return `${qualityLabel} · 功法残卷 · ${techniqueName}`
+  }
+
+  if (item.type === 'material') {
+    const categoryLabel = item.category === 'herb' ? '灵草材料' : item.category === 'ore' ? '矿材' : '遗产材料'
+    return `${qualityLabel} · ${categoryLabel}`
+  }
+
+  if (item.type === 'consumable') {
+    return `${qualityLabel} · 消耗品`
+  }
+
+  return `${qualityLabel} · 装备`
+}
 
 interface BossStepMeta {
   eventType: 'boss'
@@ -432,6 +491,7 @@ export default function AdventureReportPage() {
   const report = useAdventureStore((s) => (reportId ? s.getReport(reportId) : undefined))
   const dungeon = useAdventureStore((s) => s.dungeons.find((item) => item.id === report?.dungeonId))
   const characters = useSectStore((s) => s.sect.characters)
+  const archiveMilestones = useSectStore((s) => s.sect.archiveMilestones)
   const prefersReducedMotion = useReducedMotion()
 
   const characterNameMap = useMemo(() => {
@@ -444,6 +504,28 @@ export default function AdventureReportPage() {
     return map
   }, [characters, report])
   const insight = report ? buildAdventureReportInsight(report, characterNameMap) : null
+  const legacyFlavor = report ? getLegacyReportFlavor(report.dungeonId) : null
+  const reportLoopSignal = useMemo(() => {
+    if (!report || report.dungeonId !== 'guixuRift') return null
+    const tideCrystalCount = report.itemRewards.filter((item) => item.name === '归墟潮晶').length
+    const abyssShardCount = report.itemRewards.filter((item) => item.name === '渊息残片').length
+    const hasLegacyTrinity = archiveMilestones.some((milestone) => milestone.id === 'legacyForgeTrinity')
+    const hasLegacyPair = archiveMilestones.some((milestone) => milestone.id === 'legacyForgePair')
+
+    if (hasLegacyTrinity) {
+      return {
+        title: '归墟终盘循环',
+        detail: `当前宗门已完成三遗齐鸣，这次战报属于可长期挂机的高阶归墟循环。潮晶 ${tideCrystalCount}，残片 ${abyssShardCount}。`,
+      }
+    }
+    if (hasLegacyPair) {
+      return {
+        title: '归墟共鸣循环',
+        detail: `当前宗门已完成双遗共鸣，适合继续稳定挂归墟回响补第三件遗器。潮晶 ${tideCrystalCount}，残片 ${abyssShardCount}。`,
+      }
+    }
+    return null
+  }, [archiveMilestones, report])
 
   if (!report) {
     return (
@@ -499,6 +581,14 @@ export default function AdventureReportPage() {
         ]}
       />
 
+      {legacyFlavor ? (
+        <section className={styles.legacyBanner}>
+          <div className={styles.legacyBannerEyebrow}>{legacyFlavor.reportEyebrow}</div>
+          <div className={styles.legacyBannerTitle}>{legacyFlavor.title}</div>
+          <div className={styles.legacyBannerDetail}>{legacyFlavor.reportCause}</div>
+        </section>
+      ) : null}
+
       <motion.div
         variants={shouldAnimate ? staggerContainerVariants : undefined}
         initial={shouldAnimate ? 'hidden' : false}
@@ -531,6 +621,13 @@ export default function AdventureReportPage() {
             <span className={styles.highlightCauseLabel}>成败原因</span>
             <strong>{insight?.cause ?? '暂无'}</strong>
           </div>
+
+          {reportLoopSignal ? (
+            <div className={styles.loopSignalCard} data-testid="report-loop-signal">
+              <span className={styles.loopSignalLabel}>{reportLoopSignal.title}</span>
+              <strong>{reportLoopSignal.detail}</strong>
+            </div>
+          ) : null}
 
           <div className={styles.highlightGrid}>
             <div className={styles.highlightPanel}>
@@ -627,6 +724,27 @@ export default function AdventureReportPage() {
             </span>
             <strong>{report.rewards.ore}</strong>
           </div>
+          {report.itemRewards.length > 0 ? (
+            <div className={styles.itemRewardBlock}>
+              <div className={styles.itemRewardTitle}>战利品</div>
+              <div className={styles.itemRewardList}>
+                {report.itemRewards.map((item) => (
+                  <div key={item.id} className={styles.itemRewardRow}>
+                    <div className={styles.itemRewardMain}>
+                      <PixelIcon
+                        name={getRewardItemIconName(item)}
+                        size={16}
+                        className={styles.inlineIcon}
+                        aria-label={item.name}
+                      />
+                      <span className={styles.itemRewardName}>{item.name}</span>
+                    </div>
+                    <span className={styles.itemRewardMeta}>{getRewardItemMeta(item)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </motion.section>
 
         {/* Section 4: Growth summary */}

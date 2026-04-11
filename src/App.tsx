@@ -3,10 +3,13 @@ import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useSectStore } from './stores/sectStore'
 import { useAdventureStore } from './stores/adventureStore'
 import { useGameStore } from './stores/gameStore'
+import { useEventLogStore } from './stores/eventLogStore'
 import { IdleEngine, calcOfflineSeconds } from './systems/idle/IdleEngine'
 import { loadGame } from './systems/save/SaveSystem'
 import { loadTestSave } from './systems/save/testFixture'
 import { startAutoSave } from './systems/save/startAutoSave'
+import { buildOfflineNarrative } from './systems/sect/OfflineNarrativeSystem'
+import type { AdventureReport } from './types'
 import Sidebar from './components/common/Sidebar'
 import BottomNav from './components/common/BottomNav'
 import TopBar from './components/common/TopBar'
@@ -72,12 +75,38 @@ export default function App() {
       // Use microtask to avoid calling setState synchronously within the effect
       if (offline > 60) {
         const acc = useSectStore.getState().sect.offlineAccumulator
+        const cutoff = Date.now() - offline * 1000
+        const adventureState = useAdventureStore.getState()
+        const recentReports = adventureState.reports.filter((report) => report.finishedAt >= cutoff).slice(0, 3)
+        const recentReportDetails = recentReports
+          .map((report) => adventureState.getReport(report.id))
+          .filter((report): report is AdventureReport => Boolean(report))
+        const recentEvents = useEventLogStore
+          .getState()
+          .events.filter((event) => event.timestamp >= cutoff)
+          .slice(0, 6)
+          .map((event) => ({
+            id: event.id,
+            type: event.type,
+            message: event.message,
+            data: event.data,
+          }))
+        const narrative = buildOfflineNarrative({
+          sect: useSectStore.getState().sect,
+          accumulator: acc,
+          recentReports,
+          recentReportDetails,
+          recentEvents,
+        })
         const reportData: OfflineReportData = {
           offlineSeconds: offline,
           resourcesGained: { ...acc.resourcesGained },
           breakthroughs: [...acc.breakthroughs],
           itemsCrafted: [...acc.itemsCrafted],
           taxIncome: acc.taxIncome,
+          notableEvents: narrative.notableEvents,
+          nextSuggestion: narrative.nextSuggestion,
+          loopRewards: narrative.loopRewards,
         }
         queueMicrotask(() => setOfflineReport(reportData))
       }

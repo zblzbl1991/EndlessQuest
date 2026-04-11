@@ -79,6 +79,144 @@
   color: var(--color-text-secondary);
 }
 
+.policyHint {
+  font-size: 12px;
+  color: var(--color-accent);
+}
+
+.controlSummary {
+  display: grid;
+  gap: 10px;
+}
+
+.controlCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+}
+
+.rumorGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.rumorCard {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+}
+
+.rumorAccent {
+  border-color: rgba(95, 122, 141, 0.18);
+}
+
+.rumorGood {
+  border-color: rgba(79, 122, 116, 0.22);
+  background: rgba(247, 252, 250, 0.92);
+}
+
+.rumorWarn {
+  border-color: rgba(181, 95, 95, 0.22);
+  background: rgba(255, 248, 247, 0.92);
+}
+
+.rumorTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.rumorDetail {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.goalSection {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.goalSectionTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+}
+
+.goalGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.goalCard {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.goalHigh {
+  border-color: rgba(181, 95, 95, 0.22);
+  background: rgba(255, 248, 247, 0.92);
+}
+
+.goalMedium {
+  border-color: rgba(95, 122, 141, 0.18);
+}
+
+.goalLow {
+  border-color: rgba(79, 122, 116, 0.16);
+  background: rgba(247, 252, 250, 0.9);
+}
+
+.goalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.goalTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.goalProgress {
+  font-size: 11px;
+  color: var(--color-accent);
+  text-align: right;
+}
+
+.goalDetail {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.controlLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.controlValue {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.controlMeta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
 .midgroundGrid {
   display: grid;
   gap: 12px;
@@ -88,6 +226,127 @@
 .backgroundStack {
   display: grid;
   gap: 12px;
+}
+
+.bottleneckList,
+.policyGrid,
+.forecastGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.bottleneckCard,
+.policyCard,
+.forecastCard,
+.templateSummary {
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+}
+
+.bottleneckHigh {
+  border-color: rgba(181, 95, 95, 0.24);
+  background: rgba(255, 248, 247, 0.9);
+}
+
+.bottleneckMedium {
+  border-color: rgba(160, 127, 92, 0.2);
+}
+
+.bottleneckLow {
+  border-color: rgba(95, 122, 141, 0.1);
+}
+
+.bottleneckHeader,
+.templateSummaryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bottleneckTitle,
+.templateSummaryTitle {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.bottleneckSeverity,
+.templateSummaryName {
+  font-size: 11px;
+  color: var(--color-accent);
+}
+
+.bottleneckDetail,
+.bottleneckSuggestion,
+.templateNotes,
+.forecastMeta {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.bottleneckSuggestion {
+  color: var(--color-text);
+}
+
+.loopYieldMeta {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(247, 242, 234, 0.76);
+  border: 1px solid rgba(148, 119, 86, 0.12);
+  color: var(--color-text);
+}
+
+.policyCard {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease,
+    transform 160ms ease;
+}
+
+.policyCard:hover {
+  border-color: rgba(95, 122, 141, 0.24);
+}
+
+.policyCard:active {
+  transform: translateY(1px);
+}
+
+.policyCardActive {
+  border-color: rgba(95, 122, 141, 0.32);
+  background: radial-gradient(circle at right, rgba(133, 164, 182, 0.14), transparent 30%), rgba(248, 252, 255, 0.94);
+}
+
+.policyName,
+.forecastValue {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.policyDesc,
+.forecastLabel {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.templateMetaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--color-text-tertiary);
 }
 
 .synergySummary {
@@ -340,8 +599,20 @@
     align-items: start;
   }
 
+  .controlSummary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .midgroundGrid {
     grid-template-columns: 1.1fr 0.9fr;
+  }
+
+  .bottleneckList,
+  .policyGrid,
+  .forecastGrid,
+  .rumorGrid,
+  .goalGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .resourceGrid {

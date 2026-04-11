@@ -208,6 +208,106 @@
   gap: var(--space-sm);
 }
 
+.controlPanel {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(95, 122, 141, 0.12);
+  background: linear-gradient(180deg, rgba(251, 254, 255, 0.98), rgba(242, 247, 250, 0.94));
+  box-shadow: 0 16px 32px rgba(37, 50, 64, 0.06);
+}
+
+.controlHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.controlMeta {
+  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.focusGrid,
+.pressureGrid,
+.overflowGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.focusGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.focusCard,
+.pressureCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.12);
+  background: rgba(247, 251, 253, 0.8);
+}
+
+.focusCard {
+  text-align: left;
+  cursor: pointer;
+}
+
+.focusCardActive {
+  border-color: rgba(95, 122, 141, 0.28);
+  background: rgba(133, 164, 182, 0.14);
+}
+
+.focusTitle,
+.pressureValue {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.focusDesc,
+.pressureMeta {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.pressureGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pressureLabel,
+.overflowLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.overflowGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.overflowField {
+  display: grid;
+  gap: 6px;
+}
+
+.overflowSelect {
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-text);
+  font-size: 13px;
+}
+
 .buildingCard {
   background: var(--color-panel);
   border-radius: var(--radius-md);
@@ -1001,6 +1101,11 @@
     gap: var(--space-sm);
   }
 
+  .controlPanel,
+  .synergySection {
+    grid-column: 1 / -1;
+  }
+
   .qualitySelect {
     grid-template-columns: 1fr 1fr 1fr 1fr;
   }
@@ -1009,6 +1114,12 @@
 @media (max-width: 640px) {
   .pageTitle {
     font-size: 22px;
+  }
+
+  .focusGrid,
+  .pressureGrid,
+  .overflowGrid {
+    grid-template-columns: 1fr;
   }
 }
 

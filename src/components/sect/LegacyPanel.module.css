@@ -65,6 +65,35 @@
   color: var(--color-accent);
 }
 
+.perkList {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.perkItem {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(247, 251, 253, 0.82);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.perkName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.perkDesc {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
 /* Section labels */
 .sectionLabel {
   display: inline-flex;

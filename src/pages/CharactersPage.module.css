@@ -11,6 +11,7 @@
 }
 
 .automationPanel,
+.managementPanel,
 .rosterPanel,
 .foldSection {
   border-radius: var(--radius-xl);
@@ -23,6 +24,58 @@
   padding: 14px;
   display: grid;
   gap: 12px;
+}
+
+.managementPanel {
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.managementHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.managementGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.managementCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  background: rgba(247, 251, 253, 0.8);
+}
+
+.managementCardTitle {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.managementTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.managementTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: var(--color-accent);
+  background: rgba(95, 122, 141, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.12);
 }
 
 .automationHeader {
@@ -216,6 +269,42 @@
   padding: var(--space-xl) 0;
   color: var(--color-text-tertiary);
   font-size: 13px;
+}
+
+.characterStack {
+  display: grid;
+  gap: 8px;
+}
+
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid rgba(95, 122, 141, 0.08);
+  border-radius: var(--radius-md);
+  background: rgba(247, 251, 253, 0.75);
+}
+
+.quickField {
+  display: grid;
+  gap: 4px;
+}
+
+.quickLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.quickSelect {
+  width: 100%;
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(95, 122, 141, 0.16);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--color-text);
+  font-size: 12px;
 }
 
 .backBtn {
@@ -764,6 +853,8 @@
 
 @media (max-width: 639px) {
   .settingGrid,
+  .managementGrid,
+  .quickActions,
   .statsGrid,
   .equipSlotButtons,
   .gridView {
@@ -771,6 +862,7 @@
   }
 
   .automationHeader,
+  .managementHeader,
   .settingFooter,
   .dispatchInfo,
   .detailProgress,

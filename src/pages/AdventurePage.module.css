@@ -47,6 +47,123 @@
   border-top: 1px solid rgba(95, 122, 141, 0.08);
 }
 
+.templateRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.templateCapacityHint {
+  margin-top: 10px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text-tertiary);
+}
+
+.templateChip {
+  appearance: none;
+  display: grid;
+  gap: 2px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 122, 141, 0.14);
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  text-align: left;
+}
+
+.templateChipTop {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.templateChipActive {
+  border-color: rgba(95, 122, 141, 0.28);
+  background: rgba(240, 247, 251, 0.96);
+  color: var(--color-text);
+}
+
+.templateChipName {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.templateChipMeta {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+.templateSignalBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: rgba(133, 71, 24, 0.92);
+  background: rgba(184, 134, 77, 0.12);
+  border: 1px solid rgba(184, 134, 77, 0.18);
+}
+
+.templateEditor {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.templateHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.templateTitle {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  color: var(--color-text);
+}
+
+.templateHint {
+  margin-top: 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.templateSignalHint {
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: rgba(105, 71, 27, 0.9);
+}
+
+.templateToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.templateSummaryBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(95, 122, 141, 0.1);
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
 .automationSummary {
   display: flex;
   align-items: center;
@@ -266,6 +383,16 @@
   border-radius: 999px;
   background: rgba(95, 122, 141, 0.08);
   color: var(--color-accent);
+  font-size: 11px;
+}
+
+.legacyBadge {
+  display: inline-flex;
+  margin-top: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(150, 94, 58, 0.12);
+  color: #8f4f27;
   font-size: 11px;
 }
 

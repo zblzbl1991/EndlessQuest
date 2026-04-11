@@ -4,9 +4,19 @@ import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
 import { getRealmName } from '../data/realms'
+import { getLegacyDungeonName } from '../data/legacyUnlocks'
 import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS } from '../data/uiCopy'
 import type { CharacterQuality } from '../types/character'
+import {
+  getExpeditionTemplateSignal,
+  getFallbackRuleLabel,
+  getRewardFocusLabel,
+  getSpecialExpeditionTemplateCount,
+  getTeamRuleLabel,
+  getVisibleExpeditionTemplates,
+} from '../data/expeditionTemplates'
+import { getLegacyTemplateCapacity } from '../data/legacy'
 
 import type { AutomationStrategy, TacticalPreset } from '../types/adventure'
 import PageHeader from '../components/common/PageHeader'
@@ -41,6 +51,8 @@ function getDungeonIconName(dungeonId: string): string {
       return 'dungeonTribulation'
     case 'heavenlyTribulationRealm':
       return 'dungeonTribulation'
+    case 'guixuRift':
+      return 'dungeonAbyss'
     default:
       return 'dungeonCave'
   }
@@ -68,14 +80,53 @@ export default function AdventurePage() {
   const playerRealm = maxRealmChar?.realm ?? 0
   const playerStage = maxRealmChar?.realmStage ?? 0
   const nextDayCountdown = Math.max(0, 60 - dayProgressSec)
-  const preferredDungeon = dungeons.find((item) => item.id === sect.automationSettings.preferredDungeonId) ?? null
-  const unlockedDungeons = dungeons.filter((dungeon) => isDungeonUnlocked(dungeon, playerRealm, playerStage))
+  const templateCapacity = getLegacyTemplateCapacity(sect.legacy.ascensionCount)
+  const visibleTemplates = getVisibleExpeditionTemplates(
+    sect.automationSettings.expeditionTemplates,
+    sect.legacy.ascensionCount,
+    sect.archiveMilestones
+  )
+  const specialTemplateCount = getSpecialExpeditionTemplateCount(sect.archiveMilestones)
+  const activeTemplate =
+    visibleTemplates.find((template) => template.id === sect.automationSettings.activeTemplateId) ??
+    visibleTemplates[0] ??
+    null
+  const activeTemplateSignal = activeTemplate
+    ? getExpeditionTemplateSignal(activeTemplate.id, sect.archiveMilestones)
+    : null
+  const preferredDungeon =
+    dungeons.find((item) => item.id === (activeTemplate?.dungeonId ?? sect.automationSettings.preferredDungeonId)) ??
+    null
+  const unlockedDungeons = dungeons.filter((dungeon) =>
+    isDungeonUnlocked(dungeon, playerRealm, playerStage, sect.legacy.unlockedDungeons)
+  )
+  const preferredDungeonUnlocked = preferredDungeon
+    ? isDungeonUnlocked(preferredDungeon, playerRealm, playerStage, sect.legacy.unlockedDungeons)
+    : false
+  const effectivePreferredDungeon = preferredDungeonUnlocked ? preferredDungeon : null
   const characterNameMap = useMemo(
     () => new Map(sect.characters.map((char) => [char.id, char.name])),
     [sect.characters]
   )
   const latestReport = reports[0] ?? null
-  const quickLaunchDungeonId = preferredDungeon?.id ?? unlockedDungeons[0]?.id ?? null
+  const quickLaunchDungeonId = effectivePreferredDungeon?.id ?? unlockedDungeons[0]?.id ?? null
+
+  const updateActiveTemplate = <K extends keyof NonNullable<typeof activeTemplate>>(
+    key: K,
+    value: NonNullable<typeof activeTemplate>[K]
+  ) => {
+    if (!activeTemplate) return
+    setAutomationSettings({
+      preferredDungeonId: key === 'dungeonId' ? (value as string | null) : sect.automationSettings.preferredDungeonId,
+      casualtyTolerance:
+        key === 'riskTolerance'
+          ? (value as typeof sect.automationSettings.casualtyTolerance)
+          : sect.automationSettings.casualtyTolerance,
+      expeditionTemplates: sect.automationSettings.expeditionTemplates.map((template) =>
+        template.id === activeTemplate.id ? { ...template, [key]: value } : template
+      ),
+    })
+  }
 
   const handleQuickLaunch = () => {
     if (!quickLaunchDungeonId) return
@@ -87,9 +138,19 @@ export default function AdventurePage() {
     runAutomation({
       dungeonId: quickLaunchDungeonId,
       teamCharacterIds: autoTeam,
-      supplyLevel: 'basic',
-      tacticalPreset: 'balanced',
-      automationStrategy: 'steady',
+      supplyLevel: activeTemplate?.supplyLevel ?? 'basic',
+      tacticalPreset:
+        activeTemplate?.riskTolerance === 'risky'
+          ? 'burst'
+          : activeTemplate?.riskTolerance === 'conservative'
+            ? 'conservative'
+            : 'balanced',
+      automationStrategy:
+        activeTemplate?.rewardFocus === 'progress'
+          ? 'combat'
+          : activeTemplate?.rewardFocus === 'techniques' || activeTemplate?.rewardFocus === 'pets'
+            ? 'profit'
+            : 'steady',
     })
   }
 
@@ -119,9 +180,9 @@ export default function AdventurePage() {
         }
         metrics={[
           {
-            label: '优先秘境',
-            value: preferredDungeon?.name ?? '未设置',
-            detail: '每日结算后自动尝试',
+            label: '启用模板',
+            value: activeTemplate?.name ?? '未设置',
+            detail: preferredDungeon?.name ?? '未设置目标秘境',
           },
           {
             label: '可出战',
@@ -151,56 +212,174 @@ export default function AdventurePage() {
         <div className={styles.automationHeader}>
           <div>
             <h2 className={styles.panelTitle}>自动运转</h2>
-            <p className={styles.panelMeta}>{`每日结算后自动尝试 ${preferredDungeon?.name ?? '首个可用秘境'}`}</p>
+            <p className={styles.panelMeta}>
+              {activeTemplate
+                ? `当前按模板「${activeTemplate.name}」运转，每 5 个游戏日自动尝试一次。`
+                : '先选一套远征模板，再交给宗门自行推进。'}
+            </p>
           </div>
         </div>
 
-        <details className={styles.automationDetails}>
-          <summary className={styles.automationSummary}>
-            <span>优先目标与风险偏好</span>
-            <span className={styles.automationSummaryMeta}>展开设置</span>
-          </summary>
-
-          <div className={styles.settingGrid}>
-            <label className={styles.settingField}>
-              <span className={styles.settingLabel}>优先秘境</span>
-              <select
-                className={styles.settingSelect}
-                value={sect.automationSettings.preferredDungeonId ?? ''}
-                onChange={(event) =>
-                  setAutomationSettings({ preferredDungeonId: event.target.value === '' ? null : event.target.value })
-                }
+        <div className={styles.templateRail}>
+          {visibleTemplates.map((template) => {
+            const isActive = template.id === sect.automationSettings.activeTemplateId
+            const templateSignal = getExpeditionTemplateSignal(template.id, sect.archiveMilestones)
+            return (
+              <button
+                key={template.id}
+                type="button"
+                className={`${styles.templateChip} ${isActive ? styles.templateChipActive : ''}`}
+                onClick={() => setAutomationSettings({ activeTemplateId: template.id })}
               >
-                <option value="">未设置</option>
-                {dungeons.map((dungeon) => {
-                  const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
-                  return (
-                    <option key={dungeon.id} value={dungeon.id} disabled={!unlocked}>
-                      {unlocked ? dungeon.name : `${dungeon.name}（未解锁）`}
-                    </option>
-                  )
-                })}
-              </select>
-            </label>
+                <span className={styles.templateChipTop}>
+                  <span className={styles.templateChipName}>{template.name}</span>
+                  {templateSignal ? <span className={styles.templateSignalBadge}>{templateSignal.label}</span> : null}
+                </span>
+                <span className={styles.templateChipMeta}>
+                  {getRewardFocusLabel(template.rewardFocus)}
+                  {templateSignal ? ` 路 ${templateSignal.detail}` : ''}
+                </span>
+              </button>
+            )
+          })}
+        </div>
 
-            <label className={styles.settingField}>
-              <span className={styles.settingLabel}>伤亡倾向</span>
-              <select
-                className={styles.settingSelect}
-                value={sect.automationSettings.casualtyTolerance}
-                onChange={(event) =>
-                  setAutomationSettings({
-                    casualtyTolerance: event.target.value as typeof sect.automationSettings.casualtyTolerance,
-                  })
-                }
-              >
-                <option value="conservative">保守</option>
-                <option value="balanced">均衡</option>
-                <option value="risky">赌命</option>
-              </select>
-            </label>
+        <div className={styles.templateCapacityHint}>
+          当前轮回已开放 {templateCapacity} 个远征模板位
+          {specialTemplateCount > 0 ? `，另有 ${specialTemplateCount} 个共鸣解锁模板` : ''}
+          ，继续飞升可解锁更多长期预案。
+        </div>
+
+        {activeTemplate ? (
+          <div className={styles.templateEditor}>
+            <div className={styles.templateHeader}>
+              <div>
+                <div className={styles.templateTitle}>{activeTemplate.name}</div>
+                <div className={styles.templateHint}>{activeTemplate.notes}</div>
+                {activeTemplateSignal ? (
+                  <div className={styles.templateSignalHint}>{activeTemplateSignal.detail}</div>
+                ) : null}
+              </div>
+              <label className={styles.templateToggle}>
+                <input
+                  type="checkbox"
+                  checked={activeTemplate.enabled}
+                  onChange={(event) => updateActiveTemplate('enabled', event.target.checked)}
+                />
+                <span>{activeTemplate.enabled ? '启用中' : '已停用'}</span>
+              </label>
+            </div>
+
+            <div className={styles.settingGrid}>
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>目标秘境</span>
+                <select
+                  className={styles.settingSelect}
+                  value={activeTemplate.dungeonId ?? ''}
+                  onChange={(event) =>
+                    updateActiveTemplate('dungeonId', event.target.value === '' ? null : event.target.value)
+                  }
+                >
+                  <option value="">未设置</option>
+                  {dungeons.map((dungeon) => {
+                    const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage, sect.legacy.unlockedDungeons)
+                    return (
+                      <option key={dungeon.id} value={dungeon.id} disabled={!unlocked}>
+                        {unlocked ? dungeon.name : `${dungeon.name}（未解锁）`}
+                      </option>
+                    )
+                  })}
+                </select>
+              </label>
+
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>伤亡倾向</span>
+                <select
+                  className={styles.settingSelect}
+                  value={activeTemplate.riskTolerance}
+                  onChange={(event) =>
+                    updateActiveTemplate('riskTolerance', event.target.value as typeof activeTemplate.riskTolerance)
+                  }
+                >
+                  <option value="conservative">保守</option>
+                  <option value="balanced">均衡</option>
+                  <option value="risky">赌命</option>
+                </select>
+              </label>
+
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>收益偏好</span>
+                <select
+                  className={styles.settingSelect}
+                  value={activeTemplate.rewardFocus}
+                  onChange={(event) =>
+                    updateActiveTemplate('rewardFocus', event.target.value as typeof activeTemplate.rewardFocus)
+                  }
+                >
+                  <option value="resources">资源</option>
+                  <option value="materials">材料</option>
+                  <option value="techniques">功法</option>
+                  <option value="pets">灵宠</option>
+                  <option value="progress">推进</option>
+                </select>
+              </label>
+
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>补给等级</span>
+                <select
+                  className={styles.settingSelect}
+                  value={activeTemplate.supplyLevel}
+                  onChange={(event) =>
+                    updateActiveTemplate('supplyLevel', event.target.value as typeof activeTemplate.supplyLevel)
+                  }
+                >
+                  <option value="basic">基础</option>
+                  <option value="enhanced">充足</option>
+                  <option value="luxury">豪华</option>
+                </select>
+              </label>
+
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>出战规则</span>
+                <select
+                  className={styles.settingSelect}
+                  value={activeTemplate.teamRule}
+                  onChange={(event) =>
+                    updateActiveTemplate('teamRule', event.target.value as typeof activeTemplate.teamRule)
+                  }
+                >
+                  <option value="balanced">均衡阵</option>
+                  <option value="topPower">最强阵</option>
+                  <option value="reserveCore">留核心</option>
+                </select>
+              </label>
+
+              <label className={styles.settingField}>
+                <span className={styles.settingLabel}>失利后处理</span>
+                <select
+                  className={styles.settingSelect}
+                  value={activeTemplate.fallbackOnFailure}
+                  onChange={(event) =>
+                    updateActiveTemplate(
+                      'fallbackOnFailure',
+                      event.target.value as typeof activeTemplate.fallbackOnFailure
+                    )
+                  }
+                >
+                  <option value="downgrade_dungeon">自动降档</option>
+                  <option value="swap_team">换队再试</option>
+                  <option value="pause_template">暂停模板</option>
+                </select>
+              </label>
+            </div>
+
+            <div className={styles.templateSummaryBar}>
+              <span>{getRewardFocusLabel(activeTemplate.rewardFocus)}</span>
+              <span>{getTeamRuleLabel(activeTemplate.teamRule)}</span>
+              <span>{getFallbackRuleLabel(activeTemplate.fallbackOnFailure)}</span>
+            </div>
           </div>
-        </details>
+        ) : null}
       </section>
 
       {buildingTeam && (
@@ -291,10 +470,13 @@ export default function AdventurePage() {
             <div className={styles.sectionTitle}>可选秘境</div>
             <div className={styles.dungeonList}>
               {dungeons.map((dungeon) => {
-                const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage)
+                const unlocked = isDungeonUnlocked(dungeon, playerRealm, playerStage, sect.legacy.unlockedDungeons)
                 const unlockRealmName = getRealmName(dungeon.unlockRealm, dungeon.unlockStage as 0 | 1 | 2 | 3)
                 const cleared = completedDungeons.includes(dungeon.id)
                 const launchDisabled = !unlocked || availableCharacters.length === 0
+                const legacyHint = dungeon.legacyUnlockId
+                  ? `闇€${unlockRealmName}涓斿畬鎴?${getLegacyDungeonName(dungeon.legacyUnlockId)}鐨勮疆鍥炶В閿佹墠鑳借繘鍏?`
+                  : null
                 let hint = ''
                 if (!unlocked) {
                   hint = `需${unlockRealmName}才可探索`
@@ -326,6 +508,8 @@ export default function AdventurePage() {
                       <span>层数：{dungeon.totalLayers}</span>
                       <span>推荐：{unlockRealmName}</span>
                     </div>
+                    {dungeon.legacyUnlockId ? <div className={styles.legacyBadge}>杞洖闅愪笘绉樺</div> : null}
+                    {!unlocked && legacyHint ? <div className={styles.dungeonHint}>{legacyHint}</div> : null}
                     <div className={styles.dungeonHint}>{hint}</div>
                     <button
                       className={`${styles.startBtn} ${launchDisabled ? styles.btnDisabled : ''}`}

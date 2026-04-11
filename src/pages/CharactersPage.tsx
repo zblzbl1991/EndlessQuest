@@ -10,7 +10,7 @@ import { calcEffectiveCultivationRate } from '../systems/cultivation/Cultivation
 import { getPathDef } from '../data/cultivationPaths'
 import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
-import type { CharacterStatus } from '../types/character'
+import type { CharacterAutomationRole, CharacterManagementTier, CharacterStatus } from '../types/character'
 import { ELEMENT_NAMES } from '../types/skill'
 import { CHAR_QUALITY_SHORT } from '../data/uiCopy'
 import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
@@ -57,6 +57,23 @@ const TECHNIQUE_TIER_CLASS: Record<string, string> = {
   immortal: styles.tierImmortal,
   divine: styles.tierDivine,
   chaos: styles.tierChaos,
+}
+
+const MANAGEMENT_TIERS: CharacterManagementTier[] = ['core', 'main', 'reserve', 'support']
+const MANAGEMENT_TIER_LABELS: Record<CharacterManagementTier, string> = {
+  core: '核心',
+  main: '主力',
+  reserve: '候补',
+  support: '产线',
+}
+
+const AUTOMATION_ROLES: CharacterAutomationRole[] = ['cultivation', 'expedition', 'production', 'study', 'recovery']
+const AUTOMATION_ROLE_LABELS: Record<CharacterAutomationRole, string> = {
+  cultivation: '闭关',
+  expedition: '外勤',
+  production: '驻产线',
+  study: '参悟',
+  recovery: '休养',
 }
 
 type ViewMode = 'list' | 'grid'
@@ -200,6 +217,9 @@ export default function CharactersPage() {
   const characters = useSectStore((s) => s.sect.characters)
   const buildings = useSectStore((s) => s.sect.buildings)
   const activeRoute = useSectStore((s) => s.sect.activeRoute)
+  const setCharacterManagementTier = useSectStore((s) => s.setCharacterManagementTier)
+  const setCharacterAutomationRole = useSectStore((s) => s.setCharacterAutomationRole)
+  const autoArrangeCharacterDuties = useSectStore((s) => s.autoArrangeCharacterDuties)
   const dayProgressSec = useGameStore((s) => s.dayProgressSec)
 
   const filteredCharacters = useMemo(() => {
@@ -213,6 +233,22 @@ export default function CharactersPage() {
       idle: characters.filter((character) => character.status === 'idle').length,
       adventuring: characters.filter((character) => character.status === 'adventuring').length,
       recovering: characters.filter((character) => character.status === 'recovering').length,
+    }),
+    [characters]
+  )
+
+  const managementSummary = useMemo(
+    () => ({
+      tiers: MANAGEMENT_TIERS.map((tier) => ({
+        key: tier,
+        label: MANAGEMENT_TIER_LABELS[tier],
+        count: characters.filter((character) => character.managementTier === tier).length,
+      })),
+      roles: AUTOMATION_ROLES.map((role) => ({
+        key: role,
+        label: AUTOMATION_ROLE_LABELS[role],
+        count: characters.filter((character) => character.automationRole === role).length,
+      })),
     }),
     [characters]
   )
@@ -249,6 +285,44 @@ export default function CharactersPage() {
       />
 
       <div className={styles.overviewLayout}>
+        <section className={styles.managementPanel}>
+          <div className={styles.managementHeader}>
+            <div>
+              <h2 className={styles.panelTitle}>梯队与分工</h2>
+              <p className={styles.panelMeta}>
+                先定制度，再让宗门自己运转。核心弟子、外勤弟子与产线弟子会在这里分层管理。
+              </p>
+            </div>
+            <button className={styles.actionBtn} onClick={() => autoArrangeCharacterDuties()}>
+              一键重排职责
+            </button>
+          </div>
+
+          <div className={styles.managementGrid}>
+            <div className={styles.managementCard}>
+              <div className={styles.managementCardTitle}>培养梯队</div>
+              <div className={styles.managementTags}>
+                {managementSummary.tiers.map((tier) => (
+                  <span key={tier.key} className={styles.managementTag}>
+                    {tier.label} {tier.count} 人
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className={styles.managementCard}>
+              <div className={styles.managementCardTitle}>自动分工</div>
+              <div className={styles.managementTags}>
+                {managementSummary.roles.map((role) => (
+                  <span key={role.key} className={styles.managementTag}>
+                    {role.label} {role.count} 人
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <section className={styles.rosterPanel}>
           <div className={styles.controlsBand}>
             <div className={styles.toolbar}>
@@ -284,7 +358,44 @@ export default function CharactersPage() {
 
           <div className={`${styles.characterGrid} ${view === 'grid' ? styles.gridView : styles.listView}`}>
             {filteredCharacters.map((char) => (
-              <CharacterCard key={char.id} character={char} onClick={() => setSelectedId(char.id)} />
+              <div key={char.id} className={styles.characterStack}>
+                <CharacterCard character={char} onClick={() => setSelectedId(char.id)} />
+                <div className={styles.quickActions} onClick={(event) => event.stopPropagation()}>
+                  <label className={styles.quickField}>
+                    <span className={styles.quickLabel}>梯队</span>
+                    <select
+                      className={styles.quickSelect}
+                      value={char.managementTier}
+                      onChange={(event) =>
+                        setCharacterManagementTier(char.id, event.target.value as CharacterManagementTier)
+                      }
+                    >
+                      {MANAGEMENT_TIERS.map((tier) => (
+                        <option key={tier} value={tier}>
+                          {MANAGEMENT_TIER_LABELS[tier]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className={styles.quickField}>
+                    <span className={styles.quickLabel}>职责</span>
+                    <select
+                      className={styles.quickSelect}
+                      value={char.automationRole}
+                      onChange={(event) =>
+                        setCharacterAutomationRole(char.id, event.target.value as CharacterAutomationRole)
+                      }
+                    >
+                      {AUTOMATION_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {AUTOMATION_ROLE_LABELS[role]}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              </div>
             ))}
             {filteredCharacters.length === 0 && <div className={styles.empty}>暂无符合筛选的弟子</div>}
           </div>

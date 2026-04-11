@@ -46,6 +46,37 @@
   text-decoration: underline;
 }
 
+.legacyBanner {
+  margin-bottom: var(--space-lg);
+  padding: var(--space-lg);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at top right, rgba(150, 94, 58, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(255, 249, 243, 0.96), rgba(245, 236, 226, 0.92));
+  border: 1px solid rgba(150, 94, 58, 0.18);
+  box-shadow: 0 16px 32px rgba(82, 53, 30, 0.08);
+}
+
+.legacyBannerEyebrow {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: #8f4f27;
+  margin-bottom: 8px;
+}
+
+.legacyBannerTitle {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  color: var(--color-text);
+}
+
+.legacyBannerDetail {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
 .highlightCard {
   margin-bottom: var(--space-lg);
   padding: var(--space-lg);
@@ -149,6 +180,29 @@
   color: var(--color-text);
 }
 
+.loopSignalCard {
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, rgba(192, 141, 67, 0.12), rgba(255, 255, 255, 0.78));
+  border: 1px solid rgba(184, 134, 77, 0.16);
+  box-shadow: 0 10px 24px rgba(120, 85, 38, 0.06);
+}
+
+.loopSignalLabel {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(110, 73, 25, 0.86);
+}
+
+.loopSignalCard strong {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text);
+}
+
 .highlightGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -195,6 +249,54 @@
 
 .summaryRow strong {
   color: var(--color-text);
+}
+
+.itemRewardBlock {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid rgba(95, 122, 141, 0.1);
+}
+
+.itemRewardTitle {
+  margin-bottom: var(--space-sm);
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: var(--color-text-tertiary);
+}
+
+.itemRewardList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.itemRewardRow {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(133, 164, 182, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.itemRewardMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.itemRewardName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.itemRewardMeta {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  text-align: right;
 }
 
 .sectionTitle {
@@ -331,7 +433,8 @@
   .header,
   .highlightTop,
   .stepHeader,
-  .summaryRow {
+  .summaryRow,
+  .itemRewardRow {
     flex-direction: column;
     align-items: flex-start;
   }

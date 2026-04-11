@@ -1,14 +1,24 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
+import { useEventLogStore } from '../stores/eventLogStore'
+import { useAdventureStore } from '../stores/adventureStore'
 
-import { calcSpiritStoneCap } from '../systems/economy/ResourceEngine'
+import { calcResourceRates, calcSpiritStoneCap } from '../systems/economy/ResourceEngine'
 import { getActiveSynergies } from '../systems/economy/SynergySystem'
 import { SYNERGIES } from '../data/buildings'
 import { SECT_RISK_POLICY_LIST } from '../data/sectRiskPolicies'
 import { getFateGridDef } from '../data/fateGrids'
 import { FATE_GRID_RARITY_NAMES } from '../types/destiny'
 import type { FateGridRarity } from '../types/destiny'
+import {
+  getExpeditionTemplateSignal,
+  getFallbackRuleLabel,
+  getRewardFocusLabel,
+  getSpecialExpeditionTemplateCount,
+  getTeamRuleLabel,
+  getVisibleExpeditionTemplates,
+} from '../data/expeditionTemplates'
 import { PixelIcon } from '../components/common/PixelIcon'
 import PageHeader from '../components/common/PageHeader'
 import ResourceRate from '../components/common/ResourceRate'
@@ -16,7 +26,12 @@ import StrategyPanel from '../components/sect/StrategyPanel'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
 import StatsPanel from '../components/sect/StatsPanel'
+import ActionAgenda from '../components/sect/ActionAgenda'
 import { clearSaveData } from '../systems/save/SaveSystem'
+import { diagnoseSectBottlenecks } from '../systems/sect/SectBottleneckSystem'
+import { buildSectRumors } from '../systems/sect/SectRumorSystem'
+import { getLegacyTemplateCapacity, getUnlockedLegacyPerks } from '../data/legacy'
+import { buildSectStageGoals } from '../systems/sect/SectGoalSystem'
 import styles from './SectPage.module.css'
 
 function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStore.getState>['sect']['characters']) {
@@ -62,7 +77,14 @@ const UNIQUE_SYNERGY_TOTAL = SYNERGIES.filter((s, i) => SYNERGIES.findIndex((o) 
 export default function SectPage() {
   const sect = useSectStore((s) => s.sect)
   const resetSect = useSectStore((s) => s.reset)
+  const setPolicy = useSectStore((s) => s.setPolicy)
   const resetGame = useGameStore((s) => s.reset)
+  const dayProgressSec = useGameStore((s) => s.dayProgressSec)
+  const recentEvents = useEventLogStore((s) => s.events)
+  const recentReports = useAdventureStore((s) => s.reports)
+  const reportDetails = useAdventureStore((s) => s.reportDetails)
+  const dungeons = useAdventureStore((s) => s.dungeons)
+  const [policyHint, setPolicyHint] = useState<string | null>(null)
 
   const characterStats = useMemo(() => getSectCharacterStatusSummary(sect.characters), [sect.characters])
 
@@ -82,6 +104,78 @@ export default function SectPage() {
   const activeSynergyCount = useMemo(() => getActiveSynergies(sect.buildings).length, [sect.buildings])
 
   const policyName = SECT_RISK_POLICY_LIST.find((p) => p.id === sect.strategySettings.activePolicy)?.name ?? '均衡'
+  const templateCapacity = getLegacyTemplateCapacity(sect.legacy.ascensionCount)
+  const visibleTemplates = getVisibleExpeditionTemplates(
+    sect.automationSettings.expeditionTemplates,
+    sect.legacy.ascensionCount,
+    sect.archiveMilestones
+  )
+  const specialTemplateCount = getSpecialExpeditionTemplateCount(sect.archiveMilestones)
+  const activeTemplate =
+    visibleTemplates.find((template) => template.id === sect.automationSettings.activeTemplateId) ??
+    visibleTemplates[0] ??
+    null
+  const activeTemplateSignal = activeTemplate
+    ? getExpeditionTemplateSignal(activeTemplate.id, sect.archiveMilestones)
+    : null
+  const activeTemplateLoopYield = useMemo(() => {
+    if (activeTemplate?.id !== 'guixuResonance') return null
+
+    const latestGuixuReport = recentReports
+      .filter((report) => report.dungeonId === 'guixuRift')
+      .map((report) => reportDetails[report.id])
+      .find((report) => Boolean(report))
+
+    if (!latestGuixuReport) return null
+
+    const tideCrystalCount = latestGuixuReport.itemRewards.filter((item) => item.name === '归墟潮晶').length
+    const abyssShardCount = latestGuixuReport.itemRewards.filter((item) => item.name === '渊息残片').length
+    if (tideCrystalCount === 0 && abyssShardCount === 0) return null
+
+    return {
+      tideCrystalCount,
+      abyssShardCount,
+      floorsCleared: latestGuixuReport.floorsCleared,
+    }
+  }, [activeTemplate?.id, recentReports, reportDetails])
+  const legacyPerks = useMemo(() => getUnlockedLegacyPerks(sect.legacy.ascensionCount), [sect.legacy.ascensionCount])
+  const bottlenecks = useMemo(() => diagnoseSectBottlenecks(sect), [sect])
+  const sectRumors = useMemo(
+    () =>
+      buildSectRumors(
+        recentEvents.slice(0, 8).map((event) => ({
+          id: event.id,
+          type: event.type,
+          message: event.message,
+          data: event.data,
+        })),
+        3
+      ),
+    [recentEvents]
+  )
+  const stageGoals = useMemo(() => buildSectStageGoals(sect, recentReports, dungeons), [sect, recentReports, dungeons])
+  const nextAutoRunInDays = Math.max(0, 5 - (sect.autoRunDayCounter ?? 0))
+  const nextAutoRunInSeconds = Math.max(0, nextAutoRunInDays * 60 - dayProgressSec)
+  const nextCyclePreview = useMemo(() => {
+    const forecastWindowSec = Math.max(60, nextAutoRunInDays * 60)
+    const rates = calcResourceRates(
+      {
+        spiritField: spiritFieldLevel,
+        spiritFieldCount,
+        spiritMine: sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0,
+        spiritMineCount: sect.buildings.find((b) => b.type === 'spiritMine')?.count ?? 0,
+        mainHall: mainHallLevel,
+      },
+      { techniqueMultiplier: 1, discipleMultiplier: 1 }
+    )
+
+    return {
+      spiritStone: Math.floor(rates.spiritStone * forecastWindowSec),
+      spiritEnergy: Math.floor(rates.spiritEnergy * forecastWindowSec),
+      herb: Math.floor(rates.herb * forecastWindowSec),
+      ore: Math.floor(rates.ore * forecastWindowSec),
+    }
+  }, [mainHallLevel, nextAutoRunInDays, sect.buildings, spiritFieldCount, spiritFieldLevel])
 
   // Identify disciples with notable fate grids, sorted by rarity
   const notableDisciples = useMemo(() => {
@@ -108,6 +202,15 @@ export default function SectPage() {
     await clearSaveData()
   }
 
+  const handlePolicyChange = (policyId: (typeof SECT_RISK_POLICY_LIST)[number]['id']) => {
+    const result = setPolicy(policyId)
+    setPolicyHint(
+      result.success
+        ? `宗门方针已调整为${SECT_RISK_POLICY_LIST.find((policy) => policy.id === policyId)?.name}`
+        : result.reason
+    )
+  }
+
   return (
     <div className={styles.page}>
       <PageHeader
@@ -127,6 +230,196 @@ export default function SectPage() {
           },
         ]}
       />
+
+      <section className={`${styles.section} ${styles.heroSection}`}>
+        <div className={styles.heroCard}>
+          <div className={styles.heroLead}>
+            <span className={styles.heroLine}>宗门总控台</span>
+            <span className={styles.heroHint}>现在的重点是稳住瓶颈、校准远征模板，再让宗门自己往前滚。</span>
+            {policyHint ? <span className={styles.policyHint}>{policyHint}</span> : null}
+            <div className={styles.controlCard}>
+              <span className={styles.controlLabel}>轮回遗产</span>
+              <strong className={styles.controlValue}>{legacyPerks.length} 项</strong>
+              <span className={styles.controlMeta}>
+                模板位已开放 {templateCapacity} 个
+                {specialTemplateCount > 0 ? `，另有 ${specialTemplateCount} 个共鸣模板` : ''}
+                ，继续飞升会解锁更多挂机权限
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.controlSummary}>
+            <div className={styles.controlCard}>
+              <span className={styles.controlLabel}>当前方针</span>
+              <strong className={styles.controlValue}>{policyName}</strong>
+              <span className={styles.controlMeta}>影响自动远征风格与核心弟子使用倾向</span>
+            </div>
+            <div className={styles.controlCard}>
+              <span className={styles.controlLabel}>挂机模板</span>
+              <strong className={styles.controlValue}>{activeTemplate?.name ?? '未设定'}</strong>
+              <span className={styles.controlMeta}>
+                {activeTemplate
+                  ? `${getRewardFocusLabel(activeTemplate.rewardFocus)} · ${getTeamRuleLabel(activeTemplate.teamRule)}${
+                      activeTemplateSignal ? ` · ${activeTemplateSignal.label}` : ''
+                    }`
+                  : '需前往秘境页补齐模板'}
+              </span>
+              {activeTemplateSignal ? <span className={styles.controlMeta}>{activeTemplateSignal.detail}</span> : null}
+              {activeTemplateLoopYield ? (
+                <span className={`${styles.controlMeta} ${styles.loopYieldMeta}`} data-testid="sect-guixu-loop-yield">
+                  最近一轮归墟回响带回 潮晶 {activeTemplateLoopYield.tideCrystalCount} · 残片{' '}
+                  {activeTemplateLoopYield.abyssShardCount} · 推进至第 {activeTemplateLoopYield.floorsCleared} 层
+                </span>
+              ) : null}
+            </div>
+            <div className={styles.controlCard}>
+              <span className={styles.controlLabel}>下一轮远征</span>
+              <strong className={styles.controlValue}>{Math.ceil(nextAutoRunInSeconds)} 秒</strong>
+              <span className={styles.controlMeta}>按每 5 个游戏日自动尝试一次</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>今日宗务</div>
+        <ActionAgenda />
+      </section>
+
+      {sectRumors.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>山门风闻</div>
+          <div className={styles.rumorGrid}>
+            {sectRumors.map((rumor) => (
+              <div
+                key={rumor.id}
+                className={`${styles.rumorCard} ${
+                  rumor.tone === 'good'
+                    ? styles.rumorGood
+                    : rumor.tone === 'warn'
+                      ? styles.rumorWarn
+                      : styles.rumorAccent
+                }`}
+              >
+                <div className={styles.rumorTitle}>{rumor.title}</div>
+                <div className={styles.rumorDetail}>{rumor.detail}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>瓶颈诊断</div>
+        {stageGoals.length > 0 && (
+          <div className={styles.goalSection}>
+            <div className={styles.goalSectionTitle}>阶段目标</div>
+            <div className={styles.goalGrid}>
+              {stageGoals.map((goal) => (
+                <div
+                  key={goal.id}
+                  className={`${styles.goalCard} ${
+                    goal.priority === 'high'
+                      ? styles.goalHigh
+                      : goal.priority === 'medium'
+                        ? styles.goalMedium
+                        : styles.goalLow
+                  }`}
+                >
+                  <div className={styles.goalHeader}>
+                    <span className={styles.goalTitle}>{goal.title}</span>
+                    <span className={styles.goalProgress}>{goal.progress}</span>
+                  </div>
+                  <div className={styles.goalDetail}>{goal.detail}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className={styles.bottleneckList}>
+          {bottlenecks.map((bottleneck) => (
+            <div
+              key={bottleneck.id}
+              className={`${styles.bottleneckCard} ${
+                bottleneck.severity === 'high'
+                  ? styles.bottleneckHigh
+                  : bottleneck.severity === 'medium'
+                    ? styles.bottleneckMedium
+                    : styles.bottleneckLow
+              }`}
+            >
+              <div className={styles.bottleneckHeader}>
+                <span className={styles.bottleneckTitle}>{bottleneck.label}</span>
+                <span className={styles.bottleneckSeverity}>
+                  {bottleneck.severity === 'high' ? '高压' : bottleneck.severity === 'medium' ? '留意' : '平稳'}
+                </span>
+              </div>
+              <div className={styles.bottleneckDetail}>{bottleneck.detail}</div>
+              <div className={styles.bottleneckSuggestion}>{bottleneck.suggestion}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>挂机策略</div>
+        <div className={styles.policyGrid}>
+          {SECT_RISK_POLICY_LIST.map((policy) => {
+            const active = sect.strategySettings.activePolicy === policy.id
+            return (
+              <button
+                key={policy.id}
+                type="button"
+                className={`${styles.policyCard} ${active ? styles.policyCardActive : ''}`}
+                onClick={() => handlePolicyChange(policy.id)}
+              >
+                <span className={styles.policyName}>{policy.name}</span>
+                <span className={styles.policyDesc}>{policy.description}</span>
+              </button>
+            )
+          })}
+        </div>
+        {activeTemplate ? (
+          <div className={styles.templateSummary}>
+            <div className={styles.templateSummaryHeader}>
+              <span className={styles.templateSummaryTitle}>当前启用模板</span>
+              <span className={styles.templateSummaryName}>{activeTemplate.name}</span>
+            </div>
+            <div className={styles.templateMetaRow}>
+              <span>{getRewardFocusLabel(activeTemplate.rewardFocus)}</span>
+              <span>{getTeamRuleLabel(activeTemplate.teamRule)}</span>
+              <span>{getFallbackRuleLabel(activeTemplate.fallbackOnFailure)}</span>
+            </div>
+            <div className={styles.templateNotes}>{activeTemplate.notes}</div>
+            {activeTemplateSignal ? <div className={styles.templateNotes}>{activeTemplateSignal.detail}</div> : null}
+            {activeTemplateLoopYield ? (
+              <div className={`${styles.templateNotes} ${styles.loopYieldMeta}`}>
+                最近一轮归墟回响带回 潮晶 {activeTemplateLoopYield.tideCrystalCount}、残片{' '}
+                {activeTemplateLoopYield.abyssShardCount}，已推进至第 {activeTemplateLoopYield.floorsCleared} 层。
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>下一轮预期</div>
+        <div className={styles.forecastGrid}>
+          <div className={styles.forecastCard}>
+            <span className={styles.forecastLabel}>下一轮周期</span>
+            <strong className={styles.forecastValue}>{Math.max(1, nextAutoRunInDays)} 个游戏日</strong>
+            <span className={styles.forecastMeta}>继续当前配置后，宗门的基础增量如下</span>
+          </div>
+          <div className={styles.forecastCard}>
+            <span className={styles.forecastLabel}>预估资源</span>
+            <strong className={styles.forecastValue}>+{nextCyclePreview.spiritStone.toLocaleString()} 灵石</strong>
+            <span className={styles.forecastMeta}>
+              灵气 +{nextCyclePreview.spiritEnergy.toLocaleString()} · 灵草 +{nextCyclePreview.herb.toLocaleString()} ·
+              矿材 +{nextCyclePreview.ore.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      </section>
 
       <div className={styles.midgroundGrid} data-testid="sect-midground-grid">
         <section className={styles.section}>

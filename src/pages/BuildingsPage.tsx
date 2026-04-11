@@ -2,6 +2,7 @@
 import { useSectStore } from '../stores/sectStore'
 import {
   BUILDING_DEFS,
+  calcResourceCaps,
   getBuildingEffectText,
   getBuildingExpandCost,
   getBuildingNodeCap,
@@ -16,7 +17,14 @@ import { getRecommendedAssignment, getRoleLabel } from '../systems/character/Spe
 import type { AutoRecipe } from '../data/recipes'
 import { getRecruitCost, getQualityStats } from '../systems/character/CharacterEngine'
 import { calcMaxDisciplesByResources } from '../systems/sect/SectEngine'
-import type { BuildingType, CharacterQuality } from '../types'
+import { calcSpiritStoneCap } from '../systems/economy/ResourceEngine'
+import type {
+  BuildingProductionFocus,
+  BuildingType,
+  CharacterQuality,
+  OverflowSellRule,
+  SpiritStoneOverflowRule,
+} from '../types'
 import type { ItemStack } from '../types/item'
 import type { Character } from '../types/character'
 import { ELEMENT_NAMES } from '../types/skill'
@@ -116,6 +124,29 @@ const AUTO_ASSIGNABLE_BUILDINGS = new Set(
   Object.values(SPECIALTY_BUILDING_MAP).filter((building): building is string => !!building)
 )
 
+const PRODUCTION_FOCUS_OPTIONS: { key: BuildingProductionFocus; label: string; description: string }[] = [
+  { key: 'balanced', label: '均衡运转', description: '维持丹炉与锻造的稳态产出。' },
+  { key: 'cultivation', label: '修炼优先', description: '优先补足闭关和突破前的基础供给。' },
+  { key: 'crafting', label: '锻造优先', description: '把更多余量导向材料精炼和装备产出。' },
+]
+
+const OVERFLOW_THRESHOLD_OPTIONS = [
+  { value: 0.8, label: '80% 预警' },
+  { value: 0.9, label: '90% 预警' },
+  { value: 0.95, label: '95% 预警' },
+]
+
+const SELL_RULE_OPTIONS: { key: OverflowSellRule; label: string }[] = [
+  { key: 'hold', label: '只保留' },
+  { key: 'sell', label: '高水位卖出' },
+]
+
+const STONE_RULE_OPTIONS: { key: SpiritStoneOverflowRule; label: string }[] = [
+  { key: 'hold', label: '只保留' },
+  { key: 'buyHerb', label: '转购灵草' },
+  { key: 'buyOre', label: '转购矿材' },
+]
+
 function getRecommendedIdleCount(buildingType: string, characters: Character[]): number {
   return characters.filter(
     (character) => character.status === 'idle' && getRecommendedAssignment(character) === buildingType
@@ -135,6 +166,39 @@ function formatProductionTime(seconds: number): string {
   const min = Math.floor(seconds / 60)
   const sec = seconds % 60
   return sec > 0 ? `${min}分${sec}秒` : `${min}分钟`
+}
+
+function getPresetRecipeId(
+  buildingType: 'alchemyFurnace' | 'forge',
+  buildingLevel: number,
+  focus: BuildingProductionFocus
+): string | null {
+  const recipes = getAutoRecipesForBuilding(buildingType, buildingLevel)
+  if (recipes.length === 0) return null
+
+  if (buildingType === 'alchemyFurnace') {
+    if (focus === 'cultivation') return recipes.find((recipe) => recipe.id === 'spirit_potion')?.id ?? recipes[0].id
+    if (focus === 'crafting') return recipes.find((recipe) => recipe.id === 'refined_herb')?.id ?? recipes[0].id
+    return recipes.find((recipe) => recipe.id === 'hp_potion')?.id ?? recipes[0].id
+  }
+
+  if (focus === 'cultivation') {
+    return (
+      recipes.find((recipe) => recipe.id === 'refined_ore')?.id ??
+      recipes.find((recipe) => recipe.id === 'spirit_ingot')?.id ??
+      recipes[0].id
+    )
+  }
+
+  if (focus === 'crafting') {
+    return (
+      recipes.find((recipe) => recipe.id === 'forge_spirit_offensive')?.id ??
+      recipes.find((recipe) => recipe.id === 'forge_common')?.id ??
+      recipes[0].id
+    )
+  }
+
+  return recipes.find((recipe) => recipe.id === 'refined_ore')?.id ?? recipes[0].id
 }
 
 // ---------------------------------------------------------------------------
@@ -305,10 +369,52 @@ function BuildingsTab({
   const tryUpgradeBuilding = useSectStore((s) => s.tryUpgradeBuilding)
   const tryExpandBuilding = useSectStore((s) => s.tryExpandBuilding)
   const setProductionRecipe = useSectStore((s) => s.setProductionRecipe)
+  const setAutomationSettings = useSectStore((s) => s.setAutomationSettings)
   const autoAssignToBuilding = useSectStore((s) => s.autoAssignToBuilding)
   const autoOptimizeBuildingAssignments = useSectStore((s) => s.autoOptimizeBuildingAssignments)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
   const [drawerBuilding, setDrawerBuilding] = useState<string | null>(null)
+
+  const mainHallLevel = sect.buildings.find((building) => building.type === 'mainHall')?.level ?? 1
+  const resourceNodeCap = getBuildingNodeCap(mainHallLevel)
+  const spiritField = sect.buildings.find((building) => building.type === 'spiritField')
+  const spiritMine = sect.buildings.find((building) => building.type === 'spiritMine')
+  const caps = calcResourceCaps(
+    spiritField?.level ?? 0,
+    spiritMine?.level ?? 0,
+    spiritField?.count ?? 1,
+    spiritMine?.count ?? 1
+  )
+  const stoneCap = calcSpiritStoneCap(mainHallLevel) * 5
+
+  const resourcePressure = [
+    {
+      key: 'herb',
+      label: '灵草库存',
+      current: sect.resources.herb,
+      cap: caps.herb,
+      detail: sect.automationSettings.herbOverflowRule === 'sell' ? '高水位自动卖出' : '只保留库存',
+    },
+    {
+      key: 'ore',
+      label: '矿材库存',
+      current: sect.resources.ore,
+      cap: caps.ore,
+      detail: sect.automationSettings.oreOverflowRule === 'sell' ? '高水位自动卖出' : '只保留库存',
+    },
+    {
+      key: 'spiritStone',
+      label: '灵石库存',
+      current: sect.resources.spiritStone,
+      cap: stoneCap,
+      detail:
+        sect.automationSettings.spiritStoneOverflowRule === 'buyHerb'
+          ? '高水位转购灵草'
+          : sect.automationSettings.spiritStoneOverflowRule === 'buyOre'
+            ? '高水位转购矿材'
+            : '只保留库存',
+    },
+  ]
 
   const handleUpgrade = (type: BuildingType) => {
     const result = tryUpgradeBuilding(type)
@@ -356,10 +462,122 @@ function BuildingsTab({
     setTimeout(() => setMessage(null), 2000)
   }
 
-  const mainHallLevel = sect.buildings.find((building) => building.type === 'mainHall')?.level ?? 1
-  const resourceNodeCap = getBuildingNodeCap(mainHallLevel)
+  const applyProductionFocus = (focus: BuildingProductionFocus) => {
+    setAutomationSettings({ productionFocus: focus })
+    ;(['alchemyFurnace', 'forge'] as const).forEach((buildingType) => {
+      const buildingLevel = sect.buildings.find((building) => building.type === buildingType)?.level ?? 0
+      const recipeId = getPresetRecipeId(buildingType, buildingLevel, focus)
+      if (recipeId !== null) {
+        setProductionRecipe(buildingType, recipeId)
+      }
+    })
+
+    setMessage({ success: true, text: '已切换生产倾向' })
+    setTimeout(() => setMessage(null), 2000)
+  }
+
   return (
     <div className={styles.buildingsGrid}>
+      <section className={styles.controlPanel}>
+        <div className={styles.controlHeader}>
+          <div>
+            <div className={styles.sectionTitle}>产线守护</div>
+            <div className={styles.controlMeta}>保存宗门的长期运转偏好，离线时也会按这套规则处理库存高水位。</div>
+          </div>
+        </div>
+
+        <div className={styles.focusGrid}>
+          {PRODUCTION_FOCUS_OPTIONS.map((option) => (
+            <button
+              key={option.key}
+              className={`${styles.focusCard} ${
+                sect.automationSettings.productionFocus === option.key ? styles.focusCardActive : ''
+              }`}
+              onClick={() => applyProductionFocus(option.key)}
+            >
+              <span className={styles.focusTitle}>{option.label}</span>
+              <span className={styles.focusDesc}>{option.description}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.pressureGrid}>
+          {resourcePressure.map((item) => (
+            <div key={item.key} className={styles.pressureCard}>
+              <span className={styles.pressureLabel}>{item.label}</span>
+              <span className={styles.pressureValue}>
+                {Math.floor(item.current)} / {Math.floor(item.cap)}
+              </span>
+              <span className={styles.pressureMeta}>{item.detail}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className={styles.overflowGrid}>
+          <label className={styles.overflowField}>
+            <span className={styles.overflowLabel}>预警水位</span>
+            <select
+              className={styles.overflowSelect}
+              value={sect.automationSettings.overflowTriggerRatio}
+              onChange={(event) => setAutomationSettings({ overflowTriggerRatio: Number(event.target.value) || 0.9 })}
+            >
+              {OVERFLOW_THRESHOLD_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.overflowField}>
+            <span className={styles.overflowLabel}>灵草溢出</span>
+            <select
+              className={styles.overflowSelect}
+              value={sect.automationSettings.herbOverflowRule}
+              onChange={(event) => setAutomationSettings({ herbOverflowRule: event.target.value as OverflowSellRule })}
+            >
+              {SELL_RULE_OPTIONS.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.overflowField}>
+            <span className={styles.overflowLabel}>矿材溢出</span>
+            <select
+              className={styles.overflowSelect}
+              value={sect.automationSettings.oreOverflowRule}
+              onChange={(event) => setAutomationSettings({ oreOverflowRule: event.target.value as OverflowSellRule })}
+            >
+              {SELL_RULE_OPTIONS.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className={styles.overflowField}>
+            <span className={styles.overflowLabel}>灵石高水位</span>
+            <select
+              className={styles.overflowSelect}
+              value={sect.automationSettings.spiritStoneOverflowRule}
+              onChange={(event) =>
+                setAutomationSettings({ spiritStoneOverflowRule: event.target.value as SpiritStoneOverflowRule })
+              }
+            >
+              {STONE_RULE_OPTIONS.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
+
       {autoAssignableCount > 0 && (
         <section className={styles.synergySection}>
           <div className={styles.sectionTitle}>派驻优化</div>

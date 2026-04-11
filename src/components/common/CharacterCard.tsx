@@ -31,6 +31,21 @@ const PATH_ICON_NAMES: Record<string, string> = {
   void: 'spellPath',
 }
 
+const MANAGEMENT_TIER_LABELS = {
+  core: '核心',
+  main: '主力',
+  reserve: '候补',
+  support: '产线',
+} as const
+
+const AUTOMATION_ROLE_LABELS = {
+  cultivation: '闭关',
+  expedition: '外勤',
+  production: '驻产线',
+  study: '参悟',
+  recovery: '休养',
+} as const
+
 interface CharacterCardProps {
   character: Character
   onClick?: () => void
@@ -99,6 +114,8 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
       )}
 
       <div className={styles.metaRow}>
+        <span className={styles.assignmentTag}>{MANAGEMENT_TIER_LABELS[character.managementTier]}</span>
+        <span className={styles.assignmentTag}>{AUTOMATION_ROLE_LABELS[character.automationRole]}</span>
         {primaryRole && <span className={styles.roleTag}>擅长 {getRoleLabel(primaryRole)}</span>}
         {character.status === 'recovering' && (
           <span className={styles.stateTag}>休养 {Math.max(0, character.recoveryDaysRemaining ?? 0)} 天</span>

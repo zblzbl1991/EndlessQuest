@@ -11,6 +11,14 @@
   border-left: 3px solid var(--color-accent);
 }
 
+.recipeCardLegacy {
+  background:
+    radial-gradient(circle at top right, rgba(150, 94, 58, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(255, 252, 248, 0.96), rgba(248, 241, 232, 0.92));
+  border-left-color: #9a5f3a;
+  box-shadow: 0 10px 24px rgba(82, 53, 30, 0.08);
+}
+
 .recipeHeader {
   display: flex;
   align-items: center;
@@ -56,6 +64,30 @@
   border-color: var(--color-accent);
 }
 
+.recipeQualityChaos {
+  color: #9a5f3a;
+  border-color: rgba(154, 95, 58, 0.6);
+  background: rgba(154, 95, 58, 0.08);
+}
+
+.recipeHeaderTags {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.recipeLegacyBadge {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #8a4a24;
+  background: rgba(154, 95, 58, 0.08);
+  border: 1px solid rgba(154, 95, 58, 0.24);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
 .recipeDesc {
   font-size: 12px;
   color: var(--color-text-tertiary);
@@ -74,6 +106,31 @@
   display: flex;
   align-items: center;
   gap: 4px;
+}
+
+.recipeMaterialList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: var(--space-xs);
+}
+
+.materialCost {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(95, 122, 141, 0.12);
+}
+
+.materialReady {
+  color: var(--color-text-secondary);
+  background: rgba(133, 164, 182, 0.08);
+}
+
+.materialMissing {
+  color: #8a4a24;
+  background: rgba(150, 94, 58, 0.08);
+  border-color: rgba(150, 94, 58, 0.2);
 }
 
 .successRate {
@@ -144,4 +201,16 @@
   padding: var(--space-xl) 0;
   color: var(--color-text-tertiary);
   font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .recipeHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-xs);
+  }
+
+  .recipeHeaderTags {
+    justify-content: flex-start;
+  }
 }

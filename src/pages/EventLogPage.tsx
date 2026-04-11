@@ -4,29 +4,34 @@ import { useEventLogStore } from '../stores/eventLogStore'
 import type { EventType } from '../stores/eventLogStore'
 import { useSectStore } from '../stores/sectStore'
 import { getArchiveMilestoneDef } from '../data/archiveMilestones'
+import { getLegacyEventMarker } from '../data/legacyFlavor'
 import PageHeader from '../components/common/PageHeader'
 import { PixelIcon } from '../components/common/PixelIcon'
 import styles from './EventLogPage.module.css'
 
 const EVENT_LABELS: Partial<Record<EventType, string>> = {
   breakthrough_success: '突破',
-  breakthrough_failure: '失败',
+  breakthrough_failure: '受阻',
   building_upgrade: '建筑',
   building_build: '建筑',
   recruit: '招募',
-  adventure_start: '探险',
-  adventure_complete: '探险',
-  adventure_fail: '探险',
-  patrol_complete: '巡逻',
+  adventure_start: '秘境',
+  adventure_complete: '秘境',
+  adventure_fail: '秘境',
+  patrol_complete: '巡山',
   dispatch_complete: '派遣',
   pet_capture: '灵宠',
-  item_crafted: '制造',
-  breakthrough_comprehension: '顿悟',
+  item_crafted: '产线',
+  technique_unlocked: '功法',
+  breakthrough_comprehension: '参悟',
   milestone: '里程碑',
+  random_event: '风闻',
 }
 
 function getEventClass(type: EventType): string {
-  if (type === 'breakthrough_success' || type === 'adventure_complete') return styles.success
+  if (type === 'breakthrough_success' || type === 'adventure_complete' || type === 'technique_unlocked') {
+    return styles.success
+  }
   if (type === 'breakthrough_failure' || type === 'adventure_fail') return styles.danger
   if (type === 'building_upgrade' || type === 'building_build' || type === 'milestone') return styles.accent
   return ''
@@ -54,6 +59,7 @@ function getEventIconName(type: EventType): string {
       return 'beastPath'
     case 'item_crafted':
       return 'forgeWorkshop'
+    case 'technique_unlocked':
     case 'breakthrough_comprehension':
       return 'techniqueScroll'
     case 'milestone':
@@ -66,10 +72,10 @@ function getEventIconName(type: EventType): string {
 function formatRelativeTime(timestamp: number): string {
   const diff = Math.floor((Date.now() - timestamp) / 1000)
   if (diff < 10) return '刚刚'
-  if (diff < 60) return `${diff}秒前`
-  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
-  return `${Math.floor(diff / 86400)}天前`
+  if (diff < 60) return `${diff} 秒前`
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`
+  return `${Math.floor(diff / 86400)} 天前`
 }
 
 export default function EventLogPage() {
@@ -82,12 +88,17 @@ export default function EventLogPage() {
       ? events.filter((event) => ['adventure_start', 'adventure_complete', 'adventure_fail'].includes(event.type))
       : filter === 'cultivation'
         ? events.filter((event) =>
-            ['breakthrough_success', 'breakthrough_failure', 'breakthrough_comprehension'].includes(event.type)
+            [
+              'breakthrough_success',
+              'breakthrough_failure',
+              'breakthrough_comprehension',
+              'technique_unlocked',
+            ].includes(event.type)
           )
         : filter === 'building'
           ? events.filter((event) => ['building_upgrade', 'building_build', 'item_crafted'].includes(event.type))
           : filter === 'milestone'
-            ? events.filter((event) => ['milestone', 'recruit', 'pet_capture'].includes(event.type))
+            ? events.filter((event) => ['milestone', 'recruit', 'pet_capture', 'random_event'].includes(event.type))
             : events
 
   if (events.length === 0 && archiveMilestones.length === 0) {
@@ -121,6 +132,7 @@ export default function EventLogPage() {
           },
         ]}
       />
+
       {archiveMilestones.length > 0 && (
         <section className={styles.archiveSection}>
           <div className={styles.sectionHeader}>
@@ -201,6 +213,7 @@ export default function EventLogPage() {
       <div className={styles.list}>
         {filteredEvents.map((evt) => {
           const reportId = typeof evt.data?.reportId === 'string' ? evt.data.reportId : null
+          const legacyMarker = getLegacyEventMarker(evt.data)
           return (
             <div key={evt.id} className={styles.entry}>
               <span className={styles.time}>{formatRelativeTime(evt.timestamp)}</span>
@@ -214,11 +227,12 @@ export default function EventLogPage() {
                 {EVENT_LABELS[evt.type] ?? evt.type}
               </span>
               <span className={styles.message}>{evt.message}</span>
-              {reportId && (
+              {legacyMarker ? <span className={styles.legacyMarker}>{legacyMarker}</span> : null}
+              {reportId ? (
                 <Link className={styles.detailLink} to={`/adventure/report/${reportId}`}>
                   查看明细
                 </Link>
-              )}
+              ) : null}
             </div>
           )
         })}
