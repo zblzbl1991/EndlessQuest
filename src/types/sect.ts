@@ -21,7 +21,17 @@ export type ArchiveMilestoneId =
   | 'firstPetCapture'
   | 'firstItemCraft'
   | 'sectLevel5'
+  | 'guixuRiftFirstClear'
+  | 'firstLegacyForge'
+  | 'legacyForgePair'
+  | 'legacyForgeTrinity'
 export type CasualtyTolerance = 'conservative' | 'balanced' | 'risky'
+export type ExpeditionTeamRule = 'topPower' | 'balanced' | 'reserveCore'
+export type ExpeditionRewardFocus = 'resources' | 'materials' | 'techniques' | 'pets' | 'progress'
+export type ExpeditionFallbackRule = 'downgrade_dungeon' | 'swap_team' | 'pause_template'
+export type BuildingProductionFocus = 'balanced' | 'cultivation' | 'crafting'
+export type OverflowSellRule = 'hold' | 'sell'
+export type SpiritStoneOverflowRule = 'hold' | 'buyHerb' | 'buyOre'
 
 export type BuildingType =
   | 'mainHall'
@@ -61,6 +71,19 @@ export interface OfflineAccumulator {
   breakthroughs: { characterName: string; targetRealm: string; success: boolean }[]
   itemsCrafted: { name: string; quantity: number }[]
   taxIncome: number
+}
+
+export interface ExpeditionTemplate {
+  id: string
+  name: string
+  enabled: boolean
+  dungeonId: string | null
+  teamRule: ExpeditionTeamRule
+  supplyLevel: 'basic' | 'enhanced' | 'luxury'
+  riskTolerance: CasualtyTolerance
+  rewardFocus: ExpeditionRewardFocus
+  fallbackOnFailure: ExpeditionFallbackRule
+  notes?: string
 }
 
 export interface Building {
@@ -112,6 +135,13 @@ export interface SectAutomationSettings {
   preferredDungeonId: string | null
   casualtyTolerance: CasualtyTolerance
   autoBreakthrough: boolean
+  productionFocus: BuildingProductionFocus
+  overflowTriggerRatio: number
+  herbOverflowRule: OverflowSellRule
+  oreOverflowRule: OverflowSellRule
+  spiritStoneOverflowRule: SpiritStoneOverflowRule
+  activeTemplateId: string
+  expeditionTemplates: ExpeditionTemplate[]
 }
 
 export interface Sect {

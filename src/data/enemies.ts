@@ -798,6 +798,61 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
       { type: 'petCapture', weight: 8 },
     ],
   },
+  {
+    id: 'guixu_rift_tide_watcher',
+    name: '归墟潮守',
+    element: 'water',
+    stats: { hp: 360, atk: 46, def: 24, spd: 15 },
+    isBoss: false,
+    affixPool: ['swift', 'spiritDrain'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 24, minAmount: 180, maxAmount: 420 },
+      { type: 'herb', weight: 8, minAmount: 10, maxAmount: 26 },
+      { type: 'ore', weight: 10, minAmount: 12, maxAmount: 28 },
+      { type: 'equipment', weight: 4, quality: 'spirit' },
+      { type: 'equipment', weight: 10, quality: 'immortal' },
+      { type: 'equipment', weight: 6, quality: 'divine' },
+      { type: 'petCapture', weight: 3 },
+    ],
+  },
+  {
+    id: 'guixu_rift_void_shell',
+    name: '归墟虚壳',
+    element: 'neutral',
+    stats: { hp: 420, atk: 40, def: 30, spd: 11 },
+    isBoss: false,
+    affixPool: ['shield', 'tribulationBane'],
+    dropsPerFight: 2,
+    lootTable: [
+      { type: 'spiritStone', weight: 22, minAmount: 200, maxAmount: 460 },
+      { type: 'herb', weight: 6, minAmount: 8, maxAmount: 20 },
+      { type: 'ore', weight: 12, minAmount: 14, maxAmount: 32 },
+      { type: 'equipment', weight: 3, quality: 'spirit' },
+      { type: 'equipment', weight: 10, quality: 'immortal' },
+      { type: 'equipment', weight: 7, quality: 'divine' },
+      { type: 'petCapture', weight: 2 },
+    ],
+  },
+  {
+    id: 'guixu_rift_abyss_sovereign',
+    name: '归墟渊君',
+    element: 'water',
+    stats: { hp: 480, atk: 54, def: 32, spd: 16 },
+    isBoss: true,
+    affixPool: ['swift', 'shield', 'spiritDrain', 'tribulationBane'],
+    skillIds: ['ice_blade', 'thunder_strike'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 18, minAmount: 360, maxAmount: 980 },
+      { type: 'herb', weight: 8, minAmount: 18, maxAmount: 42 },
+      { type: 'ore', weight: 10, minAmount: 18, maxAmount: 40 },
+      { type: 'equipment', weight: 4, quality: 'immortal' },
+      { type: 'equipment', weight: 10, quality: 'divine' },
+      { type: 'equipment', weight: 4, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
 ]
 
 // ─── Dungeon-Enemy Mapping ─────────────────────────────────────────────
@@ -847,6 +902,10 @@ export const DUNGEON_ENEMY_MAP: Record<string, { regular: string[]; boss: string
   heavenlyTribulationRealm: {
     regular: ['tribulation_lightning_elemental', 'tribulation_thunder_golem'],
     boss: 'tribulation_heavenly_tribulation_spirit',
+  },
+  guixuRift: {
+    regular: ['guixu_rift_tide_watcher', 'guixu_rift_void_shell'],
+    boss: 'guixu_rift_abyss_sovereign',
   },
 }
 

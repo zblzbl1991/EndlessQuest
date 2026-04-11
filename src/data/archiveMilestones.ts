@@ -8,7 +8,6 @@ export interface ArchiveMilestoneDef {
 }
 
 export const ARCHIVE_MILESTONES: Record<ArchiveMilestoneId, ArchiveMilestoneDef> = {
-  // --- 弟子类 ---
   firstRareRecruit: {
     id: 'firstRareRecruit',
     title: '初见异才',
@@ -29,7 +28,6 @@ export const ARCHIVE_MILESTONES: Record<ArchiveMilestoneId, ArchiveMilestoneDef>
     title: '桃李初成',
     description: '宗门弟子达到五人。',
   },
-  // --- 境界类 ---
   firstTribulationSuccess: {
     id: 'firstTribulationSuccess',
     title: '雷火证道',
@@ -50,7 +48,6 @@ export const ARCHIVE_MILESTONES: Record<ArchiveMilestoneId, ArchiveMilestoneDef>
     title: '元婴出窍',
     description: '首次有弟子突破至元婴期。',
   },
-  // --- 秘境类 ---
   firstDungeonClear: {
     id: 'firstDungeonClear',
     title: '秘境留名',
@@ -66,7 +63,6 @@ export const ARCHIVE_MILESTONES: Record<ArchiveMilestoneId, ArchiveMilestoneDef>
     title: '身经百战',
     description: '累计完成十次秘境探索。',
   },
-  // --- 功法/特殊 ---
   firstTechniqueUnlock: {
     id: 'firstTechniqueUnlock',
     title: '初悟道法',
@@ -74,7 +70,7 @@ export const ARCHIVE_MILESTONES: Record<ArchiveMilestoneId, ArchiveMilestoneDef>
   },
   firstPetCapture: {
     id: 'firstPetCapture',
-    title: '驯灵初成',
+    title: '驭灵初成',
     description: '首次成功捕获灵宠。',
   },
   firstItemCraft: {
@@ -86,6 +82,26 @@ export const ARCHIVE_MILESTONES: Record<ArchiveMilestoneId, ArchiveMilestoneDef>
     id: 'sectLevel5',
     title: '宗门兴盛',
     description: '宗门等级达到五级。',
+  },
+  guixuRiftFirstClear: {
+    id: 'guixuRiftFirstClear',
+    title: '归墟留痕',
+    description: '首次通关轮回秘境「归墟裂隙」，将遗产残卷带回山门。',
+  },
+  firstLegacyForge: {
+    id: 'firstLegacyForge',
+    title: '遗器初成',
+    description: '首次以归墟遗材铸成遗产装备，宗门正式拥有轮回遗器。',
+  },
+  legacyForgePair: {
+    id: 'legacyForgePair',
+    title: '双遗共鸣',
+    description: '归墟道兵与镇渊遗符同时成型，归墟裂隙对宗门的回应进一步加深。',
+  },
+  legacyForgeTrinity: {
+    id: 'legacyForgeTrinity',
+    title: '三遗齐鸣',
+    description: '双遗共鸣后再铸一件归墟遗器，让归墟回响正式转入宗门的终盘循环。',
   },
 }
 

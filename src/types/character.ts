@@ -11,6 +11,10 @@ export type CharacterQuality = 'common' | 'spirit' | 'immortal' | 'divine' | 'ch
 
 export type CharacterStatus = 'idle' | 'adventuring' | 'patrolling' | 'resting' | 'injured' | 'training' | 'recovering'
 
+export type CharacterManagementTier = 'core' | 'main' | 'reserve' | 'support'
+
+export type CharacterAutomationRole = 'cultivation' | 'expedition' | 'production' | 'study' | 'recovery'
+
 export type RealmStage = 0 | 1 | 2 | 3
 
 export interface BaseStats {
@@ -85,6 +89,8 @@ export interface Character {
   totalCultivation: number
   specialties: Specialty[]
   assignedBuilding: string | null
+  managementTier: CharacterManagementTier
+  automationRole: CharacterAutomationRole
   cultivationPath: CultivationPath
   investedSpiritStone: number
   techniqueComprehension: Record<string, number>

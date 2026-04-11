@@ -109,7 +109,7 @@ export const TECHNIQUES: Technique[] = [
     description: '烈焰心法的进阶功法，焚尽万物，攻击力极高。',
     tier: 'spirit',
     element: 'fire',
-    origin: 'dungeon',
+    origin: 'legacy',
     family: 'qi',
     styles: ['burst'],
     bonuses: [
@@ -125,7 +125,7 @@ export const TECHNIQUES: Technique[] = [
     description: '以玄冰之力护体，防御与生命极强，攻击较弱。',
     tier: 'spirit',
     element: 'water',
-    origin: 'dungeon',
+    origin: 'legacy',
     family: 'qi',
     styles: ['guard', 'survival'],
     bonuses: [
@@ -483,7 +483,7 @@ export const TECHNIQUES: Technique[] = [
     description: '鸿蒙开辟前的至高道法，悟透者可通天彻地，超脱轮回。',
     tier: 'chaos',
     element: 'neutral',
-    origin: 'dungeon',
+    origin: 'legacy',
     family: 'mystic',
     styles: ['balanced', 'burst', 'survival', 'cultivation'],
     bonuses: [

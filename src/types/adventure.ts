@@ -72,6 +72,7 @@ export interface Dungeon {
   eventsPerLayer: number
   unlockRealm: number
   unlockStage: number
+  legacyUnlockId?: string
 }
 
 export interface MemberState {

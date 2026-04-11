@@ -19,4 +19,13 @@ export const DUNGEONS: Dungeon[] = [
     unlockRealm: 5,
     unlockStage: 3,
   },
+  {
+    id: 'guixuRift',
+    name: '褰掕櫄瑁傞殭',
+    totalLayers: 18,
+    eventsPerLayer: 5,
+    unlockRealm: 4,
+    unlockStage: 3,
+    legacyUnlockId: 'guixuRift',
+  },
 ]
