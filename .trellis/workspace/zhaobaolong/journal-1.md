@@ -874,3 +874,66 @@ Implemented the "Disciple Deep Randomization" feature — transforming character
 ### Next Steps
 
 - None - task complete
+
+
+## Session 17: Analyze recent commits and update backend code-specs
+
+**Date**: 2026-04-12
+**Task**: Analyze recent commits and update backend code-specs
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Summary
+
+Analyzed 5 recent commits (19b4ab9..5bb1bfa) covering codex-driven code changes, then created two new backend code-spec files and updated the spec index.
+
+## Commits Analyzed
+
+| Commit | Description |
+|--------|-------------|
+| `19b4ab9` | docs: update specs and project config for idle cultivation |
+| `c938078` | feat: add character level-up system with cultivation and dungeon growth integration |
+| `1766225` | feat: add Guixu loop advisor with expedition preview and offline adjustment |
+| `b762ddb` | test: add and update tests for legacy, expedition, and sect systems |
+| `5bb1bfa` | test: add and update tests for character level system and Guixu loop advisor |
+
+## New Code-Spec Files
+
+| File | Content |
+|------|---------|
+| `.trellis/spec/backend/character-level-system.md` | XP growth, level-up, realm caps, stat boost contracts, integration points (tickSlice, adventureStore, random events) |
+| `.trellis/spec/backend/guixu-loop-advisor.md` | Endgame loop preview calculation, yield evaluation (balanced/good/warn), adjustment suggestion rules, offline report integration, event audit trail |
+| `.trellis/spec/backend/index.md` | Updated index with two new entries |
+
+## Key Systems Documented
+
+**Character Level System**: `src/data/levelSystem.ts` — pure functions for XP-to-level conversion, per-quality stat growth, realm-level caps. Integrated into cultivation ticks (XP = cultivationGain/5), dungeon settlement, and random events.
+
+**Guixu Loop Advisor**: `src/systems/sect/GuixuLoopAdvisor.ts` + `src/data/expeditionTemplates.ts` — preview yield ranges from additive modifiers on milestone base ranges, yield status evaluation against estimates, context-aware adjustment suggestions (stabilize/grow/hold). Offline report surfaces one-click template adjustment with `automation_adjusted` event audit trail.
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `19b4ab9` | (see git log) |
+| `c938078` | (see git log) |
+| `1766225` | (see git log) |
+| `b762ddb` | (see git log) |
+| `5bb1bfa` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
