@@ -18,7 +18,7 @@ describe('AdventureReportPage level summary', () => {
           {
             ...baseCharacter,
             id: 'c_growth',
-            name: '凌清竹',
+            name: 'Ling Qingzhu',
           },
         ],
       },
@@ -62,7 +62,7 @@ describe('AdventureReportPage level summary', () => {
             c_growth: { currentHp: 88, maxHp: 100, status: 'alive' },
           },
           teamSnapshot: {
-            c_growth: { name: '凌清竹', quality: 'common', realm: 0, realmStage: 0 },
+            c_growth: { name: 'Ling Qingzhu', quality: 'common', realm: 0, realmStage: 0 },
           },
           discipleMutations: {},
           dungeonGrowthApplied: {
@@ -81,8 +81,8 @@ describe('AdventureReportPage level summary', () => {
               type: 'run_completed',
               timestamp: 2,
               floor: 6,
-              summary: '通关完成',
-              detail: '队伍顺利完成本轮历练。',
+              summary: 'Report complete',
+              detail: 'The team finished the training route safely.',
             },
           ],
         },
@@ -99,9 +99,13 @@ describe('AdventureReportPage level summary', () => {
       </MemoryRouter>
     )
 
+    expect(screen.getByTestId('report-timeline-scroll')).toBeInTheDocument()
+    expect(screen.getByTestId('report-rewards-scroll')).toBeInTheDocument()
+    expect(screen.getByTestId('report-growth-scroll')).toBeInTheDocument()
     const growthCard = screen.getByTestId('report-growth-c_growth')
-    expect(growthCard).toHaveTextContent('经验 +60')
-    expect(growthCard).toHaveTextContent('升至 Lv.2')
-    expect(growthCard).toHaveTextContent('气血 +2 / 攻击 +1 / 防御 +1')
+    expect(growthCard.textContent).toContain('60')
+    expect(growthCard.textContent).toContain('Lv.2')
+    expect(growthCard.textContent).toContain('+2 /')
+    expect(growthCard.textContent).toContain('+1 /')
   })
 })

@@ -109,6 +109,14 @@ function getRewardItemMeta(item: {
 
 type DungeonGrowthEntry = NonNullable<AdventureReport['dungeonGrowthApplied']>[string]
 
+function formatDungeonGrowthMeta(growth: DungeonGrowthEntry): string {
+  const parts = [`淇负 +${growth.cultivationGain}`]
+  if (typeof growth.xpGained === 'number' && growth.xpGained > 0) {
+    parts.push(`缁忛獙 +${growth.xpGained}`)
+  }
+  return parts.join(' 路 ')
+}
+
 function formatDungeonLevelSummary(growth: DungeonGrowthEntry): string | null {
   if (!growth.levelsGained || growth.levelsGained <= 0 || !growth.statGain || !growth.levelAfter) return null
   return `升至 Lv.${growth.levelAfter} · 气血 +${growth.statGain.hp} / 攻击 +${growth.statGain.atk} / 防御 +${growth.statGain.def}`
@@ -438,56 +446,60 @@ function FloorGroupedTimeline({ steps }: { steps: AdventureReportStep[] }) {
   return (
     <section className={styles.timelineSection}>
       <div className={styles.sectionTitle}>时间线</div>
-      <div className={styles.timeline}>
-        {groups.map((group) => {
-          const isBoss = group.floor === lastFloor
-          const isExpanded = !collapsed.has(group.floor)
-          const combatCount = group.steps.filter(
-            (s) => s.type === 'event_resolved' && s.detail?.includes('击败了')
-          ).length
+      <div className={`${styles.sectionScroll} ${styles.timelineScroll}`} data-testid="report-timeline-scroll">
+        <div className={styles.timeline}>
+          {groups.map((group) => {
+            const isBoss = group.floor === lastFloor
+            const isExpanded = !collapsed.has(group.floor)
+            const combatCount = group.steps.filter(
+              (s) => s.type === 'event_resolved' && s.detail?.includes('击败了')
+            ).length
 
-          return (
-            <div key={group.floor ?? 'run'} className={`${styles.floorGroup} ${isBoss ? styles.floorGroupBoss : ''}`}>
-              <div className={styles.floorGroupHeader} onClick={() => toggle(group.floor)}>
-                <span className={styles.floorGroupToggle}>{isExpanded ? '▼' : '▶'}</span>
-                <span className={styles.floorGroupLabel}>
-                  {group.floor === null ? '总览' : isBoss ? `第 ${group.floor} 层 · 首领战` : `第 ${group.floor} 层`}
-                </span>
-                {!isExpanded && (
-                  <span className={styles.floorGroupSummary}>
-                    {group.steps.length} 条记录
-                    {combatCount > 0 ? ` · ${combatCount} 场战斗` : ''}
+            return (
+              <div key={group.floor ?? 'run'} className={`${styles.floorGroup} ${isBoss ? styles.floorGroupBoss : ''}`}>
+                <div className={styles.floorGroupHeader} onClick={() => toggle(group.floor)}>
+                  <span className={styles.floorGroupToggle}>{isExpanded ? '▼' : '▶'}</span>
+                  <span className={styles.floorGroupLabel}>
+                    {group.floor === null ? '总览' : isBoss ? `第 ${group.floor} 层 · 首领战` : `第 ${group.floor} 层`}
                   </span>
+                  {!isExpanded && (
+                    <span className={styles.floorGroupSummary}>
+                      {group.steps.length} 条记录
+                      {combatCount > 0 ? ` · ${combatCount} 场战斗` : ''}
+                    </span>
+                  )}
+                </div>
+
+                {isExpanded && (
+                  <div className={styles.floorSteps}>
+                    {group.steps.map((step) => (
+                      <article key={step.id} className={styles.stepCard}>
+                        <div className={styles.stepHeader}>
+                          <span className={styles.stepSummary}>
+                            <PixelIcon
+                              name={getStepIconName(step.type)}
+                              size={16}
+                              className={styles.inlineIcon}
+                              aria-label={step.summary}
+                            />
+                            {step.summary}
+                          </span>
+                          {step.floor !== null && <span className={styles.stepFloor}>第 {step.floor} 层</span>}
+                        </div>
+                        <div className={styles.stepDetail}>{step.detail}</div>
+                        {step.decisionReason && (
+                          <div className={styles.stepReason}>决策依据：{step.decisionReason}</div>
+                        )}
+                        {isBossStepMeta(step.meta) && <BossCombatReport meta={step.meta} />}
+                        {isCombatStepMeta(step.meta) && <CombatReportPanel meta={step.meta} />}
+                      </article>
+                    ))}
+                  </div>
                 )}
               </div>
-
-              {isExpanded && (
-                <div className={styles.floorSteps}>
-                  {group.steps.map((step) => (
-                    <article key={step.id} className={styles.stepCard}>
-                      <div className={styles.stepHeader}>
-                        <span className={styles.stepSummary}>
-                          <PixelIcon
-                            name={getStepIconName(step.type)}
-                            size={16}
-                            className={styles.inlineIcon}
-                            aria-label={step.summary}
-                          />
-                          {step.summary}
-                        </span>
-                        {step.floor !== null && <span className={styles.stepFloor}>第 {step.floor} 层</span>}
-                      </div>
-                      <div className={styles.stepDetail}>{step.detail}</div>
-                      {step.decisionReason && <div className={styles.stepReason}>决策依据：{step.decisionReason}</div>}
-                      {isBossStepMeta(step.meta) && <BossCombatReport meta={step.meta} />}
-                      {isCombatStepMeta(step.meta) && <CombatReportPanel meta={step.meta} />}
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </div>
     </section>
   )
@@ -710,101 +722,106 @@ export default function AdventureReportPage() {
         {/* Section 3: Reward summary */}
         <motion.section className={styles.summaryCard} variants={shouldAnimate ? staggerItemVariants : undefined}>
           <div className={styles.sectionTitle}>结算</div>
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryLabel}>
-              <PixelIcon name="spiritStone" size={16} className={styles.inlineIcon} aria-label="灵石" />
-              灵石
-            </span>
-            <strong>{report.rewards.spiritStone}</strong>
-          </div>
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryLabel}>
-              <PixelIcon name="herb" size={16} className={styles.inlineIcon} aria-label="灵草" />
-              灵草
-            </span>
-            <strong>{report.rewards.herb}</strong>
-          </div>
-          <div className={styles.summaryRow}>
-            <span className={styles.summaryLabel}>
-              <PixelIcon name="ore" size={16} className={styles.inlineIcon} aria-label="矿材" />
-              矿材
-            </span>
-            <strong>{report.rewards.ore}</strong>
-          </div>
-          {report.itemRewards.length > 0 ? (
-            <div className={styles.itemRewardBlock}>
-              <div className={styles.itemRewardTitle}>战利品</div>
-              <div className={styles.itemRewardList}>
-                {report.itemRewards.map((item) => (
-                  <div key={item.id} className={styles.itemRewardRow}>
-                    <div className={styles.itemRewardMain}>
-                      <PixelIcon
-                        name={getRewardItemIconName(item)}
-                        size={16}
-                        className={styles.inlineIcon}
-                        aria-label={item.name}
-                      />
-                      <span className={styles.itemRewardName}>{item.name}</span>
-                    </div>
-                    <span className={styles.itemRewardMeta}>{getRewardItemMeta(item)}</span>
-                  </div>
-                ))}
-              </div>
+          <div className={`${styles.sectionScroll} ${styles.compactScroll}`} data-testid="report-rewards-scroll">
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="spiritStone" size={16} className={styles.inlineIcon} aria-label="灵石" />
+                灵石
+              </span>
+              <strong>{report.rewards.spiritStone}</strong>
             </div>
-          ) : null}
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="herb" size={16} className={styles.inlineIcon} aria-label="灵草" />
+                灵草
+              </span>
+              <strong>{report.rewards.herb}</strong>
+            </div>
+            <div className={styles.summaryRow}>
+              <span className={styles.summaryLabel}>
+                <PixelIcon name="ore" size={16} className={styles.inlineIcon} aria-label="矿材" />
+                矿材
+              </span>
+              <strong>{report.rewards.ore}</strong>
+            </div>
+            {report.itemRewards.length > 0 ? (
+              <div className={styles.itemRewardBlock}>
+                <div className={styles.itemRewardTitle}>战利品</div>
+                <div className={styles.itemRewardList}>
+                  {report.itemRewards.map((item) => (
+                    <div key={item.id} className={styles.itemRewardRow}>
+                      <div className={styles.itemRewardMain}>
+                        <PixelIcon
+                          name={getRewardItemIconName(item)}
+                          size={16}
+                          className={styles.inlineIcon}
+                          aria-label={item.name}
+                        />
+                        <span className={styles.itemRewardName}>{item.name}</span>
+                      </div>
+                      <span className={styles.itemRewardMeta}>{getRewardItemMeta(item)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
         </motion.section>
 
         {/* Section 4: Growth summary */}
         {(report.comprehensionGrowth || report.dungeonGrowthApplied) && (
           <motion.section className={styles.summaryCard} variants={shouldAnimate ? staggerItemVariants : undefined}>
             <div className={styles.sectionTitle}>弟子磨练</div>
-            {report.comprehensionGrowth &&
-              Object.entries(report.comprehensionGrowth).map(([charId, techGrowth]) => {
-                const charName = characterNameMap.get(charId) ?? charId
-                const entries = Object.entries(techGrowth)
-                if (entries.length === 0) return null
-                return (
-                  <div
-                    key={charId}
-                    className={`${styles.summaryRow} ${styles.growthRow}`}
-                    data-testid={`report-growth-${charId}`}
-                  >
-                    <span className={styles.summaryLabel}>
-                      <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="参悟" />
-                      {charName} 参悟
-                    </span>
-                    <strong>
-                      {entries
-                        .map(([techId, growth]) => {
-                          const techName = getTechniqueById(techId)?.name ?? techId
-                          return `${techName} +${growth}`
-                        })
-                        .join('、')}
-                    </strong>
-                  </div>
-                )
-              })}
-            {report.dungeonGrowthApplied &&
-              Object.entries(report.dungeonGrowthApplied).map(([charId, growth]) => {
-                const charName = characterNameMap.get(charId) ?? charId
-                const levelSummary = formatDungeonLevelSummary(growth)
-                return (
-                  <div
-                    key={charId}
-                    className={`${styles.summaryRow} ${styles.growthRow}`}
-                    data-testid={`report-growth-${charId}`}
-                  >
-                    <span className={styles.summaryLabel}>
-                      <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="属性提升" />
-                      {charName} 属性
-                    </span>
-                    <strong>
-                      气血 +{growth.statBoost} · 修为 +{growth.cultivationGain}
-                      {levelSummary ? <span className={styles.levelUpTag}>{levelSummary}</span> : null}
-                    </strong>
-                  </div>
-                )
-              })}
+            <div className={`${styles.sectionScroll} ${styles.compactScroll}`} data-testid="report-growth-scroll">
+              {report.comprehensionGrowth &&
+                Object.entries(report.comprehensionGrowth).map(([charId, techGrowth]) => {
+                  const charName = characterNameMap.get(charId) ?? charId
+                  const entries = Object.entries(techGrowth)
+                  if (entries.length === 0) return null
+                  return (
+                    <div
+                      key={charId}
+                      className={`${styles.summaryRow} ${styles.growthRow}`}
+                      data-testid={`report-growth-${charId}`}
+                    >
+                      <span className={styles.summaryLabel}>
+                        <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="参悟" />
+                        {charName} 参悟
+                      </span>
+                      <strong>
+                        {entries
+                          .map(([techId, growth]) => {
+                            const techName = getTechniqueById(techId)?.name ?? techId
+                            return `${techName} +${growth}`
+                          })
+                          .join('、')}
+                      </strong>
+                    </div>
+                  )
+                })}
+              {report.dungeonGrowthApplied &&
+                Object.entries(report.dungeonGrowthApplied).map(([charId, growth]) => {
+                  const charName = characterNameMap.get(charId) ?? charId
+                  const levelSummary = formatDungeonLevelSummary(growth)
+                  return (
+                    <div
+                      key={charId}
+                      className={`${styles.summaryRow} ${styles.growthRow}`}
+                      data-testid={`report-growth-${charId}`}
+                    >
+                      <span className={styles.summaryLabel}>
+                        <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="属性提升" />
+                        {charName} 属性
+                      </span>
+                      <strong>
+                        气血 +{growth.statBoost} · 修为 +{growth.cultivationGain}
+                      </strong>
+                      <span className={styles.growthLevelHint}>{formatDungeonGrowthMeta(growth)}</span>
+                      {levelSummary ? <span className={styles.growthLevelHint}>{levelSummary}</span> : null}
+                    </div>
+                  )
+                })}
+            </div>
           </motion.section>
         )}
       </motion.div>
