@@ -3,7 +3,20 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import AdventurePage from '../pages/AdventurePage'
 import { useAdventureStore } from '../stores/adventureStore'
+import { useEventLogStore } from '../stores/eventLogStore'
 import { useSectStore } from '../stores/sectStore'
+
+function createChaosMaterial(id: string, name: string) {
+  return {
+    id,
+    name,
+    type: 'material' as const,
+    description: '',
+    quality: 'chaos' as const,
+    sellPrice: 0,
+    category: 'other' as const,
+  }
+}
 
 function seedAdventureState() {
   const baseCharacter = useSectStore.getState().sect.characters[0]
@@ -61,6 +74,9 @@ function seedAdventureState() {
         finalMemberStates: {
           hero_1: { currentHp: 90, maxHp: 100, status: 'alive' },
         },
+        teamSnapshot: {
+          hero_1: { name: '顾长风', quality: 'common', realm: 4, realmStage: 3 },
+        },
         discipleMutations: {},
         steps: [],
       },
@@ -68,10 +84,102 @@ function seedAdventureState() {
   })
 }
 
+function seedGuixuTemplate(overrides?: {
+  riskTolerance?: 'conservative' | 'balanced' | 'risky'
+  supplyLevel?: 'basic' | 'enhanced' | 'luxury'
+  rewardFocus?: 'resources' | 'materials' | 'techniques' | 'pets' | 'progress'
+}) {
+  useSectStore.setState((s) => ({
+    sect: {
+      ...s.sect,
+      archiveMilestones: [
+        { id: 'legacyForgePair', unlockedAt: 1 },
+        { id: 'legacyForgeTrinity', unlockedAt: 2 },
+      ],
+      automationSettings: {
+        ...s.sect.automationSettings,
+        activeTemplateId: 'guixuResonance',
+        expeditionTemplates: [
+          ...s.sect.automationSettings.expeditionTemplates.filter((template) => template.id !== 'guixuResonance'),
+          {
+            id: 'guixuResonance',
+            name: '归墟回响',
+            enabled: true,
+            dungeonId: 'guixuRift',
+            teamRule: 'topPower',
+            supplyLevel: overrides?.supplyLevel ?? 'luxury',
+            riskTolerance: overrides?.riskTolerance ?? 'risky',
+            rewardFocus: overrides?.rewardFocus ?? 'materials',
+            fallbackOnFailure: 'downgrade_dungeon',
+            notes: '用于验证终盘归墟材料预估。',
+          },
+        ],
+      },
+    },
+  }))
+}
+
+function seedGuixuReport(
+  tideCrystalCount: number,
+  abyssShardCount: number,
+  result: 'completed' | 'failed' = 'completed'
+) {
+  useAdventureStore.setState((state) => ({
+    ...state,
+    reports: [
+      {
+        id: 'report_guixu',
+        dungeonId: 'guixuRift',
+        teamCharacterIds: ['hero_1'],
+        strategy: 'steady',
+        tacticalPreset: result === 'failed' ? 'balanced' : 'burst',
+        startedAt: 11,
+        finishedAt: 12,
+        result,
+        floorsCleared: result === 'failed' ? 10 : 15,
+        rewards: { spiritStone: result === 'failed' ? 320 : 520, spiritEnergy: 0, herb: 0, ore: 20 },
+        itemRewardCount: tideCrystalCount + abyssShardCount,
+      },
+    ],
+    reportDetails: {
+      report_guixu: {
+        id: 'report_guixu',
+        config: {
+          dungeonId: 'guixuRift',
+          teamCharacterIds: ['hero_1'],
+          supplyLevel: 'luxury',
+          tacticalPreset: result === 'failed' ? 'balanced' : 'burst',
+          automationStrategy: 'steady',
+        },
+        dungeonId: 'guixuRift',
+        teamCharacterIds: ['hero_1'],
+        startedAt: 11,
+        finishedAt: 12,
+        result,
+        floorsCleared: result === 'failed' ? 10 : 15,
+        rewards: { spiritStone: result === 'failed' ? 320 : 520, spiritEnergy: 0, herb: 0, ore: 20 },
+        itemRewards: [
+          ...Array.from({ length: tideCrystalCount }, (_, index) => createChaosMaterial(`gc_${index + 1}`, '归墟潮晶')),
+          ...Array.from({ length: abyssShardCount }, (_, index) => createChaosMaterial(`as_${index + 1}`, '渊息残片')),
+        ],
+        finalMemberStates: {
+          hero_1: { currentHp: result === 'failed' ? 28 : 72, maxHp: 100, status: 'alive' },
+        },
+        teamSnapshot: {
+          hero_1: { name: '顾长风', quality: 'common', realm: 4, realmStage: 3 },
+        },
+        discipleMutations: {},
+        steps: [],
+      },
+    },
+  }))
+}
+
 describe('AdventurePage', () => {
   beforeEach(() => {
     useSectStore.getState().reset()
     useAdventureStore.getState().reset()
+    useEventLogStore.getState().reset()
     seedAdventureState()
   })
 
@@ -103,7 +211,7 @@ describe('AdventurePage', () => {
     expect(screen.getByText(/已选 0 \/ 5/)).toBeInTheDocument()
   })
 
-  it('renders player-facing adventure copy in Chinese and normalizes legacy route text', () => {
+  it('renders player-facing adventure copy in Chinese', () => {
     render(
       <MemoryRouter>
         <AdventurePage />
@@ -114,7 +222,7 @@ describe('AdventurePage', () => {
     expect(screen.getAllByText('通关').length).toBeGreaterThan(0)
   })
 
-  it('surfaces return outcomes for failed automatic runs', () => {
+  it('surfaces failed automatic runs in the report list', () => {
     useAdventureStore.setState({
       reports: [
         {
@@ -176,20 +284,9 @@ describe('AdventurePage', () => {
     expect(screen.getAllByText('失利').length).toBeGreaterThan(0)
     expect(screen.getByText(/第 2 层/)).toBeInTheDocument()
   })
+
   it('marks guixu resonance as an endgame loop template after the trinity milestone', () => {
-    useSectStore.setState((s) => ({
-      sect: {
-        ...s.sect,
-        archiveMilestones: [
-          { id: 'legacyForgePair', unlockedAt: 1 },
-          { id: 'legacyForgeTrinity', unlockedAt: 2 },
-        ],
-        automationSettings: {
-          ...s.sect.automationSettings,
-          activeTemplateId: 'guixuResonance',
-        },
-      },
-    }))
+    seedGuixuTemplate()
 
     render(
       <MemoryRouter>
@@ -199,5 +296,69 @@ describe('AdventurePage', () => {
 
     expect(screen.getAllByText('终盘循环').length).toBeGreaterThan(0)
     expect(screen.getAllByText(/三遗齐鸣已成/).length).toBeGreaterThan(0)
+  })
+
+  it('shows a guixu loop efficiency preview and compares it with the latest haul', () => {
+    seedGuixuTemplate()
+    seedGuixuReport(5, 3)
+
+    render(
+      <MemoryRouter>
+        <AdventurePage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByTestId('guixu-loop-preview')).toBeInTheDocument()
+    expect(screen.getByText('深潜搏材')).toBeInTheDocument()
+    expect(screen.getByText(/潮晶 5-6，残片 3-4/)).toBeInTheDocument()
+    expect(screen.getByText(/连续失利/)).toBeInTheDocument()
+    expect(screen.getByTestId('guixu-loop-reality')).toBeInTheDocument()
+    expect(screen.getByText('最近实收')).toBeInTheDocument()
+    expect(screen.getByText(/潮晶 5 · 残片 3 · 推进至第 15 层/)).toBeInTheDocument()
+    expect(screen.getByText('符合预估')).toBeInTheDocument()
+    expect(screen.getByTestId('guixu-loop-advice')).toBeInTheDocument()
+    expect(screen.getByText('试一轮推进收益')).toBeInTheDocument()
+  })
+
+  it('offers one-click stabilization when the guixu haul falls below estimate', () => {
+    seedGuixuTemplate({ riskTolerance: 'risky', supplyLevel: 'enhanced', rewardFocus: 'materials' })
+    seedGuixuReport(2, 1, 'failed')
+
+    render(
+      <MemoryRouter>
+        <AdventurePage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByText('低于预估')).toBeInTheDocument()
+    expect(screen.getByText('改成均衡风险')).toBeInTheDocument()
+
+    fireEvent.click(screen.getAllByRole('button', { name: '一键套用' })[0]!)
+
+    const updatedTemplate = useSectStore
+      .getState()
+      .sect.automationSettings.expeditionTemplates.find((template) => template.id === 'guixuResonance')
+
+    expect(updatedTemplate?.riskTolerance).toBe('balanced')
+  })
+
+  it('shows the latest applied guixu adjustment on the template card', () => {
+    seedGuixuTemplate()
+    seedGuixuReport(5, 3)
+    useEventLogStore
+      .getState()
+      .addEvent('automation_adjusted', '已按离线建议调整归墟回响：风险改为均衡。', {
+        templateId: 'guixuResonance',
+        source: 'offline_report',
+      })
+
+    render(
+      <MemoryRouter>
+        <AdventurePage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByTestId('guixu-adjustment-banner')).toBeInTheDocument()
+    expect(screen.getByText(/风险改为均衡/)).toBeInTheDocument()
   })
 })

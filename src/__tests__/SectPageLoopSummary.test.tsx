@@ -5,12 +5,14 @@ import SectPage from '../pages/SectPage'
 import { useSectStore } from '../stores/sectStore'
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
+import { useEventLogStore } from '../stores/eventLogStore'
 
 describe('SectPage loop summary', () => {
   beforeEach(() => {
     useSectStore.getState().reset()
     useAdventureStore.getState().reset()
     useGameStore.getState().reset()
+    useEventLogStore.getState().reset()
   })
 
   it('surfaces the latest guixu material haul on the sect hub', () => {
@@ -106,6 +108,32 @@ describe('SectPage loop summary', () => {
 
     expect(screen.getByTestId('sect-guixu-loop-yield')).toHaveTextContent('潮晶 2')
     expect(screen.getByTestId('sect-guixu-loop-yield')).toHaveTextContent('残片 1')
-    expect(screen.getByTestId('sect-guixu-loop-yield')).toHaveTextContent('第 14 层')
+    expect(screen.getByTestId('sect-guixu-loop-yield')).toHaveTextContent('14')
+  })
+
+  it('shows the latest applied guixu adjustment on the sect hub', () => {
+    useSectStore.setState((state) => ({
+      sect: {
+        ...state.sect,
+        archiveMilestones: [{ id: 'legacyForgePair', unlockedAt: 1 }],
+        automationSettings: {
+          ...state.sect.automationSettings,
+          activeTemplateId: 'guixuResonance',
+        },
+      },
+    }))
+
+    useEventLogStore.getState().addEvent('automation_adjusted', '已按离线建议调整归墟回响：风险改为均衡。', {
+      templateId: 'guixuResonance',
+      source: 'offline_report',
+    })
+
+    render(
+      <MemoryRouter>
+        <SectPage />
+      </MemoryRouter>
+    )
+
+    expect(screen.getByTestId('sect-template-adjustment')).toHaveTextContent('风险改为均衡')
   })
 })

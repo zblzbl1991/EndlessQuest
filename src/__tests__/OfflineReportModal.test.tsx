@@ -56,6 +56,35 @@ describe('OfflineReportModal', () => {
     expect(screen.getByText('x2')).toBeInTheDocument()
   })
 
+  it('supports one-click loop adjustment from the offline report', () => {
+    const onApplyLoopAdjustment = vi.fn()
+
+    render(
+      <OfflineReportModal
+        report={{
+          offlineSeconds: 7200,
+          resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+          breakthroughs: [],
+          itemsCrafted: [],
+          taxIncome: 0,
+          loopAdjustment: {
+            label: '低于预估',
+            detail: '先把归墟推进层数稳住，再观察潮晶和残片是否回到预估区间。',
+            actionLabel: '改成均衡风险',
+          },
+        }}
+        onClose={() => {}}
+        onApplyLoopAdjustment={onApplyLoopAdjustment}
+      />
+    )
+
+    expect(screen.getByTestId('offline-loop-adjustment')).toBeInTheDocument()
+    expect(screen.getByText('改成均衡风险')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: '改成均衡风险' }))
+    expect(onApplyLoopAdjustment).toHaveBeenCalledTimes(1)
+  })
+
   it('renders a calm empty-state fallback when there are no special gains', () => {
     render(
       <OfflineReportModal

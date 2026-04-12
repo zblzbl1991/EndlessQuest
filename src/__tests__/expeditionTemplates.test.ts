@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createLegacyExpeditionTemplates,
   ensureUnlockedExpeditionTemplates,
+  getExpeditionLoopPreview,
   getSpecialExpeditionTemplateCount,
   getVisibleExpeditionTemplates,
 } from '../data/expeditionTemplates'
@@ -27,5 +28,27 @@ describe('expedition templates', () => {
 
     expect(visible.length).toBe(4)
     expect(visible[visible.length - 1]?.id).toBe('guixuResonance')
+  })
+
+  it('should build a stronger guixu loop preview after the trinity milestone', () => {
+    const preview = getExpeditionLoopPreview(
+      {
+        id: 'guixuResonance',
+        riskTolerance: 'risky',
+        rewardFocus: 'materials',
+        supplyLevel: 'luxury',
+      },
+      [
+        { id: 'legacyForgePair', unlockedAt: 1 },
+        { id: 'legacyForgeTrinity', unlockedAt: 2 },
+      ]
+    )
+
+    expect(preview?.title).toBe('深潜搏材')
+    expect(preview?.yieldSummary).toContain('潮晶 5-6')
+    expect(preview?.yieldSummary).toContain('残片 3-4')
+    expect(preview?.tideCrystalRange).toEqual({ min: 5, max: 6 })
+    expect(preview?.abyssShardRange).toEqual({ min: 3, max: 4 })
+    expect(preview?.recommendation).toContain('连续失利')
   })
 })

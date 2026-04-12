@@ -65,6 +65,16 @@ function seedReport() {
         discipleMutations: {
           c1: ['sword_intent', 'lucky_omen'],
         },
+        dungeonGrowthApplied: {
+          c1: {
+            statBoost: 20,
+            cultivationGain: 50,
+            xpGained: 50,
+            levelsGained: 1,
+            levelAfter: 2,
+            statGain: { hp: 2, atk: 1, def: 1 },
+          },
+        },
         steps: [
           {
             id: 'step_0',
