@@ -164,6 +164,167 @@
   color: var(--color-text-secondary);
 }
 
+.loopPreviewCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(148, 119, 86, 0.16);
+  background:
+    radial-gradient(circle at top right, rgba(177, 138, 88, 0.12), transparent 26%), rgba(255, 252, 247, 0.88);
+}
+
+.adjustmentBanner {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(245, 249, 250, 0.92);
+  border: 1px solid rgba(112, 132, 148, 0.12);
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+
+.loopPreviewHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.loopPreviewTitle {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.loopPreviewYield {
+  font-size: 11px;
+  color: #7f5428;
+}
+
+.loopPreviewDetail,
+.loopPreviewRecommendation {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.loopPreviewRecommendation {
+  color: var(--color-text);
+}
+
+.loopRealityCard {
+  display: grid;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 119, 86, 0.12);
+}
+
+.loopRealityHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.loopRealityTitle {
+  font-size: 12px;
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.loopRealityBadge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+}
+
+.loopRealityBalanced {
+  color: #7f5428;
+  background: rgba(184, 134, 77, 0.12);
+}
+
+.loopRealityGood {
+  color: #2e6c55;
+  background: rgba(93, 148, 128, 0.12);
+}
+
+.loopRealityWarn {
+  color: #9a5a43;
+  background: rgba(173, 104, 79, 0.12);
+}
+
+.loopRealityStats,
+.loopRealityDetail {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.loopRealityDetail {
+  color: var(--color-text);
+}
+
+.loopAdviceCard {
+  display: grid;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 119, 86, 0.12);
+}
+
+.loopAdviceTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.loopAdviceList {
+  display: grid;
+  gap: 8px;
+}
+
+.loopAdviceItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.66);
+  border: 1px solid rgba(112, 132, 148, 0.08);
+}
+
+.loopAdviceText {
+  display: grid;
+  gap: 4px;
+}
+
+.loopAdviceText strong {
+  font-size: 12px;
+  color: var(--color-text);
+}
+
+.loopAdviceText span {
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.loopAdviceButton {
+  flex-shrink: 0;
+  padding: 7px 10px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 11px;
+  cursor: pointer;
+}
+
 .automationSummary {
   display: flex;
   align-items: center;

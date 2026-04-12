@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAdventureStore, isDungeonUnlocked } from '../stores/adventureStore'
 import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
+import { useEventLogStore } from '../stores/eventLogStore'
 import { getRealmName } from '../data/realms'
 import { getLegacyDungeonName } from '../data/legacyUnlocks'
 import { getRunIntentDef } from '../data/runIntents'
@@ -17,6 +18,7 @@ import {
   getVisibleExpeditionTemplates,
 } from '../data/expeditionTemplates'
 import { getLegacyTemplateCapacity } from '../data/legacy'
+import { analyzeGuixuLoop, summarizeGuixuLoopYield } from '../systems/sect/GuixuLoopAdvisor'
 
 import type { AutomationStrategy, TacticalPreset } from '../types/adventure'
 import PageHeader from '../components/common/PageHeader'
@@ -68,6 +70,7 @@ export default function AdventurePage() {
   const setAutomationSettings = useSectStore((s) => s.setAutomationSettings)
   const runAutomation = useAdventureStore((s) => s.runAutomation)
   const dayProgressSec = useGameStore((s) => s.dayProgressSec)
+  const recentEvents = useEventLogStore((s) => s.events)
 
   const maxRealmChar = useMemo(() => {
     if (sect.characters.length === 0) return null
@@ -94,6 +97,17 @@ export default function AdventurePage() {
   const activeTemplateSignal = activeTemplate
     ? getExpeditionTemplateSignal(activeTemplate.id, sect.archiveMilestones)
     : null
+  const latestGuixuLoopYield = (() => {
+    if (activeTemplate?.id !== 'guixuResonance') return null
+
+    const latestGuixuSummary = reports.find((report) => report.dungeonId === 'guixuRift')
+    if (!latestGuixuSummary) return null
+
+    return summarizeGuixuLoopYield(reportDetails[latestGuixuSummary.id])
+  })()
+  const guixuLoopAnalysis = analyzeGuixuLoop(activeTemplate, sect.archiveMilestones, latestGuixuLoopYield)
+  const activeTemplateLoopPreview = guixuLoopAnalysis.preview
+  const activeLoopYieldStatus = guixuLoopAnalysis.status
   const preferredDungeon =
     dungeons.find((item) => item.id === (activeTemplate?.dungeonId ?? sect.automationSettings.preferredDungeonId)) ??
     null
@@ -127,6 +141,29 @@ export default function AdventurePage() {
       ),
     })
   }
+
+  const applyTemplateTweaks = (
+    changes: Partial<
+      Pick<NonNullable<typeof activeTemplate>, 'riskTolerance' | 'supplyLevel' | 'rewardFocus' | 'fallbackOnFailure'>
+    >
+  ) => {
+    if (!activeTemplate) return
+    setAutomationSettings({
+      preferredDungeonId: sect.automationSettings.preferredDungeonId,
+      casualtyTolerance:
+        (changes.riskTolerance as typeof sect.automationSettings.casualtyTolerance | undefined) ??
+        sect.automationSettings.casualtyTolerance,
+      expeditionTemplates: sect.automationSettings.expeditionTemplates.map((template) =>
+        template.id === activeTemplate.id ? { ...template, ...changes } : template
+      ),
+    })
+  }
+
+  const loopAdjustmentSuggestions = guixuLoopAnalysis.suggestions
+  const activeTemplateId = activeTemplate?.id
+  const latestTemplateAdjustment =
+    recentEvents.find((event) => event.type === 'automation_adjusted' && event.data?.templateId === activeTemplateId) ??
+    null
 
   const handleQuickLaunch = () => {
     if (!quickLaunchDungeonId) return
@@ -378,6 +415,72 @@ export default function AdventurePage() {
               <span>{getTeamRuleLabel(activeTemplate.teamRule)}</span>
               <span>{getFallbackRuleLabel(activeTemplate.fallbackOnFailure)}</span>
             </div>
+            {activeTemplateLoopPreview ? (
+              <div className={styles.loopPreviewCard} data-testid="guixu-loop-preview">
+                {latestTemplateAdjustment ? (
+                  <div className={styles.adjustmentBanner} data-testid="guixu-adjustment-banner">
+                    {latestTemplateAdjustment.message}
+                  </div>
+                ) : null}
+                <div className={styles.loopPreviewHeader}>
+                  <span className={styles.loopPreviewTitle}>{activeTemplateLoopPreview.title}</span>
+                  <span className={styles.loopPreviewYield}>{activeTemplateLoopPreview.yieldSummary}</span>
+                </div>
+                <div className={styles.loopPreviewDetail}>{activeTemplateLoopPreview.detail}</div>
+                <div className={styles.loopPreviewRecommendation}>{activeTemplateLoopPreview.recommendation}</div>
+                {latestGuixuLoopYield ? (
+                  <div className={styles.loopRealityCard} data-testid="guixu-loop-reality">
+                    <div className={styles.loopRealityHeader}>
+                      <span className={styles.loopRealityTitle}>最近实收</span>
+                      {activeLoopYieldStatus ? (
+                        <span
+                          className={`${styles.loopRealityBadge} ${
+                            activeLoopYieldStatus.tone === 'good'
+                              ? styles.loopRealityGood
+                              : activeLoopYieldStatus.tone === 'warn'
+                                ? styles.loopRealityWarn
+                                : styles.loopRealityBalanced
+                          }`}
+                        >
+                          {activeLoopYieldStatus.label}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className={styles.loopRealityStats}>
+                      潮晶 {latestGuixuLoopYield.tideCrystalCount} · 残片 {latestGuixuLoopYield.abyssShardCount} ·
+                      推进至第 {latestGuixuLoopYield.floorsCleared} 层
+                    </div>
+                    {activeLoopYieldStatus ? (
+                      <div className={styles.loopRealityDetail}>{activeLoopYieldStatus.detail}</div>
+                    ) : null}
+                  </div>
+                ) : null}
+                {loopAdjustmentSuggestions.length > 0 ? (
+                  <div className={styles.loopAdviceCard} data-testid="guixu-loop-advice">
+                    <div className={styles.loopAdviceTitle}>建议调参</div>
+                    <div className={styles.loopAdviceList}>
+                      {loopAdjustmentSuggestions.map((suggestion) => (
+                        <div key={suggestion.id} className={styles.loopAdviceItem}>
+                          <div className={styles.loopAdviceText}>
+                            <strong>{suggestion.label}</strong>
+                            <span>{suggestion.detail}</span>
+                          </div>
+                          {suggestion.changes ? (
+                            <button
+                              type="button"
+                              className={styles.loopAdviceButton}
+                              onClick={() => applyTemplateTweaks(suggestion.changes!)}
+                            >
+                              一键套用
+                            </button>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : null}
       </section>

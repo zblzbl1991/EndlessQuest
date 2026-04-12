@@ -138,6 +138,13 @@ export default function SectPage() {
       floorsCleared: latestGuixuReport.floorsCleared,
     }
   }, [activeTemplate?.id, recentReports, reportDetails])
+  const latestTemplateAdjustment = useMemo(
+    () =>
+      recentEvents.find(
+        (event) => event.type === 'automation_adjusted' && event.data?.templateId === activeTemplate?.id
+      ) ?? null,
+    [activeTemplate?.id, recentEvents]
+  )
   const legacyPerks = useMemo(() => getUnlockedLegacyPerks(sect.legacy.ascensionCount), [sect.legacy.ascensionCount])
   const bottlenecks = useMemo(() => diagnoseSectBottlenecks(sect), [sect])
   const sectRumors = useMemo(
@@ -265,6 +272,14 @@ export default function SectPage() {
                   : '需前往秘境页补齐模板'}
               </span>
               {activeTemplateSignal ? <span className={styles.controlMeta}>{activeTemplateSignal.detail}</span> : null}
+              {latestTemplateAdjustment ? (
+                <span
+                  className={`${styles.controlMeta} ${styles.templateAdjustmentMeta}`}
+                  data-testid="sect-template-adjustment"
+                >
+                  {latestTemplateAdjustment.message}
+                </span>
+              ) : null}
               {activeTemplateLoopYield ? (
                 <span className={`${styles.controlMeta} ${styles.loopYieldMeta}`} data-testid="sect-guixu-loop-yield">
                   最近一轮归墟回响带回 潮晶 {activeTemplateLoopYield.tideCrystalCount} · 残片{' '}
@@ -392,6 +407,11 @@ export default function SectPage() {
             </div>
             <div className={styles.templateNotes}>{activeTemplate.notes}</div>
             {activeTemplateSignal ? <div className={styles.templateNotes}>{activeTemplateSignal.detail}</div> : null}
+            {latestTemplateAdjustment ? (
+              <div className={`${styles.templateNotes} ${styles.templateAdjustmentMeta}`}>
+                {latestTemplateAdjustment.message}
+              </div>
+            ) : null}
             {activeTemplateLoopYield ? (
               <div className={`${styles.templateNotes} ${styles.loopYieldMeta}`}>
                 最近一轮归墟回响带回 潮晶 {activeTemplateLoopYield.tideCrystalCount}、残片{' '}

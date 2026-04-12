@@ -32,6 +32,15 @@ export interface ExpeditionTemplateSignal {
   detail: string
 }
 
+export interface ExpeditionLoopPreview {
+  title: string
+  yieldSummary: string
+  detail: string
+  recommendation: string
+  tideCrystalRange: { min: number; max: number }
+  abyssShardRange: { min: number; max: number }
+}
+
 const CORE_TEMPLATE_PRESETS: ExpeditionTemplatePreset[] = [
   {
     id: 'steadyHarvest',
@@ -191,6 +200,80 @@ export function getExpeditionTemplateSignal(
     }
   }
   return null
+}
+
+export function getExpeditionLoopPreview(
+  template: Pick<ExpeditionTemplate, 'id' | 'riskTolerance' | 'supplyLevel' | 'rewardFocus'>,
+  archiveMilestones: ArchiveMilestoneEntry[]
+): ExpeditionLoopPreview | null {
+  if (template.id !== 'guixuResonance') return null
+
+  const hasPair = hasArchiveMilestone(archiveMilestones, 'legacyForgePair')
+  const hasTrinity = hasArchiveMilestone(archiveMilestones, 'legacyForgeTrinity')
+  if (!hasPair) return null
+
+  let tideMin = hasTrinity ? 2 : 1
+  let tideMax = hasTrinity ? 3 : 2
+  let shardMin = hasTrinity ? 1 : 0
+  let shardMax = hasTrinity ? 2 : 1
+
+  if (template.riskTolerance === 'balanced') {
+    shardMax += 1
+  } else if (template.riskTolerance === 'risky') {
+    tideMin += 1
+    tideMax += 1
+    shardMin += 1
+    shardMax += 1
+  }
+
+  if (template.supplyLevel === 'enhanced') {
+    tideMax += 1
+  } else if (template.supplyLevel === 'luxury') {
+    tideMin += 1
+    tideMax += 1
+    shardMax += 1
+  }
+
+  if (template.rewardFocus === 'materials') {
+    tideMin += 1
+    tideMax += 1
+    shardMin += 1
+  } else if (template.rewardFocus === 'progress') {
+    shardMin += 1
+    shardMax += 1
+  } else if (template.rewardFocus === 'techniques') {
+    shardMax += 1
+  }
+
+  const title =
+    template.riskTolerance === 'risky'
+      ? '深潜搏材'
+      : template.riskTolerance === 'conservative'
+        ? '稳流采撷'
+        : '均衡回响'
+
+  const yieldSummary = `单轮参考：潮晶 ${tideMin}-${tideMax}，残片 ${shardMin}-${shardMax}`
+  const detail =
+    template.supplyLevel === 'luxury'
+      ? '高阶补给能把归墟回响推到更深层，遗材回收会更满，但也更依赖主力队伍稳定性。'
+      : template.rewardFocus === 'progress'
+        ? '当前配置更偏向深层推进，残片增长会更明显，适合为第三段遗器或后续终盘内容囤料。'
+        : '当前配置更偏向稳定刷材，适合把归墟回响挂成宗门后期的常驻材料线。'
+  const recommendation =
+    template.riskTolerance === 'risky'
+      ? '适合主力队伍完整、补给充足时短期开高收益。若近期连续失利，优先回调到均衡。'
+      : template.supplyLevel === 'basic'
+        ? '更适合作为低波动保底模板，先稳住潮晶回流，再视库存抬高补给。'
+        : '适合作为当前终盘主挂机线，稳定回收潮晶并兼顾残片积累。'
+
+  return {
+    title,
+    yieldSummary,
+    detail,
+    recommendation,
+    tideCrystalRange: { min: tideMin, max: tideMax },
+    abyssShardRange: { min: shardMin, max: shardMax },
+  }
 }
 
 export function getRewardFocusLabel(focus: ExpeditionRewardFocus): string {

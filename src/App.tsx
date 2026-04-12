@@ -4,6 +4,7 @@ import { useSectStore } from './stores/sectStore'
 import { useAdventureStore } from './stores/adventureStore'
 import { useGameStore } from './stores/gameStore'
 import { useEventLogStore } from './stores/eventLogStore'
+import { emitEvent } from './stores/eventLogStore'
 import { IdleEngine, calcOfflineSeconds } from './systems/idle/IdleEngine'
 import { loadGame } from './systems/save/SaveSystem'
 import { loadTestSave } from './systems/save/testFixture'
@@ -74,7 +75,8 @@ export default function App() {
       // Show offline report if away for more than 60 seconds
       // Use microtask to avoid calling setState synchronously within the effect
       if (offline > 60) {
-        const acc = useSectStore.getState().sect.offlineAccumulator
+        const sectState = useSectStore.getState()
+        const acc = sectState.sect.offlineAccumulator
         const cutoff = Date.now() - offline * 1000
         const adventureState = useAdventureStore.getState()
         const recentReports = adventureState.reports.filter((report) => report.finishedAt >= cutoff).slice(0, 3)
@@ -92,7 +94,7 @@ export default function App() {
             data: event.data,
           }))
         const narrative = buildOfflineNarrative({
-          sect: useSectStore.getState().sect,
+          sect: sectState.sect,
           accumulator: acc,
           recentReports,
           recentReportDetails,
@@ -130,6 +132,61 @@ export default function App() {
   const handleCloseReport = () => {
     useSectStore.getState().clearOfflineAccumulator()
     setOfflineReport(null)
+  }
+
+  const handleApplyOfflineLoopAdjustment = () => {
+    const adjustment = offlineReport?.loopAdjustment
+    if (!adjustment?.changes) return
+
+    const sectState = useSectStore.getState()
+    const activeTemplateId = sectState.sect.automationSettings.activeTemplateId
+    if (activeTemplateId !== 'guixuResonance') return
+    const currentTemplate = sectState.sect.automationSettings.expeditionTemplates.find(
+      (template) => template.id === activeTemplateId
+    )
+    if (!currentTemplate) return
+
+    sectState.setAutomationSettings({
+      casualtyTolerance: adjustment.changes.riskTolerance ?? sectState.sect.automationSettings.casualtyTolerance,
+      expeditionTemplates: sectState.sect.automationSettings.expeditionTemplates.map((template) =>
+        template.id === activeTemplateId ? { ...template, ...adjustment.changes } : template
+      ),
+    })
+
+    const parts: string[] = []
+    if (adjustment.changes.riskTolerance && adjustment.changes.riskTolerance !== currentTemplate.riskTolerance) {
+      parts.push(
+        `风险改为${adjustment.changes.riskTolerance === 'balanced' ? '均衡' : adjustment.changes.riskTolerance === 'conservative' ? '保守' : '赌命'}`
+      )
+    }
+    if (adjustment.changes.supplyLevel && adjustment.changes.supplyLevel !== currentTemplate.supplyLevel) {
+      parts.push(
+        `补给改为${adjustment.changes.supplyLevel === 'enhanced' ? '充足' : adjustment.changes.supplyLevel === 'luxury' ? '豪华' : '基础'}`
+      )
+    }
+    if (adjustment.changes.rewardFocus && adjustment.changes.rewardFocus !== currentTemplate.rewardFocus) {
+      parts.push(
+        `收益偏好改为${adjustment.changes.rewardFocus === 'progress' ? '推进' : adjustment.changes.rewardFocus === 'materials' ? '材料' : adjustment.changes.rewardFocus === 'techniques' ? '功法' : adjustment.changes.rewardFocus === 'pets' ? '灵宠' : '资源'}`
+      )
+    }
+    if (parts.length > 0) {
+      emitEvent('automation_adjusted', `已按离线建议调整归墟回响：${parts.join('，')}。`, {
+        templateId: activeTemplateId,
+        source: 'offline_report',
+      })
+    }
+
+    setOfflineReport((current) =>
+      current?.loopAdjustment
+        ? {
+            ...current,
+            loopAdjustment: {
+              ...current.loopAdjustment,
+              applied: true,
+            },
+          }
+        : current
+    )
   }
 
   if (!isLoaded) {
@@ -175,7 +232,13 @@ export default function App() {
         </ErrorBoundary>
       </div>
       <BottomNav />
-      {offlineReport && <OfflineReportModal report={offlineReport} onClose={handleCloseReport} />}
+      {offlineReport && (
+        <OfflineReportModal
+          report={offlineReport}
+          onClose={handleCloseReport}
+          onApplyLoopAdjustment={handleApplyOfflineLoopAdjustment}
+        />
+      )}
     </BrowserRouter>
   )
 }

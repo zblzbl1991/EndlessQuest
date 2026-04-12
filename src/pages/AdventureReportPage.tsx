@@ -13,7 +13,7 @@ import { getLegacyReportFlavor } from '../data/legacyFlavor'
 import type { CombatAction, CombatResult, CombatUnit } from '../systems/combat/CombatEngine'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import { getTechniqueById } from '../data/techniquesTable'
-import type { AdventureReportStep } from '../types'
+import type { AdventureReport, AdventureReportStep } from '../types'
 import styles from './AdventureReportPage.module.css'
 
 function getStepIconName(type: string): string {
@@ -105,6 +105,13 @@ function getRewardItemMeta(item: {
   }
 
   return `${qualityLabel} · 装备`
+}
+
+type DungeonGrowthEntry = NonNullable<AdventureReport['dungeonGrowthApplied']>[string]
+
+function formatDungeonLevelSummary(growth: DungeonGrowthEntry): string | null {
+  if (!growth.levelsGained || growth.levelsGained <= 0 || !growth.statGain || !growth.levelAfter) return null
+  return `升至 Lv.${growth.levelAfter} · 气血 +${growth.statGain.hp} / 攻击 +${growth.statGain.atk} / 防御 +${growth.statGain.def}`
 }
 
 interface BossStepMeta {
@@ -757,7 +764,11 @@ export default function AdventureReportPage() {
                 const entries = Object.entries(techGrowth)
                 if (entries.length === 0) return null
                 return (
-                  <div key={charId} className={styles.summaryRow}>
+                  <div
+                    key={charId}
+                    className={`${styles.summaryRow} ${styles.growthRow}`}
+                    data-testid={`report-growth-${charId}`}
+                  >
                     <span className={styles.summaryLabel}>
                       <PixelIcon name="techniqueScroll" size={16} className={styles.inlineIcon} aria-label="参悟" />
                       {charName} 参悟
@@ -776,14 +787,20 @@ export default function AdventureReportPage() {
             {report.dungeonGrowthApplied &&
               Object.entries(report.dungeonGrowthApplied).map(([charId, growth]) => {
                 const charName = characterNameMap.get(charId) ?? charId
+                const levelSummary = formatDungeonLevelSummary(growth)
                 return (
-                  <div key={charId} className={styles.summaryRow}>
+                  <div
+                    key={charId}
+                    className={`${styles.summaryRow} ${styles.growthRow}`}
+                    data-testid={`report-growth-${charId}`}
+                  >
                     <span className={styles.summaryLabel}>
                       <PixelIcon name="disciple" size={16} className={styles.inlineIcon} aria-label="属性提升" />
                       {charName} 属性
                     </span>
                     <strong>
                       气血 +{growth.statBoost} · 修为 +{growth.cultivationGain}
+                      {levelSummary ? <span className={styles.levelUpTag}>{levelSummary}</span> : null}
                     </strong>
                   </div>
                 )

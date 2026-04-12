@@ -301,6 +301,14 @@
   color: var(--color-text);
 }
 
+.templateAdjustmentMeta {
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: rgba(244, 248, 250, 0.82);
+  border: 1px solid rgba(112, 132, 148, 0.12);
+  color: var(--color-text);
+}
+
 .policyCard {
   appearance: none;
   text-align: left;

@@ -1,6 +1,10 @@
 import { motion, useReducedMotion } from 'framer-motion'
 import type { Resources } from '../../types'
-import type { OfflineLoopRewardSummary, OfflineNarrativeItem } from '../../systems/sect/OfflineNarrativeSystem'
+import type {
+  OfflineLoopAdjustment,
+  OfflineLoopRewardSummary,
+  OfflineNarrativeItem,
+} from '../../systems/sect/OfflineNarrativeSystem'
 import s from './OfflineReportModal.module.css'
 
 interface OfflineReportData {
@@ -12,11 +16,13 @@ interface OfflineReportData {
   notableEvents?: OfflineNarrativeItem[]
   nextSuggestion?: string
   loopRewards?: OfflineLoopRewardSummary
+  loopAdjustment?: OfflineLoopAdjustment & { applied?: boolean }
 }
 
 interface OfflineReportModalProps {
   report: OfflineReportData
   onClose: () => void
+  onApplyLoopAdjustment?: () => void
 }
 
 function formatDuration(seconds: number): string {
@@ -75,7 +81,7 @@ function BreakthroughEventItem({
 
 export type { OfflineReportData }
 
-export default function OfflineReportModal({ report, onClose }: OfflineReportModalProps) {
+export default function OfflineReportModal({ report, onClose, onApplyLoopAdjustment }: OfflineReportModalProps) {
   const r = report.resourcesGained
   const notableEvents = report.notableEvents ?? []
   const nextSuggestion = report.nextSuggestion ?? '继续按当前配置运转，优先处理宗门页提示的瓶颈。'
@@ -85,6 +91,7 @@ export default function OfflineReportModal({ report, onClose }: OfflineReportMod
   const hasTax = report.taxIncome > 0
   const hasNotableEvents = notableEvents.length > 0
   const hasLoopRewards = Boolean(report.loopRewards)
+  const hasLoopAdjustment = Boolean(report.loopAdjustment)
 
   return (
     <div className={s.overlay} onClick={onClose}>
@@ -135,6 +142,24 @@ export default function OfflineReportModal({ report, onClose }: OfflineReportMod
                   <span className={s.loopRewardValue}>x{report.loopRewards.abyssShardCount}</span>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {hasLoopAdjustment && report.loopAdjustment && (
+          <div className={s.section}>
+            <div className={s.sectionTitle}>归墟调参建议</div>
+            <div className={s.loopAdjustmentCard} data-testid="offline-loop-adjustment">
+              <div className={s.loopAdjustmentHeader}>
+                <strong>{report.loopAdjustment.label}</strong>
+                {report.loopAdjustment.applied ? <span className={s.loopAdjustmentApplied}>已套用</span> : null}
+              </div>
+              <div className={s.loopAdjustmentDetail}>{report.loopAdjustment.detail}</div>
+              {report.loopAdjustment.actionLabel && !report.loopAdjustment.applied && onApplyLoopAdjustment ? (
+                <button type="button" className={s.loopAdjustmentButton} onClick={onApplyLoopAdjustment}>
+                  {report.loopAdjustment.actionLabel}
+                </button>
+              ) : null}
             </div>
           </div>
         )}
@@ -208,9 +233,13 @@ export default function OfflineReportModal({ report, onClose }: OfflineReportMod
           <div className={s.suggestionCard}>{nextSuggestion}</div>
         </div>
 
-        {!hasResources && !hasBreakthroughs && !hasCrafted && !hasTax && !hasNotableEvents && !hasLoopRewards && (
-          <div className={s.emptyHint}>离线期间暂无特殊收获。</div>
-        )}
+        {!hasResources &&
+          !hasBreakthroughs &&
+          !hasCrafted &&
+          !hasTax &&
+          !hasNotableEvents &&
+          !hasLoopRewards &&
+          !hasLoopAdjustment && <div className={s.emptyHint}>离线期间暂无特殊收获。</div>}
 
         <button className={s.collectBtn} onClick={onClose}>
           收取

@@ -167,6 +167,49 @@
   font-weight: 600;
 }
 
+.loopAdjustmentCard {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 119, 86, 0.12);
+  background: rgba(255, 250, 244, 0.84);
+}
+
+.loopAdjustmentHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.loopAdjustmentHeader strong {
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.loopAdjustmentApplied {
+  font-size: 11px;
+  color: var(--color-success);
+}
+
+.loopAdjustmentDetail {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.loopAdjustmentButton {
+  justify-self: start;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .resourceItem {
   display: flex;
   justify-content: space-between;

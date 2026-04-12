@@ -1,9 +1,10 @@
-import type { AdventureReport, AdventureReportSummary, OfflineAccumulator, Sect } from '../../types'
+import type { AdventureReport, AdventureReportSummary, ExpeditionTemplate, OfflineAccumulator, Sect } from '../../types'
 import { getExpeditionTemplateSignal } from '../../data/expeditionTemplates'
 import { getLegacyReportFlavor } from '../../data/legacyFlavor'
 import { REPORT_RESULT_LABELS } from '../../data/uiCopy'
 import { diagnoseSectBottlenecks } from './SectBottleneckSystem'
 import { buildSectRumors } from './SectRumorSystem'
+import { analyzeGuixuLoop, summarizeGuixuLoopYield } from './GuixuLoopAdvisor'
 
 export interface OfflineNarrativeItem {
   id: string
@@ -19,10 +20,18 @@ export interface OfflineLoopRewardSummary {
   abyssShardCount: number
 }
 
+export interface OfflineLoopAdjustment {
+  label: string
+  detail: string
+  actionLabel?: string
+  changes?: Partial<Pick<ExpeditionTemplate, 'riskTolerance' | 'supplyLevel' | 'rewardFocus' | 'fallbackOnFailure'>>
+}
+
 export interface OfflineNarrativeSummary {
   notableEvents: OfflineNarrativeItem[]
   nextSuggestion: string
   loopRewards?: OfflineLoopRewardSummary
+  loopAdjustment?: OfflineLoopAdjustment
 }
 
 interface BuildOfflineNarrativeInput {
@@ -80,6 +89,24 @@ export function buildOfflineNarrative(input: BuildOfflineNarrativeInput): Offlin
     input.sect.archiveMilestones
   )
   const loopRewards = buildLoopRewardSummary(input.recentReportDetails ?? [], activeTemplateSignal)
+  const activeTemplate =
+    input.sect.automationSettings.expeditionTemplates.find(
+      (template) => template.id === input.sect.automationSettings.activeTemplateId
+    ) ?? null
+  const latestGuixuReport = (input.recentReportDetails ?? []).find((report) => report.dungeonId === 'guixuRift')
+  const guixuLoopAnalysis = analyzeGuixuLoop(
+    activeTemplate,
+    input.sect.archiveMilestones,
+    summarizeGuixuLoopYield(latestGuixuReport)
+  )
+  const loopAdjustment = guixuLoopAnalysis.suggestions[0]
+    ? {
+        label: guixuLoopAnalysis.status?.label ?? '归墟调参建议',
+        detail: guixuLoopAnalysis.suggestions[0].detail,
+        actionLabel: guixuLoopAnalysis.suggestions[0].changes ? guixuLoopAnalysis.suggestions[0].label : undefined,
+        changes: guixuLoopAnalysis.suggestions[0].changes,
+      }
+    : undefined
 
   for (const breakthrough of input.accumulator.breakthroughs.slice(-3).reverse()) {
     notableEvents.push({
@@ -145,13 +172,15 @@ export function buildOfflineNarrative(input: BuildOfflineNarrativeInput): Offlin
   }
 
   const nextSuggestion =
-    activeTemplateSignal?.label === '终盘循环'
+    loopAdjustment?.detail ??
+    (activeTemplateSignal?.label === '终盘循环'
       ? '归墟回响已经进入终盘循环，优先保持模板开启并稳定补给，让潮晶与残片持续回流。'
-      : (diagnoseSectBottlenecks(input.sect)[0]?.suggestion ?? '宗门运转平稳，可以继续沿着当前策略挂机推进。')
+      : (diagnoseSectBottlenecks(input.sect)[0]?.suggestion ?? '宗门运转平稳，可以继续沿着当前策略挂机推进。'))
 
   return {
     notableEvents: notableEvents.slice(0, 5),
     nextSuggestion,
     loopRewards,
+    loopAdjustment,
   }
 }

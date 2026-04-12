@@ -89,6 +89,16 @@ export function buildSectRumors(events: SectRumorInput[], limit = 4): SectRumorI
     }
   }
 
+  const latestAdjustment = events.find((event) => event.type === 'automation_adjusted')
+  if (latestAdjustment) {
+    rumors.push({
+      id: `rumor_adjustment_${latestAdjustment.id}`,
+      title: '远征已调参',
+      detail: latestAdjustment.message,
+      tone: 'accent',
+    })
+  }
+
   const deduped = rumors.filter((rumor, index) => rumors.findIndex((item) => item.id === rumor.id) === index)
   return deduped.slice(0, limit)
 }
