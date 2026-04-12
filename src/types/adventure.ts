@@ -157,8 +157,18 @@ export interface AdventureReport {
   policySnapshot?: SectRiskPolicyId
   /** Accumulated comprehension growth: charId -> { techId -> totalGrowth } */
   comprehensionGrowth?: Record<string, Record<string, number>>
-  /** Dungeon growth applied: charId -> { baseStatBoost, cultivationGain } */
-  dungeonGrowthApplied?: Record<string, { statBoost: number; cultivationGain: number }>
+  /** Dungeon growth applied: charId -> { baseStatBoost, cultivationGain, level/xp gains } */
+  dungeonGrowthApplied?: Record<
+    string,
+    {
+      statBoost: number
+      cultivationGain: number
+      xpGained?: number
+      levelsGained?: number
+      levelAfter?: number
+      statGain?: { hp: number; atk: number; def: number }
+    }
+  >
 }
 
 export interface AdventureReportSummary {

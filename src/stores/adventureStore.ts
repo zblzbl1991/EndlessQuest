@@ -63,6 +63,7 @@ import { calcEquipmentStats } from '../systems/equipment/EquipmentEngine'
 import type { Equipment } from '../types/item'
 import { findEquipmentById } from './sectStore/initial'
 import { calcDungeonGrowth } from '../systems/character/DungeonGrowthSystem'
+import { applyCharacterExperience } from '../data/levelSystem'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -278,6 +279,14 @@ function depositFractionResourcesToSect(resources: Resources, fraction: number):
   }
 }
 
+function formatDungeonLevelUpMessage(
+  name: string,
+  level: number,
+  statBoost: { hp: number; atk: number; def: number }
+): string {
+  return `${name}历练有成，升至 Lv.${level}（气血 +${statBoost.hp} / 攻击 +${statBoost.atk} / 防御 +${statBoost.def}）`
+}
+
 function settleRunMembers(run: DungeonRun): Record<string, AdventureMemberReturnRecord> {
   const sectStore = useSectStore.getState()
   const outcomes: Record<string, AdventureMemberReturnRecord> = {}
@@ -404,9 +413,9 @@ function returnAutoEquippedItems(run: DungeonRun): void {
 function applyDungeonGrowth(
   report: AdventureReport,
   run: DungeonRun
-): Record<string, { statBoost: number; cultivationGain: number }> | undefined {
+): AdventureReport['dungeonGrowthApplied'] | undefined {
   const sectStore = useSectStore.getState()
-  const growthApplied: Record<string, { statBoost: number; cultivationGain: number }> = {}
+  const growthApplied: NonNullable<AdventureReport['dungeonGrowthApplied']> = {}
   let anyGrowth = false
 
   // Apply comprehension growth
@@ -450,28 +459,40 @@ function applyDungeonGrowth(
       // Only apply stat boost for completed runs
       const statBoost = report.result === 'completed' ? growth.statBoost : { hp: 0, atk: 0, def: 0 }
       const totalStatBoost = statBoost.hp + statBoost.atk + statBoost.def
+      const grownCharacter = {
+        ...character,
+        baseStats: {
+          ...character.baseStats,
+          hp: character.baseStats.hp + statBoost.hp,
+          atk: character.baseStats.atk + statBoost.atk,
+          def: character.baseStats.def + statBoost.def,
+        },
+        totalCultivation: character.totalCultivation + growth.cultivationGain,
+      }
+      const levelResult = applyCharacterExperience(grownCharacter, growth.cultivationGain)
 
       useSectStore.setState((s) => ({
         sect: {
           ...s.sect,
-          characters: s.sect.characters.map((c) =>
-            c.id === charId
-              ? {
-                  ...c,
-                  baseStats: {
-                    ...c.baseStats,
-                    hp: c.baseStats.hp + statBoost.hp,
-                    atk: c.baseStats.atk + statBoost.atk,
-                    def: c.baseStats.def + statBoost.def,
-                  },
-                  totalCultivation: c.totalCultivation + growth.cultivationGain,
-                }
-              : c
-          ),
+          characters: s.sect.characters.map((c) => (c.id === charId ? levelResult.character : c)),
         },
       }))
 
-      growthApplied[charId] = { statBoost: totalStatBoost, cultivationGain: growth.cultivationGain }
+      if (levelResult.levelsGained > 0) {
+        emitEvent(
+          'milestone',
+          formatDungeonLevelUpMessage(levelResult.character.name, levelResult.character.level, levelResult.statBoost)
+        )
+      }
+
+      growthApplied[charId] = {
+        statBoost: totalStatBoost,
+        cultivationGain: growth.cultivationGain,
+        xpGained: levelResult.xpGained,
+        levelsGained: levelResult.levelsGained,
+        levelAfter: levelResult.character.level,
+        statGain: levelResult.statBoost,
+      }
       anyGrowth = true
     }
   }
@@ -518,26 +539,31 @@ function applyManualRunGrowth(run: DungeonRun, result: 'completed' | 'retreated'
       if (!character) continue
 
       const growth = calcDungeonGrowth(run.currentFloor - 1, character.quality)
+      const grownCharacter = {
+        ...character,
+        baseStats: {
+          ...character.baseStats,
+          hp: character.baseStats.hp + growth.statBoost.hp,
+          atk: character.baseStats.atk + growth.statBoost.atk,
+          def: character.baseStats.def + growth.statBoost.def,
+        },
+        totalCultivation: character.totalCultivation + growth.cultivationGain,
+      }
+      const levelResult = applyCharacterExperience(grownCharacter, growth.cultivationGain)
 
       useSectStore.setState((s) => ({
         sect: {
           ...s.sect,
-          characters: s.sect.characters.map((c) =>
-            c.id === charId
-              ? {
-                  ...c,
-                  baseStats: {
-                    ...c.baseStats,
-                    hp: c.baseStats.hp + growth.statBoost.hp,
-                    atk: c.baseStats.atk + growth.statBoost.atk,
-                    def: c.baseStats.def + growth.statBoost.def,
-                  },
-                  totalCultivation: c.totalCultivation + growth.cultivationGain,
-                }
-              : c
-          ),
+          characters: s.sect.characters.map((c) => (c.id === charId ? levelResult.character : c)),
         },
       }))
+
+      if (levelResult.levelsGained > 0) {
+        emitEvent(
+          'milestone',
+          formatDungeonLevelUpMessage(levelResult.character.name, levelResult.character.level, levelResult.statBoost)
+        )
+      }
     }
   }
 }

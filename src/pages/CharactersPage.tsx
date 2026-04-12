@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
 import { getRealmName, getCultivationNeeded } from '../data/realms'
-import { getRealmLevelCap, calcXpToNextLevel } from '../data/levelSystem'
+import { getRealmLevelCap, calcXpToNextLevel, getPerLevelStatBoost } from '../data/levelSystem'
 import { getTechniqueById } from '../data/techniquesTable'
 import { getActiveSkillById } from '../data/activeSkills'
 import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
@@ -504,6 +504,12 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
                 等级 {character.level ?? 1} / {getRealmLevelCap(character.realm)}
               </span>
               <ProgressBar value={character.xp ?? 0} max={calcXpToNextLevel(character.level ?? 1)} variant="ink" />
+            </div>
+            <div className={styles.levelHint}>
+              {(() => {
+                const boost = getPerLevelStatBoost(character.quality, character.growthMultipliers)
+                return `下级成长会永久提高：气血 +${boost.hp} / 攻击 +${boost.atk} / 防御 +${boost.def}`
+              })()}
             </div>
 
             {character.cultivationPath !== 'none' &&

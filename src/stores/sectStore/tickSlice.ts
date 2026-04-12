@@ -37,6 +37,7 @@ import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 import { buildPathEffectMap, getMultEffect } from '../../systems/sect/SectPathEffects'
 import { evaluateRandomEvents } from '../../systems/idle/RandomEventSystem'
 import { getLegacyRecoveryBonusDays } from '../../data/legacy'
+import { applyCharacterExperience } from '../../data/levelSystem'
 
 function getMarketLossRate(marketLevel: number): number {
   return Math.max(0.3, 0.667 - 0.05 * marketLevel)
@@ -45,6 +46,16 @@ function getMarketLossRate(marketLevel: number): number {
 function sellOverflowResource(amount: number, marketLevel: number): number {
   if (amount <= 0) return 0
   return Math.floor((amount / 3) * (1 - getMarketLossRate(marketLevel)))
+}
+
+function formatLevelUpMessage(
+  name: string,
+  source: 'cultivation' | 'event',
+  level: number,
+  statBoost: { hp: number; atk: number; def: number }
+): string {
+  const sourceText = source === 'cultivation' ? '闭关有成' : '机缘顿悟'
+  return `${name}${sourceText}，升至 Lv.${level}（气血 +${statBoost.hp} / 攻击 +${statBoost.atk} / 防御 +${statBoost.def}）`
 }
 
 export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
@@ -197,6 +208,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     let unlockedFirstTribulationSuccess = false
     const realmsReachedByBreakthrough: Set<number> = new Set()
     const pathAssignedEvents: string[] = []
+    const levelUpEvents: string[] = []
     const breakthroughDeaths: Character[] = []
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
@@ -209,6 +221,17 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           ...char,
           cultivation: char.cultivation + gained,
           totalCultivation: char.totalCultivation + gained,
+        }
+
+        const xpGain = Math.max(0, Math.floor(gained / 5))
+        if (xpGain > 0) {
+          const levelResult = applyCharacterExperience(updatedChar, xpGain)
+          updatedChar = levelResult.character
+          if (levelResult.levelsGained > 0) {
+            levelUpEvents.push(
+              formatLevelUpMessage(updatedChar.name, 'cultivation', updatedChar.level, levelResult.statBoost)
+            )
+          }
         }
 
         // Apply comprehension growth from cultivation tick
@@ -451,6 +474,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     // Evaluate random events using the pure system function
     const randomEventResult = evaluateRandomEvents(sect, deltaSec, sect.lastRandomEventTime ?? 0)
     let sectWithEvent = newSect
+    const randomEventLevelUps: string[] = []
 
     if (randomEventResult.triggered && randomEventResult.event) {
       // Apply resource effects
@@ -471,15 +495,21 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           const idleIndices = eventCharacters.map((c, i) => (c.status === 'idle' ? i : -1)).filter((i) => i >= 0)
           if (idleIndices.length > 0) {
             const pickIdx = idleIndices[Math.floor(Math.random() * idleIndices.length)]
-            eventCharacters = eventCharacters.map((c, i) =>
-              i === pickIdx
-                ? {
-                    ...c,
-                    cultivation: c.cultivation + effect.value,
-                    totalCultivation: c.totalCultivation + effect.value,
-                  }
-                : c
-            )
+            eventCharacters = eventCharacters.map((c, i) => {
+              if (i !== pickIdx) return c
+              const levelResult = applyCharacterExperience(c, effect.value)
+              if (levelResult.levelsGained > 0) {
+                randomEventLevelUps.push(
+                  formatLevelUpMessage(
+                    levelResult.character.name,
+                    'event',
+                    levelResult.character.level,
+                    levelResult.statBoost
+                  )
+                )
+              }
+              return levelResult.character
+            })
           }
         }
       }
@@ -621,6 +651,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     }
 
     for (const msg of pathAssignedEvents) {
+      emitEvent('milestone', msg)
+    }
+
+    for (const msg of [...levelUpEvents, ...randomEventLevelUps]) {
       emitEvent('milestone', msg)
     }
 
