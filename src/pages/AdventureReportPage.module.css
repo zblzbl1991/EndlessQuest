@@ -335,8 +335,11 @@
 }
 
 .sectionScroll {
+  position: relative;
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
+  scrollbar-width: thin;
   padding-right: 6px;
 }
 
@@ -356,10 +359,12 @@
 
 .timelineScroll {
   max-height: min(62vh, 980px);
+  padding-bottom: 4px;
 }
 
 .compactScroll {
   max-height: min(40vh, 420px);
+  padding-bottom: 4px;
 }
 
 .stepCard {
@@ -422,6 +427,9 @@
 }
 
 .floorGroupHeader {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--space-sm);
@@ -429,6 +437,7 @@
   cursor: pointer;
   user-select: none;
   background: rgba(133, 164, 182, 0.06);
+  backdrop-filter: blur(12px);
 }
 
 .floorGroupHeader:hover {
@@ -461,10 +470,28 @@
 
 .floorSteps {
   padding: var(--space-xs) var(--space-sm) var(--space-sm);
+  max-height: min(38vh, 520px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
 .floorSteps:last-child {
   margin-bottom: 0;
+}
+
+.floorSteps::-webkit-scrollbar {
+  width: 7px;
+}
+
+.floorSteps::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(95, 122, 141, 0.22);
+}
+
+.floorSteps::-webkit-scrollbar-track {
+  background: rgba(95, 122, 141, 0.04);
+  border-radius: 999px;
 }
 
 @media (max-width: 640px) {
@@ -495,6 +522,10 @@
 
   .compactScroll {
     max-height: 34vh;
+  }
+
+  .floorSteps {
+    max-height: 30vh;
   }
 }
 

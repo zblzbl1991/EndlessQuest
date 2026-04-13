@@ -1,0 +1,19 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": "src/types/sect.ts", "reason": "Core types: SectArchetype, ProductionCampaign, RouteShiftState, ProductionCampaignState, Sect interface"}
+{"file": "src/types/index.ts", "reason": "Re-export new types"}
+{"file": "src/stores/sectStore/initial.ts", "reason": "Default values for archetype and campaign state"}
+{"file": "src/stores/sectStore/types.ts", "reason": "SectStore interface extension for new actions"}
+{"file": "src/stores/sectStore/strategySlice.ts", "reason": "Add setArchetype, startProductionCampaign, cancelProductionCampaign"}
+{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Add campaign/route shift tick progression"}
+{"file": "src/stores/sectStore/index.ts", "reason": "Compose new slices or extend existing"}
+{"file": "src/systems/sect/SectGoalSystem.ts", "reason": "Understand goal system for dual-path extension"}
+{"file": "src/systems/sect/SectAutomationSystem.ts", "reason": "Future integration point, understand current structure"}
+{"file": "src/systems/save/SaveSystem.ts", "reason": "Save compatibility for new fields"}
+{"file": "src/pages/SectPage.tsx", "reason": "Add route card, campaign card, dual-path goals"}
+{"file": "src/pages/SectPage.module.css", "reason": "Styles for new cards"}
+{"file": "src/pages/BuildingsPage.tsx", "reason": "Add campaign panel and production tilt summary"}
+{"file": "src/pages/BuildingsPage.module.css", "reason": "Styles for campaign panel"}
+{"file": "src/data/buildings.ts", "reason": "Understand building types for archetype building focus"}
+{"file": "src/data/techniquesTable.ts", "reason": "Pattern reference for data table structure"}

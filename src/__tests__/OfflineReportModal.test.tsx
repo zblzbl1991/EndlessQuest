@@ -23,6 +23,7 @@ describe('OfflineReportModal', () => {
     expect(screen.getByText('资源收获')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '收取' })).toBeInTheDocument()
     expect(screen.getByTestId('offline-highlight')).toBeInTheDocument()
+    expect(screen.getByTestId('offline-report-scroll')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: '收取' }))
     expect(onClose).toHaveBeenCalledTimes(1)

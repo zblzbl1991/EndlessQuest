@@ -10,14 +10,54 @@
 }
 
 .modal {
+  display: flex;
+  flex-direction: column;
   background: linear-gradient(180deg, rgba(251, 254, 255, 0.97), rgba(237, 245, 249, 0.94));
   border: 1px solid rgba(95, 122, 141, 0.14);
   border-radius: var(--radius-lg);
   padding: var(--space-lg);
   max-width: 420px;
   width: 90%;
+  max-height: min(88vh, 820px);
   box-shadow: 0 24px 42px rgba(37, 50, 64, 0.18);
   animation: slideUp var(--transition-normal) ease;
+  overflow: hidden;
+}
+
+.modalHeader {
+  flex: 0 0 auto;
+}
+
+.modalBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  padding-right: 6px;
+}
+
+.modalBody::-webkit-scrollbar {
+  width: 8px;
+}
+
+.modalBody::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(95, 122, 141, 0.28);
+}
+
+.modalBody::-webkit-scrollbar-track {
+  background: rgba(95, 122, 141, 0.06);
+  border-radius: 999px;
+}
+
+.modalFooter {
+  flex: 0 0 auto;
+  padding-top: var(--space-sm);
+  margin-top: var(--space-sm);
+  border-top: 1px solid rgba(95, 122, 141, 0.08);
+  background: linear-gradient(180deg, rgba(237, 245, 249, 0), rgba(237, 245, 249, 0.9));
 }
 
 .highlight {
@@ -314,7 +354,6 @@
 .collectBtn {
   display: block;
   width: 100%;
-  margin-top: var(--space-lg);
   padding: var(--space-sm) var(--space-md);
   background: var(--color-accent);
   color: #fff;

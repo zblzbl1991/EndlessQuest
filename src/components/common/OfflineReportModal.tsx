@@ -96,154 +96,160 @@ export default function OfflineReportModal({ report, onClose, onApplyLoopAdjustm
   return (
     <div className={s.overlay} onClick={onClose}>
       <div className={s.modal} onClick={(e) => e.stopPropagation()}>
-        <div className={s.highlight} data-testid="offline-highlight">
-          <div className={s.eyebrow}>离峰归来</div>
-          <div className={s.title}>离线修炼报告</div>
-          <div className={s.duration}>离开时长：{formatDuration(report.offlineSeconds)}</div>
-          <div className={s.highlightHint}>静修之间，宗门诸务仍在运转，所得已整理成卷。</div>
+        <div className={s.modalHeader}>
+          <div className={s.highlight} data-testid="offline-highlight">
+            <div className={s.eyebrow}>离峰归来</div>
+            <div className={s.title}>离线修炼报告</div>
+            <div className={s.duration}>离开时长：{formatDuration(report.offlineSeconds)}</div>
+            <div className={s.highlightHint}>静修之间，宗门诸务仍在运转，所得已整理成卷。</div>
+          </div>
         </div>
 
-        {hasNotableEvents && (
-          <div className={s.section}>
-            <div className={s.sectionTitle}>宗门发生了什么</div>
-            <div className={s.narrativeList}>
-              {notableEvents.map((event) => (
-                <div
-                  key={event.id}
-                  className={`${s.narrativeItem} ${
-                    event.tone === 'good'
-                      ? s.narrativeGood
-                      : event.tone === 'warn'
-                        ? s.narrativeWarn
-                        : s.narrativeAccent
-                  }`}
-                >
-                  <div className={s.narrativeTitle}>{event.title}</div>
-                  <div className={s.narrativeDetail}>{event.detail}</div>
+        <div className={s.modalBody} data-testid="offline-report-scroll">
+          {hasNotableEvents && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>宗门发生了什么</div>
+              <div className={s.narrativeList}>
+                {notableEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className={`${s.narrativeItem} ${
+                      event.tone === 'good'
+                        ? s.narrativeGood
+                        : event.tone === 'warn'
+                          ? s.narrativeWarn
+                          : s.narrativeAccent
+                    }`}
+                  >
+                    <div className={s.narrativeTitle}>{event.title}</div>
+                    <div className={s.narrativeDetail}>{event.detail}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {hasLoopRewards && report.loopRewards && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>归墟回响收获</div>
+              <div className={s.loopRewardCard} data-testid="offline-loop-rewards">
+                <div className={s.loopRewardTitle}>{report.loopRewards.title}</div>
+                <div className={s.loopRewardDetail}>{report.loopRewards.detail}</div>
+                <div className={s.loopRewardGrid}>
+                  <div className={s.loopRewardItem}>
+                    <span className={s.loopRewardLabel}>归墟潮晶</span>
+                    <span className={s.loopRewardValue}>x{report.loopRewards.tideCrystalCount}</span>
+                  </div>
+                  <div className={s.loopRewardItem}>
+                    <span className={s.loopRewardLabel}>渊息残片</span>
+                    <span className={s.loopRewardValue}>x{report.loopRewards.abyssShardCount}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {hasLoopAdjustment && report.loopAdjustment && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>归墟调参建议</div>
+              <div className={s.loopAdjustmentCard} data-testid="offline-loop-adjustment">
+                <div className={s.loopAdjustmentHeader}>
+                  <strong>{report.loopAdjustment.label}</strong>
+                  {report.loopAdjustment.applied ? <span className={s.loopAdjustmentApplied}>已套用</span> : null}
+                </div>
+                <div className={s.loopAdjustmentDetail}>{report.loopAdjustment.detail}</div>
+                {report.loopAdjustment.actionLabel && !report.loopAdjustment.applied && onApplyLoopAdjustment ? (
+                  <button type="button" className={s.loopAdjustmentButton} onClick={onApplyLoopAdjustment}>
+                    {report.loopAdjustment.actionLabel}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {hasResources && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>资源收获</div>
+              <div className={s.resourceGrid}>
+                {r.spiritStone > 0 && (
+                  <div className={s.resourceItem}>
+                    <span className={s.resourceLabel}>灵石</span>
+                    <span className={s.resourceValue}>+{fmt(r.spiritStone)}</span>
+                  </div>
+                )}
+                {r.spiritEnergy > 0 && (
+                  <div className={s.resourceItem}>
+                    <span className={s.resourceLabel}>灵气</span>
+                    <span className={s.resourceValue}>+{fmt(r.spiritEnergy)}</span>
+                  </div>
+                )}
+                {r.herb > 0 && (
+                  <div className={s.resourceItem}>
+                    <span className={s.resourceLabel}>灵草</span>
+                    <span className={s.resourceValue}>+{fmt(r.herb)}</span>
+                  </div>
+                )}
+                {r.ore > 0 && (
+                  <div className={s.resourceItem}>
+                    <span className={s.resourceLabel}>矿石</span>
+                    <span className={s.resourceValue}>+{fmt(r.ore)}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {hasBreakthroughs && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>境界突破</div>
+              <ul className={s.eventList}>
+                {report.breakthroughs.map((bt, i) => (
+                  <BreakthroughEventItem key={i} bt={bt} index={i} />
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {hasCrafted && (
+            <div className={s.section}>
+              <div className={s.sectionTitle}>炼制物品</div>
+              {report.itemsCrafted.map((item, i) => (
+                <div key={i} className={s.craftedItem}>
+                  <span className={s.craftedName}>{item.name}</span>
+                  <span className={s.craftedQty}>x{item.quantity}</span>
                 </div>
               ))}
             </div>
-          </div>
-        )}
+          )}
 
-        {hasLoopRewards && report.loopRewards && (
-          <div className={s.section}>
-            <div className={s.sectionTitle}>归墟回响收获</div>
-            <div className={s.loopRewardCard} data-testid="offline-loop-rewards">
-              <div className={s.loopRewardTitle}>{report.loopRewards.title}</div>
-              <div className={s.loopRewardDetail}>{report.loopRewards.detail}</div>
-              <div className={s.loopRewardGrid}>
-                <div className={s.loopRewardItem}>
-                  <span className={s.loopRewardLabel}>归墟潮晶</span>
-                  <span className={s.loopRewardValue}>x{report.loopRewards.tideCrystalCount}</span>
-                </div>
-                <div className={s.loopRewardItem}>
-                  <span className={s.loopRewardLabel}>渊息残片</span>
-                  <span className={s.loopRewardValue}>x{report.loopRewards.abyssShardCount}</span>
-                </div>
+          {hasTax && (
+            <div className={s.section}>
+              <div className={s.taxRow}>
+                <span className={s.taxLabel}>宗门税收</span>
+                <span className={s.taxValue}>+{fmt(report.taxIncome)} 灵石</span>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {hasLoopAdjustment && report.loopAdjustment && (
           <div className={s.section}>
-            <div className={s.sectionTitle}>归墟调参建议</div>
-            <div className={s.loopAdjustmentCard} data-testid="offline-loop-adjustment">
-              <div className={s.loopAdjustmentHeader}>
-                <strong>{report.loopAdjustment.label}</strong>
-                {report.loopAdjustment.applied ? <span className={s.loopAdjustmentApplied}>已套用</span> : null}
-              </div>
-              <div className={s.loopAdjustmentDetail}>{report.loopAdjustment.detail}</div>
-              {report.loopAdjustment.actionLabel && !report.loopAdjustment.applied && onApplyLoopAdjustment ? (
-                <button type="button" className={s.loopAdjustmentButton} onClick={onApplyLoopAdjustment}>
-                  {report.loopAdjustment.actionLabel}
-                </button>
-              ) : null}
-            </div>
+            <div className={s.sectionTitle}>下一步建议</div>
+            <div className={s.suggestionCard}>{nextSuggestion}</div>
           </div>
-        )}
 
-        {hasResources && (
-          <div className={s.section}>
-            <div className={s.sectionTitle}>资源收获</div>
-            <div className={s.resourceGrid}>
-              {r.spiritStone > 0 && (
-                <div className={s.resourceItem}>
-                  <span className={s.resourceLabel}>灵石</span>
-                  <span className={s.resourceValue}>+{fmt(r.spiritStone)}</span>
-                </div>
-              )}
-              {r.spiritEnergy > 0 && (
-                <div className={s.resourceItem}>
-                  <span className={s.resourceLabel}>灵气</span>
-                  <span className={s.resourceValue}>+{fmt(r.spiritEnergy)}</span>
-                </div>
-              )}
-              {r.herb > 0 && (
-                <div className={s.resourceItem}>
-                  <span className={s.resourceLabel}>灵草</span>
-                  <span className={s.resourceValue}>+{fmt(r.herb)}</span>
-                </div>
-              )}
-              {r.ore > 0 && (
-                <div className={s.resourceItem}>
-                  <span className={s.resourceLabel}>矿石</span>
-                  <span className={s.resourceValue}>+{fmt(r.ore)}</span>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {hasBreakthroughs && (
-          <div className={s.section}>
-            <div className={s.sectionTitle}>境界突破</div>
-            <ul className={s.eventList}>
-              {report.breakthroughs.map((bt, i) => (
-                <BreakthroughEventItem key={i} bt={bt} index={i} />
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {hasCrafted && (
-          <div className={s.section}>
-            <div className={s.sectionTitle}>炼制物品</div>
-            {report.itemsCrafted.map((item, i) => (
-              <div key={i} className={s.craftedItem}>
-                <span className={s.craftedName}>{item.name}</span>
-                <span className={s.craftedQty}>x{item.quantity}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {hasTax && (
-          <div className={s.section}>
-            <div className={s.taxRow}>
-              <span className={s.taxLabel}>宗门税收</span>
-              <span className={s.taxValue}>+{fmt(report.taxIncome)} 灵石</span>
-            </div>
-          </div>
-        )}
-
-        <div className={s.section}>
-          <div className={s.sectionTitle}>下一步建议</div>
-          <div className={s.suggestionCard}>{nextSuggestion}</div>
+          {!hasResources &&
+            !hasBreakthroughs &&
+            !hasCrafted &&
+            !hasTax &&
+            !hasNotableEvents &&
+            !hasLoopRewards &&
+            !hasLoopAdjustment && <div className={s.emptyHint}>离线期间暂无特殊收获。</div>}
         </div>
 
-        {!hasResources &&
-          !hasBreakthroughs &&
-          !hasCrafted &&
-          !hasTax &&
-          !hasNotableEvents &&
-          !hasLoopRewards &&
-          !hasLoopAdjustment && <div className={s.emptyHint}>离线期间暂无特殊收获。</div>}
-
-        <button className={s.collectBtn} onClick={onClose}>
-          收取
-        </button>
+        <div className={s.modalFooter}>
+          <button className={s.collectBtn} onClick={onClose}>
+            收取
+          </button>
+        </div>
       </div>
     </div>
   )

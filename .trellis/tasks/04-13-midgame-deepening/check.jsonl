@@ -1,0 +1,11 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
+{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
+{"file": "src/types/sect.ts", "reason": "Verify new types"}
+{"file": "src/stores/sectStore/initial.ts", "reason": "Verify defaults"}
+{"file": "src/stores/sectStore/strategySlice.ts", "reason": "Verify actions"}
+{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Verify tick integration"}
+{"file": "src/pages/SectPage.tsx", "reason": "Verify route card and campaign card UI"}
+{"file": "src/pages/BuildingsPage.tsx", "reason": "Verify campaign panel UI"}
+{"file": "src/systems/save/SaveSystem.ts", "reason": "Verify save compat"}
+{"file": "docs/superpowers/specs/2026-04-13-midgame-deepening-claudecode-execution-checklist.md", "reason": "Phase 1 acceptance criteria"}
