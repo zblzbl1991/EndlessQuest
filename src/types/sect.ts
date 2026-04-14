@@ -66,6 +66,13 @@ export interface RiskHookDescriptor {
   bestForArchetypes: SectArchetype[]
 }
 
+export interface RouteOpportunity {
+  characterId: string
+  suggestedArchetype: SectArchetype
+  reason: string
+  expiresAfterDays: number
+}
+
 export type BuildingType =
   | 'mainHall'
   | 'spiritField'
@@ -210,4 +217,5 @@ export interface Sect {
   lastRandomEventTime: number
   monsterCodex: Record<string, MonsterCodexState>
   equipmentCodex: Record<string, Set<string>>
+  routeOpportunities: RouteOpportunity[]
 }

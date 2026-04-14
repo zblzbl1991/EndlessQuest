@@ -1,6 +1,12 @@
-import type { Sect } from '../../types'
+import type { Sect, SectArchetype } from '../../types'
+import { getArchetypeBottleneckAdvice } from './ArchetypeBottleneckAdvisor'
 import { calcResourceCaps } from '../../data/buildings'
 import { calcMaxDisciplesByResources } from './SectEngine'
+
+export interface SectBottleneckAdvice {
+  defaultSuggestion: string
+  byArchetype?: Partial<Record<SectArchetype, string>>
+}
 
 export interface SectBottleneck {
   id: 'spiritEnergy' | 'spiritStone' | 'herb' | 'ore' | 'disciples' | 'recovering' | 'expedition' | 'stable'
@@ -9,6 +15,7 @@ export interface SectBottleneck {
   severity: 'low' | 'medium' | 'high'
   suggestion: string
   link: '/buildings' | '/characters' | '/adventure' | '/'
+  archetypeAdvice?: SectBottleneckAdvice
 }
 
 export function diagnoseSectBottlenecks(sect: Sect): SectBottleneck[] {
@@ -104,6 +111,25 @@ export function diagnoseSectBottlenecks(sect: Sect): SectBottleneck[] {
       suggestion: '优先追求下一次阶段跃迁或更高阶秘境。',
       link: '/',
     })
+  }
+
+  // Enrich with archetype-specific advice
+  const currentArchetype = sect.currentArchetype
+  const alternativeArchetypes: SectArchetype[] = (
+    ['swordBurst', 'pillSustain', 'arrayGuard', 'beastHarvest'] as SectArchetype[]
+  ).filter((a) => a !== currentArchetype)
+  const alternative = alternativeArchetypes[0] ?? 'pillSustain'
+
+  for (const bottleneck of bottlenecks) {
+    const currentAdvice = getArchetypeBottleneckAdvice(bottleneck.id, currentArchetype)
+    const altAdvice = getArchetypeBottleneckAdvice(bottleneck.id, alternative)
+    bottleneck.archetypeAdvice = {
+      defaultSuggestion: bottleneck.suggestion,
+      byArchetype: {
+        [currentArchetype]: currentAdvice.suggestion,
+        [alternative]: altAdvice.suggestion,
+      },
+    }
   }
 
   return bottlenecks.slice(0, 2)

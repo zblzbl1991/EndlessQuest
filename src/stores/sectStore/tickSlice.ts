@@ -40,6 +40,7 @@ import { getLegacyRecoveryBonusDays } from '../../data/legacy'
 import { applyCharacterExperience } from '../../data/levelSystem'
 import { getArchetypeModifiers } from '../../systems/sect/SectArchetypeSystem'
 import { getCampaignModifiers, tickCampaignDuration } from '../../systems/sect/ProductionCampaignSystem'
+import { expireRouteOpportunities } from '../../systems/sect/RouteOpportunitySystem'
 
 function getMarketLossRate(marketLevel: number): number {
   return Math.max(0.3, 0.667 - 0.05 * marketLevel)
@@ -671,6 +672,24 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
           // Reset counter
           set((state) => ({ sect: { ...state.sect, autoRunDayCounter: 0 } }))
+        }
+      }
+
+      // Expire stale route opportunities
+      const currentSect = get().sect
+      if (currentSect.routeOpportunities.length > 0) {
+        const filtered = expireRouteOpportunities(
+          currentSect.routeOpportunities,
+          gameState.currentGameDay,
+          currentSect.autoRunDayCounter
+        )
+        if (filtered.length !== currentSect.routeOpportunities.length) {
+          set((s) => ({
+            sect: {
+              ...s.sect,
+              routeOpportunities: filtered,
+            },
+          }))
         }
       }
     }

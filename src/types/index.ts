@@ -60,6 +60,7 @@ export type {
   RiskTier,
   TemplateConfidenceEntry,
   RiskHookDescriptor,
+  RouteOpportunity,
 } from './sect'
 export type {
   EventType,

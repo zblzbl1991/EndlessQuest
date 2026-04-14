@@ -1150,3 +1150,24 @@
     gap: 10px;
   }
 }
+
+/* Archetype-specific advice within bottleneck cards */
+.bottleneckArchetypeAdvice {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed rgba(95, 122, 141, 0.15);
+  display: grid;
+  gap: 3px;
+}
+
+.archetypeAdviceRow {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.archetypeAdviceLabel {
+  font-weight: 500;
+  color: var(--color-text);
+  margin-right: 4px;
+}

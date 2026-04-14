@@ -23,6 +23,7 @@ export type EventType =
   | 'milestone'
   | 'automation_adjusted'
   | 'random_event'
+  | 'route_opportunity'
 
 export interface GameEvent {
   id: string

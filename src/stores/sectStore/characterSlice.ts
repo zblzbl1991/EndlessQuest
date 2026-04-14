@@ -17,6 +17,7 @@ import { getArchiveMilestoneDef, unlockArchiveMilestone } from '../../data/archi
 import { getPathName } from '../../data/cultivationPaths'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
+import { generateRouteOpportunity } from '../../systems/sect/RouteOpportunitySystem'
 
 const DISCIPLE_POOL_RECRUIT_DISCOUNT = 0.8
 const TARGETED_RECRUIT_MULT = 1.5
@@ -154,6 +155,25 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
           }))
           emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('discipleCount5').title}`)
         }
+      }
+    }
+
+    // Check for route opportunity triggered by new disciple
+    {
+      const updatedSect = get().sect
+      const opportunity = generateRouteOpportunity(character, updatedSect.currentArchetype)
+      if (opportunity) {
+        set((s) => ({
+          sect: {
+            ...s.sect,
+            routeOpportunities: [...s.sect.routeOpportunities, opportunity],
+          },
+        }))
+        emitEvent('route_opportunity', `新弟子 ${character.name} 的特质暗示了一条不同的宗门路线`, {
+          characterId: character.id,
+          suggestedArchetype: opportunity.suggestedArchetype,
+          reason: opportunity.reason,
+        })
       }
     }
 

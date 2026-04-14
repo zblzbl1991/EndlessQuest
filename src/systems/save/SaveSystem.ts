@@ -51,6 +51,8 @@ interface SaveMeta {
   lastRandomEventTime?: number
   monsterCodex?: Record<string, MonsterCodexState>
   equipmentCodex?: Record<string, string[]>
+  currentArchetype?: Sect['currentArchetype']
+  routeOpportunities?: Sect['routeOpportunities']
 }
 
 type SavedAdventureRunRecord = {
@@ -274,6 +276,7 @@ export async function saveGame(): Promise<void> {
       dayProgressSec: gameState.dayProgressSec,
       monsterCodex: sect.monsterCodex,
       currentArchetype: sect.currentArchetype,
+      routeOpportunities: sect.routeOpportunities,
       equipmentCodex: Object.fromEntries(
         Object.entries(sect.equipmentCodex).map(([setId, qualities]) => [setId, [...qualities]])
       ),
@@ -527,6 +530,7 @@ export async function loadGame(): Promise<boolean> {
       equipmentCodex: Object.fromEntries(
         Object.entries(meta.equipmentCodex ?? {}).map(([setId, qualities]) => [setId, new Set(qualities)])
       ),
+      routeOpportunities: (meta as any).routeOpportunities ?? [],
     }
 
     useSectStore.setState({ sect })

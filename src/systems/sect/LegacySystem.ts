@@ -156,6 +156,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     lastRandomEventTime: 0,
     monsterCodex: sect.monsterCodex,
     equipmentCodex: sect.equipmentCodex,
+    routeOpportunities: [],
   }
 
   const report: AscensionReport = {

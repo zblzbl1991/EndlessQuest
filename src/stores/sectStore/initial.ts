@@ -152,6 +152,7 @@ export function createInitialState(): { sect: Sect } {
         longestOfflineSeconds: 0,
       },
       currentArchetype: 'pillSustain' as const,
+      routeOpportunities: [],
       strategySettings: {
         activePolicy: 'balanced',
         switchCooldownDays: 3,

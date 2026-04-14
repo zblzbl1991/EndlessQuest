@@ -58,3 +58,7 @@ export function getArchetypeDescriptor(id: SectArchetype): SectArchetypeDescript
 export const ARCHETYPE_NAMES: Record<SectArchetype, string> = Object.fromEntries(
   SECT_ARCHETYPES.map((a) => [a.id, a.name])
 ) as Record<SectArchetype, string>
+
+export function getArchetypeName(archetype: SectArchetype): string {
+  return ARCHETYPE_NAMES[archetype] ?? '丹鼎长明'
+}

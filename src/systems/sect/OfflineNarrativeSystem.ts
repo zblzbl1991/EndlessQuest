@@ -5,6 +5,7 @@ import { REPORT_RESULT_LABELS } from '../../data/uiCopy'
 import { diagnoseSectBottlenecks } from './SectBottleneckSystem'
 import { buildSectRumors } from './SectRumorSystem'
 import { analyzeGuixuLoop, summarizeGuixuLoopYield } from './GuixuLoopAdvisor'
+import { getArchetypeName } from '../../data/sectArchetypes'
 
 export interface OfflineNarrativeItem {
   id: string
@@ -167,6 +168,18 @@ export function buildOfflineNarrative(input: BuildOfflineNarrativeInput): Offlin
       id: 'crafted_batch',
       title: '产线有新收成',
       detail: `离线期间共完成 ${craftedCount} 件炼制或锻造产物，库中已经备好新货。`,
+      tone: 'accent',
+    })
+  }
+
+  // Route opportunity hints
+  if (input.sect.routeOpportunities.length > 0) {
+    const opp = input.sect.routeOpportunities[0]
+    const charName = input.sect.characters.find((c) => c.id === opp.characterId)?.name ?? '某位弟子'
+    notableEvents.push({
+      id: `route_opp_${opp.characterId}`,
+      title: '路线转型时机',
+      detail: `${charName} 的特质暗示了「${getArchetypeName(opp.suggestedArchetype)}」路线：${opp.reason}`,
       tone: 'accent',
     })
   }

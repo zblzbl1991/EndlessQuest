@@ -31,20 +31,12 @@ import { clearSaveData } from '../systems/save/SaveSystem'
 import { diagnoseSectBottlenecks } from '../systems/sect/SectBottleneckSystem'
 import { buildSectRumors } from '../systems/sect/SectRumorSystem'
 import { getLegacyTemplateCapacity, getUnlockedLegacyPerks } from '../data/legacy'
-import { buildSectStageGoals } from '../systems/sect/SectGoalSystem'
-import { getArchetypeDescriptor, SECT_ARCHETYPES } from '../data/sectArchetypes'
+import { buildSectStageGoals, buildPathOptions } from '../systems/sect/SectGoalSystem'
+import { getArchetypeDescriptor, getArchetypeName, SECT_ARCHETYPES } from '../data/sectArchetypes'
 import { getCampaignDescriptor } from '../data/productionCampaigns'
 import { canShiftArchetype } from '../systems/sect/SectArchetypeSystem'
 import type { SectArchetype } from '../types/sect'
 import styles from './SectPage.module.css'
-
-/** Map each archetype to its most different (opposite playstyle) archetype. */
-const OPPOSITE_ARCHETYPES: Record<string, string> = {
-  swordBurst: 'pillSustain',
-  pillSustain: 'swordBurst',
-  arrayGuard: 'beastHarvest',
-  beastHarvest: 'arrayGuard',
-}
 
 function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStore.getState>['sect']['characters']) {
   return [
@@ -173,6 +165,7 @@ export default function SectPage() {
     [recentEvents]
   )
   const stageGoals = useMemo(() => buildSectStageGoals(sect, recentReports, dungeons), [sect, recentReports, dungeons])
+  const pathOptions = useMemo(() => buildPathOptions(sect), [sect])
   const nextAutoRunInDays = Math.max(0, 5 - (sect.autoRunDayCounter ?? 0))
   const nextAutoRunInSeconds = Math.max(0, nextAutoRunInDays * 60 - dayProgressSec)
   const nextCyclePreview = useMemo(() => {
@@ -480,68 +473,6 @@ export default function SectPage() {
             </div>
           </div>
         )}
-        <div className={styles.dualPathSection}>
-          <div className={styles.dualPathTitle}>路径选择</div>
-          <div className={styles.dualPathGrid}>
-            {(() => {
-              const currentArchetype = sect.currentArchetype
-              const desc = getArchetypeDescriptor(currentArchetype)
-              // Pick the most different playstyle as alternative suggestion
-              const suggested = OPPOSITE_ARCHETYPES[currentArchetype] ?? 'swordBurst'
-              const suggestedDesc = getArchetypeDescriptor(suggested as SectArchetype)
-              return (
-                <>
-                  <div className={styles.dualPathCard}>
-                    <span className={styles.dualPathLabel}>当前路径</span>
-                    <span className={styles.dualPathName}>{desc.name}</span>
-                    <span className={styles.dualPathSummary}>{desc.summary}</span>
-                    <span className={styles.dualPathBenefit}>
-                      专注建筑：
-                      {desc.focusBuildings
-                        .map((b) => {
-                          const names: Record<string, string> = {
-                            mainHall: '主殿',
-                            spiritField: '灵田',
-                            spiritMine: '灵矿',
-                            market: '坊市',
-                            alchemyFurnace: '丹炉',
-                            forge: '锻器坊',
-                            scriptureHall: '藏经阁',
-                            recruitmentPavilion: '聚仙台',
-                          }
-                          return names[b] ?? b
-                        })
-                        .join('、')}
-                    </span>
-                  </div>
-                  <div className={`${styles.dualPathCard} ${styles.dualPathAlt}`}>
-                    <span className={styles.dualPathLabel}>备选路径</span>
-                    <span className={styles.dualPathName}>{suggestedDesc.name}</span>
-                    <span className={styles.dualPathSummary}>{suggestedDesc.summary}</span>
-                    <span className={styles.dualPathBenefit}>
-                      专注建筑：
-                      {suggestedDesc.focusBuildings
-                        .map((b) => {
-                          const names: Record<string, string> = {
-                            mainHall: '主殿',
-                            spiritField: '灵田',
-                            spiritMine: '灵矿',
-                            market: '坊市',
-                            alchemyFurnace: '丹炉',
-                            forge: '锻器坊',
-                            scriptureHall: '藏经阁',
-                            recruitmentPavilion: '聚仙台',
-                          }
-                          return names[b] ?? b
-                        })
-                        .join('、')}
-                    </span>
-                  </div>
-                </>
-              )
-            })()}
-          </div>
-        </div>
         <div className={styles.bottleneckList}>
           {bottlenecks.map((bottleneck) => (
             <div
@@ -562,10 +493,64 @@ export default function SectPage() {
               </div>
               <div className={styles.bottleneckDetail}>{bottleneck.detail}</div>
               <div className={styles.bottleneckSuggestion}>{bottleneck.suggestion}</div>
+              {bottleneck.archetypeAdvice?.byArchetype && (
+                <div className={styles.bottleneckArchetypeAdvice}>
+                  {Object.entries(bottleneck.archetypeAdvice.byArchetype).map(([archetype, advice]) => (
+                    <div key={archetype} className={styles.archetypeAdviceRow}>
+                      <span className={styles.archetypeAdviceLabel}>
+                        {getArchetypeName(archetype as SectArchetype)}：
+                      </span>
+                      <span>{advice}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
       </section>
+
+      {sect.routeOpportunities.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>路线机会</div>
+          <div className={styles.bottleneckList}>
+            {sect.routeOpportunities.map((opp) => {
+              const char = sect.characters.find((c) => c.id === opp.characterId)
+              return (
+                <div key={opp.characterId} className={`${styles.bottleneckCard} ${styles.bottleneckMedium}`}>
+                  <div className={styles.bottleneckHeader}>
+                    <span className={styles.bottleneckTitle}>
+                      {char?.name ?? '某位弟子'} 暗示「{getArchetypeName(opp.suggestedArchetype)}」
+                    </span>
+                    <span className={styles.bottleneckSeverity}>机会</span>
+                  </div>
+                  <div className={styles.bottleneckDetail}>{opp.reason}</div>
+                  <div className={styles.bottleneckSuggestion}>考虑围绕此弟子转型路线，或保持当前路线继续培养</div>
+                </div>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      {pathOptions.length > 0 && (
+        <section className={styles.section}>
+          <div className={styles.sectionTitle}>路径选择</div>
+          <div className={styles.goalGrid}>
+            {pathOptions.map((option) => (
+              <div key={option.recommendedArchetype} className={`${styles.goalCard} ${styles.goalMedium}`}>
+                <div className={styles.goalHeader}>
+                  <span className={styles.goalTitle}>{option.archetypeName}</span>
+                  <span className={styles.goalProgress}>备选路线</span>
+                </div>
+                <div className={styles.goalDetail}>{option.rationale}</div>
+                <div className={styles.goalDetail}>收益：{option.immediateBenefit}</div>
+                <div className={styles.goalDetail}>代价：{option.cost}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className={styles.section}>
         <div className={styles.sectionTitle}>挂机策略</div>

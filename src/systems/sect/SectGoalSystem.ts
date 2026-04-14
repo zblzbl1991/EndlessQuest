@@ -1,10 +1,13 @@
 import type { AdventureReportSummary, Sect } from '../../types'
+import type { SectArchetype } from '../../types/sect'
+import { getArchetypeName } from '../../data/sectArchetypes'
 import type { Dungeon } from '../../types/adventure'
 import { BUILDING_DEFS } from '../../data/buildings'
 import { LEGACY_REWARD_TIERS } from '../../data/legacy'
 import { getCultivationNeeded } from '../../data/realms'
 import { canBreakthrough } from '../cultivation/CultivationEngine'
 import { canAscend } from './LegacySystem'
+import { getCharacterDisposition } from '../character/CharacterDispositionSystem'
 
 export interface SectStageGoal {
   id: string
@@ -252,6 +255,71 @@ function pickAdventureGoal(sect: Sect, reports: AdventureReportSummary[], dungeo
     link: '/adventure',
     priority: 'medium',
   }
+}
+
+export interface SectStagePathOption {
+  recommendedArchetype: SectArchetype
+  archetypeName: string
+  immediateBenefit: string
+  cost: string
+  rationale: string
+}
+
+export function buildPathOptions(sect: Sect): SectStagePathOption[] {
+  const currentArchetype = sect.currentArchetype
+  const recoveringCount = sect.characters.filter((c) => c.status === 'recovering').length
+  const hasHighAdventure = sect.characters.some((c) => {
+    const disposition = getCharacterDisposition(c)
+    return disposition.adventure.band === 'high'
+  })
+
+  const options: SectStagePathOption[] = []
+
+  // Suggest swordBurst if not current and have high adventure disciples
+  if (currentArchetype !== 'swordBurst' && hasHighAdventure) {
+    options.push({
+      recommendedArchetype: 'swordBurst',
+      archetypeName: getArchetypeName('swordBurst'),
+      immediateBenefit: '远征效率提升，推进更快',
+      cost: '恢复压力增大，容错率降低',
+      rationale: '宗门中有高出战价值弟子，适合进攻型路线',
+    })
+  }
+
+  // Suggest pillSustain if recovering is high
+  if (currentArchetype !== 'pillSustain' && recoveringCount >= 2) {
+    options.push({
+      recommendedArchetype: 'pillSustain',
+      archetypeName: getArchetypeName('pillSustain'),
+      immediateBenefit: '恢复速度加快，战损可控',
+      cost: '推进速度放慢，爆发收益减少',
+      rationale: '当前恢复压力大，稳健路线更适合',
+    })
+  }
+
+  // Suggest arrayGuard if low resources
+  if (currentArchetype !== 'arrayGuard' && sect.resources.spiritStone < 300) {
+    options.push({
+      recommendedArchetype: 'arrayGuard',
+      archetypeName: getArchetypeName('arrayGuard'),
+      immediateBenefit: '战损降低，长期挂机更稳定',
+      cost: '收益上限受限，难以抓住高风险机会',
+      rationale: '灵石储备紧张，先稳住基础',
+    })
+  }
+
+  // Suggest beastHarvest if many pets
+  if (currentArchetype !== 'beastHarvest' && sect.pets.length >= 3) {
+    options.push({
+      recommendedArchetype: 'beastHarvest',
+      archetypeName: getArchetypeName('beastHarvest'),
+      immediateBenefit: '灵宠采集加成，资源收益提升',
+      cost: '战力依赖灵宠，前期需要投入',
+      rationale: '已有足够灵宠基础，可以发挥采集路线优势',
+    })
+  }
+
+  return options.slice(0, 2)
 }
 
 export function buildSectStageGoals(
