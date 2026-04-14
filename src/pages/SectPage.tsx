@@ -32,7 +32,19 @@ import { diagnoseSectBottlenecks } from '../systems/sect/SectBottleneckSystem'
 import { buildSectRumors } from '../systems/sect/SectRumorSystem'
 import { getLegacyTemplateCapacity, getUnlockedLegacyPerks } from '../data/legacy'
 import { buildSectStageGoals } from '../systems/sect/SectGoalSystem'
+import { getArchetypeDescriptor, SECT_ARCHETYPES } from '../data/sectArchetypes'
+import { getCampaignDescriptor } from '../data/productionCampaigns'
+import { canShiftArchetype } from '../systems/sect/SectArchetypeSystem'
+import type { SectArchetype } from '../types/sect'
 import styles from './SectPage.module.css'
+
+/** Map each archetype to its most different (opposite playstyle) archetype. */
+const OPPOSITE_ARCHETYPES: Record<string, string> = {
+  swordBurst: 'pillSustain',
+  pillSustain: 'swordBurst',
+  arrayGuard: 'beastHarvest',
+  beastHarvest: 'arrayGuard',
+}
 
 function getSectCharacterStatusSummary(characters: ReturnType<typeof useSectStore.getState>['sect']['characters']) {
   return [
@@ -297,6 +309,123 @@ export default function SectPage() {
       </section>
 
       <section className={styles.section}>
+        <div className={styles.sectionTitle}>宗门路线</div>
+        <div className={styles.archetypeCard}>
+          {(() => {
+            const archetype = sect.currentArchetype
+            const desc = getArchetypeDescriptor(archetype)
+            const routeShift = sect.automationSettings.routeShift
+            const isBlending = routeShift.blendDaysRemaining > 0
+            // Check cooldown status for display
+            const cooldownCheck = canShiftArchetype(
+              routeShift,
+              useGameStore.getState().currentGameDay,
+              'swordBurst' as SectArchetype
+            )
+            const cooldownActive = !cooldownCheck.canShift && cooldownCheck.reason.includes('冷却')
+            return (
+              <div>
+                <div className={styles.archetypeHeader}>
+                  <span className={styles.archetypeName}>{desc.name}</span>
+                  {isBlending && (
+                    <span className={styles.archetypeBlend}>磨合期 {routeShift.blendDaysRemaining} 日</span>
+                  )}
+                  {cooldownActive && <span className={styles.archetypeCooldown}>{cooldownCheck.reason}</span>}
+                </div>
+                <div className={styles.archetypeSummary}>{desc.summary}</div>
+                <div className={styles.archetypeDetails}>
+                  <div className={styles.archetypeStrengths}>
+                    {desc.strengths.map((s, i) => (
+                      <span key={i} className={styles.archetypeStrength}>
+                        + {s}
+                      </span>
+                    ))}
+                  </div>
+                  <div className={styles.archetypeWeaknesses}>
+                    {desc.weaknesses.map((s, i) => (
+                      <span key={i} className={styles.archetypeWeakness}>
+                        - {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+          <div className={styles.archetypeSwitch}>
+            {SECT_ARCHETYPES.filter((a) => a.id !== sect.currentArchetype).map((a) => {
+              const check = canShiftArchetype(
+                sect.automationSettings.routeShift,
+                useGameStore.getState().currentGameDay,
+                a.id
+              )
+              return (
+                <button
+                  key={a.id}
+                  className={styles.archetypeSwitchBtn}
+                  onClick={() => {
+                    const result = useSectStore.getState().setArchetype(a.id)
+                    if (!result.success) {
+                      setPolicyHint(result.reason)
+                      setTimeout(() => setPolicyHint(null), 3000)
+                    }
+                  }}
+                  title={!check.canShift ? check.reason : undefined}
+                >
+                  {a.name}
+                  {!check.canShift && <span className={styles.archetypeBtnCooldown}> ({check.reason})</span>}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      </section>
+
+      {(() => {
+        const campaignState = sect.automationSettings.productionCampaign
+        return (
+          <section className={styles.section}>
+            <div className={styles.sectionTitle}>当前专项</div>
+            {campaignState.activeCampaign ? (
+              (() => {
+                const desc = getCampaignDescriptor(campaignState.activeCampaign)
+                return (
+                  <div className={styles.campaignCard}>
+                    <div className={styles.campaignHeader}>
+                      <span className={styles.campaignName}>{desc.name}</span>
+                      <span className={styles.campaignDuration}>持续 {campaignState.durationHours} 小时</span>
+                    </div>
+                    <div className={styles.campaignSummary}>{desc.summary}</div>
+                    <div className={styles.campaignDetails}>
+                      <div className={styles.campaignBoosts}>
+                        {desc.boosts.map((b, i) => (
+                          <span key={i} className={styles.campaignBoost}>
+                            + {b}
+                          </span>
+                        ))}
+                      </div>
+                      <div className={styles.campaignSuppressions}>
+                        {desc.suppressions.map((s, i) => (
+                          <span key={i} className={styles.campaignSuppression}>
+                            - {s}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })()
+            ) : (
+              <div className={styles.campaignEmpty}>
+                <span className={styles.campaignEmptyText}>暂无进行中的专项</span>
+                <span className={styles.campaignEmptyHint}>前往建筑页启动专项生产</span>
+              </div>
+            )}
+          </section>
+        )
+      })()}
+
+      <section className={styles.section}>
         <div className={styles.sectionTitle}>今日宗务</div>
         <ActionAgenda />
       </section>
@@ -351,6 +480,68 @@ export default function SectPage() {
             </div>
           </div>
         )}
+        <div className={styles.dualPathSection}>
+          <div className={styles.dualPathTitle}>路径选择</div>
+          <div className={styles.dualPathGrid}>
+            {(() => {
+              const currentArchetype = sect.currentArchetype
+              const desc = getArchetypeDescriptor(currentArchetype)
+              // Pick the most different playstyle as alternative suggestion
+              const suggested = OPPOSITE_ARCHETYPES[currentArchetype] ?? 'swordBurst'
+              const suggestedDesc = getArchetypeDescriptor(suggested as SectArchetype)
+              return (
+                <>
+                  <div className={styles.dualPathCard}>
+                    <span className={styles.dualPathLabel}>当前路径</span>
+                    <span className={styles.dualPathName}>{desc.name}</span>
+                    <span className={styles.dualPathSummary}>{desc.summary}</span>
+                    <span className={styles.dualPathBenefit}>
+                      专注建筑：
+                      {desc.focusBuildings
+                        .map((b) => {
+                          const names: Record<string, string> = {
+                            mainHall: '主殿',
+                            spiritField: '灵田',
+                            spiritMine: '灵矿',
+                            market: '坊市',
+                            alchemyFurnace: '丹炉',
+                            forge: '锻器坊',
+                            scriptureHall: '藏经阁',
+                            recruitmentPavilion: '聚仙台',
+                          }
+                          return names[b] ?? b
+                        })
+                        .join('、')}
+                    </span>
+                  </div>
+                  <div className={`${styles.dualPathCard} ${styles.dualPathAlt}`}>
+                    <span className={styles.dualPathLabel}>备选路径</span>
+                    <span className={styles.dualPathName}>{suggestedDesc.name}</span>
+                    <span className={styles.dualPathSummary}>{suggestedDesc.summary}</span>
+                    <span className={styles.dualPathBenefit}>
+                      专注建筑：
+                      {suggestedDesc.focusBuildings
+                        .map((b) => {
+                          const names: Record<string, string> = {
+                            mainHall: '主殿',
+                            spiritField: '灵田',
+                            spiritMine: '灵矿',
+                            market: '坊市',
+                            alchemyFurnace: '丹炉',
+                            forge: '锻器坊',
+                            scriptureHall: '藏经阁',
+                            recruitmentPavilion: '聚仙台',
+                          }
+                          return names[b] ?? b
+                        })
+                        .join('、')}
+                    </span>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+        </div>
         <div className={styles.bottleneckList}>
           {bottlenecks.map((bottleneck) => (
             <div

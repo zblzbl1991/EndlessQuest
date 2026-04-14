@@ -25,6 +25,8 @@ import type {
   OverflowSellRule,
   SpiritStoneOverflowRule,
 } from '../types'
+import { PRODUCTION_CAMPAIGNS, CAMPAIGN_NAMES } from '../data/productionCampaigns'
+import { getArchetypeDescriptor } from '../data/sectArchetypes'
 import type { ItemStack } from '../types/item'
 import type { Character } from '../types/character'
 import { ELEMENT_NAMES } from '../types/skill'
@@ -575,6 +577,137 @@ function BuildingsTab({
               ))}
             </select>
           </label>
+        </div>
+      </section>
+
+      <section className={styles.campaignSection}>
+        <div className={styles.campaignSectionHeader}>
+          <div className={styles.sectionTitle}>专项生产</div>
+          <div className={styles.campaignSectionMeta}>
+            {(() => {
+              const cs = sect.automationSettings.productionCampaign
+              if (cs.activeCampaign) {
+                return <span className={styles.campaignActiveLabel}>{CAMPAIGN_NAMES[cs.activeCampaign]} 进行中</span>
+              }
+              if (cs.cooldownRemainingHours > 0) {
+                return (
+                  <span className={styles.campaignCooldownLabel}>冷却中 {Math.ceil(cs.cooldownRemainingHours)}h</span>
+                )
+              }
+              return <span className={styles.campaignReadyLabel}>可启动专项</span>
+            })()}
+          </div>
+        </div>
+        <div className={styles.campaignGrid}>
+          {PRODUCTION_CAMPAIGNS.map((campaign) => {
+            const cs = sect.automationSettings.productionCampaign
+            const isActive = cs.activeCampaign === campaign.id
+            const currentArchetype = sect.currentArchetype
+            const isRecommended = campaign.bestForArchetypes.includes(currentArchetype)
+            return (
+              <div key={campaign.id} className={styles.campaignItemCard}>
+                <div className={styles.campaignItemHeader}>
+                  <span className={styles.campaignItemName}>{campaign.name}</span>
+                  {isRecommended && <span className={styles.campaignRecommended}>适配当前路线</span>}
+                </div>
+                <div className={styles.campaignItemSummary}>{campaign.summary}</div>
+                <div className={styles.campaignItemDetails}>
+                  <div className={styles.campaignItemBoosts}>
+                    {campaign.boosts.map((b, i) => (
+                      <span key={i} className={styles.campaignItemBoost}>
+                        + {b}
+                      </span>
+                    ))}
+                  </div>
+                  <div className={styles.campaignItemSuppressions}>
+                    {campaign.suppressions.map((s, i) => (
+                      <span key={i} className={styles.campaignItemSuppression}>
+                        - {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                {isActive ? (
+                  <button
+                    className={styles.campaignCancelBtn}
+                    onClick={() => useSectStore.getState().cancelProductionCampaign()}
+                  >
+                    取消专项
+                  </button>
+                ) : (
+                  <button
+                    className={styles.campaignStartBtn}
+                    onClick={() => {
+                      const result = useSectStore.getState().startProductionCampaign(campaign.id)
+                      if (!result.success) {
+                        setMessage({ success: false, text: result.reason })
+                        setTimeout(() => setMessage(null), 2000)
+                      }
+                    }}
+                  >
+                    启动
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className={styles.campaignSection}>
+        <div className={styles.sectionTitle}>产线倾斜</div>
+        <div className={styles.tiltSummary}>
+          {(() => {
+            const archetype = sect.currentArchetype
+            const desc = getArchetypeDescriptor(archetype)
+            const BUILDING_NAMES: Record<string, string> = {
+              mainHall: '主殿',
+              spiritField: '灵田',
+              spiritMine: '灵矿',
+              market: '坊市',
+              alchemyFurnace: '丹炉',
+              forge: '锻器坊',
+              scriptureHall: '藏经阁',
+              recruitmentPavilion: '聚仙台',
+            }
+            const focusNames = desc.focusBuildings.map((b) => BUILDING_NAMES[b] ?? b).join('、')
+
+            // Derive resource tilt descriptions from archetype strengths
+            const stoneTilt =
+              archetype === 'swordBurst'
+                ? '远征'
+                : archetype === 'pillSustain'
+                  ? '闭关'
+                  : archetype === 'arrayGuard'
+                    ? '市场'
+                    : '锻造'
+            const herbTilt =
+              archetype === 'swordBurst'
+                ? '补给'
+                : archetype === 'pillSustain'
+                  ? '恢复'
+                  : archetype === 'arrayGuard'
+                    ? '均衡'
+                    : '突破'
+
+            return (
+              <>
+                <div className={styles.tiltLine}>
+                  <span className={styles.tiltLabel}>路线倾向</span>
+                  <span className={styles.tiltValue}>{desc.name}</span>
+                  <span className={styles.tiltMeta}>专注 {focusNames}</span>
+                </div>
+                <div className={styles.tiltLine}>
+                  <span className={styles.tiltLabel}>灵石流向</span>
+                  <span className={styles.tiltValue}>更偏向 {stoneTilt}</span>
+                </div>
+                <div className={styles.tiltLine}>
+                  <span className={styles.tiltLabel}>灵草流向</span>
+                  <span className={styles.tiltValue}>更偏向 {herbTilt}</span>
+                </div>
+              </>
+            )
+          })()}
         </div>
       </section>
 

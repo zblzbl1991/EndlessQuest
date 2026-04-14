@@ -90,6 +90,20 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
       sect.archiveMilestones,
       getLegacyTemplateCapacity(newAscensionCount)
     ),
+    routeShift: {
+      currentArchetype: sect.currentArchetype,
+      lastShiftAtDay: null,
+      shiftCooldownDays: 3,
+      pendingShift: null,
+      blendDaysRemaining: 0,
+    },
+    productionCampaign: {
+      activeCampaign: null,
+      startedAtDay: null,
+      durationHours: 8,
+      cooldownHours: 4,
+      cooldownRemainingHours: 0,
+    },
   }
 
   const newSect: Sect = {
@@ -133,6 +147,8 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
     stats: sect.stats,
     archiveMilestones: sect.archiveMilestones,
     automationSettings,
+    // Preserve archetype across ascensions
+    currentArchetype: sect.currentArchetype,
     // Preserve strategy settings across ascensions
     strategySettings: sect.strategySettings,
     autoRunDayCounter: 0,

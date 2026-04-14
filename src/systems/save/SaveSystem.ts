@@ -126,6 +126,20 @@ const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
   spiritStoneOverflowRule: 'buyHerb',
   activeTemplateId: 'steadyHarvest',
   expeditionTemplates: createLegacyExpeditionTemplates(0),
+  routeShift: {
+    currentArchetype: 'pillSustain',
+    lastShiftAtDay: null,
+    shiftCooldownDays: 3,
+    pendingShift: null,
+    blendDaysRemaining: 0,
+  },
+  productionCampaign: {
+    activeCampaign: null,
+    startedAtDay: null,
+    durationHours: 8,
+    cooldownHours: 4,
+    cooldownRemainingHours: 0,
+  },
 }
 
 function normalizeFiniteNumber(value: unknown, fallback: number): number {
@@ -166,6 +180,14 @@ function normalizeAutomationSettings(
   return {
     ...DEFAULT_AUTOMATION_SETTINGS,
     ...settings,
+    routeShift: {
+      ...DEFAULT_AUTOMATION_SETTINGS.routeShift,
+      ...(settings?.routeShift ?? {}),
+    },
+    productionCampaign: {
+      ...DEFAULT_AUTOMATION_SETTINGS.productionCampaign,
+      ...(settings?.productionCampaign ?? {}),
+    },
     activeTemplateId: mergedTemplates.some((template) => template.id === settings?.activeTemplateId)
       ? (settings?.activeTemplateId as string)
       : (mergedTemplates[0]?.id ?? DEFAULT_AUTOMATION_SETTINGS.activeTemplateId),
@@ -249,6 +271,7 @@ export async function saveGame(): Promise<void> {
       currentGameDay: gameState.currentGameDay,
       dayProgressSec: gameState.dayProgressSec,
       monsterCodex: sect.monsterCodex,
+      currentArchetype: sect.currentArchetype,
       equipmentCodex: Object.fromEntries(
         Object.entries(sect.equipmentCodex).map(([setId, qualities]) => [setId, [...qualities]])
       ),
@@ -485,6 +508,7 @@ export async function loadGame(): Promise<boolean> {
         meta.archiveMilestones ?? []
       ),
       stats: meta.stats ?? DEFAULT_STATS,
+      currentArchetype: (meta as any).currentArchetype ?? 'pillSustain',
       strategySettings: meta.strategySettings
         ? {
             ...meta.strategySettings,

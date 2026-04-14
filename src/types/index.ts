@@ -53,6 +53,10 @@ export type {
   ArchiveMilestoneId,
   ArchiveMilestoneEntry,
   MonsterCodexState,
+  SectArchetype,
+  ProductionCampaign,
+  RouteShiftState,
+  ProductionCampaignState,
 } from './sect'
 export type {
   EventType,

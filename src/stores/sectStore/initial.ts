@@ -117,6 +117,20 @@ export function createInitialState(): { sect: Sect } {
         spiritStoneOverflowRule: 'buyHerb',
         activeTemplateId: 'steadyHarvest',
         expeditionTemplates: createLegacyExpeditionTemplates(0),
+        routeShift: {
+          currentArchetype: 'pillSustain' as const,
+          lastShiftAtDay: null,
+          shiftCooldownDays: 3,
+          pendingShift: null,
+          blendDaysRemaining: 0,
+        },
+        productionCampaign: {
+          activeCampaign: null,
+          startedAtDay: null,
+          durationHours: 8,
+          cooldownHours: 4,
+          cooldownRemainingHours: 0,
+        },
       },
       stats: {
         totalSpiritStoneEarned: 0,
@@ -136,6 +150,7 @@ export function createInitialState(): { sect: Sect } {
         totalPlayTime: 0,
         longestOfflineSeconds: 0,
       },
+      currentArchetype: 'pillSustain' as const,
       strategySettings: {
         activePolicy: 'balanced',
         switchCooldownDays: 3,

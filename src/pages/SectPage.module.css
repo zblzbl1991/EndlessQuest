@@ -5,6 +5,246 @@
   margin: 0 auto;
 }
 
+/* Dual Path Section */
+.dualPathSection {
+  margin-top: 10px;
+}
+
+.dualPathTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  margin-bottom: 8px;
+}
+
+.dualPathGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dualPathCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.18);
+  background: rgba(247, 251, 253, 0.8);
+}
+
+.dualPathAlt {
+  border-color: rgba(148, 119, 86, 0.16);
+  background: rgba(247, 242, 234, 0.6);
+}
+
+.dualPathLabel {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.dualPathName {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.dualPathSummary {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.dualPathBenefit {
+  font-size: 11px;
+  color: var(--color-accent);
+}
+
+/* Archetype Card */
+.archetypeCard {
+  display: grid;
+  gap: 10px;
+}
+
+.archetypeHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.archetypeName {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.archetypeBlend {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(148, 119, 86, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.archetypeSummary {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.archetypeDetails {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.archetypeStrengths,
+.archetypeWeaknesses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.archetypeStrength {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(79, 122, 116, 0.08);
+  color: var(--color-success);
+}
+
+.archetypeWeakness {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(181, 95, 95, 0.06);
+  color: var(--color-text-secondary);
+}
+
+.archetypeSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.archetypeSwitchBtn {
+  appearance: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.16);
+  background: rgba(247, 251, 253, 0.8);
+  font-size: 12px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.archetypeSwitchBtn:hover {
+  border-color: rgba(95, 122, 141, 0.32);
+  background: rgba(248, 252, 255, 0.94);
+}
+
+.archetypeCooldown {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(181, 95, 95, 0.08);
+  color: var(--color-text-secondary);
+}
+
+.archetypeBtnCooldown {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+/* Campaign Card */
+.campaignCard {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(247, 242, 234, 0.76);
+  border: 1px solid rgba(148, 119, 86, 0.12);
+}
+
+.campaignHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.campaignName {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.campaignDuration {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.campaignSummary {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.campaignDetails {
+  display: grid;
+  gap: 6px;
+}
+
+.campaignBoosts,
+.campaignSuppressions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.campaignBoost {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(79, 122, 116, 0.08);
+  color: var(--color-success);
+}
+
+.campaignSuppression {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(181, 95, 95, 0.06);
+  color: var(--color-text-secondary);
+}
+
+.campaignEmpty {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.campaignEmptyText {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+.campaignEmptyHint {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
 @media (min-width: 1024px) {
   .page {
     max-width: 1180px;
@@ -601,6 +841,246 @@
   font-style: italic;
 }
 
+/* Dual Path Section */
+.dualPathSection {
+  margin-top: 10px;
+}
+
+.dualPathTitle {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  margin-bottom: 8px;
+}
+
+.dualPathGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.dualPathCard {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.18);
+  background: rgba(247, 251, 253, 0.8);
+}
+
+.dualPathAlt {
+  border-color: rgba(148, 119, 86, 0.16);
+  background: rgba(247, 242, 234, 0.6);
+}
+
+.dualPathLabel {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.dualPathName {
+  font-family: var(--font-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.dualPathSummary {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.dualPathBenefit {
+  font-size: 11px;
+  color: var(--color-accent);
+}
+
+/* Archetype Card */
+.archetypeCard {
+  display: grid;
+  gap: 10px;
+}
+
+.archetypeHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.archetypeName {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
+.archetypeBlend {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(148, 119, 86, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.archetypeSummary {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.archetypeDetails {
+  display: grid;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.archetypeStrengths,
+.archetypeWeaknesses {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.archetypeStrength {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(79, 122, 116, 0.08);
+  color: var(--color-success);
+}
+
+.archetypeWeakness {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(181, 95, 95, 0.06);
+  color: var(--color-text-secondary);
+}
+
+.archetypeSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.archetypeSwitchBtn {
+  appearance: none;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(95, 122, 141, 0.16);
+  background: rgba(247, 251, 253, 0.8);
+  font-size: 12px;
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.archetypeSwitchBtn:hover {
+  border-color: rgba(95, 122, 141, 0.32);
+  background: rgba(248, 252, 255, 0.94);
+}
+
+.archetypeCooldown {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(181, 95, 95, 0.08);
+  color: var(--color-text-secondary);
+}
+
+.archetypeBtnCooldown {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-weight: 400;
+}
+
+/* Campaign Card */
+.campaignCard {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: rgba(247, 242, 234, 0.76);
+  border: 1px solid rgba(148, 119, 86, 0.12);
+}
+
+.campaignHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.campaignName {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.campaignDuration {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.campaignSummary {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.campaignDetails {
+  display: grid;
+  gap: 6px;
+}
+
+.campaignBoosts,
+.campaignSuppressions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.campaignBoost {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(79, 122, 116, 0.08);
+  color: var(--color-success);
+}
+
+.campaignSuppression {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(181, 95, 95, 0.06);
+  color: var(--color-text-secondary);
+}
+
+.campaignEmpty {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+}
+
+.campaignEmptyText {
+  font-size: 13px;
+  color: var(--color-text-tertiary);
+}
+
+.campaignEmptyHint {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
 @media (min-width: 1024px) {
   .heroCard {
     grid-template-columns: minmax(260px, 320px) 1fr;
@@ -619,7 +1099,8 @@
   .policyGrid,
   .forecastGrid,
   .rumorGrid,
-  .goalGrid {
+  .goalGrid,
+  .dualPathGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

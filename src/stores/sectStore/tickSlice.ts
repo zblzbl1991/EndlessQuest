@@ -38,6 +38,8 @@ import { buildPathEffectMap, getMultEffect } from '../../systems/sect/SectPathEf
 import { evaluateRandomEvents } from '../../systems/idle/RandomEventSystem'
 import { getLegacyRecoveryBonusDays } from '../../data/legacy'
 import { applyCharacterExperience } from '../../data/levelSystem'
+import { getArchetypeModifiers } from '../../systems/sect/SectArchetypeSystem'
+import { getCampaignModifiers, tickCampaignDuration } from '../../systems/sect/ProductionCampaignSystem'
 
 function getMarketLossRate(marketLevel: number): number {
   return Math.max(0.3, 0.667 - 0.05 * marketLevel)
@@ -121,6 +123,14 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     // 4d. Apply sect path effects
     const pathEffectMap = buildPathEffectMap(sect.sectPath, sect.unlockedPathNodeIds)
     rates.herb *= getMultEffect(pathEffectMap, 'herbYield')
+
+    // 4e. Apply archetype and campaign modifiers
+    const archMods = getArchetypeModifiers(sect.currentArchetype)
+    const campMods = getCampaignModifiers(sect.automationSettings.productionCampaign?.activeCampaign ?? null)
+    rates.spiritStone *= archMods.resourceTemplateMultiplier * campMods.marketEfficiency
+    rates.spiritEnergy *= archMods.resourceTemplateMultiplier * campMods.cultivationEfficiency
+    rates.herb *= archMods.resourceTemplateMultiplier * campMods.cultivationEfficiency
+    rates.ore *= archMods.resourceTemplateMultiplier * campMods.forgeEfficiency
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
@@ -215,7 +225,8 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       if (char.status === 'idle') {
         const effectiveSpirit = 2 * spiritRatio * deltaSec
         const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
-        const gained = result.cultivationGained
+        // Apply archetype cultivation multiplier and campaign cultivation efficiency
+        const gained = result.cultivationGained * archMods.cultivationMultiplier * campMods.cultivationEfficiency
 
         let updatedChar: Character = {
           ...char,
@@ -305,7 +316,9 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       // Branch 2: non-idle characters (training/adventuring/patrolling/injured/resting)
       if (char.status === 'injured' || char.status === 'resting') {
         // Reduce injuryTimer (reused as recovery timer for resting)
-        const newTimer = Math.max(0, char.injuryTimer - deltaSec)
+        // Apply archetype recovery multiplier and campaign recovery efficiency
+        const recoveryDelta = deltaSec * archMods.recoveryMultiplier * campMods.recoveryEfficiency
+        const newTimer = Math.max(0, char.injuryTimer - recoveryDelta)
         if (newTimer <= 0) {
           return { ...char, status: 'idle' as const, injuryTimer: 0 }
         }
@@ -577,6 +590,22 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           sect: {
             ...state.sect,
             autoRunDayCounter: (state.sect.autoRunDayCounter ?? 0) + 1,
+            // --- Route shift blend period countdown ---
+            automationSettings: {
+              ...state.sect.automationSettings,
+              routeShift: {
+                ...state.sect.automationSettings.routeShift,
+                blendDaysRemaining: Math.max(
+                  0,
+                  (state.sect.automationSettings.routeShift?.blendDaysRemaining ?? 0) - 1
+                ),
+              },
+              // --- Production campaign duration tick ---
+              productionCampaign: tickCampaignDuration(
+                state.sect.automationSettings.productionCampaign,
+                (state.sect.autoRunDayCounter ?? 0) + 1
+              ),
+            },
             characters: state.sect.characters.map((character) => {
               if (character.status !== 'recovering') return character
 

@@ -32,6 +32,25 @@ export type ExpeditionFallbackRule = 'downgrade_dungeon' | 'swap_team' | 'pause_
 export type BuildingProductionFocus = 'balanced' | 'cultivation' | 'crafting'
 export type OverflowSellRule = 'hold' | 'sell'
 export type SpiritStoneOverflowRule = 'hold' | 'buyHerb' | 'buyOre'
+export type SectArchetype = 'swordBurst' | 'pillSustain' | 'arrayGuard' | 'beastHarvest'
+
+export type ProductionCampaign = 'realmSprint' | 'forgeSprint' | 'recoverySprint' | 'expeditionPrep' | 'marketHarvest'
+
+export interface RouteShiftState {
+  currentArchetype: SectArchetype
+  lastShiftAtDay: number | null
+  shiftCooldownDays: number
+  pendingShift: SectArchetype | null
+  blendDaysRemaining: number
+}
+
+export interface ProductionCampaignState {
+  activeCampaign: ProductionCampaign | null
+  startedAtDay: number | null
+  durationHours: number
+  cooldownHours: number
+  cooldownRemainingHours: number
+}
 
 export type BuildingType =
   | 'mainHall'
@@ -142,6 +161,8 @@ export interface SectAutomationSettings {
   spiritStoneOverflowRule: SpiritStoneOverflowRule
   activeTemplateId: string
   expeditionTemplates: ExpeditionTemplate[]
+  routeShift: RouteShiftState
+  productionCampaign: ProductionCampaignState
 }
 
 export interface Sect {
@@ -166,6 +187,7 @@ export interface Sect {
   stats: SectStats
   archiveMilestones: ArchiveMilestoneEntry[]
   automationSettings: SectAutomationSettings
+  currentArchetype: SectArchetype
   strategySettings: SectStrategySettings
   autoRunDayCounter: number
   lastRandomEventTime: number

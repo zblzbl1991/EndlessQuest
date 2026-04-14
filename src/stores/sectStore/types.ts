@@ -16,6 +16,8 @@ import type {
   AnyItem,
   ItemStack,
   SectAutomationSettings,
+  SectArchetype,
+  ProductionCampaign,
 } from '../../types'
 import type { ItemQuality } from '../../types/item'
 import type { ShopState } from '../../systems/trade/TradeSystem'
@@ -139,6 +141,11 @@ export interface SectStore {
   encounterMonster(enemyId: string): void
   killMonster(enemyId: string): void
   discoverEquipment(setId: string, quality: ItemQuality): void
+
+  // Archetype & Production Campaign
+  setArchetype(archetype: SectArchetype): { success: boolean; reason: string }
+  startProductionCampaign(campaign: ProductionCampaign): { success: boolean; reason: string }
+  cancelProductionCampaign(): void
 
   reset(): void
 }
