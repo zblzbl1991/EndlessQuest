@@ -104,6 +104,7 @@ export function performAscension(sect: Sect): { newSect: Sect; report: Ascension
       cooldownHours: 4,
       cooldownRemainingHours: 0,
     },
+    templateConfidence: [],
   }
 
   const newSect: Sect = {

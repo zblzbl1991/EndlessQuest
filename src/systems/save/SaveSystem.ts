@@ -140,6 +140,7 @@ const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
     cooldownHours: 4,
     cooldownRemainingHours: 0,
   },
+  templateConfidence: [],
 }
 
 function normalizeFiniteNumber(value: unknown, fallback: number): number {
@@ -200,6 +201,7 @@ function normalizeAutomationSettings(
     oreOverflowRule: settings?.oreOverflowRule ?? DEFAULT_AUTOMATION_SETTINGS.oreOverflowRule,
     spiritStoneOverflowRule: settings?.spiritStoneOverflowRule ?? DEFAULT_AUTOMATION_SETTINGS.spiritStoneOverflowRule,
     expeditionTemplates: mergedTemplates,
+    templateConfidence: Array.isArray(settings?.templateConfidence) ? settings.templateConfidence : [],
   }
 }
 

@@ -835,3 +835,114 @@
     animation: none;
   }
 }
+
+/* ─── Risk Section ─── */
+.riskSection {
+  margin-bottom: var(--space-md);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(ellipse at top left, rgba(173, 104, 79, 0.08), transparent 50%), rgba(255, 252, 247, 0.72);
+  border: 1px solid rgba(173, 104, 79, 0.14);
+}
+
+.riskSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.riskSectionLabel {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.riskHighTag {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #9a5a43;
+  background: rgba(173, 104, 79, 0.12);
+  border: 1px solid rgba(173, 104, 79, 0.18);
+}
+
+.riskSectionDesc {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.riskBetResult {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(173, 104, 79, 0.1);
+}
+
+.riskBetWon {
+  display: grid;
+  gap: 6px;
+}
+
+.riskBetLost {
+  display: grid;
+  gap: 6px;
+}
+
+.riskBetLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.08em;
+}
+
+.riskTagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.riskTag {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #2e6c55;
+  background: rgba(93, 148, 128, 0.1);
+  border: 1px solid rgba(93, 148, 128, 0.12);
+}
+
+.riskTagPenalty {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  color: #9a5a43;
+  background: rgba(173, 104, 79, 0.1);
+  border: 1px solid rgba(173, 104, 79, 0.12);
+}
+
+.confidenceChange {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(173, 104, 79, 0.1);
+}
+
+.confidenceChangeLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.confidenceChangeValues {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}

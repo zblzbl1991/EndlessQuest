@@ -1,5 +1,12 @@
 import { getCharacterDisposition } from '../character/CharacterDispositionSystem'
-import type { AdventureRunConfig, Dungeon, ExpeditionTemplate, SectAutomationSettings } from '../../types'
+import type {
+  AdventureRunConfig,
+  Dungeon,
+  ExpeditionTemplate,
+  SectAutomationSettings,
+  SectArchetype,
+  RiskTier,
+} from '../../types'
 import type { Character } from '../../types'
 import { getVisibleExpeditionTemplates } from '../../data/expeditionTemplates'
 
@@ -94,6 +101,43 @@ function mapAutomationStyle(
   }
 }
 
+/** Apply archetype and risk tier modifiers to the run config */
+function applyArchetypeRiskModifiers(
+  config: AdventureRunConfig,
+  archetype: SectArchetype | undefined,
+  riskTier: RiskTier | undefined
+): AdventureRunConfig {
+  if (!archetype && !riskTier) return config
+
+  let { automationStrategy, tacticalPreset, supplyLevel } = config
+
+  // Archetype influence on strategy
+  if (archetype === 'swordBurst') {
+    // Sword burst prefers combat
+    if (automationStrategy === 'steady') automationStrategy = 'combat'
+  } else if (archetype === 'pillSustain') {
+    // Pill sustain prefers steady
+    if (automationStrategy === 'combat') automationStrategy = 'steady'
+  }
+
+  // Risk tier influence on tactics and supply
+  if (riskTier === 'gamble' || riskTier === 'destiny') {
+    // High risk: more aggressive tactics, higher supply
+    if (tacticalPreset === 'conservative') tacticalPreset = 'balanced'
+    if (supplyLevel === 'basic') supplyLevel = 'enhanced'
+  } else if (riskTier === 'safe') {
+    // Safe: conservative tactics
+    if (tacticalPreset === 'burst') tacticalPreset = 'balanced'
+  }
+
+  return {
+    ...config,
+    automationStrategy,
+    tacticalPreset,
+    supplyLevel,
+  }
+}
+
 export function buildAutomationRunConfig(input: {
   settings: SectAutomationSettings
   characters: Character[]
@@ -137,10 +181,15 @@ export function buildAutomationRunConfig(input: {
   const teamCharacterIds = pickAutomationTeam(input.characters, 5, teamRule)
   if (teamCharacterIds.length === 0) return null
 
-  return {
+  const baseConfig: AdventureRunConfig = {
     dungeonId: dungeon.id,
     teamCharacterIds,
     supplyLevel,
     ...mapAutomationStyle(targetRiskTolerance, rewardFocus),
   }
+
+  // Apply archetype + risk tier modifier layer
+  const riskTier = activeTemplate?.riskTier
+  const archetype = input.settings.routeShift?.currentArchetype
+  return applyArchetypeRiskModifiers(baseConfig, archetype, riskTier)
 }

@@ -51,6 +51,20 @@ export interface ProductionCampaignState {
   cooldownHours: number
   cooldownRemainingHours: number
 }
+export type RiskTier = 'safe' | 'press' | 'gamble' | 'destiny'
+
+export interface TemplateConfidenceEntry {
+  templateId: string
+  score: number
+  lastAdjustedAtDay: number | null
+}
+
+export interface RiskHookDescriptor {
+  title: string
+  exclusiveRewards: string[]
+  likelyPenalty: string[]
+  bestForArchetypes: SectArchetype[]
+}
 
 export type BuildingType =
   | 'mainHall'
@@ -103,6 +117,8 @@ export interface ExpeditionTemplate {
   rewardFocus: ExpeditionRewardFocus
   fallbackOnFailure: ExpeditionFallbackRule
   notes?: string
+  riskTier?: RiskTier
+  riskHookDescriptor?: RiskHookDescriptor
 }
 
 export interface Building {
@@ -163,6 +179,7 @@ export interface SectAutomationSettings {
   expeditionTemplates: ExpeditionTemplate[]
   routeShift: RouteShiftState
   productionCampaign: ProductionCampaignState
+  templateConfidence: TemplateConfidenceEntry[]
 }
 
 export interface Sect {

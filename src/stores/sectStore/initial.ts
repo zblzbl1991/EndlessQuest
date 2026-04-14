@@ -131,6 +131,7 @@ export function createInitialState(): { sect: Sect } {
           cooldownHours: 4,
           cooldownRemainingHours: 0,
         },
+        templateConfidence: [],
       },
       stats: {
         totalSpiritStoneEarned: 0,

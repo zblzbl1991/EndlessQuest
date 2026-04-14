@@ -1,5 +1,5 @@
 import type { AnyItem } from './item'
-import type { Resources } from './sect'
+import type { Resources, RiskTier } from './sect'
 import type { CharacterQuality, RealmStage } from './character'
 import type { ShopOffer } from '../systems/roguelike/EventSystem'
 import type { DiscipleMutationId } from '../data/discipleMutations'
@@ -155,6 +155,10 @@ export interface AdventureReport {
   postRunMemberOutcomes?: Record<string, AdventureMemberReturnRecord>
   steps: AdventureReportStep[]
   policySnapshot?: SectRiskPolicyId
+  riskTier?: RiskTier
+  templateId?: string
+  confidenceBefore?: number
+  confidenceAfter?: number
   /** Accumulated comprehension growth: charId -> { techId -> totalGrowth } */
   comprehensionGrowth?: Record<string, Record<string, number>>
   /** Dungeon growth applied: charId -> { baseStatBoost, cultivationGain, level/xp gains } */
@@ -183,6 +187,10 @@ export interface AdventureReportSummary {
   floorsCleared: number
   rewards: Resources
   itemRewardCount: number
+  riskTier?: RiskTier
+  templateId?: string
+  confidenceBefore?: number
+  confidenceAfter?: number
 }
 
 export type SupplyLevel = 'basic' | 'enhanced' | 'luxury'

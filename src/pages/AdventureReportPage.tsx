@@ -9,6 +9,8 @@ import { PixelIcon } from '../components/common/PixelIcon'
 import { QUALITY_NAMES } from '../data/items'
 import { getRunIntentDef } from '../data/runIntents'
 import { REPORT_RESULT_LABELS, getTacticalPresetLabel } from '../data/uiCopy'
+import { getRiskTierLabel, isHighRiskTemplate, getTemplateRiskHook } from '../data/expeditionTemplates'
+import { getRiskDescription } from '../systems/adventure/RiskRewardSystem'
 import { getLegacyReportFlavor } from '../data/legacyFlavor'
 import type { CombatAction, CombatResult, CombatUnit } from '../systems/combat/CombatEngine'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
@@ -640,6 +642,62 @@ export default function AdventureReportPage() {
             <span className={styles.highlightCauseLabel}>成败原因</span>
             <strong>{insight?.cause ?? '暂无'}</strong>
           </div>
+
+          {/* Risk and confidence section */}
+          {report.riskTier ? (
+            <div className={styles.riskSection}>
+              <div className={styles.riskSectionHeader}>
+                <span className={styles.riskSectionLabel}>{getRiskTierLabel(report.riskTier)}</span>
+                {isHighRiskTemplate(report.templateId ?? '') ? <span className={styles.riskHighTag}>押注</span> : null}
+              </div>
+              <div className={styles.riskSectionDesc}>{getRiskDescription(report.riskTier)}</div>
+              {report.templateId
+                ? (() => {
+                    const riskHook = getTemplateRiskHook(report.templateId)
+                    if (!riskHook) return null
+                    return (
+                      <div className={styles.riskBetResult}>
+                        {report.result === 'completed' ? (
+                          <div className={styles.riskBetWon}>
+                            <span className={styles.riskBetLabel}>赌到了</span>
+                            <div className={styles.riskTagList}>
+                              {riskHook.exclusiveRewards.map((r) => (
+                                <span key={r} className={styles.riskTag}>
+                                  {r}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className={styles.riskBetLost}>
+                            <span className={styles.riskBetLabel}>伤到了节奏</span>
+                            <div className={styles.riskTagList}>
+                              {riskHook.likelyPenalty.map((p) => (
+                                <span key={p} className={styles.riskTagPenalty}>
+                                  {p}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()
+                : null}
+              {/* Confidence change */}
+              {report.confidenceBefore !== undefined && report.confidenceAfter !== undefined ? (
+                <div className={styles.confidenceChange}>
+                  <span className={styles.confidenceChangeLabel}>模板可信度</span>
+                  <span className={styles.confidenceChangeValues}>
+                    {report.confidenceBefore} {'→'} {report.confidenceAfter}
+                    {' ('}
+                    {report.confidenceAfter > report.confidenceBefore ? '+' : ''}
+                    {report.confidenceAfter - report.confidenceBefore})
+                  </span>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
 
           {reportLoopSignal ? (
             <div className={styles.loopSignalCard} data-testid="report-loop-signal">

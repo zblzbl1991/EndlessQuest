@@ -5,6 +5,8 @@ import type {
   ExpeditionRewardFocus,
   ExpeditionTemplate,
   ExpeditionTeamRule,
+  RiskTier,
+  RiskHookDescriptor,
 } from '../types'
 import { getLegacyTemplateCapacity } from './legacy'
 
@@ -25,6 +27,8 @@ interface ExpeditionTemplatePreset {
   defaultSupplyLevel: ExpeditionTemplate['supplyLevel']
   defaultEnabled: boolean
   notes: string
+  riskTier: RiskTier
+  riskHookDescriptor: RiskHookDescriptor
 }
 
 export interface ExpeditionTemplateSignal {
@@ -53,6 +57,13 @@ const CORE_TEMPLATE_PRESETS: ExpeditionTemplatePreset[] = [
     defaultSupplyLevel: 'basic',
     defaultEnabled: true,
     notes: '低损耗、稳定回收，适合作为日常挂机底盘。',
+    riskTier: 'safe',
+    riskHookDescriptor: {
+      title: '安稳修行',
+      exclusiveRewards: ['稳定灵石回收', '基础资源积累'],
+      likelyPenalty: ['收益缓慢'],
+      bestForArchetypes: ['pillSustain', 'arrayGuard'],
+    },
   },
   {
     id: 'materialSprint',
@@ -65,6 +76,13 @@ const CORE_TEMPLATE_PRESETS: ExpeditionTemplatePreset[] = [
     defaultSupplyLevel: 'basic',
     defaultEnabled: true,
     notes: '优先带回突破、锻造和中后期成长所需材料。',
+    riskTier: 'press',
+    riskHookDescriptor: {
+      title: '压榨推进',
+      exclusiveRewards: ['稀有锻造材料', '中期突破素材'],
+      likelyPenalty: ['弟子疲劳增加', '恢复时间延长'],
+      bestForArchetypes: ['swordBurst', 'arrayGuard'],
+    },
   },
   {
     id: 'techniqueSeek',
@@ -77,6 +95,13 @@ const CORE_TEMPLATE_PRESETS: ExpeditionTemplatePreset[] = [
     defaultSupplyLevel: 'basic',
     defaultEnabled: true,
     notes: '兼顾收益与机缘，适合中期稳定推进。',
+    riskTier: 'safe',
+    riskHookDescriptor: {
+      title: '安稳修行',
+      exclusiveRewards: ['功法残卷发现', '参悟度提升'],
+      likelyPenalty: ['收益波动'],
+      bestForArchetypes: ['pillSustain', 'beastHarvest'],
+    },
   },
   {
     id: 'petPatrol',
@@ -89,6 +114,13 @@ const CORE_TEMPLATE_PRESETS: ExpeditionTemplatePreset[] = [
     defaultSupplyLevel: 'basic',
     defaultEnabled: false,
     notes: '保留主力，让副队巡山摸宠，不打断宗门主循环。',
+    riskTier: 'safe',
+    riskHookDescriptor: {
+      title: '安稳修行',
+      exclusiveRewards: ['灵宠捕获', '灵兽素材'],
+      likelyPenalty: ['收益偏低'],
+      bestForArchetypes: ['beastHarvest'],
+    },
   },
   {
     id: 'breakthroughPush',
@@ -101,6 +133,13 @@ const CORE_TEMPLATE_PRESETS: ExpeditionTemplatePreset[] = [
     defaultSupplyLevel: 'enhanced',
     defaultEnabled: false,
     notes: '用于关键阶段冲首通、冲高层或搏终盘收益。',
+    riskTier: 'gamble',
+    riskHookDescriptor: {
+      title: '押注奇遇',
+      exclusiveRewards: ['首通突破奖励', '高层独占素材', '关键推进节点'],
+      likelyPenalty: ['弟子重伤', '大量资源损失', '节奏大幅回退'],
+      bestForArchetypes: ['swordBurst', 'beastHarvest'],
+    },
   },
 ]
 
@@ -116,6 +155,13 @@ const SPECIAL_TEMPLATE_PRESETS: ExpeditionTemplatePreset[] = [
     defaultSupplyLevel: 'enhanced',
     defaultEnabled: false,
     notes: '双遗共鸣后解锁。专门用于稳定刷归墟遗材，把共鸣收益转成长期挂机优势。',
+    riskTier: 'destiny',
+    riskHookDescriptor: {
+      title: '命数之搏',
+      exclusiveRewards: ['归墟独占遗材', '潮晶与残片大量回收', '终盘成长加速'],
+      likelyPenalty: ['主力队伍严重疲劳', '宗门节奏大幅回退', '可能丢失关键突破窗口'],
+      bestForArchetypes: ['arrayGuard', 'swordBurst'],
+    },
   },
 ]
 
@@ -131,6 +177,8 @@ function buildTemplateFromPreset(preset: ExpeditionTemplatePreset): ExpeditionTe
     rewardFocus: preset.rewardFocus,
     fallbackOnFailure: preset.fallbackOnFailure,
     notes: preset.notes,
+    riskTier: preset.riskTier,
+    riskHookDescriptor: preset.riskHookDescriptor,
   }
 }
 
@@ -311,4 +359,30 @@ export function getFallbackRuleLabel(rule: ExpeditionFallbackRule): string {
     case 'pause_template':
       return '暂停模板'
   }
+}
+
+export function getRiskTierLabel(riskTier: RiskTier | undefined): string {
+  switch (riskTier) {
+    case 'safe':
+      return '安稳修行'
+    case 'press':
+      return '压榨推进'
+    case 'gamble':
+      return '押注奇遇'
+    case 'destiny':
+      return '命数之搏'
+    default:
+      return '未知'
+  }
+}
+
+export function isHighRiskTemplate(templateId: string): boolean {
+  return templateId === 'breakthroughPush' || templateId === 'guixuResonance'
+}
+
+const ALL_PRESETS = [...CORE_TEMPLATE_PRESETS, ...SPECIAL_TEMPLATE_PRESETS]
+const PRESET_MAP: Map<string, ExpeditionTemplatePreset> = new Map(ALL_PRESETS.map((p) => [p.id, p]))
+
+export function getTemplateRiskHook(templateId: string): RiskHookDescriptor | null {
+  return PRESET_MAP.get(templateId)?.riskHookDescriptor ?? null
 }

@@ -16,6 +16,7 @@ import type {
 import { SUPPLY_COSTS } from '../types/adventure'
 import type { SupplyLevel } from '../types/adventure'
 import { useSectStore } from './sectStore'
+import { useGameStore } from './gameStore'
 import { emitEvent } from './eventLogStore'
 import { DUNGEONS } from '../data/events'
 import { generateDungeonRun } from '../systems/roguelike/MapGenerator'
@@ -64,6 +65,8 @@ import type { Equipment } from '../types/item'
 import { findEquipmentById } from './sectStore/initial'
 import { calcDungeonGrowth } from '../systems/character/DungeonGrowthSystem'
 import { applyCharacterExperience } from '../data/levelSystem'
+import { adjustTemplateConfidence } from '../systems/adventure/TemplateConfidenceSystem'
+import { getTemplateRiskHook } from '../data/expeditionTemplates'
 
 // ---------------------------------------------------------------------------
 // Store interface
@@ -199,6 +202,10 @@ function summarizeReport(report: AdventureReport): AdventureReportSummary {
     floorsCleared: report.floorsCleared,
     rewards: { ...report.rewards },
     itemRewardCount: report.itemRewards.length,
+    riskTier: report.riskTier,
+    templateId: report.templateId,
+    confidenceBefore: report.confidenceBefore,
+    confidenceAfter: report.confidenceAfter,
   }
 }
 
@@ -931,13 +938,51 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         }
       : { ...report, dungeonGrowthApplied }
 
-    const summary = summarizeReport(finalizedReport)
+    // Update template confidence after run completion
+    const activeTemplateId = useSectStore.getState().sect.automationSettings.activeTemplateId
+    const currentConfidence = useSectStore.getState().sect.automationSettings.templateConfidence ?? []
+    const currentGameDay = useGameStore.getState().currentGameDay
+    const confidenceBefore = currentConfidence.find((e) => e.templateId === activeTemplateId)?.score ?? 50
+    const isSuccess = finalizedReport.result === 'completed'
+    const updatedConfidence = adjustTemplateConfidence(
+      currentConfidence,
+      activeTemplateId ?? '',
+      isSuccess,
+      currentGameDay
+    )
+    const confidenceAfter = updatedConfidence.find((e) => e.templateId === activeTemplateId)?.score ?? 50
+
+    // Add risk/confidence fields to finalized report
+    const riskHook = activeTemplateId ? getTemplateRiskHook(activeTemplateId) : null
+    const reportWithConfidence: AdventureReport = {
+      ...finalizedReport,
+      riskTier: riskHook
+        ? useSectStore.getState().sect.automationSettings.expeditionTemplates.find((t) => t.id === activeTemplateId)
+            ?.riskTier
+        : undefined,
+      templateId: activeTemplateId ?? undefined,
+      confidenceBefore,
+      confidenceAfter,
+    }
+
+    // Persist confidence update to sect store
+    useSectStore.setState((s) => ({
+      sect: {
+        ...s.sect,
+        automationSettings: {
+          ...s.sect.automationSettings,
+          templateConfidence: updatedConfidence,
+        },
+      },
+    }))
+
+    const summary = summarizeReport(reportWithConfidence)
     set((s) => {
       const nextReports = [summary, ...s.reports.filter((existing) => existing.id !== summary.id)].slice(
         0,
         REPORT_LIMIT
       )
-      const nextDetails = { ...s.reportDetails, [finalizedReport.id]: finalizedReport }
+      const nextDetails = { ...s.reportDetails, [reportWithConfidence.id]: reportWithConfidence }
       const keepIds = new Set(nextReports.map((item) => item.id))
       for (const id of Object.keys(nextDetails)) {
         if (!keepIds.has(id)) delete nextDetails[id]
@@ -949,7 +994,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       }
     })
 
-    return finalizedReport
+    return reportWithConfidence
   },
 
   selectRoute: (runId, routeIndex) => {

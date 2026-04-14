@@ -13,10 +13,15 @@ import {
   getExpeditionTemplateSignal,
   getFallbackRuleLabel,
   getRewardFocusLabel,
+  getRiskTierLabel,
   getSpecialExpeditionTemplateCount,
   getTeamRuleLabel,
   getVisibleExpeditionTemplates,
+  isHighRiskTemplate,
 } from '../data/expeditionTemplates'
+import { getConfidenceStatus } from '../systems/adventure/TemplateConfidenceSystem'
+import { getArchetypeFitLabel, getRiskDescription } from '../systems/adventure/RiskRewardSystem'
+import { getArchetypeDescriptor } from '../data/sectArchetypes'
 import { getLegacyTemplateCapacity } from '../data/legacy'
 import { analyzeGuixuLoop, summarizeGuixuLoopYield } from '../systems/sect/GuixuLoopAdvisor'
 
@@ -274,6 +279,8 @@ export default function AdventurePage() {
                 </span>
                 <span className={styles.templateChipMeta}>
                   {getRewardFocusLabel(template.rewardFocus)}
+                  {' · '}
+                  {getRiskTierLabel(template.riskTier)}
                   {templateSignal ? ` 路 ${templateSignal.detail}` : ''}
                 </span>
               </button>
@@ -415,6 +422,75 @@ export default function AdventurePage() {
               <span>{getTeamRuleLabel(activeTemplate.teamRule)}</span>
               <span>{getFallbackRuleLabel(activeTemplate.fallbackOnFailure)}</span>
             </div>
+
+            {/* Risk tier info */}
+            {activeTemplate?.riskTier && activeTemplate.riskHookDescriptor ? (
+              <div className={styles.riskInfoCard}>
+                <div className={styles.riskInfoHeader}>
+                  <span className={styles.riskInfoTitle}>{getRiskTierLabel(activeTemplate.riskTier)}</span>
+                  <span className={`${styles.riskBadge} ${styles[`riskBadge_${activeTemplate.riskTier}`] ?? ''}`}>
+                    {activeTemplate.riskHookDescriptor.title}
+                  </span>
+                </div>
+                <div className={styles.riskInfoDesc}>{getRiskDescription(activeTemplate.riskTier)}</div>
+                {isHighRiskTemplate(activeTemplate.id) ? (
+                  <div className={styles.riskExclusiveSection}>
+                    <div className={styles.riskSectionLabel}>独占奖励</div>
+                    <div className={styles.riskTagList}>
+                      {activeTemplate.riskHookDescriptor.exclusiveRewards.map((reward) => (
+                        <span key={reward} className={styles.riskTag}>
+                          {reward}
+                        </span>
+                      ))}
+                    </div>
+                    <div className={styles.riskSectionLabel} style={{ marginTop: 8 }}>
+                      可能的惩罚
+                    </div>
+                    <div className={styles.riskTagList}>
+                      {activeTemplate.riskHookDescriptor.likelyPenalty.map((penalty) => (
+                        <span key={penalty} className={styles.riskTagPenalty}>
+                          {penalty}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                {/* Archetype fit */}
+                {(() => {
+                  const fitResult = getArchetypeFitLabel(sect.currentArchetype, activeTemplate.riskHookDescriptor)
+                  return (
+                    <div
+                      className={`${styles.riskFitRow} ${fitResult.fit === 'good' ? styles.riskFitGood : fitResult.fit === 'poor' ? styles.riskFitPoor : ''}`}
+                    >
+                      <span>{fitResult.label}</span>
+                      <span className={styles.riskFitArchetype}>
+                        {getArchetypeDescriptor(sect.currentArchetype).name}
+                      </span>
+                    </div>
+                  )
+                })()}
+              </div>
+            ) : null}
+
+            {/* Template confidence */}
+            {(() => {
+              const confidenceEntries = sect.automationSettings.templateConfidence ?? []
+              const entry = confidenceEntries.find((e) => e.templateId === activeTemplate?.id)
+              const confidence = getConfidenceStatus(entry)
+              return (
+                <div className={styles.confidenceCard}>
+                  <div className={styles.confidenceHeader}>
+                    <span className={styles.confidenceLabel}>模板可信度</span>
+                    <span className={styles.confidenceValue}>{entry?.score ?? 50}</span>
+                    <span className={`${styles.confidenceStatus} ${styles[`conf_${confidence.status}`] ?? ''}`}>
+                      {confidence.statusLabel}
+                    </span>
+                  </div>
+                  <div className={styles.confidenceDetail}>{confidence.statusDetail}</div>
+                </div>
+              )
+            })()}
+
             {activeTemplateLoopPreview ? (
               <div className={styles.loopPreviewCard} data-testid="guixu-loop-preview">
                 {latestTemplateAdjustment ? (
@@ -532,6 +608,11 @@ export default function AdventurePage() {
                         <span className={`${styles.reportBadge} ${styles[`result${report.result}`] ?? ''}`}>
                           {REPORT_RESULT_LABELS[report.result]}
                         </span>
+                        {report.riskTier && isHighRiskTemplate(report.templateId ?? '') ? (
+                          <span className={`${styles.reportBadge} ${styles.riskBadgeHighlight}`}>
+                            {getRiskTierLabel(report.riskTier)}
+                          </span>
+                        ) : null}
                       </div>
                       <div className={styles.reportCompactInfo}>
                         <span>{teamNames}</span>

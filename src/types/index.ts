@@ -57,6 +57,9 @@ export type {
   ProductionCampaign,
   RouteShiftState,
   ProductionCampaignState,
+  RiskTier,
+  TemplateConfidenceEntry,
+  RiskHookDescriptor,
 } from './sect'
 export type {
   EventType,
