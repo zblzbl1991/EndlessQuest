@@ -1,19 +1,22 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": "src/types/sect.ts", "reason": "Core types: SectArchetype, ProductionCampaign, RouteShiftState, ProductionCampaignState, Sect interface"}
+{"file": "docs/superpowers/specs/2026-04-13-midgame-deepening-claudecode-execution-checklist.md", "reason": "Phase 3 execution checklist - sections 5.1-5.10"}
+{"file": "src/types/sect.ts", "reason": "Add RouteOpportunity type and routeOpportunities to Sect interface"}
+{"file": "src/types/character.ts", "reason": "Character types for growth tendency, talents, fate tags"}
 {"file": "src/types/index.ts", "reason": "Re-export new types"}
-{"file": "src/stores/sectStore/initial.ts", "reason": "Default values for archetype and campaign state"}
-{"file": "src/stores/sectStore/types.ts", "reason": "SectStore interface extension for new actions"}
-{"file": "src/stores/sectStore/strategySlice.ts", "reason": "Add setArchetype, startProductionCampaign, cancelProductionCampaign"}
-{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Add campaign/route shift tick progression"}
-{"file": "src/stores/sectStore/index.ts", "reason": "Compose new slices or extend existing"}
-{"file": "src/systems/sect/SectGoalSystem.ts", "reason": "Understand goal system for dual-path extension"}
-{"file": "src/systems/sect/SectAutomationSystem.ts", "reason": "Future integration point, understand current structure"}
-{"file": "src/systems/save/SaveSystem.ts", "reason": "Save compatibility for new fields"}
-{"file": "src/pages/SectPage.tsx", "reason": "Add route card, campaign card, dual-path goals"}
+{"file": "src/systems/character/CharacterEngine.ts", "reason": "Character generation - understand growth/talent/fate data"}
+{"file": "src/systems/character/CharacterDispositionSystem.ts", "reason": "Character disposition for route opportunity detection"}
+{"file": "src/systems/sect/SectBottleneckSystem.ts", "reason": "Extend bottleneck advice with archetype-specific suggestions"}
+{"file": "src/systems/sect/SectGoalSystem.ts", "reason": "Extend goals with path competition recommendations"}
+{"file": "src/systems/sect/SectArchetypeSystem.ts", "reason": "Archetype data for bottleneck/route opportunity matching"}
+{"file": "src/systems/sect/OfflineNarrativeSystem.ts", "reason": "Add route opportunity and shift hints to offline narrative"}
+{"file": "src/systems/specialty/SpecialtySystem.ts", "reason": "Specialty data for route opportunity detection"}
+{"file": "src/stores/sectStore/characterSlice.ts", "reason": "Hook route opportunity check on new character recruitment"}
+{"file": "src/stores/sectStore/initial.ts", "reason": "Add routeOpportunities default"}
+{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Expire route opportunities over time"}
+{"file": "src/systems/save/SaveSystem.ts", "reason": "Save compatibility for routeOpportunities"}
+{"file": "src/pages/SectPage.tsx", "reason": "Add route opportunity card and bottleneck solution card"}
 {"file": "src/pages/SectPage.module.css", "reason": "Styles for new cards"}
-{"file": "src/pages/BuildingsPage.tsx", "reason": "Add campaign panel and production tilt summary"}
-{"file": "src/pages/BuildingsPage.module.css", "reason": "Styles for campaign panel"}
-{"file": "src/data/buildings.ts", "reason": "Understand building types for archetype building focus"}
-{"file": "src/data/techniquesTable.ts", "reason": "Pattern reference for data table structure"}
+{"file": "src/components/common/OfflineReportModal.tsx", "reason": "Add route opportunity and shift hints to offline report"}
+{"file": "src/data/sectArchetypes.ts", "reason": "Archetype descriptors for advice matching"}

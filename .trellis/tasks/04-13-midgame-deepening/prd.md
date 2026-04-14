@@ -47,21 +47,52 @@
 4. 不允许先把所有 types 加满但没有 UI 入口
 5. 老存档必须能正常打开（缺字段自动补默认值）
 
-## Acceptance Criteria (Phase 1)
+## Acceptance Criteria (Phase 1) -- DONE
 
-- [ ] `SectArchetype` / `ProductionCampaign` 类型定义在 `src/types/sect.ts`
-- [ ] `Sect` 接口新增 `currentArchetype` 字段
-- [ ] `SectAutomationSettings` 新增 `routeShift` / `productionCampaign` 字段
-- [ ] `initial.ts` 包含完整默认值，老存档缺字段不崩
-- [ ] `src/data/sectArchetypes.ts` 和 `src/data/productionCampaigns.ts` 数据表
-- [ ] `SectArchetypeSystem.ts`: 路线切换检查、modifier 计算、磨合期逻辑
-- [ ] `ProductionCampaignSystem.ts`: 专项启停、冷却、duration tick
-- [ ] `strategySlice.ts`: `setArchetype` / `startProductionCampaign` / `cancelProductionCampaign`
-- [ ] `tickSlice.ts`: 推进专项持续时间和冷却，推进磨合期倒计时
-- [ ] 宗门页新增: 路线卡 + 专项卡 + 双路径目标卡
-- [ ] 建筑页新增: 专项生产面板 + 产线倾斜摘要
-- [ ] 单元测试: `SectArchetypeSystem.test.ts` + `ProductionCampaignSystem.test.ts`
-- [ ] `npm run build` 通过
+- [x] `SectArchetype` / `ProductionCampaign` 类型定义在 `src/types/sect.ts`
+- [x] `Sect` 接口新增 `currentArchetype` 字段
+- [x] `SectAutomationSettings` 新增 `routeShift` / `productionCampaign` 字段
+- [x] `initial.ts` 包含完整默认值，老存档缺字段不崩
+- [x] `src/data/sectArchetypes.ts` 和 `src/data/productionCampaigns.ts` 数据表
+- [x] `SectArchetypeSystem.ts`: 路线切换检查、modifier 计算、磨合期逻辑
+- [x] `ProductionCampaignSystem.ts`: 专项启停、冷却、duration tick
+- [x] `strategySlice.ts`: `setArchetype` / `startProductionCampaign` / `cancelProductionCampaign`
+- [x] `tickSlice.ts`: 推进专项持续时间和冷却，推进磨合期倒计时
+- [x] 宗门页新增: 路线卡 + 专项卡 + 双路径目标卡
+- [x] 建筑页新增: 专项生产面板 + 产线倾斜摘要
+- [x] 单元测试: `SectArchetypeSystem.test.ts` + `ProductionCampaignSystem.test.ts`
+- [x] `npm run build` 通过
+
+## Acceptance Criteria (Phase 2) -- DONE
+
+- [x] `RiskTier` / `TemplateConfidenceEntry` / `RiskHookDescriptor` 类型定义在 `src/types/sect.ts`
+- [x] `ExpeditionTemplate` 新增 `riskTier` / `riskHookDescriptor` 字段
+- [x] `SectAutomationSettings` 新增 `templateConfidence` 字段
+- [x] `AdventureReport` / `AdventureReportSummary` 新增风险相关字段
+- [x] `initial.ts` / `SaveSystem.ts` 含默认值，老存档兼容
+- [x] `expeditionTemplates.ts` 每个模板有 `riskTier` 和 `riskHookDescriptor`
+- [x] `RiskRewardSystem.ts`: 根据 riskTier + archetype + rewardFocus 返回收益修正和风险描述
+- [x] `TemplateConfidenceSystem.ts`: 成功提高 / 失败降低 confidence，连胜连败额外波动
+- [x] `SectAutomationSystem.ts` 追加 archetype+risk 修正层
+- [x] `adventureStore.ts` 远征结束后更新模板可信度
+- [x] 远征页新增: 风险阶层标签 + 独占奖励预览 + 模板可信度 + 路线适配
+- [x] 战报页新增: 风险标签 + 押注结果 + 可信度变化
+- [x] 单元测试: `RiskRewardSystem.test.ts` + `TemplateConfidenceSystem.test.ts`
+- [x] `npm run build` 通过
+
+## Acceptance Criteria (Phase 3) -- DONE
+
+- [x] `RouteOpportunity` 类型定义在 `src/types/sect.ts`，`Sect` 接口新增 `routeOpportunities` 字段
+- [x] `RouteOpportunitySystem.ts`: 根据弟子成长倾向/专长/词缀/命格判断路线机会
+- [x] `ArchetypeBottleneckAdvisor.ts`: 同一瓶颈按不同路线生成不同建议
+- [x] `SectBottleneckSystem.ts` 扩展为按路线输出不同建议（`archetypeAdvice`）
+- [x] `SectGoalSystem.ts` 输出结构补充推荐路线、立即收益、代价
+- [x] `characterSlice.ts`: 新弟子加入时检查路线机会
+- [x] `initial.ts` / `SaveSystem.ts` 含 `routeOpportunities` 默认值
+- [x] 宗门页新增: 路线机会卡 + 瓶颈解法卡
+- [x] 离线报告新增: 转型提示 + 路线机会反馈
+- [x] 单元测试: `RouteOpportunitySystem.test.ts` + `SectBottleneckArchetypeAdvice.test.ts`
+- [x] `npm run build` 通过
 
 ## Technical Notes
 
