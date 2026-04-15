@@ -27,6 +27,7 @@ import type {
 } from '../types'
 import { PRODUCTION_CAMPAIGNS, CAMPAIGN_NAMES } from '../data/productionCampaigns'
 import { getArchetypeDescriptor } from '../data/sectArchetypes'
+import { getCampaignEnhancement } from '../systems/sect/ProductionCampaignSystem'
 import type { ItemStack } from '../types/item'
 import type { Character } from '../types/character'
 import { ELEMENT_NAMES } from '../types/skill'
@@ -626,6 +627,20 @@ function BuildingsTab({
                       </span>
                     ))}
                   </div>
+                  {(() => {
+                    const forgeLevel = sect.buildings.find((b) => b.type === 'forge')?.level ?? 0
+                    const alchemyLevel = sect.buildings.find((b) => b.type === 'alchemyFurnace')?.level ?? 0
+                    const marketLevel = sect.buildings.find((b) => b.type === 'market')?.level ?? 0
+                    const enhancement = getCampaignEnhancement(campaign.id, forgeLevel, alchemyLevel, marketLevel)
+                    if (enhancement.enhanced) {
+                      return (
+                        <div className={styles.campaignItemBoost} style={{ marginTop: 4 }}>
+                          ★ {enhancement.description}
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                 </div>
                 {isActive ? (
                   <button

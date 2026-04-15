@@ -10,6 +10,9 @@ import { getEffectiveStats } from '../../systems/equipment/EquipmentEngine'
 import { canShiftArchetype } from '../../systems/sect/SectArchetypeSystem'
 import { canStartProductionCampaign } from '../../systems/sect/ProductionCampaignSystem'
 import { useGameStore } from '../gameStore'
+import { emitEvent } from '../eventLogStore'
+import { getArchetypeName } from '../../data/sectArchetypes'
+import { getCampaignDescriptor } from '../../data/productionCampaigns'
 
 // ---...--- Helper: sum gear stat value for a character ---...---
 
@@ -119,6 +122,8 @@ export const createStrategySlice: StateCreator<SectStore, [], [], Partial<SectSt
       },
     }))
 
+    emitEvent('archetype_shifted', `宗门路线转为「${getArchetypeName(archetype)}」，进入磨合期。`)
+
     return { success: true, reason: '' }
   },
 
@@ -147,6 +152,9 @@ export const createStrategySlice: StateCreator<SectStore, [], [], Partial<SectSt
         },
       },
     }))
+
+    const desc = getCampaignDescriptor(campaign)
+    emitEvent('campaign_started', `专项「${desc.name}」已启动：${desc.summary}`)
 
     return { success: true, reason: '' }
   },

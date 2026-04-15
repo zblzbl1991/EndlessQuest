@@ -99,6 +99,50 @@ export function buildSectRumors(events: SectRumorInput[], limit = 4): SectRumorI
     })
   }
 
+  // ---...--- Phase 4: Campaign and route-shift rumors ---...---
+
+  const latestCampaignStart = events.find((event) => event.type === 'campaign_started')
+  if (latestCampaignStart) {
+    rumors.push({
+      id: `rumor_campaign_${latestCampaignStart.id}`,
+      title: '专项启动',
+      detail: latestCampaignStart.message,
+      tone: 'good',
+    })
+  }
+
+  const latestArchetypeShift = events.find((event) => event.type === 'archetype_shifted')
+  if (latestArchetypeShift) {
+    rumors.push({
+      id: `rumor_archetype_${latestArchetypeShift.id}`,
+      title: '路线转型',
+      detail: latestArchetypeShift.message,
+      tone: 'accent',
+    })
+  }
+
+  const latestHighRiskSuccess = events.find(
+    (event) => event.type === 'adventure_complete' && event.data?.riskTier === 'gamble'
+  )
+  if (latestHighRiskSuccess) {
+    rumors.push({
+      id: `rumor_high_risk_${latestHighRiskSuccess.id}`,
+      title: '押注成功',
+      detail: latestHighRiskSuccess.message,
+      tone: 'good',
+    })
+  }
+
+  const latestRouteOpportunity = events.find((event) => event.type === 'route_opportunity')
+  if (latestRouteOpportunity) {
+    rumors.push({
+      id: `rumor_route_opp_${latestRouteOpportunity.id}`,
+      title: '路线契机',
+      detail: latestRouteOpportunity.message,
+      tone: 'accent',
+    })
+  }
+
   const deduped = rumors.filter((rumor, index) => rumors.findIndex((item) => item.id === rumor.id) === index)
   return deduped.slice(0, limit)
 }

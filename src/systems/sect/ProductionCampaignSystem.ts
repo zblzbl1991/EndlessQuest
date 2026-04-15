@@ -144,3 +144,108 @@ export function getCampaignSummary(campaign: ProductionCampaign): {
     suppressions: desc.suppressions,
   }
 }
+
+// ---...--- Phase 4: Campaign-Risk integration modifiers ---...---
+
+export interface CampaignRiskModifiers {
+  /** Bonus to reward multiplier for high-risk templates */
+  riskRewardBonus: number
+  /** Reduction to failure recovery penalty (lower = less punishing) */
+  failureRecoveryReduction: number
+  /** Reduction to injury chance multiplier (lower = safer) */
+  injuryChanceReduction: number
+  /** Supply level upgrade tendency (0 = no change, 1 = prefer one tier higher) */
+  supplyLevelUpgradeChance: number
+  /** Bonus weight for exclusive high-risk rewards */
+  exclusiveRewardWeightBonus: number
+}
+
+const DEFAULT_RISK_MODIFIERS: CampaignRiskModifiers = {
+  riskRewardBonus: 0,
+  failureRecoveryReduction: 0,
+  injuryChanceReduction: 0,
+  supplyLevelUpgradeChance: 0,
+  exclusiveRewardWeightBonus: 0,
+}
+
+const CAMPAIGN_RISK_MODIFIERS: Record<ProductionCampaign, CampaignRiskModifiers> = {
+  realmSprint: {
+    riskRewardBonus: 0,
+    failureRecoveryReduction: 0,
+    injuryChanceReduction: 0,
+    supplyLevelUpgradeChance: 0,
+    exclusiveRewardWeightBonus: 0,
+  },
+  forgeSprint: {
+    riskRewardBonus: 0.1,
+    failureRecoveryReduction: 0,
+    injuryChanceReduction: 0,
+    supplyLevelUpgradeChance: 0,
+    exclusiveRewardWeightBonus: 0.2,
+  },
+  recoverySprint: {
+    riskRewardBonus: 0,
+    failureRecoveryReduction: 0.3,
+    injuryChanceReduction: 0.2,
+    supplyLevelUpgradeChance: 0,
+    exclusiveRewardWeightBonus: 0,
+  },
+  expeditionPrep: {
+    riskRewardBonus: 0.15,
+    failureRecoveryReduction: 0.1,
+    injuryChanceReduction: 0.1,
+    supplyLevelUpgradeChance: 0.5,
+    exclusiveRewardWeightBonus: 0.3,
+  },
+  marketHarvest: {
+    riskRewardBonus: 0,
+    failureRecoveryReduction: 0,
+    injuryChanceReduction: 0,
+    supplyLevelUpgradeChance: 0,
+    exclusiveRewardWeightBonus: 0,
+  },
+}
+
+/** Get campaign-specific risk modifiers for the closed-loop integration */
+export function getCampaignRiskModifiers(campaign: ProductionCampaign | null): CampaignRiskModifiers {
+  if (campaign === null) return DEFAULT_RISK_MODIFIERS
+  return CAMPAIGN_RISK_MODIFIERS[campaign]
+}
+
+/** Check if a building level unlocks an enhanced campaign feature */
+export function getCampaignEnhancement(
+  campaign: ProductionCampaign,
+  forgeLevel: number,
+  alchemyLevel: number,
+  marketLevel: number
+): { enhanced: boolean; description: string } {
+  switch (campaign) {
+    case 'forgeSprint':
+      if (forgeLevel >= 7) {
+        return { enhanced: true, description: '高阶锻造：仙品以上装备产出率额外 +10%' }
+      }
+      return { enhanced: false, description: '' }
+    case 'recoverySprint':
+      if (alchemyLevel >= 5) {
+        return { enhanced: true, description: '高阶丹道：恢复时间额外缩短 20%' }
+      }
+      return { enhanced: false, description: '' }
+    case 'expeditionPrep':
+      if (marketLevel >= 4) {
+        return { enhanced: true, description: '坊市支援：远征补给消耗降低 15%' }
+      }
+      return { enhanced: false, description: '' }
+    case 'realmSprint':
+      if (alchemyLevel >= 3) {
+        return { enhanced: true, description: '丹道辅助：突破成功率额外 +5%' }
+      }
+      return { enhanced: false, description: '' }
+    case 'marketHarvest':
+      if (marketLevel >= 6) {
+        return { enhanced: true, description: '坊市深耕：灵石收入额外 +10%' }
+      }
+      return { enhanced: false, description: '' }
+    default:
+      return { enhanced: false, description: '' }
+  }
+}
