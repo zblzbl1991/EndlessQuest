@@ -11,6 +11,7 @@
 | [Character Generation](./character-generation.md) | Character creation, randomization dimensions, type contracts | Filled |
 | [Character Level System](./character-level-system.md) | XP growth, level-up, realm caps, stat boost contracts | Filled |
 | [Guixu Loop Advisor](./guixu-loop-advisor.md) | Endgame loop preview, yield analysis, offline adjustment | Filled |
+| [Midgame Systems](./midgame-systems.md) | Archetype, campaigns, risk tiers, modifier chains, narrative integration | Filled |
 
 ---
 
