@@ -6,7 +6,6 @@ import {
   getFailurePenaltyDescription,
   isArchetypeFitForRisk,
   getArchetypeFitLabel,
-  buildGambleNarrative,
 } from '../systems/adventure/RiskRewardSystem'
 
 describe('RiskRewardSystem', () => {

@@ -1,22 +1,23 @@
 {"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
 {"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
 {"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
-{"file": "docs/superpowers/specs/2026-04-13-midgame-deepening-claudecode-execution-checklist.md", "reason": "Phase 3 execution checklist - sections 5.1-5.10"}
-{"file": "src/types/sect.ts", "reason": "Add RouteOpportunity type and routeOpportunities to Sect interface"}
-{"file": "src/types/character.ts", "reason": "Character types for growth tendency, talents, fate tags"}
-{"file": "src/types/index.ts", "reason": "Re-export new types"}
-{"file": "src/systems/character/CharacterEngine.ts", "reason": "Character generation - understand growth/talent/fate data"}
-{"file": "src/systems/character/CharacterDispositionSystem.ts", "reason": "Character disposition for route opportunity detection"}
-{"file": "src/systems/sect/SectBottleneckSystem.ts", "reason": "Extend bottleneck advice with archetype-specific suggestions"}
-{"file": "src/systems/sect/SectGoalSystem.ts", "reason": "Extend goals with path competition recommendations"}
-{"file": "src/systems/sect/SectArchetypeSystem.ts", "reason": "Archetype data for bottleneck/route opportunity matching"}
-{"file": "src/systems/sect/OfflineNarrativeSystem.ts", "reason": "Add route opportunity and shift hints to offline narrative"}
-{"file": "src/systems/specialty/SpecialtySystem.ts", "reason": "Specialty data for route opportunity detection"}
-{"file": "src/stores/sectStore/characterSlice.ts", "reason": "Hook route opportunity check on new character recruitment"}
-{"file": "src/stores/sectStore/initial.ts", "reason": "Add routeOpportunities default"}
-{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Expire route opportunities over time"}
-{"file": "src/systems/save/SaveSystem.ts", "reason": "Save compatibility for routeOpportunities"}
-{"file": "src/pages/SectPage.tsx", "reason": "Add route opportunity card and bottleneck solution card"}
-{"file": "src/pages/SectPage.module.css", "reason": "Styles for new cards"}
-{"file": "src/components/common/OfflineReportModal.tsx", "reason": "Add route opportunity and shift hints to offline report"}
-{"file": "src/data/sectArchetypes.ts", "reason": "Archetype descriptors for advice matching"}
+{"file": "docs/superpowers/specs/2026-04-13-midgame-deepening-claudecode-execution-checklist.md", "reason": "Phase 4 execution checklist - sections 6.1-6.7"}
+{"file": "src/types/sect.ts", "reason": "SectArchetype, ProductionCampaign, RiskTier types - verify Phase 1-3 additions"}
+{"file": "src/types/adventure.ts", "reason": "AdventureReport risk fields from Phase 2"}
+{"file": "src/data/productionCampaigns.ts", "reason": "Campaign definitions for risk integration"}
+{"file": "src/data/expeditionTemplates.ts", "reason": "Templates with riskTier from Phase 2"}
+{"file": "src/data/sectArchetypes.ts", "reason": "Archetype data for risk/campaign matching"}
+{"file": "src/systems/sect/ProductionCampaignSystem.ts", "reason": "Phase 4 core: campaign must real-impact supplyLevel/injury/recovery/risk"}
+{"file": "src/systems/sect/RiskRewardSystem.ts", "reason": "Phase 4 core: add campaign modifiers (expeditionPrep/recoverySprint/forgeSprint/realmSprint)"}
+{"file": "src/systems/sect/SectAutomationSystem.ts", "reason": "Automation hooks for campaign+risk integration"}
+{"file": "src/systems/sect/SectArchetypeSystem.ts", "reason": "Archetype modifiers for risk/campaign synergy"}
+{"file": "src/systems/economy/ForgeSystem.ts", "reason": "Building high-level unlock: campaign enhancement"}
+{"file": "src/systems/economy/AlchemySystem.ts", "reason": "Building high-level unlock: special supplies"}
+{"file": "src/systems/trade/TradeSystem.ts", "reason": "Building high-level unlock: transformation reward entry"}
+{"file": "src/systems/sect/OfflineNarrativeSystem.ts", "reason": "Add campaign-route-risk loop narrative"}
+{"file": "src/systems/sect/SectRumorSystem.ts", "reason": "Add shift/bet rumors"}
+{"file": "src/stores/sectStore/tickSlice.ts", "reason": "Tick integration for campaign effects on risk"}
+{"file": "src/stores/sectStore/strategySlice.ts", "reason": "Strategy slice for campaign/risk state"}
+{"file": "src/pages/BuildingsPage.tsx", "reason": "Show high-level building unlocks for campaign/risk"}
+{"file": "src/pages/SectPage.tsx", "reason": "Verify existing Phase 1-3 cards still work"}
+{"file": "src/stores/sectStore/initial.ts", "reason": "Verify defaults for Phase 1-3 fields"}

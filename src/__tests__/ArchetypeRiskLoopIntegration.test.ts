@@ -5,7 +5,6 @@ import {
   getArchetypeFitLabel,
   buildGambleNarrative,
 } from '../systems/adventure/RiskRewardSystem'
-import type { RiskTier, SectArchetype, ProductionCampaign } from '../types'
 
 describe('ArchetypeRiskLoopIntegration', () => {
   describe('getRiskRewardModifierWithCampaign', () => {

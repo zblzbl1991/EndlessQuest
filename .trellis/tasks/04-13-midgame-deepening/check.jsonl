@@ -1,12 +1,10 @@
-{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
-{"file": ".claude/commands/trellis/check-backend.md", "reason": "Backend check spec"}
-{"file": ".claude/commands/trellis/check-frontend.md", "reason": "Frontend check spec"}
-{"file": "docs/superpowers/specs/2026-04-13-midgame-deepening-claudecode-execution-checklist.md", "reason": "Phase 3 acceptance criteria (section 5.10)"}
-{"file": "src/types/sect.ts", "reason": "Verify RouteOpportunity type and Sect.routeOpportunities"}
-{"file": "src/systems/sect/RouteOpportunitySystem.ts", "reason": "Verify route opportunity detection logic"}
-{"file": "src/systems/sect/ArchetypeBottleneckAdvisor.ts", "reason": "Verify per-archetype bottleneck advice"}
-{"file": "src/systems/sect/SectBottleneckSystem.ts", "reason": "Verify byArchetype extension"}
-{"file": "src/stores/sectStore/characterSlice.ts", "reason": "Verify route opportunity trigger on recruit"}
-{"file": "src/pages/SectPage.tsx", "reason": "Verify opportunity card and bottleneck solution card"}
-{"file": "src/systems/sect/OfflineNarrativeSystem.ts", "reason": "Verify route opportunity narrative additions"}
-{"file": "src/systems/save/SaveSystem.ts", "reason": "Verify save compat for routeOpportunities"}
+{"file": ".trellis/workflow.md", "reason": "Finish work checklist"}
+{"file": "docs/superpowers/specs/2026-04-13-midgame-deepening-claudecode-execution-checklist.md", "reason": "Phase 4 acceptance criteria (section 6.7)"}
+{"file": "src/systems/sect/ProductionCampaignSystem.ts", "reason": "Verify campaign real impact on risk/reward"}
+{"file": "src/systems/sect/RiskRewardSystem.ts", "reason": "Verify campaign modifiers added"}
+{"file": "src/systems/economy/ForgeSystem.ts", "reason": "Verify building high-level unlocks"}
+{"file": "src/systems/economy/AlchemySystem.ts", "reason": "Verify building high-level unlocks"}
+{"file": "src/systems/trade/TradeSystem.ts", "reason": "Verify building high-level unlocks"}
+{"file": "src/systems/sect/OfflineNarrativeSystem.ts", "reason": "Verify campaign-route-risk loop narrative"}
+{"file": "src/systems/sect/SectRumorSystem.ts", "reason": "Verify shift/bet rumors added"}
+{"file": "src/pages/BuildingsPage.tsx", "reason": "Verify building unlock UI changes"}

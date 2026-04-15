@@ -94,6 +94,17 @@
 - [x] 单元测试: `RouteOpportunitySystem.test.ts` + `SectBottleneckArchetypeAdvice.test.ts`
 - [x] `npm run build` 通过
 
+## Acceptance Criteria (Phase 4) -- TODO
+
+- [ ] `ProductionCampaignSystem.ts` 专项真实影响 supplyLevel/injury/recovery/risk reward weight
+- [ ] `RiskRewardSystem.ts` 加入专项修正（expeditionPrep/recoverySprint/forgeSprint/realmSprint）
+- [ ] 建筑高阶节点解锁专项增强/高风险特殊补给/转型奖励入口（不改现有建筑，只加新权力）
+- [ ] `OfflineNarrativeSystem.ts` 新增专项-路线-风险联动叙事
+- [ ] `SectRumorSystem.ts` 新增转型/押注风闻
+- [ ] 单元测试: `ProductionCampaignRiskIntegration.test.ts` + `ArchetypeRiskLoopIntegration.test.ts`
+- [ ] 更新 `OfflineNarrativeSystem.test.ts` + `SectRumorSystem.test.ts`
+- [ ] `npm run build` 通过
+
 ## Technical Notes
 
 - 现有 `productionFocus` (balanced/cultivation/crafting) 是简单枚举，新 `ProductionCampaign` 是更高层的阶段专项，两者共存

@@ -2,14 +2,14 @@
   "title": "Migrate to v0.4.0-beta.9",
   "description": "Breaking change migration from v0.3.10 to v0.4.0-beta.9",
   "status": "planning",
-  "dev_type": null,
+  "dev_type": "backend",
   "scope": "migration",
   "priority": "P1",
   "creator": "trellis-update",
   "assignee": "name=zhaobaolong\r\ninitialized_at=2026-04-03T10:19:38.526426",
   "createdAt": "2026-04-15",
   "completedAt": null,
-  "branch": null,
+  "branch": "chore/trellis-0.4.0-migration",
   "base_branch": null,
   "worktree_path": null,
   "current_phase": 0,
@@ -36,5 +36,6 @@
   "subtasks": [],
   "children": [],
   "parent": null,
-  "meta": {}
+  "meta": {},
+  "package": null
 }
