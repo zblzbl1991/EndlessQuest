@@ -6,9 +6,11 @@ import type {
   SectAutomationSettings,
   SectArchetype,
   RiskTier,
+  ProductionCampaign,
 } from '../../types'
 import type { Character } from '../../types'
 import { getVisibleExpeditionTemplates } from '../../data/expeditionTemplates'
+import { getCampaignRiskModifiers } from './ProductionCampaignSystem'
 
 export interface AutoRecruitCheckInput {
   spiritStone: number
@@ -101,13 +103,14 @@ function mapAutomationStyle(
   }
 }
 
-/** Apply archetype and risk tier modifiers to the run config */
+/** Apply archetype, risk tier, and campaign modifiers to the run config */
 function applyArchetypeRiskModifiers(
   config: AdventureRunConfig,
   archetype: SectArchetype | undefined,
-  riskTier: RiskTier | undefined
+  riskTier: RiskTier | undefined,
+  campaign: ProductionCampaign | null = null
 ): AdventureRunConfig {
-  if (!archetype && !riskTier) return config
+  if (!archetype && !riskTier && !campaign) return config
 
   let { automationStrategy, tacticalPreset, supplyLevel } = config
 
@@ -128,6 +131,18 @@ function applyArchetypeRiskModifiers(
   } else if (riskTier === 'safe') {
     // Safe: conservative tactics
     if (tacticalPreset === 'burst') tacticalPreset = 'balanced'
+  }
+
+  // Campaign influence on supply level tendency
+  if (campaign) {
+    const campaignMods = getCampaignRiskModifiers(campaign)
+    if (
+      campaignMods.supplyLevelUpgradeChance > 0 &&
+      supplyLevel === 'basic' &&
+      (riskTier === 'gamble' || riskTier === 'destiny')
+    ) {
+      supplyLevel = 'enhanced'
+    }
   }
 
   return {
@@ -188,8 +203,9 @@ export function buildAutomationRunConfig(input: {
     ...mapAutomationStyle(targetRiskTolerance, rewardFocus),
   }
 
-  // Apply archetype + risk tier modifier layer
+  // Apply archetype + risk tier + campaign modifier layer
   const riskTier = activeTemplate?.riskTier
   const archetype = input.settings.routeShift?.currentArchetype
-  return applyArchetypeRiskModifiers(baseConfig, archetype, riskTier)
+  const campaign = input.settings.productionCampaign?.activeCampaign ?? null
+  return applyArchetypeRiskModifiers(baseConfig, archetype, riskTier, campaign)
 }

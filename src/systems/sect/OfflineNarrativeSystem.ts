@@ -1,4 +1,5 @@
 import type { AdventureReport, AdventureReportSummary, ExpeditionTemplate, OfflineAccumulator, Sect } from '../../types'
+import type { ProductionCampaign, RiskTier } from '../../types/sect'
 import { getExpeditionTemplateSignal } from '../../data/expeditionTemplates'
 import { getLegacyReportFlavor } from '../../data/legacyFlavor'
 import { REPORT_RESULT_LABELS } from '../../data/uiCopy'
@@ -6,6 +7,7 @@ import { diagnoseSectBottlenecks } from './SectBottleneckSystem'
 import { buildSectRumors } from './SectRumorSystem'
 import { analyzeGuixuLoop, summarizeGuixuLoopYield } from './GuixuLoopAdvisor'
 import { getArchetypeName } from '../../data/sectArchetypes'
+import { buildGambleNarrative, getArchetypeFitLabel } from '../adventure/RiskRewardSystem'
 
 export interface OfflineNarrativeItem {
   id: string
@@ -182,6 +184,98 @@ export function buildOfflineNarrative(input: BuildOfflineNarrativeInput): Offlin
       detail: `${charName} 的特质暗示了「${getArchetypeName(opp.suggestedArchetype)}」路线：${opp.reason}`,
       tone: 'accent',
     })
+  }
+
+  // ---...--- Phase 4: Campaign-Risk-Route closed loop narrative ---...---
+  const activeCampaign: ProductionCampaign | null =
+    input.sect.automationSettings.productionCampaign?.activeCampaign ?? null
+  const currentArchetype = input.sect.currentArchetype
+
+  // Campaign preparation feedback
+  if (activeCampaign === 'expeditionPrep') {
+    notableEvents.push({
+      id: 'campaign_risk_prep',
+      title: '远征专项就绪',
+      detail: '远征专项准备充分，下次高风险远征会更稳，失败代价也会更低。',
+      tone: 'good',
+    })
+  }
+
+  // Campaign-recovery feedback
+  if (activeCampaign === 'recoverySprint') {
+    const recoveringCount = input.sect.characters.filter(
+      (c) => c.status === 'recovering' || c.status === 'injured' || c.status === 'resting'
+    ).length
+    if (recoveringCount > 0) {
+      notableEvents.push({
+        id: 'campaign_recovery',
+        title: '恢复专项见效',
+        detail: `恢复专项正在加速 ${recoveringCount} 名伤病弟子的恢复，战损正在被弥补。`,
+        tone: 'good',
+      })
+    }
+  }
+
+  // Gamble result narrative for high-risk reports
+  const highRiskReport = (input.recentReportDetails ?? []).find(
+    (report) => report.riskTier === 'gamble' || report.riskTier === 'destiny'
+  )
+  if (highRiskReport) {
+    const template = input.sect.automationSettings.expeditionTemplates.find((t) => t.id === highRiskReport.templateId)
+    const riskHook = template?.riskHookDescriptor
+    const fitResult = getArchetypeFitLabel(currentArchetype, riskHook ?? undefined)
+    const narrative = buildGambleNarrative({
+      riskTier: highRiskReport.riskTier as RiskTier | undefined,
+      archetype: currentArchetype,
+      campaign: activeCampaign,
+      result: highRiskReport.result,
+      archetypeFit: fitResult.fit,
+    })
+    if (narrative) {
+      notableEvents.push({
+        id: `gamble_narrative_${highRiskReport.id}`,
+        title: highRiskReport.result === 'completed' ? '押注收获' : '押注复盘',
+        detail: narrative,
+        tone: highRiskReport.result === 'completed' ? 'good' : 'warn',
+      })
+    }
+  }
+
+  // Route mismatch warning
+  if (activeCampaign && activeCampaign !== 'expeditionPrep') {
+    const templateForMismatch = input.sect.automationSettings.expeditionTemplates.find(
+      (t) => t.id === input.sect.automationSettings.activeTemplateId
+    )
+    const riskHookForMismatch = templateForMismatch?.riskHookDescriptor
+    if (
+      riskHookForMismatch &&
+      (templateForMismatch?.riskTier === 'gamble' || templateForMismatch?.riskTier === 'destiny')
+    ) {
+      const fit = getArchetypeFitLabel(currentArchetype, riskHookForMismatch)
+      if (fit.fit === 'poor') {
+        notableEvents.push({
+          id: 'route_risk_mismatch',
+          title: '路线风险不匹配',
+          detail: `当前「${getArchetypeName(currentArchetype)}」路线与高风险模板不适配，建议降低风险档位或调整路线。`,
+          tone: 'warn',
+        })
+      }
+    }
+  }
+
+  // Transformation reward hint from route opportunities
+  if (input.sect.routeOpportunities.length > 0 && activeCampaign !== 'recoverySprint') {
+    const hasRecentHighRiskSuccess = (input.recentReportDetails ?? []).some(
+      (report) => (report.riskTier === 'gamble' || report.riskTier === 'destiny') && report.result === 'completed'
+    )
+    if (hasRecentHighRiskSuccess) {
+      notableEvents.push({
+        id: 'transformation_hint',
+        title: '转型奖励到账',
+        detail: `高风险远征的成功为路线转型积累了资源，可以考虑围绕新机会调整宗门方向。`,
+        tone: 'accent',
+      })
+    }
   }
 
   const nextSuggestion =

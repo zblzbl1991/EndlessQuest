@@ -24,6 +24,8 @@ export type EventType =
   | 'automation_adjusted'
   | 'random_event'
   | 'route_opportunity'
+  | 'archetype_shifted'
+  | 'campaign_started'
 
 export interface GameEvent {
   id: string

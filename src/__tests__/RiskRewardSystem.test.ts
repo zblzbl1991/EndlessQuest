@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest'
 import {
   getRiskRewardModifier,
+  getRiskRewardModifierWithCampaign,
   getRiskDescription,
   getFailurePenaltyDescription,
   isArchetypeFitForRisk,
   getArchetypeFitLabel,
+  buildGambleNarrative,
 } from '../systems/adventure/RiskRewardSystem'
 
 describe('RiskRewardSystem', () => {
@@ -119,6 +121,26 @@ describe('RiskRewardSystem', () => {
     it('returns neutral when no data', () => {
       const result = getArchetypeFitLabel(undefined, undefined)
       expect(result.fit).toBe('neutral')
+    })
+  })
+
+  describe('getRiskRewardModifierWithCampaign', () => {
+    it('returns base modifier when campaign is null', () => {
+      const base = getRiskRewardModifier('gamble', undefined, undefined)
+      const withCampaign = getRiskRewardModifierWithCampaign('gamble', undefined, undefined, null)
+      expect(withCampaign.rewardMultiplier).toBe(base.rewardMultiplier)
+    })
+
+    it('expeditionPrep boosts gamble reward multiplier', () => {
+      const base = getRiskRewardModifier('gamble', undefined, undefined)
+      const withCampaign = getRiskRewardModifierWithCampaign('gamble', undefined, undefined, 'expeditionPrep')
+      expect(withCampaign.rewardMultiplier).toBeGreaterThan(base.rewardMultiplier)
+    })
+
+    it('recoverySprint reduces failure recovery penalty', () => {
+      const base = getRiskRewardModifier('destiny', undefined, undefined)
+      const withCampaign = getRiskRewardModifierWithCampaign('destiny', undefined, undefined, 'recoverySprint')
+      expect(withCampaign.failureRecoveryPenalty).toBeLessThan(base.failureRecoveryPenalty)
     })
   })
 })

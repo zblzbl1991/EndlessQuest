@@ -176,4 +176,109 @@ describe('buildOfflineNarrative', () => {
     expect(narrative.loopAdjustment?.actionLabel).toBe('改成均衡风险')
     expect(narrative.loopAdjustment?.changes?.riskTolerance).toBe('balanced')
   })
+
+  // --- Phase 4 tests ---
+
+  it('surfaces campaign preparation feedback when expeditionPrep is active', () => {
+    const sect = createInitialState().sect
+    sect.automationSettings.productionCampaign = {
+      activeCampaign: 'expeditionPrep',
+      startedAtDay: 1,
+      durationHours: 8,
+      cooldownHours: 4,
+      cooldownRemainingHours: 0,
+    }
+
+    const narrative = buildOfflineNarrative({
+      sect,
+      accumulator: {
+        resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+        breakthroughs: [],
+        itemsCrafted: [],
+        taxIncome: 0,
+      },
+      recentReports: [],
+      recentReportDetails: [],
+      recentEvents: [],
+    })
+
+    expect(narrative.notableEvents.some((event) => event.title === '远征专项就绪')).toBe(true)
+    expect(narrative.notableEvents.some((event) => event.detail.includes('高风险远征会更稳'))).toBe(true)
+  })
+
+  it('surfaces recovery campaign feedback when recovering disciples exist', () => {
+    const sect = createInitialState().sect
+    sect.automationSettings.productionCampaign = {
+      activeCampaign: 'recoverySprint',
+      startedAtDay: 1,
+      durationHours: 8,
+      cooldownHours: 4,
+      cooldownRemainingHours: 0,
+    }
+    // Add a recovering character
+    if (sect.characters.length > 0) {
+      sect.characters[0] = { ...sect.characters[0], status: 'injured', injuryTimer: 100 }
+    }
+
+    const narrative = buildOfflineNarrative({
+      sect,
+      accumulator: {
+        resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+        breakthroughs: [],
+        itemsCrafted: [],
+        taxIncome: 0,
+      },
+      recentReports: [],
+      recentReportDetails: [],
+      recentEvents: [],
+    })
+
+    expect(narrative.notableEvents.some((event) => event.title === '恢复专项见效')).toBe(true)
+  })
+
+  it('surfaces gamble narrative for high-risk reports', () => {
+    const sect = createInitialState().sect
+    sect.automationSettings.activeTemplateId = 'breakthroughPush'
+    sect.currentArchetype = 'swordBurst'
+
+    const narrative = buildOfflineNarrative({
+      sect,
+      accumulator: {
+        resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+        breakthroughs: [],
+        itemsCrafted: [],
+        taxIncome: 0,
+      },
+      recentReports: [],
+      recentReportDetails: [
+        {
+          id: 'gamble_report',
+          config: {
+            dungeonId: 'lingCaoValley',
+            teamCharacterIds: [],
+            supplyLevel: 'basic',
+            tacticalPreset: 'balanced',
+            automationStrategy: 'steady',
+          },
+          dungeonId: 'lingCaoValley',
+          teamCharacterIds: [],
+          startedAt: 1,
+          finishedAt: 2,
+          result: 'completed',
+          floorsCleared: 5,
+          rewards: { spiritStone: 100, spiritEnergy: 0, herb: 0, ore: 0 },
+          itemRewards: [],
+          finalMemberStates: {},
+          teamSnapshot: {},
+          discipleMutations: {},
+          steps: [],
+          riskTier: 'gamble',
+          templateId: 'breakthroughPush',
+        },
+      ],
+      recentEvents: [],
+    })
+
+    expect(narrative.notableEvents.some((event) => event.title === '押注收获')).toBe(true)
+  })
 })
