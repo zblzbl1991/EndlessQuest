@@ -20,6 +20,10 @@
 
 React 19 + TypeScript + Zustand + CSS Modules + Vitest + IndexedDB
 
+## 工作流强制规则
+
+编码完成后，在运行 quality check 之前，必须先执行 `/tdd` 进行测试驱动验证。流程顺序为：Implement → `/tdd` → Check Quality → Complete。不跳过，不合并。
+
 ## 当前状态
 
 核心产品重构已完成（2026-03-27 ~ 03-29），项目已具备完整的核心循环：
