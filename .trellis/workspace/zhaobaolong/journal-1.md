@@ -937,3 +937,69 @@ Analyzed 5 recent commits (19b4ab9..5bb1bfa) covering codex-driven code changes,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 18: Phase 4 midgame deepening: route-risk-production closed loop
+
+**Date**: 2026-04-15
+**Task**: Phase 4 midgame deepening: route-risk-production closed loop
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+## Phase 4: 路线-风险-产线闭环联动
+
+| Feature | Description |
+|---------|-------------|
+| Campaign-Risk Loop | 专项真实影响高风险收益：expeditionPrep/recoverySprint/forgeSprint 各有差异化修正 |
+| Building-Campaign | 建筑高阶节点解锁专项增强（锻造7+/炼金5+/市场4+） |
+| Automation Integration | SectAutomationSystem 传入专项数据，expeditionPrep 自动提升补给等级 |
+| Offline Narrative | 离线报告解释"为什么这次赌得值/不值"，含路线适配归因 |
+| Rumor System | 新增 4 种风闻：专项启动、路线转换、高风险成功、路线机会 |
+| Event Tracking | archetype_shifted / campaign_started 事件发射并持久化 |
+
+**Modified Files**:
+- `src/systems/sect/ProductionCampaignSystem.ts` — CampaignRiskModifiers + getCampaignEnhancement
+- `src/systems/adventure/RiskRewardSystem.ts` — getRiskRewardModifierWithCampaign + buildGambleNarrative
+- `src/systems/sect/SectAutomationSystem.ts` — campaign data passthrough
+- `src/systems/sect/OfflineNarrativeSystem.ts` — Phase 4 narrative events
+- `src/systems/sect/SectRumorSystem.ts` — new rumor types
+- `src/stores/sectStore/strategySlice.ts` — event emission
+- `src/stores/eventLogStore.ts` — new event types
+- `src/pages/BuildingsPage.tsx` — campaign enhancement display
+
+**New Test Files**:
+- `src/__tests__/ProductionCampaignRiskIntegration.test.ts`
+- `src/__tests__/ArchetypeRiskLoopIntegration.test.ts`
+
+**Verification**: build pass, 224 test files, 3370 tests, 0 regressions
+
+## Other Work
+- Trellis v0.4.0 migration (already committed in 557ee46)
+- Fixed missing _bootstrap.py for multi_agent scripts
+- Archived both completed tasks
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c7321ee` | (see git log) |
+| `2248d94` | (see git log) |
+| `22d38cf` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
