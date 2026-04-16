@@ -1,0 +1,4 @@
+{"file": ".claude/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
+{"file": ".claude/commands/trellis/check.md", "reason": "Code quality check spec"}
+{"file": ".trellis/spec/backend/midgame-systems.md", "reason": "Verify cultivation system changes against spec"}
+{"file": ".trellis/spec/backend/character-level-system.md", "reason": "Verify character type changes"}

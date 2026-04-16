@@ -1,0 +1,6 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/backend/index.md", "reason": "Backend development guide"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/backend/midgame-systems.md", "reason": "Contains combat and adventure system specs"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Component patterns for report UI"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "Store patterns for adventure data"}
