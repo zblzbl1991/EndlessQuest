@@ -13,6 +13,8 @@ import { getRiskTierLabel, isHighRiskTemplate, getTemplateRiskHook } from '../da
 import { getRiskDescription } from '../systems/adventure/RiskRewardSystem'
 import { getLegacyReportFlavor } from '../data/legacyFlavor'
 import type { CombatAction, CombatResult, CombatUnit } from '../systems/combat/CombatEngine'
+import { extractNarrative } from '../systems/combat/CombatNarrativeSystem'
+import type { CombatHighlight } from '../systems/combat/CombatNarrativeSystem'
 import { buildAdventureReportInsight } from '../systems/roguelike/AdventureReportInsightSystem'
 import { getTechniqueById } from '../data/techniquesTable'
 import type { AdventureReport, AdventureReportStep } from '../types'
@@ -239,6 +241,30 @@ const staggerItemVariants = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' as const } },
 }
 
+// ─── Combat Narrative Highlights Panel ──────────────────────────────────
+
+const ACCENT_TYPES = new Set<CombatHighlight['type']>(['comeback', 'killing_blow'])
+
+function CombatNarrativeHighlights({ highlights }: { highlights: CombatHighlight[] }) {
+  if (highlights.length === 0) return null
+
+  return (
+    <div className={styles.narrativeSection}>
+      <div className={styles.narrativeTitle}>战局叙述</div>
+      <div className={styles.narrativeList}>
+        {highlights.map((h, idx) => (
+          <div
+            key={idx}
+            className={`${styles.narrativeCard} ${ACCENT_TYPES.has(h.type) ? styles.narrativeAccent : ''}`}
+          >
+            {h.text}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ─── Round-by-Round Details Panel ─────────────────────────────────────
 
 function RoundByRoundDetails({
@@ -306,6 +332,7 @@ function BossCombatReport({ meta }: { meta: BossStepMeta }) {
 
   const keyActions = extractKeyActions(combatResult.actions)
   const { teamOutput, teamReceived, bossOutput } = buildDamageStats(combatResult.actions, bossUnit, teamUnits)
+  const narrative = extractNarrative(combatResult, bossUnit, teamUnits)
 
   return (
     <div className={styles.bossPanel}>
@@ -337,6 +364,9 @@ function BossCombatReport({ meta }: { meta: BossStepMeta }) {
         ))}
       </div>
 
+      {/* Combat narrative highlights */}
+      <CombatNarrativeHighlights highlights={narrative.highlights} />
+
       {/* Round-by-round details */}
       <div className={styles.bossSectionTitle}>回合明细</div>
       <RoundByRoundDetails actions={combatResult.actions} bossUnit={bossUnit} teamUnits={teamUnits} />
@@ -366,18 +396,20 @@ function BossCombatReport({ meta }: { meta: BossStepMeta }) {
 
 function CombatReportPanel({ meta }: { meta: CombatStepMeta }) {
   const combatResult = meta.combatResult!
-  const teamUnits = meta.teamUnits ?? []
+  const teamUnits = meta.teamUnits
   const enemyUnit = meta.enemyUnit
 
   const [expanded, setExpanded] = useState(false)
 
   // Simple stats
   const totalTeamDmg = combatResult.actions
-    .filter((a) => teamUnits.some((u) => u.id === a.actorId))
+    .filter((a) => (teamUnits ?? []).some((u) => u.id === a.actorId))
     .reduce((sum, a) => sum + a.damage, 0)
   const totalEnemyDmg = combatResult.actions
     .filter((a) => enemyUnit && a.actorId === enemyUnit.id)
     .reduce((sum, a) => sum + a.damage, 0)
+
+  const narrative = enemyUnit ? extractNarrative(combatResult, enemyUnit, teamUnits ?? []) : { highlights: [] }
 
   return (
     <div className={styles.combatPanel}>
@@ -396,7 +428,8 @@ function CombatReportPanel({ meta }: { meta: CombatStepMeta }) {
       </div>
       {expanded && enemyUnit && (
         <div className={styles.combatDetails}>
-          <RoundByRoundDetails actions={combatResult.actions} bossUnit={enemyUnit} teamUnits={teamUnits} />
+          <CombatNarrativeHighlights highlights={narrative.highlights} />
+          <RoundByRoundDetails actions={combatResult.actions} bossUnit={enemyUnit} teamUnits={teamUnits ?? []} />
         </div>
       )}
       <button className={styles.roundToggle} onClick={() => setExpanded(!expanded)}>
