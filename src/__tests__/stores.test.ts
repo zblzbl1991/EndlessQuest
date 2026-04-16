@@ -802,12 +802,12 @@ describe('SectStore - Healing', () => {
         characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, status: 'injured' } : c)),
       },
     }))
-    getStore().addResource('herb', 5)
+    getStore().addResource('herb', 25)
 
     const result = getStore().healCharacter(char.id)
     expect(result).toBe(true)
     expect(getStore().sect.characters[0].status).toBe('idle')
-    expect(getStore().sect.resources.herb).toBe(3) // 5 - 2 herbs consumed
+    expect(getStore().sect.resources.herb).toBe(5) // 25 - 20 herbs consumed
   })
 
   it('healCharacter should fail without herbs', () => {
@@ -826,7 +826,7 @@ describe('SectStore - Healing', () => {
 
   it('healCharacter should fail for non-injured character', () => {
     const char = getFirstCharacter()
-    getStore().addResource('herb', 5)
+    getStore().addResource('herb', 25)
     const result = getStore().healCharacter(char.id)
     expect(result).toBe(false)
   })
@@ -839,7 +839,7 @@ describe('SectStore - Healing', () => {
         characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, status: 'injured' } : c)),
       },
     }))
-    getStore().addResource('herb', 5)
+    getStore().addResource('herb', 25)
 
     const result = getStore().healCharacter(char.id)
     expect(result).toBe(true)
@@ -865,7 +865,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       },
     }))
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    // 0.5 avoids cultivation events and lands in 'success' outcome (0.1-0.6)
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     getStore().tickAll(1)
 
     const updated = getStore().sect.characters[0]
@@ -891,22 +892,22 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       sect: {
         ...s.sect,
         characters: s.sect.characters.map((c) => (c.id === char.id ? { ...c, realmStage: 3, cultivation: 1000 } : c)),
-        resources: { ...s.sect.resources, spiritStone: 5000, spiritEnergy: 1000 },
+        resources: { ...s.sect.resources, spiritStone: 5000, spiritEnergy: 1000, herb: 100 },
         vault: [],
       },
     }))
 
     expect(getStore().chooseCultivationPath(char.id, 'sword')).toBe(true)
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    // 0.5 avoids cultivation events and lands in 'success' outcome (0.1-0.6)
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     getStore().tickAll(1)
 
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(1)
     expect(updated.realmStage).toBe(0)
-    // spiritStone deducted (3000 for realm 1 breakthrough)
+    // spiritStone deducted for realm 1 breakthrough
     expect(getStore().sect.resources.spiritStone).toBeLessThan(5000)
-    expect(getStore().sect.resources.spiritStone).toBeGreaterThanOrEqual(5000 - 3000)
   })
 
   it('should pause the first major breakthrough until a cultivation path is chosen', () => {
@@ -999,7 +1000,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       },
     }))
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     getStore().tickAll(1)
 
     // Sub-level breakthrough consumes minor breakthrough cost (50 for realm 0, stage 0) but not vault items
@@ -1007,7 +1008,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(getStore().sect.resources.spiritStone).toBe(950.55) // 1000 - 50 + 0.5 (mine) + 0.05 (tax)
   })
 
-  it('should remove a disciple when sub-level breakthrough fails', () => {
+  it('should injure a disciple when sub-level breakthrough fails', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100)
     useSectStore.setState((s) => ({
@@ -1017,10 +1018,14 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       },
     }))
 
-    vi.spyOn(Math, 'random').mockReturnValue(0)
+    // 0.85 lands in 'injured' outcome for sub-level breakthrough (0.8-1.0 range)
+    vi.spyOn(Math, 'random').mockReturnValue(0.9)
     getStore().tickAll(1)
 
-    expect(getStore().sect.characters.find((item) => item.id === char.id)).toBeUndefined()
+    const updated = getStore().sect.characters.find((item) => item.id === char.id)
+    expect(updated).toBeDefined()
+    expect(updated!.status).toBe('injured')
+    expect(updated!.injuryTimer).toBeGreaterThan(0)
   })
 
   it('should skip minor breakthrough when spirit stones insufficient', () => {
@@ -1035,7 +1040,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       },
     }))
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     getStore().tickAll(1)
 
     const updated = getStore().sect.characters[0]
@@ -1066,11 +1071,12 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
               }
             : c
         ),
-        resources: { ...s.sect.resources, spiritStone: 20000, spiritEnergy: 10000 },
+        resources: { ...s.sect.resources, spiritStone: 20000, spiritEnergy: 10000, herb: 200 },
       },
     }))
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    // 0.5 avoids cultivation events, passes tribulation (failRate ~0.06), lands in 'success' outcome (0.1-0.6)
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     getStore().tickAll(1)
 
     const updated = getStore().sect.characters[0]
@@ -1092,7 +1098,9 @@ describe('SectStore - tickAll', () => {
     getStore().addResource('spiritStone', 1000)
     getStore().tryUpgradeBuilding('spiritField')
     const result = getStore().tickAll(10)
-    expect(result.spiritProduced).toBeCloseTo(50, 0) // 5/s * 10s = 50 spirit energy
+    // Base rate 5/s * 10s = 50, but tide multiplier modifies spiritEnergy production.
+    // At totalPlayTime=0, the tide is in flood phase with spiritEnergy x1.5.
+    expect(result.spiritProduced).toBeCloseTo(75, 0) // 5/s * 1.5 (tide) * 10s = 75
     expect(result.spiritConsumed).toBeGreaterThan(0) // cultivator consumed some
   })
 
@@ -2180,7 +2188,8 @@ describe('tickAll with production queue', () => {
 
     const sect = getStore().sect
     expect(sect.vault.length).toBe(0) // nothing produced (no herbs)
-    expect(sect.resources.herb).toBeCloseTo(2) // initial spiritField still passively grows herbs
+    // herb rate: spiritField level 1 = 0.1/s * 20s = 2. Tide multiplier at totalPlayTime=0 is flood (herb x1.3).
+    expect(sect.resources.herb).toBeCloseTo(2.6)
   })
 
   it('should clamp resources to caps after tick', () => {
@@ -2524,7 +2533,7 @@ describe('SectStore - Offline Accumulator', () => {
     setCharacterCultivation(char.id, 100) // needs 100 for sub-level breakthrough
     getStore().addResource('spiritEnergy', 1000)
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    vi.spyOn(Math, 'random').mockReturnValue(0.5)
     getStore().tickAll(1)
 
     const acc = getStore().sect.offlineAccumulator

@@ -88,18 +88,19 @@ export function getCultivationNeeded(realmIndex: number, stage: number): number 
 export interface BreakthroughResourceCost {
   spiritStone: number
   spiritEnergy: number
+  herb?: number
 }
 
 /**
  * Breakthrough costs for major realm transitions.
- * Key = target realm index (1-5). Requires both spiritStone and spiritEnergy.
+ * Key = target realm index (1-5). Requires spiritStone, spiritEnergy, and herb for higher realms.
  */
 export const BREAKTHROUGH_COSTS: Record<number, BreakthroughResourceCost> = {
-  1: { spiritStone: 1800, spiritEnergy: 480 },
-  2: { spiritStone: 9600, spiritEnergy: 2400 },
-  3: { spiritStone: 80000, spiritEnergy: 20000 },
-  4: { spiritStone: 350000, spiritEnergy: 90000 },
-  5: { spiritStone: 1500000, spiritEnergy: 400000 },
+  1: { spiritStone: 1800, spiritEnergy: 480, herb: 50 },
+  2: { spiritStone: 9600, spiritEnergy: 2400, herb: 100 },
+  3: { spiritStone: 80000, spiritEnergy: 20000, herb: 200 },
+  4: { spiritStone: 350000, spiritEnergy: 90000, herb: 400 },
+  5: { spiritStone: 1500000, spiritEnergy: 400000, herb: 800 },
 }
 
 /**
@@ -145,13 +146,23 @@ export function getMinorBreakthroughEnergyCost(realmIndex: number, stage: number
   return MINOR_BREAKTHROUGH_ENERGY_COSTS[realmIndex]?.[stage + 1] ?? Infinity
 }
 
+/** Herb costs for minor stage breakthroughs within each realm. */
+export const MINOR_BREAKTHROUGH_HERB_COSTS: Record<number, Record<number, number>> = {
+  0: { 1: 0, 2: 0, 3: 5 },
+  1: { 1: 0, 2: 5, 3: 15 },
+  2: { 1: 5, 2: 15, 3: 30 },
+  3: { 1: 15, 2: 30, 3: 60 },
+  4: { 1: 30, 2: 60, 3: 120 },
+}
+
 export function getBreakthroughResourceCost(realmIndex: number, currentStage: number): BreakthroughResourceCost {
   if (currentStage >= 3) {
-    return BREAKTHROUGH_COSTS[realmIndex + 1] ?? { spiritStone: Infinity, spiritEnergy: Infinity }
+    return BREAKTHROUGH_COSTS[realmIndex + 1] ?? { spiritStone: Infinity, spiritEnergy: Infinity, herb: 0 }
   }
 
   return {
     spiritStone: MINOR_BREAKTHROUGH_COSTS[realmIndex]?.[currentStage + 1] ?? Infinity,
     spiritEnergy: MINOR_BREAKTHROUGH_ENERGY_COSTS[realmIndex]?.[currentStage + 1] ?? Infinity,
+    herb: MINOR_BREAKTHROUGH_HERB_COSTS[realmIndex]?.[currentStage + 1] ?? 0,
   }
 }

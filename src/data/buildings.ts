@@ -3,12 +3,18 @@ import type { Building, BuildingType, ResourceCaps } from '../types/sect'
 import { getAlchemyBuff, getForgeBuff, getMarketBuff, getRecruitBuff } from '../systems/economy/BuildingEffects'
 import { getTechniqueCodexCapacity } from '../systems/technique/TechniqueSystem'
 
+export interface BuildingUpgradeCost {
+  spiritStone: number
+  herb?: number
+  ore?: number
+}
+
 export interface BuildingDef {
   type: BuildingType
   name: string
   description: string
   maxLevel: number
-  upgradeCost: (level: number) => { spiritStone: number }
+  upgradeCost: (level: number) => BuildingUpgradeCost
   unlockCondition: string
   expandable?: boolean
 }
@@ -132,13 +138,33 @@ export function getObservedBuildingEcology(type: BuildingType): BuildingEcologyP
   return getBuildingEcologyProfile(type, getObservedBuildingLevel(type))
 }
 
+/**
+ * Helper: compute spirit stone cost and optional herb/ore costs for building upgrades.
+ * High-level upgrades (level >= 5) require additional materials.
+ */
+function buildingUpgradeCost(level: number, herbStart: number, oreStart: number): BuildingUpgradeCost {
+  const spiritStone = Math.round(200 * Math.pow(level + 1, 1.7))
+  const result: BuildingUpgradeCost = { spiritStone }
+
+  if (level >= herbStart) {
+    // Herb cost ramps from 10 at herbStart, +8 per additional level
+    result.herb = 10 + (level - herbStart) * 8
+  }
+  if (level >= oreStart) {
+    // Ore cost ramps from 10 at oreStart, +8 per additional level
+    result.ore = 10 + (level - oreStart) * 8
+  }
+
+  return result
+}
+
 export const BUILDING_DEFS: BuildingDef[] = [
   {
     type: 'mainHall',
     name: '主殿',
     description: '宗门中枢，决定地块上限与整体展开能力。',
     maxLevel: 10,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 7, 5),
     unlockCondition: '初始',
   },
   {
@@ -146,7 +172,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     name: '灵矿',
     description: '产出灵石与矿材，是宗门的稳定灵石来源。',
     maxLevel: 10,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 5, 7),
     unlockCondition: '初始',
     expandable: true,
   },
@@ -155,7 +181,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     name: '灵田',
     description: '产出灵气与灵草，支撑修炼与炼丹需求。',
     maxLevel: 10,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 7, 5),
     unlockCondition: '初始',
     expandable: true,
   },
@@ -164,7 +190,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     name: '坊市',
     description: '来往商旅汇聚，可换购宗门所需物资。',
     maxLevel: 8,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 6, 7),
     unlockCondition: '主殿 Lv1',
   },
   {
@@ -172,7 +198,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     name: '丹炉',
     description: '炼制丹药与灵液，补足修行与战备。',
     maxLevel: 8,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 7, 5),
     unlockCondition: '主殿 Lv2 + 灵田 Lv2',
   },
   {
@@ -180,7 +206,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     name: '锻器坊',
     description: '锻造并精炼器物，提升弟子战力。',
     maxLevel: 8,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 5, 7),
     unlockCondition: '主殿 Lv2',
   },
   {
@@ -188,7 +214,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     name: '藏经阁',
     description: '扩充藏经容量，沉淀宗门传承。',
     maxLevel: 8,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 7, 7),
     unlockCondition: '主殿 Lv3',
   },
   {
@@ -196,7 +222,7 @@ export const BUILDING_DEFS: BuildingDef[] = [
     name: '聚仙台',
     description: '广纳有缘之人，补充门中弟子。',
     maxLevel: 6,
-    upgradeCost: (level) => ({ spiritStone: Math.round(200 * Math.pow(level + 1, 1.7)) }),
+    upgradeCost: (level) => buildingUpgradeCost(level, 7, 5),
     unlockCondition: '主殿 Lv3',
   },
 ]

@@ -35,6 +35,7 @@ import { buildSectStageGoals, buildPathOptions } from '../systems/sect/SectGoalS
 import { getArchetypeDescriptor, getArchetypeName, SECT_ARCHETYPES } from '../data/sectArchetypes'
 import { getCampaignDescriptor } from '../data/productionCampaigns'
 import { canShiftArchetype } from '../systems/sect/SectArchetypeSystem'
+import { getTideState, TIDE_PHASE_NAMES, formatTideCountdown } from '../systems/economy/TideSystem'
 import type { SectArchetype } from '../types/sect'
 import styles from './SectPage.module.css'
 
@@ -165,6 +166,7 @@ export default function SectPage() {
     [recentEvents]
   )
   const stageGoals = useMemo(() => buildSectStageGoals(sect, recentReports, dungeons), [sect, recentReports, dungeons])
+  const tideState = useMemo(() => getTideState(sect.stats.totalPlayTime), [sect.stats.totalPlayTime])
   const pathOptions = useMemo(() => buildPathOptions(sect), [sect])
   const nextAutoRunInDays = Math.max(0, 5 - (sect.autoRunDayCounter ?? 0))
   const nextAutoRunInSeconds = Math.max(0, nextAutoRunInDays * 60 - dayProgressSec)
@@ -656,6 +658,14 @@ export default function SectPage() {
           <div className={styles.rateRow}>
             <ResourceRate />
             {herbRate > 0 && <span className={styles.herbRate}>灵草 +{herbRate.toFixed(2)}/s</span>}
+          </div>
+          <div className={styles.tideRow}>
+            <span className={styles.tideLabel}>灵气潮汐</span>
+            <span className={styles.tidePhase}>{TIDE_PHASE_NAMES[tideState.phase]}</span>
+            <span className={styles.tideCountdown}>{formatTideCountdown(tideState.nextPhaseIn)}</span>
+            {tideState.phase === 'flood' && <span className={styles.tideDetail}>灵气 +50% 灵草 +30%</span>}
+            {tideState.phase === 'ebb' && <span className={styles.tideDetail}>灵气 -30% 矿材 +20%</span>}
+            {tideState.phase === 'still' && <span className={styles.tideDetail}>产出平稳</span>}
           </div>
         </section>
 

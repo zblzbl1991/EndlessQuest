@@ -712,6 +712,42 @@
   font-size: 12px;
 }
 
+/* Tide Status */
+.tideRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  background: rgba(237, 244, 248, 0.7);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.tideLabel {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.tidePhase {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  font-family: var(--font-serif);
+}
+
+.tideCountdown {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.tideDetail {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  margin-left: auto;
+}
+
 /* Spirit Stone Cap Progress */
 .capBar {
   position: relative;

@@ -19,6 +19,7 @@ import {
   calcCultivationRate,
 } from '../../systems/cultivation/CultivationEngine'
 import { processBreakthrough } from '../../systems/cultivation/BreakthroughCoordinator'
+import { processCultivationEvent } from '../../systems/cultivation/CultivationEventSystem'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { rollCultivationPath, getPathName } from '../../data/cultivationPaths'
 import { calcResourceCaps } from '../../data/buildings'
@@ -41,6 +42,7 @@ import { applyCharacterExperience } from '../../data/levelSystem'
 import { getArchetypeModifiers } from '../../systems/sect/SectArchetypeSystem'
 import { getCampaignModifiers, tickCampaignDuration } from '../../systems/sect/ProductionCampaignSystem'
 import { expireRouteOpportunities } from '../../systems/sect/RouteOpportunitySystem'
+import { getTideState } from '../../systems/economy/TideSystem'
 
 function getMarketLossRate(marketLevel: number): number {
   return Math.max(0.3, 0.667 - 0.05 * marketLevel)
@@ -133,6 +135,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     rates.herb *= archMods.resourceTemplateMultiplier * campMods.cultivationEfficiency
     rates.ore *= archMods.resourceTemplateMultiplier * campMods.forgeEfficiency
 
+    // 4f. Apply spirit tide cycle modifiers
+    const tideState = getTideState(sect.stats.totalPlayTime)
+    rates.spiritEnergy *= tideState.multipliers.spiritEnergy
+    rates.herb *= tideState.multipliers.herb
+    rates.ore *= tideState.multipliers.ore
+    rates.spiritStone *= tideState.multipliers.spiritStone
+
     const spiritProduced = rates.spiritEnergy * deltaSec
 
     // Offline accumulator: track items crafted
@@ -214,6 +223,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     // 9. Process each character
     let breakthroughStoneCost = 0
     let breakthroughEnergyCost = 0
+    let breakthroughHerbCost = 0
     let statBreakthroughAttempts = 0
     let statBreakthroughSuccesses = 0
     let unlockedFirstTribulationSuccess = false
@@ -225,14 +235,28 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       // Branch 1: idle characters auto-cultivate
       if (char.status === 'idle') {
         const effectiveSpirit = 2 * spiritRatio * deltaSec
+
+        // --- Cultivation event processing ---
+        const cultivationRate = calcCultivationRate(char, char.learnedTechniques)
+        const eventResult = processCultivationEvent(char, cultivationRate, deltaSec)
+
+        // Emit event messages (new event started or ended)
+        if (eventResult.message) {
+          emitEvent('milestone', eventResult.message)
+        }
+
         const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
-        // Apply archetype cultivation multiplier and campaign cultivation efficiency
-        const gained = result.cultivationGained * archMods.cultivationMultiplier * campMods.cultivationEfficiency
+        // Apply event modifier and archetype/campaign multipliers
+        const gained =
+          (result.cultivationGained * eventResult.cultivationMultiplier + eventResult.extraCultivation) *
+          archMods.cultivationMultiplier *
+          campMods.cultivationEfficiency
 
         let updatedChar: Character = {
           ...char,
           cultivation: char.cultivation + gained,
           totalCultivation: char.totalCultivation + gained,
+          cultivationEvent: eventResult.event,
         }
 
         const xpGain = Math.max(0, Math.floor(gained / 5))
@@ -274,13 +298,16 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
             sect.resources.spiritStone - breakthroughStoneCost,
             updatedSpiritEnergy - breakthroughEnergyCost,
             get().sect.techniqueCodex,
-            { spiritStone: breakthroughStoneCost, spiritEnergy: breakthroughEnergyCost },
-            pathEffectMap
+            { spiritStone: breakthroughStoneCost, spiritEnergy: breakthroughEnergyCost, herb: breakthroughHerbCost },
+            pathEffectMap,
+            undefined,
+            sect.resources.herb - breakthroughHerbCost
           )
 
           updatedChar = btResult.updatedChar
           breakthroughStoneCost += btResult.resourceCost.spiritStone
           breakthroughEnergyCost += btResult.resourceCost.spiritEnergy
+          breakthroughHerbCost += btResult.resourceCost.herb
           statBreakthroughAttempts += btResult.attemptsCount
           statBreakthroughSuccesses += btResult.successesCount
 
@@ -290,6 +317,15 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
           if (btResult.died) {
             breakthroughDeaths.push(updatedChar)
+          }
+
+          // Handle gradient breakthrough outcomes
+          if (btResult.outcome === 'injured' && btResult.injuryTimer > 0) {
+            updatedChar = {
+              ...updatedChar,
+              status: 'injured',
+              injuryTimer: btResult.injuryTimer,
+            }
           }
 
           if (btResult.unlockedTribulationMilestone) {
@@ -354,7 +390,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         0,
         sect.resources.spiritStone + mineStoneProduced + taxProduced - totalConsumed.spiritStone - breakthroughStoneCost
       ),
-      herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb,
+      herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb - breakthroughHerbCost,
       ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
     }
 

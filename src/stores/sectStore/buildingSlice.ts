@@ -85,6 +85,10 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
 
     const cost = def.upgradeCost(building.level)
     if (sect.resources.spiritStone < cost.spiritStone) return false
+    const herbCost = cost.herb ?? 0
+    const oreCost = cost.ore ?? 0
+    if (herbCost > 0 && sect.resources.herb < herbCost) return false
+    if (oreCost > 0 && sect.resources.ore < oreCost) return false
 
     set((s) => ({
       sect: {
@@ -95,6 +99,8 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
         resources: {
           ...s.sect.resources,
           spiritStone: s.sect.resources.spiritStone - cost.spiritStone,
+          ...(herbCost > 0 ? { herb: s.sect.resources.herb - herbCost } : {}),
+          ...(oreCost > 0 ? { ore: s.sect.resources.ore - oreCost } : {}),
         },
         stats: {
           ...s.sect.stats,
@@ -155,7 +161,13 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
       }))
     }
 
-    const check = canUpgradeBuilding(type, get().sect.buildings, get().sect.resources.spiritStone)
+    const check = canUpgradeBuilding(
+      type,
+      get().sect.buildings,
+      get().sect.resources.spiritStone,
+      get().sect.resources.herb,
+      get().sect.resources.ore
+    )
     if (!check.canUpgrade) return { success: false, reason: check.reason }
 
     const success = get().upgradeBuilding(type)

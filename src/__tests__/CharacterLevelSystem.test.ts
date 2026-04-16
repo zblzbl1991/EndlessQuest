@@ -23,6 +23,7 @@ describe('character level system', () => {
         realm: 0,
         level: 1,
         xp: 95,
+        growthMultipliers: { hp: 1, atk: 1, def: 1, spd: 1, crit: 1, critDmg: 1 },
         baseStats: {
           ...baseCharacter.baseStats,
           hp: 100,

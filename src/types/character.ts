@@ -3,6 +3,24 @@ import type { Talent, TalentAffixInstance } from './talent'
 import type { FateGridId } from './destiny'
 import type { Element } from './skill'
 
+// ---...--- Cultivation Event Types ---...---
+
+export type CultivationEventType = 'epiphany' | 'bottleneck' | 'spirit_dissipation'
+
+export interface CultivationEvent {
+  type: CultivationEventType
+  remainingTicks: number
+}
+
+export interface MilestoneSnapshot {
+  hp: number
+  atk: number
+  def: number
+  spd: number
+  spiritualRoot: number
+  comprehension: number
+}
+
 export type CultivationPath = 'none' | 'sword' | 'body' | 'alchemy' | 'beast' | 'formation' | 'void'
 
 export type CharacterTitle = 'disciple' | 'seniorDisciple' | 'master' | 'elder'
@@ -100,4 +118,7 @@ export interface Character {
   growthMultipliers: GrowthMultipliers
   prefix?: TalentAffixInstance
   suffix?: TalentAffixInstance
+  // --- Cultivation drama fields ---
+  cultivationEvent?: CultivationEvent
+  milestoneSnapshots?: Record<string, MilestoneSnapshot>
 }

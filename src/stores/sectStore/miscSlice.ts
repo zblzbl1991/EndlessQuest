@@ -8,7 +8,7 @@ export const createMiscSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const char = sect.characters.find((c) => c.id === characterId)
     if (!char) return false
     if (char.status !== 'injured') return false
-    if (sect.resources.herb < 2) return false
+    if (sect.resources.herb < 20) return false
 
     set((s) => ({
       sect: {
@@ -18,7 +18,7 @@ export const createMiscSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         ),
         resources: {
           ...s.sect.resources,
-          herb: s.sect.resources.herb - 2,
+          herb: s.sect.resources.herb - 20,
         },
       },
     }))

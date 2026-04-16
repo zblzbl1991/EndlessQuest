@@ -11,6 +11,9 @@ export type {
   GrowthMultipliers,
   ElementAffinity,
   CultivationPath,
+  CultivationEventType,
+  CultivationEvent,
+  MilestoneSnapshot,
 } from './character'
 export type { Technique, TechniqueTier, TechniqueBonus } from './technique'
 export type { Element, SkillCategory, TechniqueType, ActiveSkill } from './skill'

@@ -1036,3 +1036,60 @@
   color: var(--color-bg);
   border-radius: 2px;
 }
+
+/* ---...--- Cultivation Event Notice ---...--- */
+
+.cultivationEventNotice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px;
+  margin: 6px 0;
+  border-radius: var(--radius-sm);
+  background: rgba(95, 122, 141, 0.08);
+  border: 1px solid rgba(95, 122, 141, 0.16);
+  font-size: 12px;
+}
+
+.cultivationEventLabel {
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+.cultivationEventTimer {
+  color: var(--color-text-tertiary);
+  font-size: 11px;
+}
+
+/* ---...--- Growth Trajectory ---...--- */
+
+.trajectoryList {
+  display: grid;
+  gap: 8px;
+}
+
+.trajectoryEntry {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(95, 122, 141, 0.08);
+}
+
+.trajectoryHeader {
+  font-family: var(--font-serif);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: 4px;
+}
+
+.trajectoryStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.trajectoryStat {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}

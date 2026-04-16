@@ -16,7 +16,9 @@ export interface SectOverviewItem {
 
 function pickManagementChange(sect: Sect): SectOverviewItem {
   const upgradable = BUILDING_DEFS.find(
-    (def) => canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone).canUpgrade
+    (def) =>
+      canUpgradeBuilding(def.type, sect.buildings, sect.resources.spiritStone, sect.resources.herb, sect.resources.ore)
+        .canUpgrade
   )
   if (upgradable) {
     const building = sect.buildings.find((item) => item.type === upgradable.type)

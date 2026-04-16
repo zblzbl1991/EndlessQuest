@@ -48,8 +48,14 @@ export function checkBuildingUnlock(
 export function canUpgradeBuilding(
   buildingType: BuildingType,
   buildings: Building[],
-  spiritStone: number
-): { canUpgrade: boolean; cost: { spiritStone: number }; reason: string } {
+  spiritStone: number,
+  herb?: number,
+  ore?: number
+): {
+  canUpgrade: boolean
+  cost: ReturnType<(typeof import('../../data/buildings').BUILDING_DEFS)[0]['upgradeCost']>
+  reason: string
+} {
   const building = buildings.find((b) => b.type === buildingType)
   if (!building || !building.unlocked) return { canUpgrade: false, cost: { spiritStone: 0 }, reason: '未解锁' }
 
@@ -58,6 +64,11 @@ export function canUpgradeBuilding(
 
   const cost = def.upgradeCost(building.level)
   if (spiritStone < cost.spiritStone) return { canUpgrade: false, cost, reason: '灵石不足' }
+
+  const herbCost = cost.herb ?? 0
+  const oreCost = cost.ore ?? 0
+  if (herbCost > 0 && (herb ?? 0) < herbCost) return { canUpgrade: false, cost, reason: '灵草不足' }
+  if (oreCost > 0 && (ore ?? 0) < oreCost) return { canUpgrade: false, cost, reason: '矿材不足' }
 
   return { canUpgrade: true, cost, reason: '' }
 }

@@ -7,6 +7,7 @@ import { getRealmLevelCap, calcXpToNextLevel, getPerLevelStatBoost } from '../da
 import { getTechniqueById } from '../data/techniquesTable'
 import { getActiveSkillById } from '../data/activeSkills'
 import { calcEffectiveCultivationRate } from '../systems/cultivation/CultivationDisplay'
+import { getCultivationEventLabel } from '../systems/cultivation/CultivationEventSystem'
 import { getPathDef } from '../data/cultivationPaths'
 import { getPrimaryRole, getRoleLabel } from '../systems/character/SpecialtySystem'
 import { TECHNIQUE_TIER_NAMES } from '../types/technique'
@@ -639,6 +640,20 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
               修炼与突破
             </div>
             <div className={styles.cultivationInfo}>修炼速度 {effectiveCultivationSpeed.toFixed(1)}/s</div>
+            {character.cultivationEvent && (
+              <div className={styles.cultivationEventNotice}>
+                <span className={styles.cultivationEventLabel}>
+                  {getCultivationEventLabel(character.cultivationEvent.type)}
+                </span>
+                <span className={styles.cultivationEventTimer}>
+                  {character.cultivationEvent.remainingTicks > 0
+                    ? `剩余 ${Math.ceil(character.cultivationEvent.remainingTicks / 60)} 分钟`
+                    : character.cultivationEvent.remainingTicks < 0
+                      ? '加速中'
+                      : ''}
+                </span>
+              </div>
+            )}
             <BreakthroughPanel characterId={characterId} />
             <div className={styles.cultivationActions}>
               {character.status === 'training' && character.assignedBuilding && (
@@ -663,6 +678,48 @@ function CharacterDetail({ characterId, onBack }: { characterId: string; onBack:
               <div className={styles.adventureInfo}>正在秘境中探索，结算后会返回宗门。</div>
             </section>
           )}
+
+          {(() => {
+            const snapshots = character.milestoneSnapshots ?? {}
+            const entries = Object.entries(snapshots)
+            if (entries.length === 0) return null
+
+            // Show last 3 milestone snapshots sorted by realm-stage key
+            const sorted = entries
+              .sort(([a], [b]) => {
+                const [aR, aS] = a.split('-').map(Number)
+                const [bR, bS] = b.split('-').map(Number)
+                return aR !== bR ? aR - bR : aS - bS
+              })
+              .slice(-3)
+
+            return (
+              <FoldSection
+                icon="cultivation"
+                title="成长轨迹"
+                summary={`${entries.length} 次突破记录`}
+                defaultOpen={false}
+              >
+                <div className={styles.trajectoryList}>
+                  {sorted.map(([key, snapshot]) => {
+                    const [r, s] = key.split('-').map(Number)
+                    const realmName = getRealmName(r, s as 0 | 1 | 2 | 3)
+                    return (
+                      <div key={key} className={styles.trajectoryEntry}>
+                        <div className={styles.trajectoryHeader}>{realmName}</div>
+                        <div className={styles.trajectoryStats}>
+                          <span className={styles.trajectoryStat}>气血 {snapshot.hp}</span>
+                          <span className={styles.trajectoryStat}>攻击 {snapshot.atk}</span>
+                          <span className={styles.trajectoryStat}>防御 {snapshot.def}</span>
+                          <span className={styles.trajectoryStat}>速度 {snapshot.spd}</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </FoldSection>
+            )
+          })()}
 
           <FoldSection
             icon={DETAIL_SECTION_ICONS.base}
