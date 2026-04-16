@@ -12,6 +12,9 @@
 | [Character Level System](./character-level-system.md) | XP growth, level-up, realm caps, stat boost contracts | Filled |
 | [Guixu Loop Advisor](./guixu-loop-advisor.md) | Endgame loop preview, yield analysis, offline adjustment | Filled |
 | [Midgame Systems](./midgame-systems.md) | Archetype, campaigns, risk tiers, modifier chains, narrative integration | Filled |
+| [Cultivation Drama](./cultivation-drama.md) | Cultivation events (epiphany/bottleneck/dissipation), 5-level breakthrough gradient, growth trajectory | Filled |
+| [Combat Visualization](./combat-visualization.md) | Battle narrative extraction, highlight detection, report integration | Filled |
+| [Economy Depth](./economy-depth.md) | Spirit tide cycle, multi-resource costs, herb/ore independent uses | Filled |
 
 ---
 
