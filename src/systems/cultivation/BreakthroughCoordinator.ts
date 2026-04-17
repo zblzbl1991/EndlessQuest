@@ -39,7 +39,7 @@ export interface BreakthroughCost {
 }
 
 export interface BreakthroughEvent {
-  type: 'breakthrough_success' | 'breakthrough_failure' | 'breakthrough_comprehension'
+  type: 'breakthrough_success' | 'breakthrough_failure' | 'breakthrough_comprehension' | 'breakthrough_blocked'
   message: string
 }
 
@@ -292,16 +292,45 @@ export function processBreakthrough(
   const accumulatedHerb = currentCostAccumulator.herb ?? 0
 
   // Check resources
-  if (
-    availableSpiritStone - currentCostAccumulator.spiritStone < adjustedSpiritStoneCost ||
-    availableSpiritEnergy - currentCostAccumulator.spiritEnergy < cost.spiritEnergy
-  ) {
-    return noChange
+  const remainingStone = availableSpiritStone - currentCostAccumulator.spiritStone
+  const remainingEnergy = availableSpiritEnergy - currentCostAccumulator.spiritEnergy
+  const blockedResources: string[] = []
+  if (remainingStone < adjustedSpiritStoneCost) blockedResources.push('灵石')
+  if (remainingEnergy < cost.spiritEnergy) blockedResources.push('灵气')
+
+  if (blockedResources.length > 0) {
+    const targetName = isMajorBreakthrough
+      ? getRealmName(char.realm + 1, 0)
+      : getRealmName(char.realm, (char.realmStage + 1) as RealmStage)
+    return {
+      ...noChange,
+      events: [
+        {
+          type: 'breakthrough_blocked' as const,
+          message: `${char.name} 修为已满，但${blockedResources.join('、')}不足，无法突破至${targetName}`,
+        },
+      ],
+      targetRealmName: targetName,
+      breakthroughSuccess: false,
+    }
   }
 
   // Check herb availability if there is a herb cost
   if (herbCost > 0 && (availableHerb ?? 0) - accumulatedHerb < herbCost) {
-    return noChange
+    const targetName = isMajorBreakthrough
+      ? getRealmName(char.realm + 1, 0)
+      : getRealmName(char.realm, (char.realmStage + 1) as RealmStage)
+    return {
+      ...noChange,
+      events: [
+        {
+          type: 'breakthrough_blocked' as const,
+          message: `${char.name} 修为已满，但灵草不足，无法突破至${targetName}`,
+        },
+      ],
+      targetRealmName: targetName,
+      breakthroughSuccess: false,
+    }
   }
 
   const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: cost.spiritEnergy, herb: herbCost }

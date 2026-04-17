@@ -140,9 +140,18 @@ describe('CultivationEngine', () => {
       expect(result.cultivationGained).toBeCloseTo(baseRate * 1.1, 10) // baseRate * (1 + 0.1)
     })
 
-    it('should not gain when no spirit energy', () => {
+    it('should gain proportionally when spirit energy is low', () => {
       const character = createCharacter()
-      const result = tick(character, 1, 1) // only 1 spirit energy, need 2
+      const result = tick(character, 1, 1) // 1 spirit energy, need 2 per second
+      // spiritScale = min(1, 1 / (2*1)) = 0.5, so cultivation is halved
+      expect(result.cultivationGained).toBeGreaterThan(0)
+      expect(result.cultivationGained).toBeLessThan(5)
+      expect(result.spiritSpent).toBe(1) // spends what's available
+    })
+
+    it('should not gain when spirit energy is zero', () => {
+      const character = createCharacter()
+      const result = tick(character, 0, 1)
       expect(result.cultivationGained).toBe(0)
       expect(result.spiritSpent).toBe(0)
     })

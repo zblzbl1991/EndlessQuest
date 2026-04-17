@@ -232,4 +232,45 @@ describe('BreakthroughGradient', () => {
       expect([0, 1]).toContain(result.attemptsCount)
     })
   })
+
+  describe('resource blocked feedback', () => {
+    const blockedAccumulator = { spiritStone: 0, spiritEnergy: 0 }
+
+    it('should emit breakthrough_blocked event when spirit stones insufficient', () => {
+      const char = createCharacter({
+        cultivation: 100,
+        realm: 0,
+        realmStage: 0,
+        cultivationPath: 'sword',
+      })
+      const result = processBreakthrough(char, 0, 999999, [], blockedAccumulator)
+      expect(result.events.length).toBeGreaterThan(0)
+      expect(result.events[0].type).toBe('breakthrough_blocked')
+      expect(result.breakthroughSuccess).toBe(false)
+    })
+
+    it('should emit breakthrough_blocked event when spirit energy insufficient', () => {
+      const char = createCharacter({
+        cultivation: 100,
+        realm: 0,
+        realmStage: 0,
+        cultivationPath: 'sword',
+      })
+      const result = processBreakthrough(char, 999999, 0, [], blockedAccumulator)
+      expect(result.events.length).toBeGreaterThan(0)
+      expect(result.events[0].type).toBe('breakthrough_blocked')
+    })
+
+    it('should not emit blocked event when resources are sufficient', () => {
+      const char = createCharacter({
+        cultivation: 100,
+        realm: 0,
+        realmStage: 0,
+        cultivationPath: 'sword',
+      })
+      const result = processBreakthrough(char, 999999, 999999, [], blockedAccumulator)
+      const blockedEvents = result.events.filter((e) => e.type === 'breakthrough_blocked')
+      expect(blockedEvents.length).toBe(0)
+    })
+  })
 })

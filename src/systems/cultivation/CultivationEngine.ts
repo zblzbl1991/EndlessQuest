@@ -162,16 +162,18 @@ export function tick(
   deltaSec: number,
   learnedTechniques: string[] = []
 ): TickResult {
-  if (!canCultivate(spiritEnergyAvailable)) {
+  if (spiritEnergyAvailable <= 0) {
     return { cultivationGained: 0, spiritSpent: 0, comprehensionGrowth: {} }
   }
 
   const rate = calcCultivationRate(character, learnedTechniques)
-  const gained = rate * deltaSec
-  const spent = SPIRIT_COST_PER_SECOND * deltaSec
+  // Scale cultivation proportionally to available spirit energy
+  const spiritScale = Math.min(1, spiritEnergyAvailable / (SPIRIT_COST_PER_SECOND * deltaSec))
+  const gained = rate * deltaSec * spiritScale
+  const spent = Math.min(spiritEnergyAvailable, SPIRIT_COST_PER_SECOND * deltaSec)
 
-  // Comprehension grows only during cultivation ticks
-  const comprehensionGrowth = calcComprehensionGrowth(character)
+  // Comprehension grows only during cultivation ticks (and only when spirit is available)
+  const comprehensionGrowth = spiritScale > 0 ? calcComprehensionGrowth(character) : {}
 
   return { cultivationGained: gained, spiritSpent: spent, comprehensionGrowth }
 }

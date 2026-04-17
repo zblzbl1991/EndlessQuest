@@ -10,7 +10,7 @@ describe('BreakthroughPanel', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        resources: { ...s.sect.resources, spiritStone: 1000 },
+        resources: { ...s.sect.resources, spiritStone: 1000, spiritEnergy: 100 },
         characters: s.sect.characters.map((item) =>
           item.id === character.id ? { ...item, cultivation: 100, realmStage: 0 } : item
         ),
@@ -18,10 +18,10 @@ describe('BreakthroughPanel', () => {
     }))
   })
 
-  it('tells the player that breakthrough failure means death', () => {
+  it('shows breakthrough hint with failure risk for minor breakthroughs', () => {
     const character = useSectStore.getState().sect.characters[0]
     render(<BreakthroughPanel characterId={character.id} />)
 
-    expect(screen.getByText(/失败则身死道消/)).toBeInTheDocument()
+    expect(screen.getByText(/失败则修为回退或受伤/)).toBeInTheDocument()
   })
 })

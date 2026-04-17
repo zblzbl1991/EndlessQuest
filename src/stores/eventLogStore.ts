@@ -20,6 +20,7 @@ export type EventType =
   | 'item_crafted'
   | 'technique_unlocked'
   | 'breakthrough_comprehension'
+  | 'breakthrough_blocked'
   | 'milestone'
   | 'automation_adjusted'
   | 'random_event'

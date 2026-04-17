@@ -5,7 +5,7 @@ import {
   calcBreakthroughFailureRate,
   isMajorRealmBreakthrough,
 } from '../../systems/cultivation/CultivationEngine'
-import { getCultivationNeeded, getRealmName, BREAKTHROUGH_COSTS, getMinorBreakthroughCost } from '../../data/realms'
+import { getCultivationNeeded, getRealmName, getBreakthroughResourceCost } from '../../data/realms'
 import { shouldTriggerTribulation } from '../../systems/cultivation/TribulationSystem'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import type { RealmStage } from '../../types/character'
@@ -18,7 +18,7 @@ interface BreakthroughPanelProps {
 
 export default function BreakthroughPanel({ characterId }: BreakthroughPanelProps) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
-  const spiritStone = useSectStore((s) => s.sect.resources.spiritStone)
+  const resources = useSectStore((s) => s.sect.resources)
   const prefersReducedMotion = useReducedMotion()
 
   if (!character) return null
@@ -32,14 +32,14 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const ready = canBreakthrough(character)
   const hasTribulation = isMajor && shouldTriggerTribulation(character.realm, character.realmStage)
   const progress = Math.min(1, character.cultivation / needed)
-  const minorCost = !isMajor ? getMinorBreakthroughCost(character.realm, character.realmStage) : null
-  const hasMinorStones = minorCost !== null ? spiritStone >= minorCost : true
+  const btCost = getBreakthroughResourceCost(character.realm, character.realmStage)
+  const herbNeeded = btCost.herb ?? 0
+  const hasStones = resources.spiritStone >= btCost.spiritStone
+  const hasEnergy = resources.spiritEnergy >= btCost.spiritEnergy
+  const hasHerbs = resources.herb >= herbNeeded
   const riskLabel = failureRate < 0.12 ? '平稳' : failureRate < 0.3 ? '有险' : '凶险'
   const riskClass = failureRate < 0.12 ? styles.riskLow : failureRate < 0.3 ? styles.riskMid : styles.riskHigh
   const needsPathChoice = needsCultivationPathChoice(character)
-
-  const cost = isMajor ? BREAKTHROUGH_COSTS[nextRealm] : null
-  const hasStones = cost ? spiritStone >= cost.spiritStone : true
 
   let hint =
     character.status === 'idle'
@@ -56,22 +56,19 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   let hintClass = ''
 
   if (ready) {
-    if (isMajor && cost) {
-      if (!hasStones) {
-        hint = `灵石不足，需要 ${cost.spiritStone.toLocaleString()}`
-        hintClass = styles.hintBlocked
-      } else if (needsPathChoice) {
-        hint = '先定下修行路线，弟子才会跨入新的大境界。'
-        hintClass = styles.hintFocus
-      } else {
-        hint = '成功则进阶，失败则身死道消，仅返还部分灵石。'
-        hintClass = styles.hintFocus
-      }
-    } else if (!hasMinorStones && minorCost !== null) {
-      hint = `灵石不足，需要 ${minorCost.toLocaleString()}`
+    const blockedResources: string[] = []
+    if (!hasStones) blockedResources.push(`灵石 ${btCost.spiritStone.toLocaleString()}`)
+    if (!hasEnergy) blockedResources.push(`灵气 ${btCost.spiritEnergy.toLocaleString()}`)
+    if (!hasHerbs && herbNeeded > 0) blockedResources.push(`灵草 ${herbNeeded}`)
+
+    if (blockedResources.length > 0) {
+      hint = `资源不足，需要：${blockedResources.join('、')}`
       hintClass = styles.hintBlocked
+    } else if (needsPathChoice) {
+      hint = '先定下修行路线，弟子才会跨入新的大境界。'
+      hintClass = styles.hintFocus
     } else {
-      hint = '成功则进阶，失败则身死道消，仅返还部分灵石。'
+      hint = isMajor ? '成功则进阶，失败则身死道消，仅返还部分灵石。' : '成功则进阶，失败则修为回退或受伤。'
       hintClass = styles.hintFocus
     }
   }
@@ -121,22 +118,27 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
           <div className={styles.pathAutoHint}>突破时将随机领悟修行方向。</div>
         </div>
       )}
-      {isMajor && cost && (
+      {(btCost.spiritStone > 0 || btCost.spiritEnergy > 0 || herbNeeded > 0) && (
         <div className={styles.majorReq}>
           <div className={styles.reqTitle}>突破需求</div>
-          <div className={`${styles.reqItem} ${hasStones ? styles.reqMet : styles.reqUnmet}`}>
-            <span>灵石 x{cost.spiritStone.toLocaleString()}</span>
-            <span>{hasStones ? '已备' : '未足'}</span>
-          </div>
-        </div>
-      )}
-      {!isMajor && minorCost !== null && (
-        <div className={styles.majorReq}>
-          <div className={styles.reqTitle}>突破需求</div>
-          <div className={`${styles.reqItem} ${hasMinorStones ? styles.reqMet : styles.reqUnmet}`}>
-            <span>灵石 x{minorCost.toLocaleString()}</span>
-            <span>{hasMinorStones ? '已备' : '未足'}</span>
-          </div>
+          {btCost.spiritStone > 0 && (
+            <div className={`${styles.reqItem} ${hasStones ? styles.reqMet : styles.reqUnmet}`}>
+              <span>灵石 x{btCost.spiritStone.toLocaleString()}</span>
+              <span>{hasStones ? '已备' : '未足'}</span>
+            </div>
+          )}
+          {btCost.spiritEnergy > 0 && (
+            <div className={`${styles.reqItem} ${hasEnergy ? styles.reqMet : styles.reqUnmet}`}>
+              <span>灵气 x{btCost.spiritEnergy.toLocaleString()}</span>
+              <span>{hasEnergy ? '已备' : '未足'}</span>
+            </div>
+          )}
+          {herbNeeded > 0 && (
+            <div className={`${styles.reqItem} ${hasHerbs ? styles.reqMet : styles.reqUnmet}`}>
+              <span>灵草 x{herbNeeded}</span>
+              <span>{hasHerbs ? '已备' : '未足'}</span>
+            </div>
+          )}
         </div>
       )}
       {hasTribulation && (

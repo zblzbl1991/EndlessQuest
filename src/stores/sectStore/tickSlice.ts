@@ -44,6 +44,10 @@ import { getCampaignModifiers, tickCampaignDuration } from '../../systems/sect/P
 import { expireRouteOpportunities } from '../../systems/sect/RouteOpportunitySystem'
 import { getTideState } from '../../systems/economy/TideSystem'
 
+// Cooldown tracker for breakthrough_blocked events (characterId -> last emit tick)
+const breakthroughBlockedCooldown = new Map<string, number>()
+const BREAKTHROUGH_BLOCKED_COOLDOWN_SECONDS = 60
+
 function getMarketLossRate(marketLevel: number): number {
   return Math.max(0.3, 0.667 - 0.05 * marketLevel)
 }
@@ -312,6 +316,15 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           statBreakthroughSuccesses += btResult.successesCount
 
           for (const event of btResult.events) {
+            if (event.type === 'breakthrough_blocked') {
+              const now = Date.now()
+              const lastEmitted = breakthroughBlockedCooldown.get(updatedChar.id) ?? 0
+              if (now - lastEmitted < BREAKTHROUGH_BLOCKED_COOLDOWN_SECONDS * 1000) continue
+              breakthroughBlockedCooldown.set(updatedChar.id, now)
+            } else {
+              // Clear cooldown on successful or failed breakthrough
+              breakthroughBlockedCooldown.delete(updatedChar.id)
+            }
             emitEvent(event.type, event.message)
           }
 
