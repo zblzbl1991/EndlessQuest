@@ -970,7 +970,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(getStore().sect.resources.spiritStone).toBe(100.55)
   })
 
-  it('should skip breakthrough when spiritEnergy is insufficient', () => {
+  it('should still breakthrough when spiritEnergy is zero (spirit energy not required)', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100)
     useSectStore.setState((s) => ({
@@ -980,13 +980,12 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       },
     }))
 
-    vi.spyOn(Math, 'random').mockReturnValue(0.99)
+    vi.spyOn(Math, 'random').mockImplementation(() => 0.5)
     getStore().tickAll(1)
 
     const updated = getStore().sect.characters[0]
-    expect(updated.realm).toBe(0)
-    expect(updated.realmStage).toBe(0)
-    expect(updated.cultivation).toBeGreaterThan(100)
+    expect(updated.realmStage).toBeGreaterThanOrEqual(1)
+    expect(updated.cultivation).toBe(0)
   })
 
   it('should consume spirit stones for sub-level breakthrough', () => {

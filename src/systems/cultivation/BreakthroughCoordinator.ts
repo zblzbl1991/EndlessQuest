@@ -263,7 +263,7 @@ function applySuccessfulBreakthrough(
 export function processBreakthrough(
   char: Character,
   availableSpiritStone: number,
-  availableSpiritEnergy: number,
+  _availableSpiritEnergy: number,
   techniqueCodex: string[],
   currentCostAccumulator: { spiritStone: number; spiritEnergy: number; herb?: number },
   pathEffects?: PathEffectMap,
@@ -293,10 +293,8 @@ export function processBreakthrough(
 
   // Check resources
   const remainingStone = availableSpiritStone - currentCostAccumulator.spiritStone
-  const remainingEnergy = availableSpiritEnergy - currentCostAccumulator.spiritEnergy
   const blockedResources: string[] = []
   if (remainingStone < adjustedSpiritStoneCost) blockedResources.push('灵石')
-  if (remainingEnergy < cost.spiritEnergy) blockedResources.push('灵气')
 
   if (blockedResources.length > 0) {
     const targetName = isMajorBreakthrough
@@ -333,7 +331,7 @@ export function processBreakthrough(
     }
   }
 
-  const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: cost.spiritEnergy, herb: herbCost }
+  const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: 0, herb: herbCost }
 
   // ---...--- Tribulation Check (major realm only) ---...---
   if (isMajorBreakthrough && shouldTriggerTribulation(char.realm, char.realmStage)) {

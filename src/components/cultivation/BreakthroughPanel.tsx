@@ -35,7 +35,6 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   const btCost = getBreakthroughResourceCost(character.realm, character.realmStage)
   const herbNeeded = btCost.herb ?? 0
   const hasStones = resources.spiritStone >= btCost.spiritStone
-  const hasEnergy = resources.spiritEnergy >= btCost.spiritEnergy
   const hasHerbs = resources.herb >= herbNeeded
   const riskLabel = failureRate < 0.12 ? '平稳' : failureRate < 0.3 ? '有险' : '凶险'
   const riskClass = failureRate < 0.12 ? styles.riskLow : failureRate < 0.3 ? styles.riskMid : styles.riskHigh
@@ -58,7 +57,6 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
   if (ready) {
     const blockedResources: string[] = []
     if (!hasStones) blockedResources.push(`灵石 ${btCost.spiritStone.toLocaleString()}`)
-    if (!hasEnergy) blockedResources.push(`灵气 ${btCost.spiritEnergy.toLocaleString()}`)
     if (!hasHerbs && herbNeeded > 0) blockedResources.push(`灵草 ${herbNeeded}`)
 
     if (blockedResources.length > 0) {
@@ -118,19 +116,13 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
           <div className={styles.pathAutoHint}>突破时将随机领悟修行方向。</div>
         </div>
       )}
-      {(btCost.spiritStone > 0 || btCost.spiritEnergy > 0 || herbNeeded > 0) && (
+      {(btCost.spiritStone > 0 || herbNeeded > 0) && (
         <div className={styles.majorReq}>
           <div className={styles.reqTitle}>突破需求</div>
           {btCost.spiritStone > 0 && (
             <div className={`${styles.reqItem} ${hasStones ? styles.reqMet : styles.reqUnmet}`}>
               <span>灵石 x{btCost.spiritStone.toLocaleString()}</span>
               <span>{hasStones ? '已备' : '未足'}</span>
-            </div>
-          )}
-          {btCost.spiritEnergy > 0 && (
-            <div className={`${styles.reqItem} ${hasEnergy ? styles.reqMet : styles.reqUnmet}`}>
-              <span>灵气 x{btCost.spiritEnergy.toLocaleString()}</span>
-              <span>{hasEnergy ? '已备' : '未足'}</span>
             </div>
           )}
           {herbNeeded > 0 && (

@@ -226,7 +226,6 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     // 9. Process each character
     let breakthroughStoneCost = 0
-    let breakthroughEnergyCost = 0
     let breakthroughHerbCost = 0
     let statBreakthroughAttempts = 0
     let statBreakthroughSuccesses = 0
@@ -300,9 +299,9 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           const btResult = processBreakthrough(
             updatedChar,
             sect.resources.spiritStone - breakthroughStoneCost,
-            updatedSpiritEnergy - breakthroughEnergyCost,
+            updatedSpiritEnergy,
             get().sect.techniqueCodex,
-            { spiritStone: breakthroughStoneCost, spiritEnergy: breakthroughEnergyCost, herb: breakthroughHerbCost },
+            { spiritStone: breakthroughStoneCost, spiritEnergy: 0, herb: breakthroughHerbCost },
             pathEffectMap,
             undefined,
             sect.resources.herb - breakthroughHerbCost
@@ -310,7 +309,6 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
           updatedChar = btResult.updatedChar
           breakthroughStoneCost += btResult.resourceCost.spiritStone
-          breakthroughEnergyCost += btResult.resourceCost.spiritEnergy
           breakthroughHerbCost += btResult.resourceCost.herb
           statBreakthroughAttempts += btResult.attemptsCount
           statBreakthroughSuccesses += btResult.successesCount
@@ -398,7 +396,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     )
 
     const newResources = {
-      spiritEnergy: Math.max(0, updatedSpiritEnergy - breakthroughEnergyCost),
+      spiritEnergy: Math.max(0, updatedSpiritEnergy),
       spiritStone: Math.max(
         0,
         sect.resources.spiritStone + mineStoneProduced + taxProduced - totalConsumed.spiritStone - breakthroughStoneCost

@@ -96,11 +96,11 @@ export interface BreakthroughResourceCost {
  * Key = target realm index (1-5). Requires spiritStone, spiritEnergy, and herb for higher realms.
  */
 export const BREAKTHROUGH_COSTS: Record<number, BreakthroughResourceCost> = {
-  1: { spiritStone: 1800, spiritEnergy: 480, herb: 50 },
-  2: { spiritStone: 9600, spiritEnergy: 2400, herb: 100 },
-  3: { spiritStone: 80000, spiritEnergy: 20000, herb: 200 },
-  4: { spiritStone: 350000, spiritEnergy: 90000, herb: 400 },
-  5: { spiritStone: 1500000, spiritEnergy: 400000, herb: 800 },
+  1: { spiritStone: 1800, spiritEnergy: 0, herb: 50 },
+  2: { spiritStone: 9600, spiritEnergy: 0, herb: 100 },
+  3: { spiritStone: 80000, spiritEnergy: 0, herb: 200 },
+  4: { spiritStone: 350000, spiritEnergy: 0, herb: 400 },
+  5: { spiritStone: 1500000, spiritEnergy: 0, herb: 800 },
 }
 
 /**
@@ -117,11 +117,11 @@ export const MINOR_BREAKTHROUGH_COSTS: Record<number, Record<number, number>> = 
 }
 
 export const MINOR_BREAKTHROUGH_ENERGY_COSTS: Record<number, Record<number, number>> = {
-  0: { 1: 40, 2: 90, 3: 180 },
-  1: { 1: 120, 2: 320, 3: 840 },
-  2: { 1: 800, 2: 2400, 3: 7200 },
-  3: { 1: 4000, 2: 12000, 3: 36000 },
-  4: { 1: 20000, 2: 60000, 3: 180000 },
+  0: { 1: 0, 2: 0, 3: 0 },
+  1: { 1: 0, 2: 0, 3: 0 },
+  2: { 1: 0, 2: 0, 3: 0 },
+  3: { 1: 0, 2: 0, 3: 0 },
+  4: { 1: 0, 2: 0, 3: 0 },
 }
 
 /**
@@ -157,12 +157,12 @@ export const MINOR_BREAKTHROUGH_HERB_COSTS: Record<number, Record<number, number
 
 export function getBreakthroughResourceCost(realmIndex: number, currentStage: number): BreakthroughResourceCost {
   if (currentStage >= 3) {
-    return BREAKTHROUGH_COSTS[realmIndex + 1] ?? { spiritStone: Infinity, spiritEnergy: Infinity, herb: 0 }
+    return BREAKTHROUGH_COSTS[realmIndex + 1] ?? { spiritStone: Infinity, spiritEnergy: 0, herb: 0 }
   }
 
   return {
     spiritStone: MINOR_BREAKTHROUGH_COSTS[realmIndex]?.[currentStage + 1] ?? Infinity,
-    spiritEnergy: MINOR_BREAKTHROUGH_ENERGY_COSTS[realmIndex]?.[currentStage + 1] ?? Infinity,
+    spiritEnergy: 0,
     herb: MINOR_BREAKTHROUGH_HERB_COSTS[realmIndex]?.[currentStage + 1] ?? 0,
   }
 }
