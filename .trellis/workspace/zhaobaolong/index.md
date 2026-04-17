@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 21
+- **Total Sessions**: 22
 - **Last Active**: 2026-04-17
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~1106 | Active |
+| `journal-1.md` | ~1139 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 22 | 2026-04-17 | Remove spirit energy from breakthrough cost | `d3398cf` | `master` |
 | 21 | 2026-04-17 | Fix cultivation stall and silent breakthrough | `920d4c3` | `master` |
 | 20 | 2026-04-16 | P0/P1 任务实施：修炼戏剧性 + 战斗可视化 + 经济深度 | `d3c0402`, `c75fd6f` | `master` |
 | 19 | 2026-04-16 | 第一性原理分析：任务拆解 | `80b6ca8`, `a92f841` | `master` |

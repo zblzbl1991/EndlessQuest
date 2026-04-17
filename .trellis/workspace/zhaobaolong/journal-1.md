@@ -1104,3 +1104,36 @@ Analyzed 5 recent commits (19b4ab9..5bb1bfa) covering codex-driven code changes,
 ### Next Steps
 
 - None - task complete
+
+
+## Session 22: Remove spirit energy from breakthrough cost
+
+**Date**: 2026-04-17
+**Task**: Remove spirit energy from breakthrough cost
+**Branch**: `master`
+
+### Summary
+
+(Add summary)
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `d3398cf` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
