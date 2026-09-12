@@ -1,22 +1,19 @@
 import type { Character, BaseStats, RealmStage, GrowthMultipliers } from '../../types/character'
-import { REALMS, getCultivationNeeded } from '../../data/realms'
+import { REALMS, getCultivationNeeded, getRealmSpeedMult, PACING_BASE_CULTIVATION_RATE } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { getCultivationSpeedModifier, getBreakthroughSuccessBonus } from '../destiny/DestinySystem'
 
-// Base cultivation rate: 修为 per second
-const BASE_CULTIVATION_RATE = 5
+// Base cultivation rate: 修为 per second (pacing anchor shared with realms.ts)
+const BASE_CULTIVATION_RATE = PACING_BASE_CULTIVATION_RATE
 
 // Spirit energy cost per second during cultivation
 const SPIRIT_COST_PER_SECOND = 2
 
-// Realm difficulty multipliers (higher realms = harder to cultivate)
-const REALM_CULTIVATION_MULT = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5]
-
 // Stat growth per sub-level as fraction of major realm growth
 const SUBLEVEL_STAT_FRACTION = 0.15
 
-// Major realm stat multiplier
-const MAJOR_REALM_STAT_MULT = 1.8
+// Major realm stat multiplier (V2: exponential, must outpace enemy scaling)
+const MAJOR_REALM_STAT_MULT = 8
 
 export interface TickResult {
   cultivationGained: number
@@ -33,16 +30,11 @@ export interface BreakthroughResult {
 }
 
 /**
- * Get the effective tribulation power for a realm at a given stage.
- * If the realm has tribulationStages, returns the stage-specific value.
- * Otherwise falls back to tribulationPower (default 0).
+ * Get the tribulation power of a realm (0 if it has no tribulation).
  */
-function getTribulationPower(realmIndex: number, stage: RealmStage): number {
+function getTribulationPower(realmIndex: number, _stage: RealmStage): number {
   const realm = REALMS[realmIndex]
   if (!realm) return 0
-  if (realm.tribulationStages && realm.tribulationStages[stage] !== undefined) {
-    return realm.tribulationStages[stage]
-  }
   return realm.tribulationPower ?? 0
 }
 
@@ -61,17 +53,17 @@ export function isMajorRealmBreakthrough(realm: number, stage: RealmStage): bool
  * Sub-level:  5% + tribulationPower × 15%
  * Major realm: 10% + target tribulationPower × 25%
  */
-export function calcBreakthroughFailureRate(character: Character): number {
+export function calcBreakthroughFailureRate(character: Character, legacyBonus: number = 0): number {
   const major = isMajorRealmBreakthrough(character.realm, character.realmStage)
   if (major) {
     // Use target realm's tribulation power
     const targetPower = getTribulationPower(character.realm + 1, 0)
-    return Math.max(0, 0.1 + targetPower * 0.25 - getBreakthroughSuccessBonus(character))
+    return Math.max(0, 0.1 + targetPower * 0.25 - getBreakthroughSuccessBonus(character) - legacyBonus)
   }
   // Sub-level: use current realm's tribulation power at next stage
   const nextStage = (character.realmStage + 1) as RealmStage
   const power = getTribulationPower(character.realm, nextStage)
-  return Math.max(0, 0.05 + power * 0.15 - getBreakthroughSuccessBonus(character))
+  return Math.max(0, 0.05 + power * 0.15 - getBreakthroughSuccessBonus(character) - legacyBonus)
 }
 
 /**
@@ -83,12 +75,18 @@ export function calcBreakthroughFailureRate(character: Character): number {
  *   comprehension directly boosts cultivation efficiency.
  * Together, a chaos disciple (~3.7x) cultivates far faster than common (1x).
  */
-export function calcCultivationRate(character: Character, learnedTechniques: string[]): number {
+export function calcCultivationRate(
+  character: Character,
+  learnedTechniques: string[],
+  legacyRateMult: number = 1
+): number {
   const spiritualRoot = character.cultivationStats.spiritualRoot
   const comprehension = character.cultivationStats.comprehension
   const rootBonus = Math.pow(spiritualRoot / 10, 0.85)
   const compBonus = 1 + (comprehension - 10) * 0.015
-  const realmMult = REALM_CULTIVATION_MULT[character.realm] ?? 0.5
+  // Realm speed is derived from the cost curve (realms.ts): rate growth
+  // always covers cost growth so no realm becomes a pure wall.
+  const realmMult = getRealmSpeedMult(character.realm)
 
   let rate = BASE_CULTIVATION_RATE * rootBonus * compBonus * realmMult
 
@@ -104,6 +102,7 @@ export function calcCultivationRate(character: Character, learnedTechniques: str
   }
 
   rate *= Math.max(0.2, 1 + getCultivationSpeedModifier(character))
+  rate *= legacyRateMult
 
   return rate
 }
@@ -160,13 +159,14 @@ export function tick(
   character: Character,
   spiritEnergyAvailable: number,
   deltaSec: number,
-  learnedTechniques: string[] = []
+  learnedTechniques: string[] = [],
+  legacyRateMult: number = 1
 ): TickResult {
   if (spiritEnergyAvailable <= 0) {
     return { cultivationGained: 0, spiritSpent: 0, comprehensionGrowth: {} }
   }
 
-  const rate = calcCultivationRate(character, learnedTechniques)
+  const rate = calcCultivationRate(character, learnedTechniques, legacyRateMult)
   // Scale cultivation proportionally to available spirit energy
   const spiritScale = Math.min(1, spiritEnergyAvailable / (SPIRIT_COST_PER_SECOND * deltaSec))
   const gained = rate * deltaSec * spiritScale

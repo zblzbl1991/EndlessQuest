@@ -3,7 +3,18 @@ import { render, screen, fireEvent, act } from '@testing-library/react'
 import CharactersPage from '../pages/CharactersPage'
 import { useSectStore } from '../stores/sectStore'
 import { useGameStore } from '../stores/gameStore'
-import { IdleEngine } from '../systems/idle/IdleEngine'
+import { GameLoop } from '../systems/idle/GameLoop'
+
+vi.mock('../systems/cultivation/CultivationEventSystem', () => ({
+  processCultivationEvent: () => ({
+    event: undefined,
+    cultivationMultiplier: 1,
+    extraCultivation: 0,
+    eventStarted: false,
+    eventEnded: false,
+    message: null,
+  }),
+}))
 
 function resetState() {
   useSectStore.getState().reset()
@@ -13,7 +24,7 @@ function resetState() {
 function getCultivationHeaderText(): string {
   return (
     screen.getByText((content, element) => {
-      return Boolean(element?.textContent?.includes('(+') && content.includes('/ 100'))
+      return Boolean(element?.textContent?.includes('(+') && content.includes('/ 5'))
     }).textContent ?? ''
   )
 }
@@ -36,13 +47,13 @@ describe('CharactersPage', () => {
 
     fireEvent.click(screen.getByText(character.name))
 
-    expect(getCultivationHeaderText()).toMatch(/^0(\.0)? \/ 100/)
+    expect(getCultivationHeaderText()).toMatch(/^0(\.0)? \/ 5/)
 
     act(() => {
       useSectStore.getState().tickAll(10)
     })
 
-    expect(getCultivationHeaderText()).toMatch(/^[1-9]\d*(\.\d)? \/ 100/)
+    expect(getCultivationHeaderText()).toMatch(/^[1-9]\d*(\.\d+)? \/ 5/)
   })
 
   it('shows partial cultivation growth instead of rounding it down to zero', () => {
@@ -53,13 +64,13 @@ describe('CharactersPage', () => {
     render(<CharactersPage />)
 
     fireEvent.click(screen.getByText(character.name))
-    expect(getCultivationHeaderText()).toMatch(/^0(\.0)? \/ 100/)
+    expect(getCultivationHeaderText()).toMatch(/^0(\.0)? \/ 5/)
 
     act(() => {
       useSectStore.getState().tickAll(0.2)
     })
 
-    expect(getCultivationHeaderText()).toMatch(/^(0\.\d|1\.\d) \/ 100/)
+    expect(getCultivationHeaderText()).toMatch(/^(0\.\d+|1\.\d+) \/ 5/)
   })
 
   it('shows the new list-page overview anchors', () => {
@@ -78,28 +89,26 @@ describe('CharactersPage', () => {
 
     fireEvent.click(screen.getByText(character.name))
 
-    expect(getCultivationHeaderText()).toMatch(/\(\+\d+\.\d\/s\)/)
+    expect(getCultivationHeaderText()).toMatch(/\(\+\d+\.\d+\/s\)/)
   })
 
-  it('updates cultivation text over time when the idle engine is running', () => {
-    vi.useFakeTimers()
-
+  it('updates cultivation text over time when the game loop simulates', () => {
     useSectStore.getState().addResource('spiritEnergy', 100)
     const character = useSectStore.getState().sect.characters[0]
-    const engine = new IdleEngine((delta) => useSectStore.getState().tickAll(delta))
+    const engine = new GameLoop({ onSimulate: (delta) => useSectStore.getState().tickAll(delta) })
 
     render(<CharactersPage />)
 
     fireEvent.click(screen.getByText(character.name))
-    expect(getCultivationHeaderText()).toMatch(/^0(\.0)? \/ 100/)
+    expect(getCultivationHeaderText()).toMatch(/^0(\.0)? \/ 5/)
 
     act(() => {
       engine.start()
-      vi.advanceTimersByTime(10000)
+      engine.simulateElapsed(10)
       engine.stop()
     })
 
-    expect(getCultivationHeaderText()).toMatch(/^[1-9]\d*(\.\d)? \/ 100/)
+    expect(getCultivationHeaderText()).toMatch(/^[1-9]\d*(\.\d+)? \/ 5/)
   })
 
   it('keeps the detail view focused on build and state without rendering the old disciple judgment cards', () => {

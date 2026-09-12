@@ -9,7 +9,7 @@ import { ELEMENT_NAMES, COUNTER_MAP, getElementMultiplier } from '../data/skills
 import { createCharacterCombatUnit, createCombatUnitFromEnemy } from '../data/enemies'
 import { QUALITY_COLORS } from '../data/items'
 import { getSpiritFieldRate, BUILDING_DEFS } from '../data/buildings'
-import { getMinorBreakthroughCost } from '../data/realms'
+import { getBreakthroughResourceCost, MINOR_BREAKTHROUGH_COSTS, MINOR_BREAKTHROUGH_HERB_COSTS } from '../data/realms'
 import type { Character } from '../types/character'
 
 // ─── Techniques Table ────────────────────────────────────────────────
@@ -348,26 +348,30 @@ describe('Buildings data', () => {
   })
 })
 
-// ─── Realms (minorBreakthroughCost) ────────────────────────────────
+// ─── Realms (breakthrough resource costs) ──────────────────────────
 
 describe('Realms data', () => {
-  it('getMinorBreakthroughCost returns correct cost for valid realm/stage', () => {
-    expect(getMinorBreakthroughCost(0, 0)).toBe(50)
-    expect(getMinorBreakthroughCost(0, 1)).toBe(120)
-    expect(getMinorBreakthroughCost(0, 2)).toBe(300)
-    expect(getMinorBreakthroughCost(1, 0)).toBe(180)
-    expect(getMinorBreakthroughCost(2, 1)).toBe(5000)
-    expect(getMinorBreakthroughCost(3, 2)).toBe(100000)
-    expect(getMinorBreakthroughCost(4, 0)).toBe(100000)
+  it('MINOR_BREAKTHROUGH_COSTS covers minor stages for all realms but the last', () => {
+    // realms 0-7 each have 3 minor transitions (stage 0→1, 1→2, 2→3); the last realm has none
+    expect(Object.keys(MINOR_BREAKTHROUGH_COSTS)).toHaveLength(9)
+    for (let realm = 0; realm <= 7; realm++) {
+      expect(MINOR_BREAKTHROUGH_COSTS[realm][1]).toBeGreaterThan(0)
+      expect(MINOR_BREAKTHROUGH_COSTS[realm][2]).toBeGreaterThan(0)
+      expect(MINOR_BREAKTHROUGH_COSTS[realm][3]).toBeGreaterThan(0)
+    }
   })
 
-  it('getMinorBreakthroughCost returns Infinity for invalid realm', () => {
-    expect(getMinorBreakthroughCost(99, 0)).toBe(Infinity)
-    expect(getMinorBreakthroughCost(-1, 0)).toBe(Infinity)
+  it('getBreakthroughResourceCost returns minor costs from the live table', () => {
+    expect(getBreakthroughResourceCost(0, 0)).toMatchObject({ spiritStone: MINOR_BREAKTHROUGH_COSTS[0][1] })
+    expect(getBreakthroughResourceCost(2, 1)).toMatchObject({ spiritStone: MINOR_BREAKTHROUGH_COSTS[2][2] })
+    expect(getBreakthroughResourceCost(4, 2)).toMatchObject({
+      spiritStone: MINOR_BREAKTHROUGH_COSTS[4][3],
+      herb: MINOR_BREAKTHROUGH_HERB_COSTS[4][3],
+    })
   })
 
-  it('getMinorBreakthroughCost returns Infinity for out-of-bounds stage', () => {
-    expect(getMinorBreakthroughCost(0, 3)).toBe(Infinity)
-    expect(getMinorBreakthroughCost(0, 10)).toBe(Infinity)
+  it('getBreakthroughResourceCost returns major costs for stage 3', () => {
+    expect(getBreakthroughResourceCost(0, 3)).toMatchObject({ spiritStone: 1e4 * 0.02 })
+    expect(getBreakthroughResourceCost(4, 3)).toMatchObject({ spiritStone: 1e18 * 0.02 })
   })
 })

@@ -5,7 +5,8 @@ import { useAdventureStore } from './stores/adventureStore'
 import { useGameStore } from './stores/gameStore'
 import { useEventLogStore } from './stores/eventLogStore'
 import { emitEvent } from './stores/eventLogStore'
-import { IdleEngine, calcOfflineSeconds } from './systems/idle/IdleEngine'
+import { GameLoop, calcOfflineSeconds, MAX_OFFLINE_SECONDS } from './systems/idle/GameLoop'
+import { getLegacyOfflineBonusHours } from './data/legacy'
 import { loadGame } from './systems/save/SaveSystem'
 import { loadTestSave } from './systems/save/testFixture'
 import { startAutoSave } from './systems/save/startAutoSave'
@@ -67,8 +68,9 @@ export default function App() {
 
     startGame()
 
-    // Offline catch-up
-    const offline = calcOfflineSeconds(lastOnlineTime)
+    // Offline catch-up (ascension tree "temporalInsight" extends the cap)
+    const offlineCap = MAX_OFFLINE_SECONDS + getLegacyOfflineBonusHours(useSectStore.getState().sect.legacyTree) * 3600
+    const offline = calcOfflineSeconds(lastOnlineTime, offlineCap)
     if (offline > 1) {
       tickAll(offline)
 
@@ -114,12 +116,18 @@ export default function App() {
       }
     }
 
-    // Start engine
-    const engine = new IdleEngine((delta) => {
-      const paused = useGameStore.getState().isPaused
-      if (paused) return
+    // Start engine: rAF-driven fixed-step loop with unified catch-up paths.
+    // Pause semantics live inside the loop (elapsed time is discarded while
+    // paused), so the callbacks below always simulate the delta they receive.
+    const simulate = (delta: number) => {
       useSectStore.getState().tickAll(delta)
       useAdventureStore.getState().tickAllIdle(delta)
+    }
+    const engine = new GameLoop({
+      onSimulate: simulate,
+      onCatchUp: simulate,
+      isPaused: () => useGameStore.getState().isPaused,
+      maxOfflineSeconds: offlineCap,
     })
     engine.start()
 

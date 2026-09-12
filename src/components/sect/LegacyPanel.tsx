@@ -10,12 +10,14 @@ import {
   getUnlockedLegacyPerks,
 } from '../../data/legacy'
 import { getLegacyDungeonName, getLegacyTechniqueName } from '../../data/legacyUnlocks'
+import { LEGACY_TREE, getLegacyNodeUpgradeCost } from '../../data/legacyTree'
 import { PixelIcon } from '../common/PixelIcon'
 import styles from './LegacyPanel.module.css'
 
 export default function LegacyPanel() {
   const sect = useSectStore((s) => s.sect)
   const performAscension = useSectStore((s) => s.performAscension)
+  const buyLegacyNode = useSectStore((s) => s.buyLegacyNode)
   const [showConfirm, setShowConfirm] = useState(false)
 
   const { legacy } = sect
@@ -77,6 +79,32 @@ export default function LegacyPanel() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className={styles.sectionLabel}>
+        <PixelIcon name="realmGoldenCore" size={14} className={styles.inlineIcon} aria-label="飞升树" />
+        飞升树 · 道韵 {legacy.daoYun}
+      </div>
+      <div className={styles.checklist}>
+        {LEGACY_TREE.map((node) => {
+          const level = sect.legacyTree[node.id] ?? 0
+          const cost = getLegacyNodeUpgradeCost(node.id, level)
+          const affordable = cost !== null && legacy.daoYun >= cost
+          return (
+            <div key={node.id} className={styles.perkItem}>
+              <span className={styles.perkName}>
+                {node.name} {level > 0 ? `Lv.${level}` : ''}
+                {level >= node.maxLevel ? '（满级）' : ''}
+              </span>
+              <span className={styles.perkDesc}>{node.description}</span>
+              {cost !== null ? (
+                <button type="button" disabled={!affordable} onClick={() => buyLegacyNode(node.id)}>
+                  消耗 {cost} 道韵
+                </button>
+              ) : null}
+            </div>
+          )
+        })}
       </div>
 
       <div className={styles.sectionLabel}>

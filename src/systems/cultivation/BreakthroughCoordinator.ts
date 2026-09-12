@@ -268,7 +268,8 @@ export function processBreakthrough(
   currentCostAccumulator: { spiritStone: number; spiritEnergy: number; herb?: number },
   pathEffects?: PathEffectMap,
   growthMultipliers?: GrowthMultipliers,
-  availableHerb?: number
+  availableHerb?: number,
+  legacyBreakthroughBonus: number = 0
 ): BreakthroughResult {
   const noChange = noChangeResult(char)
 
@@ -334,7 +335,10 @@ export function processBreakthrough(
   const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: 0, herb: herbCost }
 
   // ---...--- Tribulation Check (major realm only) ---...---
-  if (isMajorBreakthrough && shouldTriggerTribulation(char.realm, char.realmStage)) {
+  // When tribulation fires, its roll IS the failure roll -- the engine-layer
+  // calcBreakthroughFailureRate must not stack a second roll on top of it.
+  const tribulationTriggered = isMajorBreakthrough && shouldTriggerTribulation(char.realm, char.realmStage)
+  if (tribulationTriggered) {
     const tribResult = resolveTribulation(char)
 
     if (!tribResult.success) {
@@ -412,8 +416,7 @@ export function processBreakthrough(
           }
         default: {
           // great_success or success on tribulation failure -- rare but possible (breakthrough even after trib hit)
-          const failureRate = calcBreakthroughFailureRate(char)
-          const btResult = performBreakthrough(char, failureRate, growthMultipliers)
+          const btResult = performBreakthrough(char, 0, growthMultipliers)
           if (btResult.success) {
             const { updatedChar, events, comprehendedId } = applySuccessfulBreakthrough(
               char,
@@ -469,11 +472,27 @@ export function processBreakthrough(
   switch (outcome) {
     case 'great_success':
     case 'success': {
-      const failureRate = calcBreakthroughFailureRate(char)
+      // Tribulation majors already paid their failure roll in resolveTribulation;
+      // only non-tribulation breakthroughs (minors and ->筑基) roll the engine failure rate.
+      const failureRate = tribulationTriggered ? 0 : calcBreakthroughFailureRate(char, legacyBreakthroughBonus)
       const btResult = performBreakthrough(char, failureRate, growthMultipliers)
       if (!btResult.success) {
-        // Breakthrough engine rejected (shouldn't happen at this point but guard)
-        return noChange
+        // Engine-layer failure roll rejected the attempt: cultivation is kept
+        // in full, no resources are consumed, and the attempt stays retryable.
+        // Reporting outcome 'success' here would misrepresent the attempt.
+        return {
+          ...noChange,
+          events: [
+            {
+              type: 'breakthrough_failure',
+              message: `${char.name} 冲击关口未成，灵力回拢，修为完好保留`,
+            },
+          ],
+          outcome: 'blocked',
+          cultivationResetFraction: 1,
+          attemptsCount: 1,
+          breakthroughSuccess: false,
+        }
       }
 
       const { updatedChar, events, comprehendedId } = applySuccessfulBreakthrough(
@@ -497,7 +516,7 @@ export function processBreakthrough(
         comprehendedTechniqueId: comprehendedId,
         attemptsCount: 1,
         successesCount: 1,
-        unlockedTribulationMilestone: isMajorBreakthrough && shouldTriggerTribulation(char.realm, char.realmStage),
+        unlockedTribulationMilestone: tribulationTriggered,
         targetRealmName: getRealmName(btResult.newRealm, btResult.newStage),
         breakthroughSuccess: true,
       }

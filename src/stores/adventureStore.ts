@@ -23,6 +23,7 @@ import { generateDungeonRun } from '../systems/roguelike/MapGenerator'
 import { resolveEvent } from '../systems/roguelike/EventSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { createCharacterCombatUnit } from '../data/enemies'
+import { getEffectiveLegacyStatBonus, getLegacyDropMult } from '../data/legacy'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 import { resolveAdventureFailureOutcome } from '../systems/character/DiscipleRecoverySystem'
 import { DISPATCH_MISSIONS } from '../data/missions'
@@ -273,6 +274,15 @@ function depositResourcesToSect(resources: Resources): void {
       sectStore.addResource(key as keyof Resources, value)
     }
   }
+}
+
+/** Scale all resource entries by a multiplier (combat-branch drop bonus, etc.) */
+function scaleResources(resources: Resources, mult: number): Resources {
+  const out = { ...resources }
+  for (const key of Object.keys(out) as (keyof Resources)[]) {
+    out[key] = out[key] * mult
+  }
+  return out
 }
 
 /** Deposit resources at a given fraction (truncated) */
@@ -656,7 +666,13 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
       (id: string) => findEquipmentById(sect, id) as Equipment | undefined
     )
 
-    const unit = createCharacterCombatUnit(character, character.learnedTechniques, sectCombatEffects, eqStats)
+    const unit = createCharacterCombatUnit(
+      character,
+      character.learnedTechniques,
+      sectCombatEffects,
+      eqStats,
+      getEffectiveLegacyStatBonus(sect.legacy, sect.legacyTree)
+    )
     const tunedUnit = applyRouteCombatModifiers(applyRunCombatModifiers(unit, run.blessings ?? [], run.relics ?? []))
     // Override HP with current member state HP (not max)
     tunedUnit.hp = memberState.currentHp
@@ -752,7 +768,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         [],
         (id: string) => findEquipmentById(useSectStore.getState().sect, id) as Equipment | undefined
       )
-      const unit = createCharacterCombatUnit(charAfterEquip, charAfterEquip.learnedTechniques, undefined, eqStats)
+      const unit = createCharacterCombatUnit(
+        charAfterEquip,
+        charAfterEquip.learnedTechniques,
+        undefined,
+        eqStats,
+        getEffectiveLegacyStatBonus(currentSect.legacy, currentSect.legacyTree)
+      )
 
       memberStates[charId] = {
         currentHp: unit.maxHp,
@@ -839,7 +861,13 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           (id: string) => findEquipmentById(useSectStore.getState().sect, id) as Equipment | undefined
         )
         return applyRouteCombatModifiers(
-          createCharacterCombatUnit(character, character.learnedTechniques, undefined, eqStats)
+          createCharacterCombatUnit(
+            character,
+            character.learnedTechniques,
+            undefined,
+            eqStats,
+            getEffectiveLegacyStatBonus(sect.legacy, sect.legacyTree)
+          )
         )
       })
       .filter((unit): unit is CombatUnit => unit !== null)
@@ -1363,8 +1391,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       branchTags: [...new Set([...(run.branchTags ?? []), ...legacyOutcome.branchTags])],
     }
 
-    // 1. Deposit 50% of totalRewards
-    depositFractionResourcesToSect(settledRun.totalRewards, 0.5)
+    // 1. Deposit 50% of totalRewards (scaled by the ascension-tree drop multiplier)
+    const dropMult = getLegacyDropMult(useSectStore.getState().sect.legacyTree)
+    const boostedRewards = scaleResources(settledRun.totalRewards, dropMult)
+    depositFractionResourcesToSect(boostedRewards, 0.5)
 
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(settledRun.itemRewards)
@@ -1573,8 +1603,11 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       },
     }))
 
-    // 1. Deposit 50% of totalRewards
-    depositFractionResourcesToSect(run.totalRewards, 0.5)
+    // 1. Deposit 50% of totalRewards (scaled by the ascension-tree drop multiplier)
+    depositFractionResourcesToSect(
+      scaleResources(run.totalRewards, getLegacyDropMult(useSectStore.getState().sect.legacyTree)),
+      0.5
+    )
 
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(run.itemRewards)

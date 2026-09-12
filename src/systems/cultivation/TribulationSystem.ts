@@ -38,16 +38,8 @@ export function resolveTribulation(character: Character): TribulationResult {
 
   const failRate = Math.max(0, baseFailRate - spiritRootBonus - comprehensionBonus)
 
-  // Huashen special: stage multiplier increases tribulation difficulty
-  let stageMultiplier = 1.0
-  if (character.realm === 4) {
-    const currentRealmData = REALMS[character.realm]
-    if (currentRealmData.tribulationStages) {
-      stageMultiplier = currentRealmData.tribulationStages[character.realmStage] ?? 1.0
-    }
-  }
   const fateModifier = getHeartDemonBonus(character)
-  const finalFailRate = Math.min(0.95, Math.max(0, failRate * stageMultiplier + fateModifier))
+  const finalFailRate = Math.min(0.95, Math.max(0, failRate + fateModifier))
 
   if (Math.random() >= finalFailRate) {
     return { success: true }

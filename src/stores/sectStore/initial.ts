@@ -102,7 +102,7 @@ export function createInitialState(): { sect: Sect } {
       activeRoute: null,
       unlockedPathNodeIds: [],
       pathUnlockedAt: null,
-      legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      legacy: { ascensionCount: 0, statBonus: 0, daoYun: 0, unlockedTechniques: [], unlockedDungeons: [] },
       archiveMilestones: [],
       automationSettings: {
         reserveSpiritStone: 300,
@@ -132,6 +132,8 @@ export function createInitialState(): { sect: Sect } {
           cooldownRemainingHours: 0,
         },
         templateConfidence: [],
+        autoAscend: false,
+        autoAscendMinDaoYun: 0,
       },
       stats: {
         totalSpiritStoneEarned: 0,
@@ -150,7 +152,9 @@ export function createInitialState(): { sect: Sect } {
         totalPetCaptures: 0,
         totalPlayTime: 0,
         longestOfflineSeconds: 0,
+        peakCultivationThisRun: 0,
       },
+      legacyTree: {},
       currentArchetype: 'pillSustain' as const,
       routeOpportunities: [],
       strategySettings: {

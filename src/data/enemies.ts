@@ -1003,12 +1003,14 @@ export function createCombatUnitFromEnemy(enemy: Enemy, layer: number): CombatUn
  * 3. Use character.cultivationStats.spiritPower/maxSpiritPower
  * 4. Resolve equippedSkills to ActiveSkill objects
  * 5. Use highest tier technique's element, or 'neutral' if no techniques
+ * 6. Apply legacy (ascension) stat bonus as a global multiplier when provided
  */
 export function createCharacterCombatUnit(
   character: Character,
   learnedTechniques: string[],
   sectCombatEffects?: SectPathCombatEffects,
-  equipmentStats?: ItemStats
+  equipmentStats?: ItemStats,
+  legacyStatBonusPercent: number = 0
 ): CombatUnit {
   const effects = sectCombatEffects ?? getEmptyCombatEffects()
   const base = character.baseStats
@@ -1078,7 +1080,10 @@ export function createCharacterCombatUnit(
   const combatSpecialtyLevel = character.specialties.find((s) => s.type === 'combat')?.level ?? 0
   const specialtyMultiplier = 1 + combatSpecialtyLevel * 0.05
 
-  const totalMultiplier = realmMultiplier * qualityMultiplier * specialtyMultiplier
+  // Legacy (ascension) stat bonus: +X% all stats, persisted across ascensions
+  const legacyMultiplier = 1 + legacyStatBonusPercent / 100
+
+  const totalMultiplier = realmMultiplier * qualityMultiplier * specialtyMultiplier * legacyMultiplier
 
   // Add equipment stats before applying multipliers
   if (equipmentStats) {

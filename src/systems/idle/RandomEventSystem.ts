@@ -2,6 +2,7 @@ import type { RandomEventDef, RandomEventRarity, RandomEventResult } from '../..
 import type { Sect } from '../../types'
 import { RANDOM_EVENTS, EVENT_RARITY_WEIGHTS, EVENT_RARITY_NAMES } from '../../data/randomEvents'
 import { getLegacyPositiveEventBias } from '../../data/legacy'
+import { samplePoisson } from '../../utils/poisson'
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -67,47 +68,63 @@ function rollEvent(rarity: RandomEventRarity, positiveBias = 0): RandomEventDef 
 /**
  * Evaluate whether a random event should trigger this tick.
  *
- * Pure function: takes sect state + timing info, returns result.
- * Does NOT mutate any state or import stores.
- *
- * @param sect - Current sect state
- * @param deltaSec - Seconds elapsed this tick
- * @param lastEventSec - Seconds since last event (playTime when last event fired)
- * @returns RandomEventResult with trigger info and event details
+ * Kept for single-tick callers: delegates to evaluateRandomEventsForDelta and
+ * returns the first event (if any).
  */
 export function evaluateRandomEvents(sect: Sect, deltaSec: number, lastEventSec: number): RandomEventResult {
+  return evaluateRandomEventsForDelta(sect, deltaSec, lastEventSec)[0] ?? noEvent()
+}
+
+/**
+ * Evaluate random events over an elapsed duration.
+ *
+ * The expected event count scales with the duration (lambda = per-second chance
+ * x deltaSec, fortune-adjusted) and is sampled from a Poisson distribution, so
+ * an 8-hour offline catch-up rolls statistically the same events as 8 hours of
+ * per-second ticks would. Events are capacity-limited by the minimum interval
+ * so long deltas cannot trigger an absurd burst.
+ */
+export function evaluateRandomEventsForDelta(sect: Sect, deltaSec: number, lastEventSec: number): RandomEventResult[] {
+  if (deltaSec <= 0) return []
+
   const currentPlayTime = sect.stats.totalPlayTime + deltaSec
   const timeSinceLastEvent = currentPlayTime - lastEventSec
 
   // Enforce minimum interval between events
   if (timeSinceLastEvent < MIN_EVENT_INTERVAL_SEC) {
-    return { triggered: false, event: null, message: '', effects: [] }
+    return []
   }
+
+  // Capacity: first event can fire immediately, then one per minimum interval
+  const maxEvents = 1 + Math.floor((deltaSec - MIN_EVENT_INTERVAL_SEC) / MIN_EVENT_INTERVAL_SEC)
+  if (maxEvents < 1) return []
 
   // Calculate trigger chance modified by fortune
   const avgFortune = calcAvgFortune(sect)
   const fortuneBonus = 1 + (avgFortune - FORTUNE_BASELINE) * FORTUNE_SCALE_FACTOR
-  const triggerChance = BASE_TRIGGER_CHANCE * Math.max(0.5, fortuneBonus)
+  const perSecondChance = BASE_TRIGGER_CHANCE * Math.max(0.5, fortuneBonus)
 
-  // Roll for event trigger
-  if (Math.random() > triggerChance) {
-    return { triggered: false, event: null, message: '', effects: [] }
+  const sampled = Math.min(maxEvents, samplePoisson(perSecondChance * deltaSec))
+  if (sampled <= 0) return []
+
+  const positiveBias = getLegacyPositiveEventBias(sect.legacy.ascensionCount)
+  const results: RandomEventResult[] = []
+  for (let i = 0; i < sampled; i++) {
+    const rarity = rollRarity()
+    const event = rollEvent(rarity, positiveBias)
+    const rarityTag = EVENT_RARITY_NAMES[rarity]
+    results.push({
+      triggered: true,
+      event,
+      message: `[${rarityTag}] ${event.name} — ${event.description}`,
+      effects: event.effects,
+    })
   }
+  return results
+}
 
-  // Roll rarity and pick event
-  const rarity = rollRarity()
-  const event = rollEvent(rarity, getLegacyPositiveEventBias(sect.legacy.ascensionCount))
-
-  // Build narrative message
-  const rarityTag = EVENT_RARITY_NAMES[rarity]
-  const message = `[${rarityTag}] ${event.name} — ${event.description}`
-
-  return {
-    triggered: true,
-    event,
-    message,
-    effects: event.effects,
-  }
+function noEvent(): RandomEventResult {
+  return { triggered: false, event: null, message: '', effects: [] }
 }
 
 /**

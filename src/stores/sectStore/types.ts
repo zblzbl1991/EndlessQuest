@@ -131,6 +131,7 @@ export interface SectStore {
 
   // Legacy ascension
   performAscension(): void
+  buyLegacyNode(nodeId: string): boolean
 
   // Strategy
   setPolicy(policyId: SectRiskPolicyId): { success: boolean; reason: string }

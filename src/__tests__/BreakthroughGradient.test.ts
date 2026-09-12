@@ -84,8 +84,13 @@ describe('BreakthroughGradient', () => {
           foundBlocked = true
           expect(result.died).toBe(false)
           expect(result.breakthroughSuccess).toBe(false)
-          expect(result.cultivationResetFraction).toBe(0.7)
-          expect(result.updatedChar.cultivation).toBe(70) // 100 * 0.7
+          // Two blocked variants exist: gradient blocked keeps 70% of
+          // cultivation; engine-rejection blocked keeps all of it.
+          const isGradientBlocked = result.cultivationResetFraction === 0.7
+          expect(result.cultivationResetFraction === 1 || isGradientBlocked).toBe(true)
+          expect(result.updatedChar.cultivation).toBe(
+            isGradientBlocked ? 70 : 100 // 100 * 0.7 or fully kept
+          )
           expect(result.updatedChar.realm).toBe(char.realm) // No realm change
           expect(result.updatedChar.realmStage).toBe(char.realmStage)
           expect(result.events[0].type).toBe('breakthrough_failure')
@@ -188,7 +193,7 @@ describe('BreakthroughGradient', () => {
 
   describe('no-change scenarios', () => {
     it('should return no-change when cannot breakthrough', () => {
-      const char = createCharacter({ cultivation: 10 }) // Too little
+      const char = createCharacter({ cultivation: 2 }) // stage-0 need = 5
       const result = processBreakthrough(char, 999999, 999999, [], defaultAccumulator)
       expect(result.outcome).toBe('success')
       expect(result.attemptsCount).toBe(0)

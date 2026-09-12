@@ -23,6 +23,16 @@ import { processCultivationEvent } from '../../systems/cultivation/CultivationEv
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { rollCultivationPath, getPathName } from '../../data/cultivationPaths'
 import { calcResourceCaps } from '../../data/buildings'
+import { getRealmEconomyMult, getRealmStoneFloor } from '../../data/realms'
+import {
+  getLegacyCultivationMult,
+  getLegacyStoneMult,
+  getLegacyEnergyMult,
+  getLegacyBreakthroughBonus,
+  isAutoAscendUnlocked,
+  calcDaoYunGain,
+} from '../../data/legacy'
+import { canAscend as checkCanAscend } from '../../systems/sect/LegacySystem'
 import { tickProductionQueue, calcOfflineProduction } from '../../systems/building/ProductionSystem'
 import { getAutoRecipeById } from '../../data/recipes'
 import { emitEvent } from '../eventLogStore'
@@ -36,7 +46,7 @@ import { tickRecoveryDays } from '../../systems/character/DiscipleRecoverySystem
 import { buildAutomationRunConfig, shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 import { buildPathEffectMap, getMultEffect } from '../../systems/sect/SectPathEffects'
-import { evaluateRandomEvents } from '../../systems/idle/RandomEventSystem'
+import { evaluateRandomEventsForDelta } from '../../systems/idle/RandomEventSystem'
 import { getLegacyRecoveryBonusDays } from '../../data/legacy'
 import { applyCharacterExperience } from '../../data/levelSystem'
 import { getArchetypeModifiers } from '../../systems/sect/SectArchetypeSystem'
@@ -146,6 +156,18 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     rates.ore *= tideState.multipliers.ore
     rates.spiritStone *= tideState.multipliers.spiritStone
 
+    // 4g. Realm-economy coupling: stone income scales with the sect's highest
+    // realm so exponential breakthrough costs (realms.ts) stay reachable.
+    const bestRealm = sect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
+    const realmEconomyMult = getRealmEconomyMult(bestRealm)
+    // 4h. Ascension-tree resource multipliers (resource branch)
+    const legacyStoneMult = getLegacyStoneMult(sect.legacyTree)
+    const legacyEnergyMult = getLegacyEnergyMult(sect.legacyTree)
+    rates.spiritStone *= realmEconomyMult * legacyStoneMult
+    rates.herb *= realmEconomyMult
+    rates.ore *= realmEconomyMult
+    rates.spiritEnergy *= legacyEnergyMult
+
     const spiritProduced = rates.spiritEnergy * deltaSec
 
     // Offline accumulator: track items crafted
@@ -240,7 +262,8 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         const effectiveSpirit = 2 * spiritRatio * deltaSec
 
         // --- Cultivation event processing ---
-        const cultivationRate = calcCultivationRate(char, char.learnedTechniques)
+        const legacyRateMult = getLegacyCultivationMult(sect.legacyTree)
+        const cultivationRate = calcCultivationRate(char, char.learnedTechniques, legacyRateMult)
         const eventResult = processCultivationEvent(char, cultivationRate, deltaSec)
 
         // Emit event messages (new event started or ended)
@@ -248,7 +271,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           emitEvent('milestone', eventResult.message)
         }
 
-        const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques)
+        const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques, legacyRateMult)
         // Apply event modifier and archetype/campaign multipliers
         const gained =
           (result.cultivationGained * eventResult.cultivationMultiplier + eventResult.extraCultivation) *
@@ -262,7 +285,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           cultivationEvent: eventResult.event,
         }
 
-        const xpGain = Math.max(0, Math.floor(gained / 5))
+        const xpGain = Math.max(0, gained / 5)
         if (xpGain > 0) {
           const levelResult = applyCharacterExperience(updatedChar, xpGain)
           updatedChar = levelResult.character
@@ -294,8 +317,12 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           }
         }
 
-        // Auto-breakthrough: delegate to pure coordinator
-        if (canBreakthrough(updatedChar)) {
+        // Auto-breakthrough: delegate to pure coordinator. Loop so one delta
+        // (especially offline catch-up) can traverse several stages while
+        // cultivation overshoots; bounded to keep a single tick cheap.
+        let btAttempts = 0
+        while (canBreakthrough(updatedChar) && btAttempts < 40 && updatedChar.status === 'idle') {
+          btAttempts++
           const btResult = processBreakthrough(
             updatedChar,
             sect.resources.spiritStone - breakthroughStoneCost,
@@ -304,7 +331,8 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
             { spiritStone: breakthroughStoneCost, spiritEnergy: 0, herb: breakthroughHerbCost },
             pathEffectMap,
             undefined,
-            sect.resources.herb - breakthroughHerbCost
+            sect.resources.herb - breakthroughHerbCost,
+            getLegacyBreakthroughBonus(sect.legacyTree)
           )
 
           updatedChar = btResult.updatedChar
@@ -356,6 +384,17 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
               accBreakthroughs.push({ characterName: updatedChar.name, targetRealm: 'unknown', success: false })
             }
           }
+
+          // Stop conditions: death/injury/blocked retry next tick; empty
+          // attempts mean resources ran out (blocked event already emitted).
+          if (
+            btResult.died ||
+            btResult.outcome === 'injured' ||
+            btResult.outcome === 'blocked' ||
+            btResult.attemptsCount === 0
+          ) {
+            break
+          }
         }
 
         return syncCharacterSkillLoadout(updatedChar)
@@ -406,7 +445,8 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     }
 
     const overflowTriggerRatio = Math.min(0.98, Math.max(0.5, sect.automationSettings.overflowTriggerRatio ?? 0.9))
-    const stoneCap = calcSpiritStoneCap(mhLevel) * 5
+    // Realm stone floor guarantees storage room for 10x the realm's breakthrough cost.
+    const stoneCap = Math.max(calcSpiritStoneCap(mhLevel) * 5, getRealmStoneFloor(bestRealm))
     const marketLevel = sect.buildings.find((building) => building.type === 'market')?.level ?? 0
     const overflowAdjustedResources = { ...newResources }
     let overflowStoneEarned = 0
@@ -528,18 +568,26 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         totalBreakthroughAttempts: sect.stats.totalBreakthroughAttempts + statBreakthroughAttempts,
         totalBreakthroughSuccesses: sect.stats.totalBreakthroughSuccesses + statBreakthroughSuccesses,
         totalPlayTime: sect.stats.totalPlayTime + deltaSec,
+        peakCultivationThisRun: Math.max(
+          sect.stats.peakCultivationThisRun ?? 0,
+          ...updatedCharacters.map((c) => c.totalCultivation),
+          0
+        ),
       },
     }
 
     // --- Random Events ---
-    // Evaluate random events using the pure system function
-    const randomEventResult = evaluateRandomEvents(sect, deltaSec, sect.lastRandomEventTime ?? 0)
+    // Evaluate random events using the pure system function. Event count scales
+    // with the elapsed duration (Poisson sampling), so offline catch-ups roll a
+    // statistically equivalent set of events instead of a single roll.
+    const randomEvents = evaluateRandomEventsForDelta(sect, deltaSec, sect.lastRandomEventTime ?? 0)
     let sectWithEvent = newSect
     const randomEventLevelUps: string[] = []
 
-    if (randomEventResult.triggered && randomEventResult.event) {
+    for (const randomEventResult of randomEvents) {
+      if (!randomEventResult.event) continue
       // Apply resource effects
-      const eventResources = { ...newSect.resources }
+      const eventResources = { ...sectWithEvent.resources }
       for (const effect of randomEventResult.effects) {
         if (effect.type === 'resource' && effect.target) {
           const key = effect.target as keyof typeof eventResources
@@ -550,7 +598,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       }
 
       // Apply character experience effects to a random idle character
-      let eventCharacters = newSect.characters
+      let eventCharacters = sectWithEvent.characters
       for (const effect of randomEventResult.effects) {
         if (effect.type === 'character_exp' && effect.value > 0) {
           const idleIndices = eventCharacters.map((c, i) => (c.status === 'idle' ? i : -1)).filter((i) => i >= 0)
@@ -609,10 +657,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       }
 
       sectWithEvent = {
-        ...newSect,
+        ...sectWithEvent,
         resources: eventResources,
         characters: eventCharacters,
-        lastRandomEventTime: newSect.stats.totalPlayTime,
+        lastRandomEventTime: sectWithEvent.stats.totalPlayTime,
       }
 
       emitEvent('random_event', randomEventResult.message, {
@@ -719,6 +767,24 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
           // Reset counter
           set((state) => ({ sect: { ...state.sect, autoRunDayCounter: 0 } }))
+        }
+      }
+
+      // 自动飞升（天机推演节点 + 开关 + 道韵预期门槛）
+      const autoAscendSect = get().sect
+      if (autoAscendSect.automationSettings.autoAscend && isAutoAscendUnlocked(autoAscendSect.legacyTree)) {
+        const highestRealm = autoAscendSect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
+        const expectedDaoYun = calcDaoYunGain(
+          autoAscendSect.stats.peakCultivationThisRun ?? 0,
+          highestRealm,
+          autoAscendSect.legacy.ascensionCount
+        )
+        if (
+          expectedDaoYun >= (autoAscendSect.automationSettings.autoAscendMinDaoYun ?? 0) &&
+          checkCanAscend(autoAscendSect).canAscend
+        ) {
+          get().performAscension()
+          return { spiritProduced: 0, spiritConsumed: 0 }
         }
       }
 

@@ -57,6 +57,7 @@ describe('character level system', () => {
             ? {
                 ...character,
                 quality: 'common',
+                realm: 1,
                 level: 1,
                 xp: 95,
                 learnedTechniques: [],

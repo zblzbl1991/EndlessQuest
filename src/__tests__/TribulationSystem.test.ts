@@ -48,8 +48,12 @@ describe('shouldTriggerTribulation', () => {
     expect(shouldTriggerTribulation(2, 3)).toBe(true)
   })
 
-  it('returns false for major breakthrough to realm 5 (feisheng - no tribulationPower)', () => {
-    expect(shouldTriggerTribulation(4, 3)).toBe(false)
+  it('returns true for major breakthrough to realm 4 (huashen - tribulationPower 1.2)', () => {
+    expect(shouldTriggerTribulation(3, 3)).toBe(true)
+  })
+
+  it('returns true for major breakthrough to realm 5 (feisheng - tribulationPower 1.5)', () => {
+    expect(shouldTriggerTribulation(4, 3)).toBe(true)
   })
 })
 

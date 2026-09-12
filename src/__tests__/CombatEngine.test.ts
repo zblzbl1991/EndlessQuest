@@ -599,8 +599,12 @@ describe('adjustEnemyByTeamPower', () => {
       spd: 10,
     })
 
+    // The tuner rolls its target ratio randomly; pin it so the ordering
+    // assertion below is deterministic (both rolls at their maximum bias).
+    vi.spyOn(Math, 'random').mockReturnValue(0.99)
     adjustEnemyByTeamPower(regularEnemy, team)
     adjustEnemyByTeamPower(bossEnemy, team, { isBoss: true, floor: 5 })
+    vi.restoreAllMocks()
 
     // Boss should be at least as strong as (or stronger than) a regular enemy at same base stats
     const bossPower = calcUnitPowerRating(bossEnemy)

@@ -1,4 +1,4 @@
-import type { Sect, SectStats, Resources, MonsterCodexState } from '../../types'
+import type { Sect, SectStats, Resources, MonsterCodexState, OfflineAccumulator } from '../../types'
 import type { SectStrategySettings } from '../../types/destiny'
 import type { DungeonRun, AdventureReport } from '../../types'
 import type { TalentAffixInstance, ResolvedAffixEffect } from '../../types/talent'
@@ -53,6 +53,8 @@ interface SaveMeta {
   equipmentCodex?: Record<string, string[]>
   currentArchetype?: Sect['currentArchetype']
   routeOpportunities?: Sect['routeOpportunities']
+  offlineAccumulator?: Sect['offlineAccumulator']
+  legacyTree?: Record<string, number>
 }
 
 type SavedAdventureRunRecord = {
@@ -85,6 +87,7 @@ type SavedCharacter = Sect['characters'][number] & {
 const DEFAULT_LEGACY: Sect['legacy'] = {
   ascensionCount: 0,
   statBonus: 0,
+  daoYun: 0,
   unlockedTechniques: [],
   unlockedDungeons: [],
 }
@@ -106,6 +109,7 @@ const DEFAULT_STATS: SectStats = {
   totalPetCaptures: 0,
   totalPlayTime: 0,
   longestOfflineSeconds: 0,
+  peakCultivationThisRun: 0,
 }
 
 const DEFAULT_RESOURCES: Resources = {
@@ -143,18 +147,49 @@ const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
     cooldownRemainingHours: 0,
   },
   templateConfidence: [],
+  autoAscend: false,
+  autoAscendMinDaoYun: 0,
 }
 
 function normalizeFiniteNumber(value: unknown, fallback: number): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback
 }
 
+/**
+ * Upper bound for exponential-risk fields (cultivation, spirit stones).
+ * The V2 curve tops out around 1e100; values past this bound indicate a
+ * corrupted or tampered save, so they are reset to the fallback instead of
+ * poisoning the run with Infinity.
+ */
+const MAX_STORED_MAGNITUDE = 1e300
+
+function normalizeBoundedNumber(value: unknown, fallback: number): number {
+  const n = normalizeFiniteNumber(value, fallback)
+  return Math.abs(n) > MAX_STORED_MAGNITUDE ? fallback : n
+}
+
 function normalizeResources(resources: Partial<Resources> | undefined): Resources {
   return {
-    spiritStone: normalizeFiniteNumber(resources?.spiritStone, DEFAULT_RESOURCES.spiritStone),
+    spiritStone: normalizeBoundedNumber(resources?.spiritStone, DEFAULT_RESOURCES.spiritStone),
     spiritEnergy: normalizeFiniteNumber(resources?.spiritEnergy, DEFAULT_RESOURCES.spiritEnergy),
     herb: normalizeFiniteNumber(resources?.herb, DEFAULT_RESOURCES.herb),
     ore: normalizeFiniteNumber(resources?.ore, DEFAULT_RESOURCES.ore),
+  }
+}
+
+function normalizeOfflineAccumulator(value: Partial<OfflineAccumulator> | undefined): OfflineAccumulator {
+  const empty = {
+    resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
+    breakthroughs: [],
+    itemsCrafted: [],
+    taxIncome: 0,
+  }
+  if (!value || typeof value !== 'object') return empty
+  return {
+    resourcesGained: normalizeResources(value.resourcesGained),
+    breakthroughs: Array.isArray(value.breakthroughs) ? value.breakthroughs : [],
+    itemsCrafted: Array.isArray(value.itemsCrafted) ? value.itemsCrafted : [],
+    taxIncome: normalizeFiniteNumber(value.taxIncome, 0),
   }
 }
 
@@ -272,6 +307,8 @@ export async function saveGame(): Promise<void> {
       strategySettings: sect.strategySettings,
       autoRunDayCounter: sect.autoRunDayCounter,
       lastRandomEventTime: sect.lastRandomEventTime,
+      offlineAccumulator: sect.offlineAccumulator,
+      legacyTree: sect.legacyTree,
       currentGameDay: gameState.currentGameDay,
       dayProgressSec: gameState.dayProgressSec,
       monsterCodex: sect.monsterCodex,
@@ -444,6 +481,8 @@ export async function loadGame(): Promise<boolean> {
       return syncCharacterSkillLoadout({
         ...c,
         status: normalizedStatus,
+        cultivation: normalizeBoundedNumber(c.cultivation, 0),
+        totalCultivation: normalizeBoundedNumber(c.totalCultivation, 0),
         backpack: migrateToItemStacks(c.backpack),
         specialties: c.specialties ?? [],
         assignedBuilding: normalizedStatus === 'training' && hasValidTrainingAssignment ? rawAssignedBuilding : null,
@@ -495,24 +534,20 @@ export async function loadGame(): Promise<boolean> {
       totalBreakthroughs: meta.totalBreakthroughs,
       lastTransmissionTime: meta.lastTransmissionTime,
       techniqueCodex,
-      offlineAccumulator: {
-        resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
-        breakthroughs: [],
-        itemsCrafted: [],
-        taxIncome: 0,
-      },
+      offlineAccumulator: normalizeOfflineAccumulator(meta.offlineAccumulator),
       sectPath: meta.sectPath ?? 'none',
       activeRoute: meta.activeRoute ?? null,
       unlockedPathNodeIds: meta.unlockedPathNodeIds ?? [],
       pathUnlockedAt: meta.pathUnlockedAt ?? null,
-      legacy: meta.legacy ?? DEFAULT_LEGACY,
+      legacy: { ...DEFAULT_LEGACY, ...(meta.legacy ?? {}), daoYun: meta.legacy?.daoYun ?? 0 },
+      legacyTree: meta.legacyTree ?? {},
       archiveMilestones: meta.archiveMilestones ?? [],
       automationSettings: normalizeAutomationSettings(
         meta.automationSettings,
         meta.legacy?.ascensionCount ?? 0,
         meta.archiveMilestones ?? []
       ),
-      stats: meta.stats ?? DEFAULT_STATS,
+      stats: { ...(meta.stats ?? DEFAULT_STATS), peakCultivationThisRun: meta.stats?.peakCultivationThisRun ?? 0 },
       currentArchetype: (meta as any).currentArchetype ?? 'pillSustain',
       strategySettings: meta.strategySettings
         ? {

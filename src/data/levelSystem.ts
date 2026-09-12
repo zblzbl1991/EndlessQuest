@@ -8,7 +8,7 @@ export const QUALITY_LEVEL_STATS: Record<CharacterQuality, { hp: number; atk: nu
   chaos: { hp: 12, atk: 6, def: 6 },
 }
 
-export const REALM_LEVEL_CAPS = [10, 20, 30, 40, 50, 60] as const
+export const REALM_LEVEL_CAPS = [10, 20, 30, 40, 50, 60, 70, 80, 90] as const
 
 export function getRealmLevelCap(realmIndex: number): number {
   return REALM_LEVEL_CAPS[realmIndex] ?? REALM_LEVEL_CAPS[0]
@@ -77,7 +77,7 @@ export interface CharacterExperienceResult {
 export function applyCharacterExperience(character: Character, xpGain: number): CharacterExperienceResult {
   const safeLevel = Math.max(1, character.level ?? 1)
   const safeXp = Math.max(0, character.xp ?? 0)
-  const normalizedXpGain = Math.max(0, Math.floor(xpGain))
+  const normalizedXpGain = Math.max(0, xpGain)
 
   if (normalizedXpGain <= 0) {
     return {

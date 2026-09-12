@@ -2,16 +2,19 @@ import { useSectStore } from '../../stores/sectStore'
 import { saveGame } from './SaveSystem'
 
 /**
- * Activates write-through auto-save via Zustand subscribe.
+ * Activates dirty-flag auto-save via Zustand subscribe.
  * Returns an unsubscribe/cleanup function.
  *
  * Mechanism:
- * 1. Subscribe to sectStore.sect changes
- * 2. Debounce 500ms (deduplicate rapid ticks)
+ * 1. Subscribe to sectStore.sect changes (dirty flag)
+ * 2. Debounce 5s (ticks dirty the store every second; per-tick writes are wasted IDB work)
  * 3. Snapshot compare (skip if no actual change)
  * 4. Write all entity stores in a single IDB transaction
  * 5. visibilitychange triggers immediate save (reliable)
  * 6. beforeunload triggers immediate save (best-effort)
+ *
+ * Worst-case data loss on a crash is 5 seconds of progress; the visibility and
+ * unload flushes cover every normal exit path.
  */
 export function startAutoSave(): () => void {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -23,11 +26,11 @@ export function startAutoSave(): () => void {
     if (snapshot === lastSnapshot) return
     lastSnapshot = snapshot
 
-    if (debounceTimer) clearTimeout(debounceTimer)
+    if (debounceTimer) return
     debounceTimer = setTimeout(() => {
       debounceTimer = null
       saveGame()
-    }, 500)
+    }, 5000)
   })
 
   const saveNow = () => {

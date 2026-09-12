@@ -877,7 +877,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
 
   it('should not attempt breakthrough with insufficient cultivation', () => {
     const char = getFirstCharacter()
-    setCharacterCultivation(char.id, 50) // needs 100
+    setCharacterCultivation(char.id, 2) // stage-0 need = 5
 
     getStore().tickAll(1)
 
@@ -1002,9 +1002,9 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     vi.spyOn(Math, 'random').mockReturnValue(0.5)
     getStore().tickAll(1)
 
-    // Sub-level breakthrough consumes minor breakthrough cost (50 for realm 0, stage 0) but not vault items
+    // Sub-level breakthrough consumes the curve-linked minor cost (realm 0, stage 0->1 = 4)
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.resources.spiritStone).toBe(950.55) // 1000 - 50 + 0.5 (mine) + 0.05 (tax)
+    expect(getStore().sect.resources.spiritStone).toBe(996.55) // 1000 - 4 + 0.5 (mine) + 0.05 (tax)
   })
 
   it('should injure a disciple when sub-level breakthrough fails', () => {
@@ -1029,13 +1029,13 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
 
   it('should skip minor breakthrough when spirit stones insufficient', () => {
     const char = getFirstCharacter()
-    setCharacterCultivation(char.id, 100) // realm 0, stage 0 needs 100 cultivation
+    setCharacterCultivation(char.id, 100) // realm 0, stage 0 needs 5 cultivation
 
-    // Set spirit stones to less than minor breakthrough cost (50 for realm 0, stage 0)
+    // Set spirit stones to less than the curve-linked minor cost (4 for realm 0, stage 0)
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
-        resources: { ...s.sect.resources, spiritStone: 30, spiritEnergy: 1000 },
+        resources: { ...s.sect.resources, spiritStone: 1, spiritEnergy: 1000 },
       },
     }))
 

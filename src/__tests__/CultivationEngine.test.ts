@@ -5,6 +5,7 @@ import {
   canBreakthrough,
   breakthrough,
 } from '../systems/cultivation/CultivationEngine'
+import { getRealmSpeedMult } from '../data/realms'
 import type { Character } from '../types/character'
 
 function createCharacter(overrides?: Partial<Character>): Character {
@@ -46,9 +47,9 @@ function createCharacter(overrides?: Partial<Character>): Character {
 
 describe('CultivationEngine', () => {
   describe('calcCultivationRate', () => {
-    it('should return base rate 5 with default stats', () => {
+    it('should return base rate anchored to realm speed with default stats', () => {
       const character = createCharacter()
-      expect(calcCultivationRate(character, [])).toBe(5)
+      expect(calcCultivationRate(character, [])).toBeCloseTo(5 * getRealmSpeedMult(0), 10)
     })
 
     it('should apply spiritualRoot bonus (exponential scaling)', () => {
@@ -59,13 +60,16 @@ describe('CultivationEngine', () => {
         },
       })
       // rootBonus = (15/10)^0.85 ≈ 1.4114, compBonus = 1.0 (comp=10)
-      const expected = 5 * Math.pow(15 / 10, 0.85) * 1.0
+      const expected = 5 * Math.pow(15 / 10, 0.85) * 1.0 * getRealmSpeedMult(0)
       expect(calcCultivationRate(character, [])).toBeCloseTo(expected, 10)
     })
 
-    it('should apply realm multiplier (higher realm = slower)', () => {
-      const character = createCharacter({ realm: 2 }) // 金丹 = 0.8x
-      expect(calcCultivationRate(character, [])).toBe(5 * 0.8)
+    it('should scale rate with realm speed (rate growth covers cost growth)', () => {
+      const character = createCharacter({ realm: 2 })
+      // Speed(2)/Speed(0) = 10^(6-2) / 2^2 = 2500 — rates always outrun the curve
+      const expected = 5 * getRealmSpeedMult(2)
+      expect(calcCultivationRate(character, [])).toBeCloseTo(expected, 10)
+      expect(calcCultivationRate(character, []) / calcCultivationRate(createCharacter(), [])).toBeCloseTo(2500, 0)
     })
 
     it('should apply cultivationRate bonus from learned technique', () => {
@@ -74,8 +78,8 @@ describe('CultivationEngine', () => {
         realm: 1,
       })
       const rate = calcCultivationRate(character, ['leiyu'])
-      // rootBonus=1.0, compBonus=1.0, realmMult=0.9
-      const baseRate = 5 * 1.0 * 1.0 * 0.9
+      // rootBonus=1.0, compBonus=1.0, realmMult = Speed(1)
+      const baseRate = 5 * 1.0 * 1.0 * getRealmSpeedMult(1)
       expect(rate).toBeCloseTo(baseRate * 1.1, 10) // +10% from cultivationRate bonus
     })
 
@@ -125,7 +129,7 @@ describe('CultivationEngine', () => {
     it('should gain cultivation when enough spirit energy', () => {
       const character = createCharacter()
       const result = tick(character, 10, 1)
-      expect(result.cultivationGained).toBe(5)
+      expect(result.cultivationGained).toBeCloseTo(5 * getRealmSpeedMult(0), 10)
       expect(result.spiritSpent).toBe(2)
     })
 
@@ -135,8 +139,8 @@ describe('CultivationEngine', () => {
       })
       // leiyu has cultivationRate bonus of 0.1 (flat, always active)
       const result = tick(character, 20, 1, ['leiyu'])
-      // rootBonus=1.0, compBonus=1.0, realmMult=0.9
-      const baseRate = 5 * 1.0 * 1.0 * 0.9
+      // rootBonus=1.0, compBonus=1.0, realmMult = Speed(1)
+      const baseRate = 5 * 1.0 * 1.0 * getRealmSpeedMult(1)
       expect(result.cultivationGained).toBeCloseTo(baseRate * 1.1, 10) // baseRate * (1 + 0.1)
     })
 
@@ -170,16 +174,16 @@ describe('CultivationEngine', () => {
     })
 
     it('should return false when insufficient cultivation', () => {
-      const character = createCharacter({ cultivation: 50 })
+      const character = createCharacter({ cultivation: 2 }) // stage-0 need = 0.05 x 100
       expect(canBreakthrough(character)).toBe(false)
     })
 
     it('should return false when at max stage of last realm', () => {
-      // Realm 5 "渡劫飞升" has only 1 stage (stage 0)
+      // Last realm (渡劫) at final stage cannot break through further
       const character = createCharacter({
-        realm: 5,
-        realmStage: 0 as 0 | 1 | 2 | 3,
-        cultivation: 600000,
+        realm: 8,
+        realmStage: 3 as 0 | 1 | 2 | 3,
+        cultivation: 1e40,
       })
       expect(canBreakthrough(character)).toBe(false)
     })
@@ -213,12 +217,12 @@ describe('CultivationEngine', () => {
 
     it('should advance realm when at max stage', () => {
       // realm 0 stage 3 (圆满) -> realm 1 stage 0
-      const character = createCharacter({ realm: 0, realmStage: 3, cultivation: 1000 })
+      const character = createCharacter({ realm: 0, realmStage: 3, cultivation: 50 })
       const result = breakthrough(character, 0)
       expect(result.success).toBe(true)
       expect(result.newRealm).toBe(1)
       expect(result.newStage).toBe(0)
-      expect(result.newStats.hp).toBe(Math.floor(result.oldStats.hp * 1.8))
+      expect(result.newStats.hp).toBe(Math.floor(result.oldStats.hp * 8))
     })
 
     it('should grow stats on breakthrough', () => {
@@ -251,12 +255,12 @@ describe('CultivationEngine', () => {
     it('should succeed when cultivation sufficient and no failure rate', () => {
       const character = createCharacter({ cultivation: 100 })
       const result = breakthrough(character, 0)
-      const withoutCultivation = breakthrough(createCharacter({ cultivation: 50 }), 0)
+      const withoutCultivation = breakthrough(createCharacter({ cultivation: 2 }), 0)
       expect(result.newStats.atk).toBeGreaterThan(withoutCultivation.newStats.atk)
     })
 
     it('should fail breakthrough when insufficient cultivation', () => {
-      const character = createCharacter({ cultivation: 50 })
+      const character = createCharacter({ cultivation: 2 })
       const result = breakthrough(character, 0)
       expect(result.success).toBe(false)
       expect(result.newRealm).toBe(0)

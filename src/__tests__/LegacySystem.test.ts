@@ -47,7 +47,8 @@ function makeSect(overrides?: Partial<Sect>): Sect {
     sectPath: 'none',
     unlockedPathNodeIds: [],
     pathUnlockedAt: null,
-    legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+    legacy: { ascensionCount: 0, statBonus: 0, daoYun: 0, unlockedTechniques: [], unlockedDungeons: [] },
+    legacyTree: {},
     archiveMilestones: [],
     currentArchetype: 'pillSustain',
     automationSettings: {
@@ -77,11 +78,32 @@ function makeSect(overrides?: Partial<Sect>): Sect {
         cooldownHours: 4,
         cooldownRemainingHours: 0,
       },
+      autoAscend: false,
+      autoAscendMinDaoYun: 0,
     },
     strategySettings: {
       activePolicy: 'balanced',
       switchCooldownDays: 3,
       lastSwitchedAt: null,
+    },
+    stats: {
+      totalSpiritStoneEarned: 0,
+      totalSpiritStoneSpent: 0,
+      totalBattles: 0,
+      totalVictories: 0,
+      totalKills: 0,
+      maxFloorCleared: 0,
+      totalRecruits: 0,
+      totalBreakthroughAttempts: 0,
+      totalBreakthroughSuccesses: 0,
+      totalBuildingUpgrades: 0,
+      totalAdventureRuns: 0,
+      totalAdventureCompletions: 0,
+      totalAdventureFailures: 0,
+      totalPetCaptures: 0,
+      totalPlayTime: 0,
+      longestOfflineSeconds: 0,
+      peakCultivationThisRun: 0,
     },
     autoRunDayCounter: 0,
     lastRandomEventTime: 0,
@@ -210,7 +232,8 @@ describe('performAscension', () => {
       resources: { spiritStone: 99999, spiritEnergy: 5000, herb: 3000, ore: 2000 },
       characters: [makeCharacter(4)],
       buildings: makeBuildings(5),
-      legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      legacy: { ascensionCount: 0, statBonus: 0, daoYun: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      legacyTree: {},
     })
     const { newSect } = performAscension(sect)
     expect(newSect.resources.spiritStone).toBe(1000) // x2 bonus for first ascension
@@ -276,7 +299,8 @@ describe('performAscension', () => {
 
   it('should compute new statBonus from ascensionCount', () => {
     const sect = makeSect({
-      legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      legacy: { ascensionCount: 0, statBonus: 0, daoYun: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      legacyTree: {},
     })
     const { newSect } = performAscension(sect)
     expect(newSect.legacy.ascensionCount).toBe(1)
@@ -366,7 +390,8 @@ describe('performAscension', () => {
 
   it('should apply starting spirit stone bonus for first ascension', () => {
     const sect = makeSect({
-      legacy: { ascensionCount: 0, statBonus: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      legacy: { ascensionCount: 0, statBonus: 0, daoYun: 0, unlockedTechniques: [], unlockedDungeons: [] },
+      legacyTree: {},
     })
     const { newSect } = performAscension(sect)
     // First ascension: bonus is 1000 spirit stones (x2)

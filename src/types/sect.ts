@@ -139,6 +139,8 @@ export interface Building {
 export interface LegacyBonus {
   ascensionCount: number
   statBonus: number
+  /** 道韵：飞升积累的永久货币，消费于飞升树 */
+  daoYun: number
   unlockedTechniques: string[]
   unlockedDungeons: string[]
 }
@@ -166,6 +168,8 @@ export interface SectStats {
   totalPetCaptures: number
   totalPlayTime: number
   longestOfflineSeconds: number
+  /** 本世弟子最高累计修为（飞升道韵结算依据，飞升时清零） */
+  peakCultivationThisRun: number
 }
 
 /** 怪物图鉴条目状态 */
@@ -187,6 +191,10 @@ export interface SectAutomationSettings {
   routeShift: RouteShiftState
   productionCampaign: ProductionCampaignState
   templateConfidence: TemplateConfidenceEntry[]
+  /** 自动飞升开关（需飞升树"天机推演"节点才能真正生效） */
+  autoAscend: boolean
+  /** 自动飞升的最低道韵预期 */
+  autoAscendMinDaoYun: number
 }
 
 export interface Sect {
@@ -211,6 +219,8 @@ export interface Sect {
   stats: SectStats
   archiveMilestones: ArchiveMilestoneEntry[]
   automationSettings: SectAutomationSettings
+  /** 飞升树已购等级：nodeId -> level（未购节点缺省 0） */
+  legacyTree: Record<string, number>
   currentArchetype: SectArchetype
   strategySettings: SectStrategySettings
   autoRunDayCounter: number

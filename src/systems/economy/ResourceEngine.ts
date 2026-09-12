@@ -58,11 +58,16 @@ export function calcTaxRate(sectLevel: number, discipleCount: number): number {
 
 /**
  * Calculate spirit stone soft cap based on main hall level.
- * Formula: (5000 + mainHallLevel * 3000) * max(1, mainHallLevel - 2)
+ * Formula: (5000 + mainHallLevel * 3000) * max(1, mainHallLevel - 2)          -- mainHallLevel <= 2
+ *          (5000 + mainHallLevel * 3000) * 1.5 ^ (mainHallLevel - 2)          -- mainHallLevel > 2
+ *
+ * The exponential segment keeps storage ahead of late-game sinks: at main hall
+ * level 10 the soft cap is ~897k, so the hard cap (soft cap * 5, see tickSlice)
+ * comfortably covers the 1.5M final breakthrough cost.
  */
 export function calcSpiritStoneCap(mainHallLevel: number): number {
   if (mainHallLevel <= 2) return 5000 + mainHallLevel * 3000
-  return (5000 + mainHallLevel * 3000) * Math.max(1, mainHallLevel - 2)
+  return Math.round((5000 + mainHallLevel * 3000) * Math.pow(1.5, mainHallLevel - 2))
 }
 
 /**
