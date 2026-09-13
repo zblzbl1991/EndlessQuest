@@ -24,6 +24,7 @@ import { resolveEvent } from '../systems/roguelike/EventSystem'
 import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { createCharacterCombatUnit } from '../data/enemies'
 import { getEffectiveLegacyStatBonus, getLegacyDropMult } from '../data/legacy'
+import { scaleDungeonResources } from '../systems/adventure/RewardEconomy'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 import { resolveAdventureFailureOutcome } from '../systems/character/DiscipleRecoverySystem'
 import { DISPATCH_MISSIONS } from '../data/missions'
@@ -283,6 +284,11 @@ function scaleResources(resources: Resources, mult: number): Resources {
     out[key] = out[key] * mult
   }
   return out
+}
+
+/** Best realm among sect characters — the anchor for adventure reward scaling. */
+function sectBestRealm(): number {
+  return useSectStore.getState().sect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
 }
 
 /** Deposit resources at a given fraction (truncated) */
@@ -1391,9 +1397,9 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       branchTags: [...new Set([...(run.branchTags ?? []), ...legacyOutcome.branchTags])],
     }
 
-    // 1. Deposit 50% of totalRewards (scaled by the ascension-tree drop multiplier)
+    // 1. Deposit 50% of totalRewards (scaled by realm economy + ascension-tree drop multiplier)
     const dropMult = getLegacyDropMult(useSectStore.getState().sect.legacyTree)
-    const boostedRewards = scaleResources(settledRun.totalRewards, dropMult)
+    const boostedRewards = scaleResources(scaleDungeonResources(settledRun.totalRewards, sectBestRealm()), dropMult)
     depositFractionResourcesToSect(boostedRewards, 0.5)
 
     // 2. Deposit all itemRewards to vault
@@ -1541,8 +1547,8 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         unlockSectMilestone('adventureRuns10')
       }
     }
-    // 1. Deposit 100% of totalRewards
-    depositResourcesToSect(settledRun.totalRewards)
+    // 1. Deposit 100% of totalRewards (scaled by realm economy)
+    depositResourcesToSect(scaleDungeonResources(settledRun.totalRewards, sectBestRealm()))
 
     // 2. Deposit all itemRewards to vault
     depositItemsToVault(settledRun.itemRewards)
@@ -1603,9 +1609,12 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
       },
     }))
 
-    // 1. Deposit 50% of totalRewards (scaled by the ascension-tree drop multiplier)
+    // 1. Deposit 50% of totalRewards (scaled by realm economy + ascension-tree drop multiplier)
     depositFractionResourcesToSect(
-      scaleResources(run.totalRewards, getLegacyDropMult(useSectStore.getState().sect.legacyTree)),
+      scaleResources(
+        scaleDungeonResources(run.totalRewards, sectBestRealm()),
+        getLegacyDropMult(useSectStore.getState().sect.legacyTree)
+      ),
       0.5
     )
 
@@ -1686,7 +1695,7 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           break
       }
     }
-    depositResourcesToSect(resources)
+    depositResourcesToSect(scaleDungeonResources(resources, sectBestRealm()))
     emitEvent('dispatch_complete', `${mission.name} is complete, and the disciple has returned.`)
 
     // Return character to idle

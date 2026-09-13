@@ -24,7 +24,6 @@ export interface RealmDef {
   cultivationCosts: number[]
   breakthroughExtra: string | null
   unlockContent: string
-  tribulationPower?: number
   statMultiplier: number
 }
 
@@ -49,12 +48,16 @@ export function getRealmSpeedMult(realmIndex: number): number {
 }
 
 /**
- * Economy coupling (§四 resource chain): spirit stone production scales with
- * the sect's highest reached realm so exponential breakthrough costs stay
- * affordable. Realm 0 keeps the vanilla economy (×1).
+ * Economy coupling (§四 resource chain): spirit stone income scales with the
+ * realm the sect is SAVING FOR — callers pass the target realm (bestRealm + 1)
+ * so exponential breakthrough costs stay affordable. Keying the multiplier to
+ * the current realm instead made every major breakthrough past 金丹 take years
+ * to fund (income grew 10^(0.9Δ) while costs grew 10^Δ). The index is clamped
+ * so bestRealm + 1 past the last realm stays finite.
  */
 export function getRealmEconomyMult(realmIndex: number): number {
-  return Math.pow(10, (REALM_EXP[realmIndex] - REALM_EXP[0]) * 0.9)
+  const idx = Math.min(Math.max(realmIndex, 0), REALM_EXP.length - 1)
+  return Math.pow(10, (REALM_EXP[idx] - REALM_EXP[0]) * 0.9)
 }
 
 /**
@@ -69,22 +72,20 @@ const REALM_META: {
   name: string
   unlockContent: string
   breakthroughExtra: string | null
-  tribulationPower?: number
 }[] = [
   { name: '炼气期', unlockContent: '基础功法、灵品装备掉落', breakthroughExtra: null },
   { name: '筑基期', unlockContent: '秘境解锁（落云洞）、装备自动最优', breakthroughExtra: '需消耗大量灵石' },
-  { name: '金丹期', unlockContent: '灵宠系统、炼丹自动化', breakthroughExtra: '金丹劫 + 灵石', tribulationPower: 0.8 },
-  { name: '元婴期', unlockContent: '弟子系统（经营线）', breakthroughExtra: '元婴劫 + 灵石', tribulationPower: 1.0 },
+  { name: '金丹期', unlockContent: '灵宠系统、炼丹自动化', breakthroughExtra: '金丹劫 + 灵石' },
+  { name: '元婴期', unlockContent: '弟子系统（经营线）', breakthroughExtra: '元婴劫 + 灵石' },
   {
     name: '化神期',
     unlockContent: '高级功法、飞剑、大境界自动突破',
     breakthroughExtra: '天劫 + 灵石',
-    tribulationPower: 1.2,
   },
-  { name: '炼虚期', unlockContent: '飞升预览面板', breakthroughExtra: '天劫 + 灵石', tribulationPower: 1.3 },
-  { name: '合体期', unlockContent: '自动秘境全托管', breakthroughExtra: '天劫 + 灵石', tribulationPower: 1.4 },
-  { name: '大乘期', unlockContent: '自动飞升', breakthroughExtra: '天劫 + 灵石', tribulationPower: 1.45 },
-  { name: '渡劫期', unlockContent: '飞升仙界', breakthroughExtra: '天劫 + 全建筑满级', tribulationPower: 1.5 },
+  { name: '炼虚期', unlockContent: '飞升预览面板', breakthroughExtra: '天劫 + 灵石' },
+  { name: '合体期', unlockContent: '自动秘境全托管', breakthroughExtra: '天劫 + 灵石' },
+  { name: '大乘期', unlockContent: '自动飞升', breakthroughExtra: '天劫 + 灵石' },
+  { name: '渡劫期', unlockContent: '飞升仙界', breakthroughExtra: '天劫 + 全建筑满级' },
 ]
 
 export const REALMS: RealmDef[] = REALM_META.map((meta, i) => ({
@@ -94,7 +95,6 @@ export const REALMS: RealmDef[] = REALM_META.map((meta, i) => ({
   cultivationCosts: [0.05, 0.15, 0.3, 0.5].map((f) => getRealmCost(i) * f),
   breakthroughExtra: meta.breakthroughExtra,
   unlockContent: meta.unlockContent,
-  tribulationPower: meta.tribulationPower,
   statMultiplier: 8,
 }))
 
@@ -133,13 +133,14 @@ export const BREAKTHROUGH_COSTS: Record<number, BreakthroughResourceCost> = Obje
 /**
  * Spirit stone costs for minor stage breakthroughs (within same realm),
  * generated from the next realm's major cost so they never outpace it.
+ * The last realm has no next major to key from — key its minors to its own
+ * cost (an empty table made every 渡劫期 minor cost read as Infinity).
  * Indexed by [realmIndex][targetStage], targetStage 1-3.
  */
 export const MINOR_BREAKTHROUGH_COSTS: Record<number, Record<number, number>> = Object.fromEntries(
   REALM_EXP.map((_, i) => {
-    if (i >= REALM_EXP.length - 1) return [i, {}]
-    const major = BREAKTHROUGH_COSTS[i + 1].spiritStone
-    return [i, { 1: major * 0.02, 2: major * 0.04, 3: major * 0.08 }]
+    const basis = i >= REALM_EXP.length - 1 ? getRealmCost(i) : BREAKTHROUGH_COSTS[i + 1].spiritStone
+    return [i, { 1: basis * 0.02, 2: basis * 0.04, 3: basis * 0.08 }]
   })
 )
 
@@ -160,12 +161,9 @@ export const MINOR_BREAKTHROUGH_HERB_COSTS: Record<number, Record<number, number
 }
 
 export function getBreakthroughCost(realmIndex: number, currentStage: number): number {
-  if (currentStage >= 3) {
-    // Major realm breakthrough
-    return BREAKTHROUGH_COSTS[realmIndex + 1]?.spiritStone ?? 0
-  }
-  // Minor stage breakthrough
-  return MINOR_BREAKTHROUGH_COSTS[realmIndex]?.[currentStage + 1] ?? 0
+  // Delegate to the authoritative resource cost so both functions agree on
+  // missing entries (this one used to default to 0 while the other chose Infinity).
+  return getBreakthroughResourceCost(realmIndex, currentStage).spiritStone
 }
 
 export function getMinorBreakthroughEnergyCost(realmIndex: number, stage: number): number {

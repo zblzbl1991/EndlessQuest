@@ -144,10 +144,12 @@ export function getLegacyPositiveEventBias(ascensionCount: number): number {
 
 /**
  * 道韵公式（设计稿 §7.2）：
- *   floor( (本世最高修为)^0.1 / 1000 × (1 + 0.3 × 最高境界index) × (1 + 0.25 × 历史飞升次数) )
+ *   floor( (本世最高修为)^0.1 / 1000 × (1 + 0.3 × 最高境界index) × 4^历史飞升次数 )
  *
- * 幂 0.1 使道韵随境界曲线温和超线性增长；境界项与次数项保证"每多飞升一次
- * 收益更高"。以 V2 曲线首飞渡劫（1e40）为例 ≈ 34 道韵。
+ * 幂 0.1 使道韵随境界曲线温和超线性增长；境界项奖励打得越深。次数项取 4^n：
+ * 境界表只有 9 境时本世峰值修为封顶于 1e40，若沿用线性 (1+0.25n) 项，同峰值下
+ * 每次飞升只多 ~25%，违反 §7.2"每多飞升一次道韵至少为上一次 4 倍"的校准律——
+ * 4^n 恰好兑现该规则（首飞渡劫 ≈ 34，二飞 ≈ 136，三飞 ≈ 545 …）。
  */
 export function calcDaoYunGain(
   peakCultivationThisRun: number,
@@ -158,7 +160,7 @@ export function calcDaoYunGain(
   if (peak <= 0) return 0
   const peakTerm = Math.pow(peak, 0.1) / 1000
   const realmTerm = 1 + 0.3 * Math.max(0, highestRealmIndex)
-  const ascensionTerm = 1 + 0.25 * Math.max(0, ascensionCount)
+  const ascensionTerm = Math.pow(4, Math.max(0, ascensionCount))
   return Math.floor(peakTerm * realmTerm * ascensionTerm)
 }
 

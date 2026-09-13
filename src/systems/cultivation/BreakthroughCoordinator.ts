@@ -1,6 +1,11 @@
 import type { Character, GrowthMultipliers, MilestoneSnapshot, RealmStage } from '../../types/character'
-import { canBreakthrough, breakthrough as performBreakthrough, calcBreakthroughFailureRate } from './CultivationEngine'
-import { shouldTriggerTribulation, resolveTribulation } from './TribulationSystem'
+import {
+  canBreakthrough,
+  breakthrough as performBreakthrough,
+  calcBreakthroughFailureRate,
+  applyGreatSuccessStats,
+} from './CultivationEngine'
+import { resolveTribulation } from './TribulationSystem'
 import { tryComprehendOnBreakthrough } from '../technique/TechniqueSystem'
 import { REALMS, getBreakthroughResourceCost, getRealmName } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
@@ -23,12 +28,14 @@ function seedComprehension(existingComprehension: Record<string, number>, techni
 // ---------------------------------------------------------------------------
 
 /**
- * 5-level breakthrough outcome gradient:
- * - great_success: skip a sub-level, extra stat bonus
- * - success: normal breakthrough, realm+1
- * - blocked: failure but character stays alive, cultivation reset to 70%
- * - injured: failure, character enters injured status with injuryTimer
- * - fallen: character death (only possible on major realm tribulation breakthroughs)
+ * Breakthrough outcomes (§5.2 / §5.4):
+ * - great_success: major breakthrough survived the tribulation with 天地感应 —
+ *   normal advance + one extra sub-level stat step (10% of survivors)
+ * - success: normal breakthrough
+ * - blocked: failure, retryable — minor failures keep ALL cultivation (§5.2),
+ *   lost tribulations keep 70%
+ * - injured: failure with injuryTimer (lost tribulation only)
+ * - fallen: death — only possible when breaking INTO 渡劫期 (target ≥ 8)
  */
 export type BreakthroughOutcome = 'great_success' | 'success' | 'blocked' | 'injured' | 'fallen'
 
@@ -74,15 +81,19 @@ export interface BreakthroughResult {
 
 // ---...--- Outcome Probabilities ---...---
 
-// Base probabilities for the outcome gradient
-// Must sum to 1.0
-const OUTCOME_WEIGHTS = {
-  great_success: 0.1,
-  success: 0.5,
-  blocked: 0.2,
-  injured: 0.15,
-  fallen: 0.05,
+/**
+ * Failure-mode distribution when a major breakthrough's tribulation is LOST
+ * (fractions of failures). 身死 only exists when breaking INTO 渡劫期
+ * (target realm ≥ 8) or beyond — earlier realms fold it into 受伤 (§5.4).
+ */
+const FAILURE_OUTCOME_WEIGHTS = {
+  blocked: 0.5,
+  injured: 0.375,
+  fallen: 0.125,
 }
+
+/** Chance that a tribulation-surviving major breakthrough is a great_success. */
+const GREAT_SUCCESS_RATE = 0.1
 
 /** Injury duration in seconds for 'injured' outcome */
 const INJURY_DURATION_SECS = 300 // 5 minutes
@@ -91,49 +102,14 @@ const INJURY_DURATION_SECS = 300 // 5 minutes
 const BLOCKED_CULTIVATION_FRACTION = 0.7
 
 /**
- * Roll a breakthrough outcome.
- * For minor breakthroughs, 'fallen' is not possible -- it becomes 'injured' instead.
- * Risk reduction from resources is applied here.
+ * Roll how a lost tribulation manifests. The tribulation roll itself already
+ * decided that the breakthrough FAILS — this only picks the failure flavor.
  */
-function rollBreakthroughOutcome(isMajorBreakthrough: boolean, riskReduction: number = 0): BreakthroughOutcome {
+function rollMajorFailureOutcome(targetRealm: number): BreakthroughOutcome {
   const roll = Math.random()
-
-  // Apply risk reduction: shift probability from fallen/injured toward success/blocked
-  const reduction = Math.min(riskReduction, 0.15) // Cap at 15% reduction
-  const adjustedWeights = {
-    great_success: OUTCOME_WEIGHTS.great_success,
-    success: OUTCOME_WEIGHTS.success + reduction * 0.5,
-    blocked: OUTCOME_WEIGHTS.blocked + reduction * 0.3,
-    injured: OUTCOME_WEIGHTS.injured - reduction * 0.2,
-    fallen: isMajorBreakthrough ? OUTCOME_WEIGHTS.fallen - reduction * 0.3 : 0,
-  }
-
-  // For minor breakthroughs, fallen weight goes to injured
-  if (!isMajorBreakthrough) {
-    adjustedWeights.injured += adjustedWeights.fallen
-    adjustedWeights.fallen = 0
-  }
-
-  // Normalize
-  const total =
-    adjustedWeights.great_success +
-    adjustedWeights.success +
-    adjustedWeights.blocked +
-    adjustedWeights.injured +
-    adjustedWeights.fallen
-  const w = {
-    great_success: adjustedWeights.great_success / total,
-    success: adjustedWeights.success / total,
-    blocked: adjustedWeights.blocked / total,
-    injured: adjustedWeights.injured / total,
-    fallen: adjustedWeights.fallen / total,
-  }
-
-  if (roll < w.great_success) return 'great_success'
-  if (roll < w.great_success + w.success) return 'success'
-  if (roll < w.great_success + w.success + w.blocked) return 'blocked'
-  if (roll < w.great_success + w.success + w.blocked + w.injured) return 'injured'
-  return 'fallen'
+  if (roll < FAILURE_OUTCOME_WEIGHTS.blocked) return 'blocked'
+  if (roll < FAILURE_OUTCOME_WEIGHTS.blocked + FAILURE_OUTCOME_WEIGHTS.injured) return 'injured'
+  return targetRealm >= 8 ? 'fallen' : 'injured'
 }
 
 /**
@@ -220,12 +196,15 @@ function applySuccessfulBreakthrough(
   // Save milestone snapshot before applying new stats
   const snapshots = saveMilestoneSnapshot(char, newRealm, newStage)
 
+  // Great-success grants one extra sub-level stat step on top of the advance
+  const finalStats = isGreatSuccess ? applyGreatSuccessStats(newStats) : newStats
+
   let updatedChar: Character = {
     ...char,
     realm: newRealm,
     realmStage: newStage,
     cultivation: 0,
-    baseStats: newStats,
+    baseStats: finalStats,
     milestoneSnapshots: snapshots,
   }
 
@@ -253,12 +232,13 @@ function applySuccessfulBreakthrough(
  * Pure function: takes character + resources + context, returns result.
  * Does NOT emit events or mutate store state -- caller applies results.
  *
- * Uses a 5-level outcome gradient:
- * - great_success (~10%): normal breakthrough + extra stat bonus
- * - success (~50%): normal breakthrough
- * - blocked (~20%): cultivation reset to 70%, can retry
- * - injured (~15%): character enters injured status
- * - fallen (~5%): character death (major realm tribulation only)
+ * Minor breakthroughs (§5.2): a single ~90% success roll; failure keeps ALL
+ * cultivation and only spends resources.
+ *
+ * Major breakthroughs (§5.4): the tribulation roll is the ONLY success check
+ * (legacy breakthrough bonus feeds into it). A lost tribulation becomes
+ * blocked (~50%) / injured (~37.5%) / fallen (~12.5%, target realm ≥ 8 only);
+ * a survived one always breaks through, with a 10% great_success bonus.
  */
 export function processBreakthrough(
   char: Character,
@@ -334,272 +314,204 @@ export function processBreakthrough(
 
   const resourceCost = { spiritStone: adjustedSpiritStoneCost, spiritEnergy: 0, herb: herbCost }
 
-  // ---...--- Tribulation Check (major realm only) ---...---
-  // When tribulation fires, its roll IS the failure roll -- the engine-layer
-  // calcBreakthroughFailureRate must not stack a second roll on top of it.
-  const tribulationTriggered = isMajorBreakthrough && shouldTriggerTribulation(char.realm, char.realmStage)
-  if (tribulationTriggered) {
-    const tribResult = resolveTribulation(char)
-
-    if (!tribResult.success) {
-      // Tribulation failed -- use gradient outcome, not automatic death
-      const outcome = rollBreakthroughOutcome(true)
-      const targetName = getRealmName(char.realm + 1, 0)
-
-      switch (outcome) {
-        case 'fallen': {
-          const msg = tribResult.severe
-            ? `${char.name} 未能扛过天劫，雷光之中当场身死道消`
-            : `${char.name} 功力不济，未能渡过天劫，身死道消`
-          return {
-            updatedChar: char,
-            events: [{ type: 'breakthrough_failure', message: msg }],
-            resourceCost,
-            died: true,
-            outcome: 'fallen',
-            cultivationResetFraction: 0,
-            injuryTimer: 0,
-            comprehendedTechniqueId: null,
-            attemptsCount: 0,
-            successesCount: 0,
-            unlockedTribulationMilestone: false,
-            targetRealmName: targetName,
-            breakthroughSuccess: false,
-          }
-        }
-        case 'injured': {
-          const timer = tribResult.injuryTimer ?? INJURY_DURATION_SECS
-          return {
-            updatedChar: { ...char, cultivation: 0 },
-            events: [
-              {
-                type: 'breakthrough_failure',
-                message: `${char.name} 渡劫失利，灵力反噬受伤，需休养恢复`,
-              },
-            ],
-            resourceCost,
-            died: false,
-            outcome: 'injured',
-            cultivationResetFraction: 0,
-            injuryTimer: timer,
-            comprehendedTechniqueId: null,
-            attemptsCount: 0,
-            successesCount: 0,
-            unlockedTribulationMilestone: false,
-            targetRealmName: targetName,
-            breakthroughSuccess: false,
-          }
-        }
-        case 'blocked':
-          return {
-            updatedChar: {
-              ...char,
-              cultivation: Math.floor(char.cultivation * BLOCKED_CULTIVATION_FRACTION),
-            },
-            events: [
-              {
-                type: 'breakthrough_failure',
-                message: `${char.name} 天劫未至而先怯，突破受阻，修为回退`,
-              },
-            ],
-            resourceCost,
-            died: false,
-            outcome: 'blocked',
-            cultivationResetFraction: BLOCKED_CULTIVATION_FRACTION,
-            injuryTimer: 0,
-            comprehendedTechniqueId: null,
-            attemptsCount: 0,
-            successesCount: 0,
-            unlockedTribulationMilestone: false,
-            targetRealmName: targetName,
-            breakthroughSuccess: false,
-          }
-        default: {
-          // great_success or success on tribulation failure -- rare but possible (breakthrough even after trib hit)
-          const btResult = performBreakthrough(char, 0, growthMultipliers)
-          if (btResult.success) {
-            const { updatedChar, events, comprehendedId } = applySuccessfulBreakthrough(
-              char,
-              btResult.newRealm,
-              btResult.newStage,
-              btResult.newStats,
-              outcome === 'great_success',
-              techniqueCodex,
-              true
-            )
-            return {
-              updatedChar,
-              events,
-              resourceCost,
-              died: false,
-              outcome,
-              cultivationResetFraction: 1,
-              injuryTimer: 0,
-              comprehendedTechniqueId: comprehendedId,
-              attemptsCount: 1,
-              successesCount: 1,
-              unlockedTribulationMilestone: outcome === 'great_success' || outcome === 'success',
-              targetRealmName: getRealmName(btResult.newRealm, btResult.newStage),
-              breakthroughSuccess: true,
-            }
-          }
-          // Shouldn't happen but fall through to injured
-          return {
-            updatedChar: { ...char, cultivation: 0 },
-            events: [{ type: 'breakthrough_failure', message: `${char.name} 渡劫后突破失败` }],
-            resourceCost,
-            died: false,
-            outcome: 'injured',
-            cultivationResetFraction: 0,
-            injuryTimer: INJURY_DURATION_SECS,
-            comprehendedTechniqueId: null,
-            attemptsCount: 1,
-            successesCount: 0,
-            unlockedTribulationMilestone: false,
-            targetRealmName: targetName,
-            breakthroughSuccess: false,
-          }
-        }
-      }
-    }
-
-    // Tribulation succeeded -- proceed with gradient outcome for the breakthrough itself
-  }
-
-  // ---...--- Standard Breakthrough with Gradient ---...---
-  const outcome = rollBreakthroughOutcome(isMajorBreakthrough)
-
-  switch (outcome) {
-    case 'great_success':
-    case 'success': {
-      // Tribulation majors already paid their failure roll in resolveTribulation;
-      // only non-tribulation breakthroughs (minors and ->筑基) roll the engine failure rate.
-      const failureRate = tribulationTriggered ? 0 : calcBreakthroughFailureRate(char, legacyBreakthroughBonus)
-      const btResult = performBreakthrough(char, failureRate, growthMultipliers)
-      if (!btResult.success) {
-        // Engine-layer failure roll rejected the attempt: cultivation is kept
-        // in full, no resources are consumed, and the attempt stays retryable.
-        // Reporting outcome 'success' here would misrepresent the attempt.
-        return {
-          ...noChange,
-          events: [
-            {
-              type: 'breakthrough_failure',
-              message: `${char.name} 冲击关口未成，灵力回拢，修为完好保留`,
-            },
-          ],
-          outcome: 'blocked',
-          cultivationResetFraction: 1,
-          attemptsCount: 1,
-          breakthroughSuccess: false,
-        }
-      }
-
-      const { updatedChar, events, comprehendedId } = applySuccessfulBreakthrough(
-        char,
-        btResult.newRealm,
-        btResult.newStage,
-        btResult.newStats,
-        outcome === 'great_success',
-        techniqueCodex,
-        isMajorBreakthrough
-      )
-
-      return {
-        updatedChar,
-        events,
-        resourceCost,
-        died: false,
-        outcome,
-        cultivationResetFraction: 1,
-        injuryTimer: 0,
-        comprehendedTechniqueId: comprehendedId,
-        attemptsCount: 1,
-        successesCount: 1,
-        unlockedTribulationMilestone: tribulationTriggered,
-        targetRealmName: getRealmName(btResult.newRealm, btResult.newStage),
-        breakthroughSuccess: true,
-      }
-    }
-
-    case 'blocked': {
-      const targetName = isMajorBreakthrough
-        ? getRealmName(char.realm + 1, 0)
-        : getRealmName(char.realm, (char.realmStage + 1) as RealmStage)
-      return {
-        updatedChar: {
-          ...char,
-          cultivation: Math.floor(char.cultivation * BLOCKED_CULTIVATION_FRACTION),
-        },
-        events: [
-          {
-            type: 'breakthrough_failure',
-            message: `${char.name} 突破受阻，修为回退，可再次尝试`,
-          },
-        ],
-        resourceCost,
-        died: false,
-        outcome: 'blocked',
-        cultivationResetFraction: BLOCKED_CULTIVATION_FRACTION,
-        injuryTimer: 0,
-        comprehendedTechniqueId: null,
-        attemptsCount: 1,
-        successesCount: 0,
-        unlockedTribulationMilestone: false,
-        targetRealmName: targetName,
-        breakthroughSuccess: false,
-      }
-    }
-
-    case 'injured': {
-      const targetName = isMajorBreakthrough
-        ? getRealmName(char.realm + 1, 0)
-        : getRealmName(char.realm, (char.realmStage + 1) as RealmStage)
-      return {
-        updatedChar: { ...char, cultivation: 0 },
-        events: [
-          {
-            type: 'breakthrough_failure',
-            message: `${char.name} 突破失利，灵力反噬受伤，需休养恢复`,
-          },
-        ],
-        resourceCost,
-        died: false,
-        outcome: 'injured',
-        cultivationResetFraction: 0,
-        injuryTimer: INJURY_DURATION_SECS,
-        comprehendedTechniqueId: null,
-        attemptsCount: 1,
-        successesCount: 0,
-        unlockedTribulationMilestone: false,
-        targetRealmName: targetName,
-        breakthroughSuccess: false,
-      }
-    }
-
-    case 'fallen': {
-      // Only possible on major breakthroughs; rollBreakthroughOutcome guarantees this
-      const targetName = getRealmName(char.realm + 1, 0)
+  // ---...--- Minor Breakthrough (§5.2): single 90% roll ---...---
+  if (!isMajorBreakthrough) {
+    const failRate = calcBreakthroughFailureRate(char, legacyBreakthroughBonus)
+    if (Math.random() < failRate) {
+      // Failure keeps ALL cultivation; resources are still spent (§5.2).
+      // The engine-layer performBreakthrough must NOT roll again on retry.
       return {
         updatedChar: char,
         events: [
           {
             type: 'breakthrough_failure',
-            message: `${char.name} 突破关口功亏一篑，灵力溃散而亡`,
+            message: `${char.name} 冲击小境界未成，灵力回拢，修为完好保留`,
           },
         ],
         resourceCost,
-        died: true,
-        outcome: 'fallen',
-        cultivationResetFraction: 0,
+        died: false,
+        outcome: 'blocked',
+        cultivationResetFraction: 1,
         injuryTimer: 0,
         comprehendedTechniqueId: null,
         attemptsCount: 1,
         successesCount: 0,
         unlockedTribulationMilestone: false,
-        targetRealmName: targetName,
+        targetRealmName: getRealmName(char.realm, (char.realmStage + 1) as RealmStage),
         breakthroughSuccess: false,
       }
     }
+
+    const btResult = performBreakthrough(char, 0, growthMultipliers)
+    if (!btResult.success) {
+      // Unreachable (the roll above already decided success) — kept defensive.
+      return {
+        ...noChange,
+        events: [
+          {
+            type: 'breakthrough_failure',
+            message: `${char.name} 冲击关口未成，灵力回拢，修为完好保留`,
+          },
+        ],
+        outcome: 'blocked',
+        cultivationResetFraction: 1,
+        attemptsCount: 1,
+        breakthroughSuccess: false,
+      }
+    }
+
+    const { updatedChar, events, comprehendedId } = applySuccessfulBreakthrough(
+      char,
+      btResult.newRealm,
+      btResult.newStage,
+      btResult.newStats,
+      false,
+      techniqueCodex,
+      false
+    )
+    return {
+      updatedChar,
+      events,
+      resourceCost,
+      died: false,
+      outcome: 'success',
+      cultivationResetFraction: 1,
+      injuryTimer: 0,
+      comprehendedTechniqueId: comprehendedId,
+      attemptsCount: 1,
+      successesCount: 1,
+      unlockedTribulationMilestone: false,
+      targetRealmName: getRealmName(btResult.newRealm, btResult.newStage),
+      breakthroughSuccess: true,
+    }
+  }
+
+  // ---...--- Major Breakthrough (§5.4): the tribulation roll IS the success roll ---...---
+  const tribResult = resolveTribulation(char, legacyBreakthroughBonus)
+
+  if (!tribResult.success) {
+    const outcome = rollMajorFailureOutcome(char.realm + 1)
+    const targetName = getRealmName(char.realm + 1, 0)
+
+    switch (outcome) {
+      case 'fallen': {
+        const msg = tribResult.severe
+          ? `${char.name} 未能扛过天劫，雷光之中当场身死道消`
+          : `${char.name} 功力不济，未能渡过天劫，身死道消`
+        return {
+          updatedChar: char,
+          events: [{ type: 'breakthrough_failure', message: msg }],
+          resourceCost,
+          died: true,
+          outcome: 'fallen',
+          cultivationResetFraction: 0,
+          injuryTimer: 0,
+          comprehendedTechniqueId: null,
+          attemptsCount: 1,
+          successesCount: 0,
+          unlockedTribulationMilestone: false,
+          targetRealmName: targetName,
+          breakthroughSuccess: false,
+        }
+      }
+      case 'injured': {
+        const timer = tribResult.injuryTimer ?? INJURY_DURATION_SECS
+        return {
+          updatedChar: { ...char, cultivation: 0 },
+          events: [
+            {
+              type: 'breakthrough_failure',
+              message: `${char.name} 渡劫失利，灵力反噬受伤，需休养恢复`,
+            },
+          ],
+          resourceCost,
+          died: false,
+          outcome: 'injured',
+          cultivationResetFraction: 0,
+          injuryTimer: timer,
+          comprehendedTechniqueId: null,
+          attemptsCount: 1,
+          successesCount: 0,
+          unlockedTribulationMilestone: false,
+          targetRealmName: targetName,
+          breakthroughSuccess: false,
+        }
+      }
+      default: {
+        // blocked: cultivation retained at 70%, retryable
+        return {
+          updatedChar: {
+            ...char,
+            cultivation: Math.floor(char.cultivation * BLOCKED_CULTIVATION_FRACTION),
+          },
+          events: [
+            {
+              type: 'breakthrough_failure',
+              message: `${char.name} 天劫未至而先怯，突破受阻，修为回退`,
+            },
+          ],
+          resourceCost,
+          died: false,
+          outcome: 'blocked',
+          cultivationResetFraction: BLOCKED_CULTIVATION_FRACTION,
+          injuryTimer: 0,
+          comprehendedTechniqueId: null,
+          attemptsCount: 1,
+          successesCount: 0,
+          unlockedTribulationMilestone: false,
+          targetRealmName: targetName,
+          breakthroughSuccess: false,
+        }
+      }
+    }
+  }
+
+  // Tribulation survived — the breakthrough holds. Roll for great_success,
+  // which grants one extra sub-level stat step (P2-7).
+  const isGreatSuccess = Math.random() < GREAT_SUCCESS_RATE
+  const btResult = performBreakthrough(char, 0, growthMultipliers)
+  if (!btResult.success) {
+    // Unreachable: canBreakthrough passed and the tribulation already decided.
+    return {
+      updatedChar: { ...char, cultivation: 0 },
+      events: [{ type: 'breakthrough_failure', message: `${char.name} 渡劫后突破失败` }],
+      resourceCost,
+      died: false,
+      outcome: 'injured',
+      cultivationResetFraction: 0,
+      injuryTimer: INJURY_DURATION_SECS,
+      comprehendedTechniqueId: null,
+      attemptsCount: 1,
+      successesCount: 0,
+      unlockedTribulationMilestone: false,
+      targetRealmName: getRealmName(char.realm + 1, 0),
+      breakthroughSuccess: false,
+    }
+  }
+
+  const { updatedChar, events, comprehendedId } = applySuccessfulBreakthrough(
+    char,
+    btResult.newRealm,
+    btResult.newStage,
+    btResult.newStats,
+    isGreatSuccess,
+    techniqueCodex,
+    true
+  )
+
+  return {
+    updatedChar,
+    events,
+    resourceCost,
+    died: false,
+    outcome: isGreatSuccess ? 'great_success' : 'success',
+    cultivationResetFraction: 1,
+    injuryTimer: 0,
+    comprehendedTechniqueId: comprehendedId,
+    attemptsCount: 1,
+    successesCount: 1,
+    unlockedTribulationMilestone: true,
+    targetRealmName: getRealmName(btResult.newRealm, btResult.newStage),
+    breakthroughSuccess: true,
   }
 }

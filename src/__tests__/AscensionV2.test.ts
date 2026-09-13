@@ -20,6 +20,15 @@ describe('daoYun formula', () => {
     expect(calcDaoYunGain(1e40, 8, 0)).toBeGreaterThan(calcDaoYunGain(1e40, 4, 0))
   })
 
+  it('satisfies the §7.2 rule: each ascension yields ≥4× the previous one', () => {
+    // 境界表只有 9 境时，同峰值下道韵若只按 (1+0.25n) 线性增长， prestidge 循环会饱和。
+    for (let asc = 1; asc < 8; asc++) {
+      const prev = calcDaoYunGain(1e40, 8, asc - 1)
+      const curr = calcDaoYunGain(1e40, 8, asc)
+      expect(curr).toBeGreaterThanOrEqual(4 * prev)
+    }
+  })
+
   it('yields zero without any cultivation', () => {
     expect(calcDaoYunGain(0, 8, 0)).toBe(0)
   })
@@ -49,8 +58,10 @@ describe('legacy tree', () => {
   it('breakthrough node reduces the failure rate', () => {
     const char = makeChar({ realm: 2, realmStage: 3 })
     const without = calcBreakthroughFailureRate(char, 0)
-    const withBonus = calcBreakthroughFailureRate(char, 0.15)
-    expect(withBonus).toBeCloseTo(without - 0.15, 10)
+    const withBonus = calcBreakthroughFailureRate(char, 0.05)
+    expect(withBonus).toBeCloseTo(without - 0.05, 10)
+    // 大额加成把失败率钳制到 0，不会出现负数
+    expect(calcBreakthroughFailureRate(char, 0.5)).toBe(0)
   })
 })
 
@@ -276,6 +287,22 @@ describe('auto ascension (§八)', () => {
     })
     expect(canAscend(weak).canAscend).toBe(false)
     expect(shouldAutoAscend(weak)).toBe(false)
+  })
+
+  it('飞升门槛对齐 §5.1：需要弟子达到渡劫期（境界 ≥ 8），化神飞升是 0 道韵陷阱', () => {
+    // buildings满足但最高境界只有化神（4）→ 不能飞升
+    const huashenOnly = makeSect({
+      characters: [makeChar({ id: 'a', realm: 4, totalCultivation: 1e13 })],
+    })
+    const check = canAscend(huashenOnly)
+    expect(check.canAscend).toBe(false)
+    expect(check.reasons.some((r) => r.includes('渡劫'))).toBe(true)
+
+    // 渡劫期初期（境界 8）即满足境界条件
+    const tribulationStage = makeSect({
+      characters: [makeChar({ id: 'b', realm: 8, realmStage: 0, totalCultivation: 1e40 })],
+    })
+    expect(canAscend(tribulationStage).canAscend).toBe(true)
   })
 })
 

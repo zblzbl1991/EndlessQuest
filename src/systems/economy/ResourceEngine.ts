@@ -6,6 +6,7 @@ import {
   getSpiritMineOreRate,
   getSpiritMineRate,
 } from '../../data/buildings'
+import { REALM_EXP, getRealmStoneFloor } from '../../data/realms'
 import type { ResourceCaps, Resources } from '../../types/sect'
 
 export type { Resources }
@@ -91,4 +92,16 @@ export function clampResources(resources: Resources, caps: ResourceCaps, spiritS
     herb: Math.min(resources.herb, caps.herb),
     ore: Math.min(resources.ore, caps.ore),
   }
+}
+
+/**
+ * Hard storage cap the tick clamps spirit stones to: main-hall soft cap ×5
+ * with a realm-driven floor. The floor is keyed to the NEXT realm so the
+ * upcoming breakthrough cost always fits with 10× headroom — keying it to the
+ * current realm left the cap ~10^(ΔEXP-1)× short and permanently blocked every
+ * major breakthrough past 金丹 (the B1 wall, reintroduced by the V2 curve).
+ */
+export function getSectStoneCap(mainHallLevel: number, bestRealm: number): number {
+  const targetRealm = Math.min(Math.max(bestRealm + 1, 1), REALM_EXP.length - 1)
+  return Math.max(calcSpiritStoneCap(mainHallLevel) * 5, getRealmStoneFloor(targetRealm))
 }

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { resolveTribulation, shouldTriggerTribulation } from '../systems/cultivation/TribulationSystem'
+import {
+  resolveTribulation,
+  shouldTriggerTribulation,
+  calcTribulationFailRate,
+} from '../systems/cultivation/TribulationSystem'
+import { REALM_EXP } from '../data/realms'
 import type { Character } from '../types/character'
 
 function makeCharacter(overrides: Partial<Character> = {}): Character {
@@ -31,29 +36,56 @@ function makeCharacter(overrides: Partial<Character> = {}): Character {
   }
 }
 
-describe('shouldTriggerTribulation', () => {
-  it('returns false for sub-level breakthrough (stage 0→1)', () => {
-    expect(shouldTriggerTribulation(1, 0)).toBe(false)
+describe('shouldTriggerTribulation（§5.4：每个大境界突破都有天劫）', () => {
+  it('小境界突破（stage 0-2）不触发', () => {
+    for (let realm = 0; realm < REALM_EXP.length; realm++) {
+      for (let stage = 0; stage < 3; stage++) {
+        expect(shouldTriggerTribulation(realm, stage)).toBe(false)
+      }
+    }
   })
 
-  it('returns false for major breakthrough to realm 1 (zhuji - no tribulationPower)', () => {
-    expect(shouldTriggerTribulation(0, 3)).toBe(false)
+  it('所有大境界突破（stage 3 → 下一境）都触发，包括 →筑基', () => {
+    for (let realm = 0; realm < REALM_EXP.length - 1; realm++) {
+      expect(shouldTriggerTribulation(realm, 3)).toBe(true)
+    }
   })
 
-  it('returns true for major breakthrough to realm 2 (jindan - has tribulationPower 0.8)', () => {
-    expect(shouldTriggerTribulation(1, 3)).toBe(true)
+  it('最后一境圆满（无下一境）不触发', () => {
+    expect(shouldTriggerTribulation(REALM_EXP.length - 1, 3)).toBe(false)
+  })
+})
+
+describe('calcTribulationFailRate（§5.4 公式）', () => {
+  it('基础失败率 = 0.15 + 目标境 EXP × 0.004，减去灵根/悟性', () => {
+    const char = makeCharacter({ realm: 1, realmStage: 3 }) // →金丹 (EXP 6)
+    // 0.15 + 6×0.004 − 15×0.005 − 10×0.003 = 0.174 − 0.075 − 0.03 = 0.069
+    expect(calcTribulationFailRate(char)).toBeCloseTo(0.15 + 6 * 0.004 - 15 * 0.005 - 10 * 0.003, 6)
   })
 
-  it('returns true for major breakthrough to realm 3 (yuanying - has tribulationPower)', () => {
-    expect(shouldTriggerTribulation(2, 3)).toBe(true)
+  it('目标境界越高失败率越高', () => {
+    const low = makeCharacter({ realm: 1, realmStage: 3 }) // →金丹
+    const high = makeCharacter({ realm: 7, realmStage: 3 }) // →渡劫 (EXP 40)
+    expect(calcTribulationFailRate(high)).toBeGreaterThan(calcTribulationFailRate(low))
   })
 
-  it('returns true for major breakthrough to realm 4 (huashen - tribulationPower 1.2)', () => {
-    expect(shouldTriggerTribulation(3, 3)).toBe(true)
+  it('失败率被钳制在 [0, 0.95]', () => {
+    const godlike = makeCharacter({
+      realm: 0,
+      realmStage: 3,
+      cultivationStats: { spiritPower: 100, maxSpiritPower: 100, comprehension: 99, spiritualRoot: 99, fortune: 5 },
+    })
+    expect(calcTribulationFailRate(godlike)).toBe(0)
+    expect(calcTribulationFailRate(godlike, 1)).toBe(0)
+    const doomed = makeCharacter({ realm: 7, realmStage: 3 })
+    expect(calcTribulationFailRate(doomed)).toBeLessThanOrEqual(0.95)
   })
 
-  it('returns true for major breakthrough to realm 5 (feisheng - tribulationPower 1.5)', () => {
-    expect(shouldTriggerTribulation(4, 3)).toBe(true)
+  it('legacy 加成（道心坚定）线性降低失败率', () => {
+    const char = makeCharacter({ realm: 1, realmStage: 3 })
+    const base = calcTribulationFailRate(char, 0)
+    const withBonus = calcTribulationFailRate(char, 0.05)
+    expect(base - withBonus).toBeCloseTo(0.05, 6)
   })
 })
 
@@ -90,6 +122,17 @@ describe('resolveTribulation', () => {
     }
 
     expect(highFails).toBeLessThan(lowFails)
+  })
+
+  it('legacy bonus strictly reduces failures (statistical test)', () => {
+    const char = makeCharacter({ realm: 2, realmStage: 3 })
+    let baseFails = 0
+    let boostedFails = 0
+    for (let i = 0; i < 2000; i++) {
+      if (!resolveTribulation(char).success) baseFails++
+      if (!resolveTribulation(char, 0.2).success) boostedFails++
+    }
+    expect(boostedFails).toBeLessThan(baseFails)
   })
 
   it('failure result has injuryTimer between 60 and 120', () => {

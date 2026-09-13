@@ -1,4 +1,9 @@
 import { useSectStore } from '../stores/sectStore'
+import { getRealmEconomyMult } from '../data/realms'
+
+// 境界经济耦合（getRealmEconomyMult(bestRealm+1)）下，炼气期每秒灵石收入：
+// 灵矿 lv1 0.5/s × mult(筑基) + 税收 0.05（潮汐 flood 期 stone 倍率 = 1.0）
+const REALM0_STONE_INCOME = 0.5 * getRealmEconomyMult(1) + 0.05
 import { useAdventureStore } from '../stores/adventureStore'
 import { useGameStore } from '../stores/gameStore'
 import { useEventLogStore } from '../stores/eventLogStore'
@@ -927,7 +932,7 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
     expect(updated.cultivationPath).toBe('none')
-    expect(getStore().sect.resources.spiritStone).toBe(5000.55)
+    expect(getStore().sect.resources.spiritStone).toBeCloseTo(5000 + REALM0_STONE_INCOME, 6)
   })
 
   it('should skip breakthrough when spiritStone is insufficient', () => {
@@ -946,8 +951,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Initial spiritMine + tax now add 0.55 spiritStone per tick.
-    expect(getStore().sect.resources.spiritStone).toBe(1000.55)
+    // Initial spiritMine + tax income per tick (scaled by realm economy coupling).
+    expect(getStore().sect.resources.spiritStone).toBeCloseTo(1000 + REALM0_STONE_INCOME, 6)
   })
 
   it('should skip breakthrough when spiritStone insufficient', () => {
@@ -966,8 +971,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Initial spiritMine + tax now add 0.55 spiritStone per tick.
-    expect(getStore().sect.resources.spiritStone).toBe(100.55)
+    // Initial spiritMine + tax income per tick (scaled by realm economy coupling).
+    expect(getStore().sect.resources.spiritStone).toBeCloseTo(100 + REALM0_STONE_INCOME, 6)
   })
 
   it('should still breakthrough when spiritEnergy is zero (spirit energy not required)', () => {
@@ -1004,10 +1009,10 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
 
     // Sub-level breakthrough consumes the curve-linked minor cost (realm 0, stage 0->1 = 4)
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.resources.spiritStone).toBe(996.55) // 1000 - 4 + 0.5 (mine) + 0.05 (tax)
+    expect(getStore().sect.resources.spiritStone).toBeCloseTo(1000 - 4 + REALM0_STONE_INCOME, 6)
   })
 
-  it('should injure a disciple when sub-level breakthrough fails', () => {
+  it('should keep cultivation and stay healthy when sub-level breakthrough fails (§5.2)', () => {
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100)
     useSectStore.setState((s) => ({
@@ -1017,14 +1022,18 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
       },
     }))
 
-    // 0.85 lands in 'injured' outcome for sub-level breakthrough (0.8-1.0 range)
-    vi.spyOn(Math, 'random').mockReturnValue(0.9)
+    // 0.05 < 10% failure rate → 小境界失败：保留修为、不受伤、只耗资源
+    vi.spyOn(Math, 'random').mockReturnValue(0.05)
     getStore().tickAll(1)
 
     const updated = getStore().sect.characters.find((item) => item.id === char.id)
     expect(updated).toBeDefined()
-    expect(updated!.status).toBe('injured')
-    expect(updated!.injuryTimer).toBeGreaterThan(0)
+    expect(updated!.status).toBe('idle')
+    expect(updated!.realmStage).toBe(0)
+    expect(updated!.cultivation).toBeGreaterThanOrEqual(100) // 修为完好保留
+    expect(updated!.injuryTimer).toBe(0)
+    // 失败仍消耗小境界灵石成本（4）
+    expect(getStore().sect.resources.spiritStone).toBeCloseTo(1000 - 4 + REALM0_STONE_INCOME, 6)
   })
 
   it('should skip minor breakthrough when spirit stones insufficient', () => {
@@ -1423,8 +1432,8 @@ describe('AdventureStore - retreat', () => {
     getAdventureStore().retreat(runId)
     const afterStones = getStore().sect.resources.spiritStone
 
-    // Should deposit 50% of 200 = 100 spirit stones
-    expect(afterStones - beforeStones).toBe(100)
+    // Deposits 50% of 200 × realm economy mult (bestRealm 0 → target 筑基)
+    expect(afterStones - beforeStones).toBe(Math.floor(200 * getRealmEconomyMult(1) * 0.5))
   })
 
   it('should free characters on retreat (alive -> cultivating)', () => {
@@ -1508,8 +1517,8 @@ describe('AdventureStore - completeRun', () => {
     getAdventureStore().completeRun(runId)
     const afterStones = getStore().sect.resources.spiritStone
 
-    // Should deposit 100% of 300 = 300 spirit stones
-    expect(afterStones - beforeStones).toBe(300)
+    // Deposits 100% of 300 × realm economy mult
+    expect(afterStones - beforeStones).toBeCloseTo(300 * getRealmEconomyMult(1), 6)
   })
 
   it('should add dungeon to completedDungeons', () => {
@@ -1594,8 +1603,8 @@ describe('AdventureStore - failRun', () => {
     getAdventureStore().failRun(runId)
     const afterStones = getStore().sect.resources.spiritStone
 
-    // Should deposit 50% of 400 = 200
-    expect(afterStones - beforeStones).toBe(200)
+    // Deposits 50% of 400 × realm economy mult
+    expect(afterStones - beforeStones).toBe(Math.floor(400 * getRealmEconomyMult(1) * 0.5))
 
     randomSpy.mockRestore()
   })
@@ -1737,8 +1746,10 @@ describe('AdventureStore - runAutomation', () => {
     }))
 
     expect(getAdventureStore().selectRoute(run!.id, 0)).toBe(true)
-    expect(getStore().sect.resources.spiritStone).toBe(555)
-    expect(getStore().sect.resources.herb).toBe(11)
+    // 灵石：初始 500 − 50 补给费 + 路线加成后 105 × 境界经济倍率；灵草 11 × 倍率
+    const mult = getRealmEconomyMult(1)
+    expect(getStore().sect.resources.spiritStone).toBeCloseTo(450 + 105 * mult, 3)
+    expect(getStore().sect.resources.herb).toBeCloseTo(11 * mult, 3)
   })
 
   it('should persist failed member return outcomes on automation reports', () => {
@@ -2148,7 +2159,8 @@ describe('tickAll with production queue', () => {
     const sect = getStore().sect
     expect(sect.vault.length).toBe(1)
     expect(sect.vault[0].item.type).toBe('consumable')
-    expect(sect.resources.herb).toBeLessThan(100) // herbs consumed
+    // 灵草收入（境界耦合 × 涨潮 1.3）远大于炼丹消耗 5，净增长
+    expect(sect.resources.herb).toBeGreaterThan(100)
   })
 
   it('should let active alchemy route speed up alchemy production', () => {
@@ -2188,7 +2200,8 @@ describe('tickAll with production queue', () => {
     const sect = getStore().sect
     expect(sect.vault.length).toBe(0) // nothing produced (no herbs)
     // herb rate: spiritField level 1 = 0.1/s * 20s = 2. Tide multiplier at totalPlayTime=0 is flood (herb x1.3).
-    expect(sect.resources.herb).toBeCloseTo(2.6)
+    // herb: 0.1/s × 20s × 涨潮 1.3 × 境界经济倍率
+    expect(sect.resources.herb).toBeCloseTo(0.1 * 20 * 1.3 * getRealmEconomyMult(1), 6)
   })
 
   it('should clamp resources to caps after tick', () => {

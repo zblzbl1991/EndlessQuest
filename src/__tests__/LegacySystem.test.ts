@@ -174,17 +174,17 @@ describe('getLegacyBonus', () => {
 // ---------------------------------------------------------------------------
 
 describe('canAscend', () => {
-  it('should return false when no character at realm >= 4', () => {
-    const sect = makeSect({ characters: [makeCharacter(3)] })
+  it('should return false when no character at realm >= 8 (渡劫期, §5.1 首飞节点)', () => {
+    const sect = makeSect({ characters: [makeCharacter(7)] })
     const result = canAscend(sect)
     expect(result.canAscend).toBe(false)
     expect(result.reasons.length).toBeGreaterThan(0)
-    expect(result.reasons.some((r) => r.includes('化神'))).toBe(true)
+    expect(result.reasons.some((r) => r.includes('渡劫'))).toBe(true)
   })
 
   it('should return false when buildings not all level >= 5', () => {
     const sect = makeSect({
-      characters: [makeCharacter(4)],
+      characters: [makeCharacter(8)],
       buildings: makeBuildings(3),
     })
     const result = canAscend(sect)
@@ -194,7 +194,7 @@ describe('canAscend', () => {
 
   it('should return true when all conditions met', () => {
     const sect = makeSect({
-      characters: [makeCharacter(4)],
+      characters: [makeCharacter(8)],
       buildings: makeBuildings(5),
     })
     const result = canAscend(sect)
@@ -202,9 +202,9 @@ describe('canAscend', () => {
     expect(result.reasons).toEqual([])
   })
 
-  it('should return true with realm >= 5', () => {
+  it('should return true with realm beyond 渡劫期', () => {
     const sect = makeSect({
-      characters: [makeCharacter(5)],
+      characters: [makeCharacter(8)],
       buildings: makeBuildings(5),
     })
     const result = canAscend(sect)

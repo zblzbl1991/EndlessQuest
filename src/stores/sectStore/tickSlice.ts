@@ -10,7 +10,7 @@ import {
   clampResources,
   calcTaxRate,
   applySpiritStoneDecay,
-  calcSpiritStoneCap,
+  getSectStoneCap,
 } from '../../systems/economy/ResourceEngine'
 import type { ProductionBonuses } from '../../systems/economy/ResourceEngine'
 import {
@@ -23,7 +23,7 @@ import { processCultivationEvent } from '../../systems/cultivation/CultivationEv
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { rollCultivationPath, getPathName } from '../../data/cultivationPaths'
 import { calcResourceCaps } from '../../data/buildings'
-import { getRealmEconomyMult, getRealmStoneFloor } from '../../data/realms'
+import { getRealmEconomyMult } from '../../data/realms'
 import {
   getLegacyCultivationMult,
   getLegacyStoneMult,
@@ -156,10 +156,11 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     rates.ore *= tideState.multipliers.ore
     rates.spiritStone *= tideState.multipliers.spiritStone
 
-    // 4g. Realm-economy coupling: stone income scales with the sect's highest
-    // realm so exponential breakthrough costs (realms.ts) stay reachable.
+    // 4g. Realm-economy coupling: stone income scales with the realm the sect
+    // is saving for (target = bestRealm + 1) so exponential breakthrough costs
+    // (realms.ts) stay reachable.
     const bestRealm = sect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
-    const realmEconomyMult = getRealmEconomyMult(bestRealm)
+    const realmEconomyMult = getRealmEconomyMult(bestRealm + 1)
     // 4h. Ascension-tree resource multipliers (resource branch)
     const legacyStoneMult = getLegacyStoneMult(sect.legacyTree)
     const legacyEnergyMult = getLegacyEnergyMult(sect.legacyTree)
@@ -445,8 +446,8 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     }
 
     const overflowTriggerRatio = Math.min(0.98, Math.max(0.5, sect.automationSettings.overflowTriggerRatio ?? 0.9))
-    // Realm stone floor guarantees storage room for 10x the realm's breakthrough cost.
-    const stoneCap = Math.max(calcSpiritStoneCap(mhLevel) * 5, getRealmStoneFloor(bestRealm))
+    // Realm stone floor guarantees storage room for 10× the next breakthrough cost.
+    const stoneCap = getSectStoneCap(mhLevel, bestRealm)
     const marketLevel = sect.buildings.find((building) => building.type === 'market')?.level ?? 0
     const overflowAdjustedResources = { ...newResources }
     let overflowStoneEarned = 0

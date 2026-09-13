@@ -22,6 +22,7 @@ describe('BreakthroughPanel', () => {
     const character = useSectStore.getState().sect.characters[0]
     render(<BreakthroughPanel characterId={character.id} />)
 
-    expect(screen.getByText(/失败则修为回退或受伤/)).toBeInTheDocument()
+    // §5.2：小境界失败保留修为、只耗资源
+    expect(screen.getByText(/失败则修为保留、耗用资源/)).toBeInTheDocument()
   })
 })

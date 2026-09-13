@@ -35,10 +35,12 @@ export interface AscensionReport {
 export function canAscend(sect: Sect): { canAscend: boolean; reasons: string[] } {
   const reasons: string[] = []
 
-  // Condition 1: At least 1 character with realm >= 4 (化神期, index 4)
-  const hasHighRealmChar = sect.characters.some((c) => c.realm >= 4)
+  // Condition 1: At least 1 character who has reached 渡劫期 (realm index 8).
+  // §5.1 puts the first ascension at 渡劫 — the old 化神(4) gate was a V1 relic
+  // that let players ascend with a dao-yun gain of 0 under the V2 curve.
+  const hasHighRealmChar = sect.characters.some((c) => c.realm >= 8)
   if (!hasHighRealmChar) {
-    reasons.push('需要至少 1 名弟子达到化神期（境界 >= 4）')
+    reasons.push('需要至少 1 名弟子达到渡劫期（境界 >= 8）')
   }
 
   // Condition 2: All buildings level >= 5

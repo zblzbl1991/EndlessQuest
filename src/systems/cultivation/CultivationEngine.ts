@@ -2,6 +2,7 @@ import type { Character, BaseStats, RealmStage, GrowthMultipliers } from '../../
 import { REALMS, getCultivationNeeded, getRealmSpeedMult, PACING_BASE_CULTIVATION_RATE } from '../../data/realms'
 import { getTechniqueById } from '../../data/techniquesTable'
 import { getCultivationSpeedModifier, getBreakthroughSuccessBonus } from '../destiny/DestinySystem'
+import { calcTribulationFailRate } from './TribulationSystem'
 
 // Base cultivation rate: 修为 per second (pacing anchor shared with realms.ts)
 const BASE_CULTIVATION_RATE = PACING_BASE_CULTIVATION_RATE
@@ -14,6 +15,10 @@ const SUBLEVEL_STAT_FRACTION = 0.15
 
 // Major realm stat multiplier (V2: exponential, must outpace enemy scaling)
 const MAJOR_REALM_STAT_MULT = 8
+
+// Minor (sub-level) breakthrough base failure rate (§5.2): fixed 90% success,
+// failure keeps ALL cultivation and only costs resources.
+export const MINOR_BREAKTHROUGH_FAIL_RATE = 0.1
 
 export interface TickResult {
   cultivationGained: number
@@ -30,15 +35,6 @@ export interface BreakthroughResult {
 }
 
 /**
- * Get the tribulation power of a realm (0 if it has no tribulation).
- */
-function getTribulationPower(realmIndex: number, _stage: RealmStage): number {
-  const realm = REALMS[realmIndex]
-  if (!realm) return 0
-  return realm.tribulationPower ?? 0
-}
-
-/**
  * Check if the next breakthrough would be a major realm transition.
  */
 export function isMajorRealmBreakthrough(realm: number, stage: RealmStage): boolean {
@@ -48,22 +44,18 @@ export function isMajorRealmBreakthrough(realm: number, stage: RealmStage): bool
 }
 
 /**
- * Calculate the failure rate (0~1) for a breakthrough attempt.
+ * Failure rate of the next breakthrough attempt (display + minor-path roll).
  *
- * Sub-level:  5% + tribulationPower × 15%
- * Major realm: 10% + target tribulationPower × 25%
+ * Major realm: the tribulation fail rate (TribulationSystem §5.4) — that roll
+ * is the breakthrough's only success check, no second engine roll is stacked.
+ * Sub-level: fixed 10% base (§5.2) reduced by destiny/legacy bonuses; failure
+ * keeps all cultivation and only costs resources.
  */
 export function calcBreakthroughFailureRate(character: Character, legacyBonus: number = 0): number {
-  const major = isMajorRealmBreakthrough(character.realm, character.realmStage)
-  if (major) {
-    // Use target realm's tribulation power
-    const targetPower = getTribulationPower(character.realm + 1, 0)
-    return Math.max(0, 0.1 + targetPower * 0.25 - getBreakthroughSuccessBonus(character) - legacyBonus)
+  if (isMajorRealmBreakthrough(character.realm, character.realmStage)) {
+    return calcTribulationFailRate(character, legacyBonus)
   }
-  // Sub-level: use current realm's tribulation power at next stage
-  const nextStage = (character.realmStage + 1) as RealmStage
-  const power = getTribulationPower(character.realm, nextStage)
-  return Math.max(0, 0.05 + power * 0.15 - getBreakthroughSuccessBonus(character) - legacyBonus)
+  return Math.max(0, MINOR_BREAKTHROUGH_FAIL_RATE - getBreakthroughSuccessBonus(character) - legacyBonus)
 }
 
 /**
@@ -257,6 +249,15 @@ function calcStatGrowth(
     crit: currentStats.crit,
     critDmg: currentStats.critDmg,
   }
+}
+
+/**
+ * Great-success bonus (§5.4 五档梯度中的"一跃突破"): one extra sub-level stat
+ * step on top of the breakthrough's own growth, so the 天地感应 moment has
+ * real mechanical teeth instead of being a message variant.
+ */
+export function applyGreatSuccessStats(stats: BaseStats, growthMultipliers?: GrowthMultipliers): BaseStats {
+  return calcStatGrowth(stats, false, growthMultipliers)
 }
 
 /**

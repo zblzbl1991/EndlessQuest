@@ -66,7 +66,11 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       hint = '先定下修行路线，弟子才会跨入新的大境界。'
       hintClass = styles.hintFocus
     } else {
-      hint = isMajor ? '成功则进阶，失败则身死道消，仅返还部分灵石。' : '成功则进阶，失败则修为回退或受伤。'
+      hint = isMajor
+        ? character.realm + 1 >= 8
+          ? '冲击渡劫雷劫加身，失败则身死道消。'
+          : '天劫加身，成功则进阶，失败则修为回退或受伤疗伤。'
+        : '成功则进阶，失败则修为保留、耗用资源。'
       hintClass = styles.hintFocus
     }
   }

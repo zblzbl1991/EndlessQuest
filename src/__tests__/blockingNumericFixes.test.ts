@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { BREAKTHROUGH_COSTS, REALMS } from '../data/realms'
-import { calcSpiritStoneCap } from '../systems/economy/ResourceEngine'
-import { getRealmStoneFloor } from '../data/realms'
+import { BREAKTHROUGH_COSTS } from '../data/realms'
+import { getSectStoneCap } from '../systems/economy/ResourceEngine'
 import { shouldTriggerTribulation, resolveTribulation } from '../systems/cultivation/TribulationSystem'
 import { processBreakthrough } from '../systems/cultivation/BreakthroughCoordinator'
 import { createCharacterCombatUnit } from '../data/enemies'
@@ -47,8 +46,12 @@ function createCharacter(overrides?: Partial<Character>): Character {
 // ─── B1: final breakthrough must be affordable within the stone hard cap ───
 
 describe('B1: spirit stone cap vs final breakthrough cost', () => {
-  it('main hall max level hard cap covers the final breakthrough cost with margin', () => {
-    const hardCapAtMax = Math.max(calcSpiritStoneCap(10) * 5, getRealmStoneFloor(8))
+  it('engine cap seam (getSectStoneCap) covers the final breakthrough cost with margin', () => {
+    // The cap the engine actually clamps storage to, keyed from the CURRENT
+    // realm (大乘=7) when attempting the final breakthrough (→渡劫=8).
+    // The old inline formula keyed the floor to the current realm and was
+    // 10^(ΔEXP-1)× short — this seam exists so that can never silently regress.
+    const hardCapAtMax = getSectStoneCap(10, 7)
     const finalCost = BREAKTHROUGH_COSTS[8].spiritStone
     expect(hardCapAtMax).toBeGreaterThanOrEqual(finalCost)
     // linkage assertion: cost stays within 90% of the reachable hard cap
@@ -57,23 +60,22 @@ describe('B1: spirit stone cap vs final breakthrough cost', () => {
 
   it('cap is strictly increasing across main hall levels', () => {
     for (let lv = 1; lv < 10; lv++) {
-      expect(calcSpiritStoneCap(lv + 1)).toBeGreaterThan(calcSpiritStoneCap(lv))
+      expect(getSectStoneCap(lv + 1, 0)).toBeGreaterThan(getSectStoneCap(lv, 0))
     }
   })
 
   it('keeps low-level caps unchanged for early-game economy', () => {
-    expect(calcSpiritStoneCap(1)).toBe(8000)
-    expect(calcSpiritStoneCap(2)).toBe(11000)
+    // getSectStoneCap at realm 0 is the main-hall soft cap ×5 (floor(1)=2000 is smaller)
+    expect(getSectStoneCap(1, 0)).toBe(8000 * 5)
+    expect(getSectStoneCap(2, 0)).toBe(11000 * 5)
   })
 })
 
-// ─── B3: every late major realm triggers tribulation ────────────────
+// ─── B3: every major realm breakthrough triggers tribulation ─────────
 
 describe('B3: tribulation reachability', () => {
-  it('all major-realm targets with tribulationPower trigger tribulation', () => {
-    // ->筑基 has no tribulation
-    expect(shouldTriggerTribulation(0, 3)).toBe(false)
-    // ->金丹 / ->元婴 / ->化神 / ->渡劫 all trigger (化神/渡劫 were dead data before)
+  it('every major-realm breakthrough triggers tribulation (including →筑基)', () => {
+    expect(shouldTriggerTribulation(0, 3)).toBe(true)
     expect(shouldTriggerTribulation(1, 3)).toBe(true)
     expect(shouldTriggerTribulation(2, 3)).toBe(true)
     expect(shouldTriggerTribulation(3, 3)).toBe(true)
@@ -81,16 +83,11 @@ describe('B3: tribulation reachability', () => {
   })
 
   it('minor breakthroughs never trigger tribulation', () => {
-    for (let realm = 0; realm < REALMS.length; realm++) {
+    for (let realm = 0; realm < 9; realm++) {
       for (let stage = 0; stage < 3; stage++) {
         expect(shouldTriggerTribulation(realm, stage)).toBe(false)
       }
     }
-  })
-
-  it('化神 and 渡劫 define tribulationPower for resolveTribulation', () => {
-    expect(REALMS[4].tribulationPower).toBeGreaterThan(0)
-    expect(REALMS[5].tribulationPower).toBeGreaterThan(0)
   })
 
   it('resolveTribulation resolves success and failure outcomes', () => {

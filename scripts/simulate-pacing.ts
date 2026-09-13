@@ -16,7 +16,6 @@ import {
   getRealmCost,
   getRealmSpeedMult,
   getRealmEconomyMult,
-  PACING_FIRST_REALM_SECONDS,
   PACING_TIME_GROWTH,
 } from '../src/data/realms'
 
@@ -30,8 +29,10 @@ function realmSeconds(realmIndex: number, charFactor: number): number {
 const table = REALM_EXP.map((exp, i) => {
   const seconds = realmSeconds(i, 1)
   const geniusSeconds = seconds / 8 // 天灵根+高悟性+满功法 ≈ ×8
-  const cost = BREAKTHROUGH_COSTS[i]?.spiritStone ?? 0
-  const income = 0.5 * getRealmEconomyMult(i)
+  // 站在本境 i 时：前方成本 = 进入 i+1 的成本（不是已付的进入 i 的成本）
+  const cost = BREAKTHROUGH_COSTS[i + 1]?.spiritStone ?? 0
+  // 收入按目标境界缩放（tickSlice 同款语义：getRealmEconomyMult(bestRealm + 1)）
+  const income = 0.5 * getRealmEconomyMult(Math.min(i + 1, REALM_EXP.length - 1))
   return {
     境界: REALMS[i].name,
     境界成本: `1e${exp}`,
