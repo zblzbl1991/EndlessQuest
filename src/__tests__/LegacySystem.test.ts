@@ -274,6 +274,9 @@ describe('performAscension', () => {
     for (const b of newSect.buildings) {
       if (b.type === 'mainHall' || b.type === 'spiritField' || b.type === 'spiritMine') {
         expect(b.level).toBe(1)
+      } else if (b.type === 'immortalVein' || b.type === 'immortalField' || b.type === 'immortalPalace') {
+        // 工单 07 双层咬合：仙界建筑飞升保留（夹具造的 level 5）
+        expect(b.level).toBe(5)
       } else {
         expect(b.level).toBe(0)
       }
@@ -385,7 +388,9 @@ describe('performAscension', () => {
 
     expect(newSect.automationSettings.preferredDungeonId).toBe('lingCaoValley')
     expect(newSect.automationSettings.reserveSpiritStone).toBe(300)
-    expect(newSect.automationSettings.autoBreakthrough).toBe(true)
+    // V2.1 工单 05：自动化自元婴/化神逐级解锁，新档默认关闭
+    expect(newSect.automationSettings.autoBreakthrough).toBe(false)
+    expect(newSect.automationSettings.autoMajorBreakthrough).toBe(false)
   })
 
   it('should apply starting spirit stone bonus for first ascension', () => {

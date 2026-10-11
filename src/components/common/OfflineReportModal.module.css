@@ -396,3 +396,43 @@
     animation: none;
   }
 }
+
+/* V2.1 工单 06：自上次拜访 + 建议跳转 */
+.eventRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-sm);
+  font-size: 13px;
+  padding: 3px 0;
+  color: var(--color-text-primary);
+}
+
+.eventGood {
+  color: var(--color-success);
+}
+
+.eventBad {
+  color: var(--color-text-tertiary);
+}
+
+.suggestionLink {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(95, 122, 141, 0.25);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  min-height: 32px;
+  transition: all var(--transition-fast);
+}
+
+.suggestionLink:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}

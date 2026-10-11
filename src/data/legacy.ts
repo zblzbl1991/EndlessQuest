@@ -143,14 +143,19 @@ export function getLegacyPositiveEventBias(ascensionCount: number): number {
 // ---------------------------------------------------------------------------
 
 /**
- * 道韵公式（设计稿 §7.2）：
- *   floor( (本世最高修为)^0.1 / 1000 × (1 + 0.3 × 最高境界index) × 4^历史飞升次数 )
+ * 道韵公式（V2.1 深度+速度双维，map 工单 01；取代 ba29b2c 的 4^n 次数项）：
+ *   floor( 10 × (本世最高修为 / 1e40)^0.15 × (1 + 0.3 × 最高境界index) × (1 + 0.25 × 历史飞升次数) )
  *
- * 幂 0.1 使道韵随境界曲线温和超线性增长；境界项奖励打得越深。次数项取 4^n：
- * 境界表只有 9 境时本世峰值修为封顶于 1e40，若沿用线性 (1+0.25n) 项，同峰值下
- * 每次飞升只多 ~25%，违反 §7.2"每多飞升一次道韵至少为上一次 4 倍"的校准律——
- * 4^n 恰好兑现该规则（首飞渡劫 ≈ 34，二飞 ≈ 136，三飞 ≈ 545 …）。
+ * 增长必须来自"推得更深"而不是"飞得更多"：peakTerm 锚定渡劫峰值（1e40 → 10），
+ * 幂 0.15 使每推深一个数量级道韵 ×1.41，严格高于 rush 重复飞升的线性次数项 ×1.25——
+ * 同峰值下重复飞升收益停滞（仅 ×1.25/次），推深单调更优。
+ * 旧 4^n 项的前提（凡界封顶 1e40、"每世收益≥×4"只能靠次数项兑现）随仙界层
+ * （工单 07 提供 1e50~1e100 深度空间）落地而废除，详见
+ * .scratch/v21-endgame-ladder/issues/01-dao-yun-economy.md。
  */
+export const DAO_YUN_PEAK_EXP = 0.15
+export const DAO_YUN_PEAK_ANCHOR = 1e40
+
 export function calcDaoYunGain(
   peakCultivationThisRun: number,
   highestRealmIndex: number,
@@ -158,9 +163,9 @@ export function calcDaoYunGain(
 ): number {
   const peak = Math.max(0, peakCultivationThisRun)
   if (peak <= 0) return 0
-  const peakTerm = Math.pow(peak, 0.1) / 1000
+  const peakTerm = 10 * Math.pow(peak / DAO_YUN_PEAK_ANCHOR, DAO_YUN_PEAK_EXP)
   const realmTerm = 1 + 0.3 * Math.max(0, highestRealmIndex)
-  const ascensionTerm = Math.pow(4, Math.max(0, ascensionCount))
+  const ascensionTerm = 1 + 0.25 * Math.max(0, ascensionCount)
   return Math.floor(peakTerm * realmTerm * ascensionTerm)
 }
 
@@ -206,6 +211,11 @@ export function getLegacyBreakthroughBonus(tree?: Record<string, number>): numbe
 /** 天机之道"天机推演"：是否解锁自动飞升。 */
 export function isAutoAscendUnlocked(tree?: Record<string, number>): boolean {
   return treeLevel(tree, 'heavenPivot') > 0
+}
+
+/** 天机之道"道韵精粹"：全体修为速率与资源产出 ×1.03/级（无限水槽节点，工单 01）。 */
+export function getLegacyDaoEssenceMult(tree?: Record<string, number>): number {
+  return 1.03 ** treeLevel(tree, 'daoEssence')
 }
 
 /** 飞升 statBonus 与飞升树战斗节点的合并属性加成（createCharacterCombatUnit 消费）。 */

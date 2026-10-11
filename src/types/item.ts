@@ -28,6 +28,11 @@ export interface Item {
   sellPrice: number
 }
 
+export interface EquipmentAffixInstance {
+  id: string
+  tier: number
+}
+
 export interface Equipment extends Item {
   type: 'equipment'
   slot: EquipSlot
@@ -35,6 +40,12 @@ export interface Equipment extends Item {
   enhanceLevel: number
   refinementStats: Partial<ItemStats>[]
   setId: string | null
+  /** V2.2 工单 03：装备阶位 1-9（缺省按品质折算）。 */
+  tier?: number
+  /** V2.2 工单 03：机制词条实例（数值查 equipmentAffixes 表）。 */
+  affixes?: EquipmentAffixInstance[]
+  /** V2.2 工单 03：器灵经验（击杀积累）。 */
+  spiritExp?: number
 }
 
 export interface Consumable extends Item {

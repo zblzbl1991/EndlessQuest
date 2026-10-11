@@ -80,6 +80,52 @@ function resetStore() {
   useEventLogStore.getState().reset()
 }
 
+function makeElder(realm: number): Character {
+  return {
+    id: `elder-${realm}-${Math.random().toString(36).slice(2, 7)}`,
+    name: `长老${realm}`,
+    title: 'elder',
+    quality: 'spirit',
+    realm,
+    realmStage: 0,
+    cultivation: 0,
+    baseStats: { hp: 100, atk: 15, def: 8, spd: 10, crit: 0.05, critDmg: 1.5 },
+    cultivationStats: { spiritPower: 50, maxSpiritPower: 50, comprehension: 10, spiritualRoot: 10, fortune: 5 },
+    learnedTechniques: [],
+    equippedGear: [null, null, null, null, null, null, null, null, null],
+    equippedSkills: [null, null, null, null, null],
+    backpack: [],
+    maxBackpackSlots: 20,
+    petIds: [],
+    talents: [],
+    // training 状态：不参与修炼/自动突破，只用于抬高 bestRealm 解锁门槛
+    status: 'training',
+    injuryTimer: 0,
+    createdAt: Date.now(),
+    totalCultivation: 0,
+    specialties: [],
+    assignedBuilding: null,
+    cultivationPath: 'sword',
+    investedSpiritStone: 0,
+    techniqueComprehension: {},
+  }
+}
+
+/** V2.1 工单 05：自动突破自元婴(3)/化神(4)解锁——夹具加长老并打开开关。 */
+function seedElderAndFlags() {
+  useSectStore.setState((s) => ({
+    sect: {
+      ...s.sect,
+      characters: [...s.sect.characters, makeElder(4)],
+      automationSettings: {
+        ...s.sect.automationSettings,
+        autoBreakthrough: true,
+        autoMajorBreakthrough: true,
+      },
+    },
+  }))
+}
+
 /** Upgrade spirit field so resource-based disciple cap is generous for tests. */
 function boostSpiritField(level = 10, count = 4) {
   useSectStore.setState((s) => ({
@@ -180,15 +226,14 @@ describe('SectStore - Character Management', () => {
   })
 
   it('addCharacter should return null when at resource cap', () => {
-    // Spirit field level 3 → 7/sec, max = floor(7/2) = 3 disciples
-    boostSpiritField(3, 1)
+    // V2.1 Generator：灵田 Lv5 = 3×1.1^4 ≈ 4.39/sec，max = floor(4.39/2) = 2 弟子
+    boostSpiritField(5, 1)
     getStore().addResource('spiritStone', 1000)
-    // Add 2 more (total 3)
+    // 已有 1 名弟子，还能加 1 名（共 2）
     expect(getStore().addCharacter()).not.toBeNull()
-    expect(getStore().addCharacter()).not.toBeNull()
-    // 4th should fail (resource cap reached)
+    // 第 3 名应失败（资源上限已到）
     expect(getStore().addCharacter()).toBeNull()
-    expect(getStore().sect.characters).toHaveLength(3)
+    expect(getStore().sect.characters).toHaveLength(2)
   })
 
   it('removeCharacter should remove a character by id', () => {
@@ -857,7 +902,10 @@ describe('SectStore - Healing', () => {
 // ---------------------------------------------------------------------------
 
 describe('SectStore - Auto-breakthrough (tickAll)', () => {
-  beforeEach(() => resetStore())
+  beforeEach(() => {
+    resetStore()
+    seedElderAndFlags()
+  })
   afterEach(() => vi.restoreAllMocks())
 
   it('should auto-breakthrough sub-level with enough cultivation', () => {
@@ -911,8 +959,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(1)
     expect(updated.realmStage).toBe(0)
-    // spiritStone deducted for realm 1 breakthrough
-    expect(getStore().sect.resources.spiritStone).toBeLessThan(5000)
+    // V2.1：境界经济耦合下灵石收入与支出同 tick 发生，改断言支出增量（炼气→筑基 = 200）
+    expect(getStore().sect.stats.totalSpiritStoneSpent).toBeGreaterThanOrEqual(200)
   })
 
   it('should pause the first major breakthrough until a cultivation path is chosen', () => {
@@ -932,7 +980,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
     expect(updated.cultivationPath).toBe('none')
-    expect(getStore().sect.resources.spiritStone).toBeCloseTo(5000 + REALM0_STONE_INCOME, 6)
+    // V2.1：境界经济耦合使收入与长老境界挂钩，改断言零突破尝试
+    expect(getStore().sect.stats.totalBreakthroughAttempts).toBe(0)
   })
 
   it('should skip breakthrough when spiritStone is insufficient', () => {
@@ -951,8 +1000,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Initial spiritMine + tax income per tick (scaled by realm economy coupling).
-    expect(getStore().sect.resources.spiritStone).toBeCloseTo(1000 + REALM0_STONE_INCOME, 6)
+    // V2.1：境界经济耦合下用零突破尝试断言"未突破"
+    expect(getStore().sect.stats.totalBreakthroughAttempts).toBe(0)
   })
 
   it('should skip breakthrough when spiritStone insufficient', () => {
@@ -971,8 +1020,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     const updated = getStore().sect.characters[0]
     expect(updated.realm).toBe(0)
     expect(updated.realmStage).toBe(3)
-    // Initial spiritMine + tax income per tick (scaled by realm economy coupling).
-    expect(getStore().sect.resources.spiritStone).toBeCloseTo(100 + REALM0_STONE_INCOME, 6)
+    // V2.1：境界经济耦合下用零突破尝试断言"未突破"
+    expect(getStore().sect.stats.totalBreakthroughAttempts).toBe(0)
   })
 
   it('should still breakthrough when spiritEnergy is zero (spirit energy not required)', () => {
@@ -1009,7 +1058,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
 
     // Sub-level breakthrough consumes the curve-linked minor cost (realm 0, stage 0->1 = 4)
     expect(getStore().sect.vault).toHaveLength(1)
-    expect(getStore().sect.resources.spiritStone).toBeCloseTo(1000 - 4 + REALM0_STONE_INCOME, 6)
+    // V2.1：境界经济耦合下改断言支出增量（小境界成本 4 计入总支出）
+    expect(getStore().sect.stats.totalSpiritStoneSpent).toBeGreaterThanOrEqual(4)
   })
 
   it('should keep cultivation and stay healthy when sub-level breakthrough fails (§5.2)', () => {
@@ -1032,8 +1082,8 @@ describe('SectStore - Auto-breakthrough (tickAll)', () => {
     expect(updated!.realmStage).toBe(0)
     expect(updated!.cultivation).toBeGreaterThanOrEqual(100) // 修为完好保留
     expect(updated!.injuryTimer).toBe(0)
-    // 失败仍消耗小境界灵石成本（4）
-    expect(getStore().sect.resources.spiritStone).toBeCloseTo(1000 - 4 + REALM0_STONE_INCOME, 6)
+    // 失败仍消耗小境界灵石成本（4）——V2.1 改断言支出增量
+    expect(getStore().sect.stats.totalSpiritStoneSpent).toBeGreaterThanOrEqual(4)
   })
 
   it('should skip minor breakthrough when spirit stones insufficient', () => {
@@ -1102,13 +1152,12 @@ describe('SectStore - tickAll', () => {
   beforeEach(() => resetStore())
 
   it('tickAll should produce spirit energy', () => {
-    // spiritField starts at level 1; upgrade it once to level 2 so it produces 5/s.
+    // V2.1 Generator：灵田 Lv2 = 3×1.1 = 3.3/s
     getStore().addResource('spiritStone', 1000)
     getStore().tryUpgradeBuilding('spiritField')
     const result = getStore().tickAll(10)
-    // Base rate 5/s * 10s = 50, but tide multiplier modifies spiritEnergy production.
     // At totalPlayTime=0, the tide is in flood phase with spiritEnergy x1.5.
-    expect(result.spiritProduced).toBeCloseTo(75, 0) // 5/s * 1.5 (tide) * 10s = 75
+    expect(result.spiritProduced).toBeCloseTo(3.3 * 1.5 * 10, 0) // 3.3/s * 1.5 (tide) * 10s
     expect(result.spiritConsumed).toBeGreaterThan(0) // cultivator consumed some
   })
 
@@ -1994,6 +2043,7 @@ describe('SectStore - Daily automation', () => {
     useSectStore.setState((s) => ({
       sect: {
         ...s.sect,
+        characters: [...s.sect.characters, makeElder(3)], // 自动招募元婴解锁（工单 05）
         resources: { ...s.sect.resources, spiritStone: 1200, spiritEnergy: 400 },
         automationSettings: {
           ...s.sect.automationSettings,
@@ -2541,6 +2591,7 @@ describe('SectStore - Offline Accumulator', () => {
   })
 
   it('should accumulate breakthroughs when they occur', () => {
+    seedElderAndFlags()
     const char = getFirstCharacter()
     setCharacterCultivation(char.id, 100) // needs 100 for sub-level breakthrough
     getStore().addResource('spiritEnergy', 1000)

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useSectStore } from '../../stores/sectStore'
 import {
@@ -19,7 +20,9 @@ interface BreakthroughPanelProps {
 export default function BreakthroughPanel({ characterId }: BreakthroughPanelProps) {
   const character = useSectStore((s) => s.sect.characters.find((c) => c.id === characterId))
   const resources = useSectStore((s) => s.sect.resources)
+  const attemptBreakthrough = useSectStore((s) => s.attemptBreakthrough)
   const prefersReducedMotion = useReducedMotion()
+  const [localMessage, setLocalMessage] = useState<string | null>(null)
 
   if (!character) return null
 
@@ -92,7 +95,7 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       <div className={styles.requirement}>
         <span>修为进度</span>
         <span className={ready ? styles.ready : ''}>
-          {formatCultivationValue(character.cultivation)} / {needed.toLocaleString()}
+          {formatCultivationValue(Math.min(character.cultivation, needed))} / {needed.toLocaleString()}
         </span>
       </div>
       <div className={styles.progressBar}>
@@ -140,6 +143,19 @@ export default function BreakthroughPanel({ characterId }: BreakthroughPanelProp
       {hasTribulation && (
         <div className={styles.tribulationHint}>此番将引动天劫。若能渡过，可再进一步；若败，则当场身死道消。</div>
       )}
+      {ready && !needsPathChoice && (
+        <button
+          className={styles.attemptBtn}
+          onClick={() => {
+            const result = attemptBreakthrough(characterId)
+            if (!result.success) setLocalMessage(result.reason)
+            else setLocalMessage(null)
+          }}
+        >
+          {isMajor ? '渡劫突破' : '冲击突破'}
+        </button>
+      )}
+      {localMessage && <div className={styles.tribulationHint}>{localMessage}</div>}
       <div className={`${styles.hint} ${hintClass}`}>{hint}</div>
     </div>
   )

@@ -112,7 +112,7 @@ describe('canUpgradeBuilding', () => {
     const buildings = createBuildings({ mainHall: { level: 1, unlocked: true } })
     const result = canUpgradeBuilding('mainHall', buildings, 700)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(2, 1.7))) // 200 * 2^1.7 ≈ 650
+    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(2, 1.7))) // 服务型保留多项式
   })
 
   it('should reject upgrade without enough spirit stone', () => {
@@ -140,7 +140,7 @@ describe('canUpgradeBuilding', () => {
     const buildings = createBuildings({ spiritField: { level: 2, unlocked: true } })
     const result = canUpgradeBuilding('spiritField', buildings, 1400)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(3, 1.7))) // 200 * 3^1.7 ≈ 1294
+    expect(result.cost.spiritStone).toBeCloseTo(150 * 1.16 ** 2, 6) // V2.1 Generator: 150×1.16^2
   })
 
   it('canUpgradeBuilding should show correct spiritMine level 0→1 cost', () => {
@@ -154,6 +154,6 @@ describe('canUpgradeBuilding', () => {
     const buildings = createBuildings({ spiritMine: { level: 1, unlocked: true } })
     const result = canUpgradeBuilding('spiritMine', buildings, 700)
     expect(result.canUpgrade).toBe(true)
-    expect(result.cost.spiritStone).toBe(Math.round(200 * Math.pow(2, 1.7))) // 200 * 2^1.7 ≈ 650
+    expect(result.cost.spiritStone).toBeCloseTo(200 * 1.17, 6) // V2.1 Generator: 200×1.17
   })
 })

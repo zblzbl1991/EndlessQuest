@@ -15,6 +15,8 @@ export interface LegacyTreeNodeDef {
   description: string
   baseCost: number
   maxLevel: number
+  /** Per-level cost growth factor; defaults to 2 (finite nodes). Infinite sink nodes use < 2. */
+  costGrowth?: number
 }
 
 export const LEGACY_TREE: LegacyTreeNodeDef[] = [
@@ -86,6 +88,16 @@ export const LEGACY_TREE: LegacyTreeNodeDef[] = [
     baseCost: 50,
     maxLevel: 1,
   },
+  // ── 天机之道·无限水槽（工单 01）：道韵在任意飞升次数下的常驻消费出口 ──
+  {
+    id: 'daoEssence',
+    name: '道韵精粹',
+    branch: 'dao',
+    description: '全体弟子修为速率与资源产出 ×1.03/级，可无限精进',
+    baseCost: 20,
+    maxLevel: 9999,
+    costGrowth: 1.18,
+  },
 ]
 
 export function getLegacyTreeNode(id: string): LegacyTreeNodeDef | undefined {
@@ -96,5 +108,5 @@ export function getLegacyTreeNode(id: string): LegacyTreeNodeDef | undefined {
 export function getLegacyNodeUpgradeCost(id: string, currentLevel: number): number | null {
   const node = getLegacyTreeNode(id)
   if (!node || currentLevel >= node.maxLevel) return null
-  return node.baseCost * 2 ** currentLevel
+  return node.baseCost * (node.costGrowth ?? 2) ** currentLevel
 }

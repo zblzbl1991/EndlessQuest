@@ -2,6 +2,8 @@
 // Buff calculation functions for buildings.
 
 import type { BuildingType } from '../../types/sect'
+// ESM 循环依赖（buildings.ts ↔ 本文件）均为函数体内运行时调用，安全。
+import { getForgeMilestoneSuccessBonus } from '../../data/buildings'
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -60,7 +62,7 @@ export interface ForgeBuff {
 
 export function getForgeBuff(forgeLevel: number): ForgeBuff {
   return {
-    successBonus: 0.1 * forgeLevel,
+    successBonus: 0.1 * forgeLevel + getForgeMilestoneSuccessBonus(forgeLevel),
     costReduction: Math.min(0.7, 0.1 * forgeLevel),
   }
 }

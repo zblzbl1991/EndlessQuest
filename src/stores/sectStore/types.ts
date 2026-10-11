@@ -57,12 +57,30 @@ export interface SectStore {
   updateCharacterSkill(characterId: string, slotIndex: number, skillId: string | null): void
   setAutomationSettings(patch: Partial<SectAutomationSettings>): void
 
+  // Offline stats (V2.2 工单 01)
+  bumpOfflineStats(delta: {
+    kills?: number
+    equipmentGained?: number
+    equipmentSold?: number
+    dungeonRuns?: number
+    dungeonFloorsCleared?: number
+  }): void
+
+  // Cultivation management (V2.1 工单 05: manual breakthrough entry)
+  attemptBreakthrough(characterId: string): {
+    success: boolean
+    reason: string
+    outcome?: string
+    died?: boolean
+  }
+
   // Technique management
   unlockCodexEntry(techniqueId: string): boolean
   unlockCodexAndLearn(techniqueId: string, characterId: string): boolean
 
   // Building management
   upgradeBuilding(type: BuildingType): boolean
+  upgradeBuildingBatch(type: BuildingType, amount: 1 | 10 | 100 | 'max'): { success: boolean; levels: number }
   tryUpgradeBuilding(type: BuildingType): { success: boolean; reason: string }
   expandBuilding(type: BuildingType): boolean
   tryExpandBuilding(type: BuildingType): { success: boolean; reason: string }
@@ -131,6 +149,10 @@ export interface SectStore {
 
   // Legacy ascension
   performAscension(): void
+  proveDao(): { success: boolean; genesisGain: number }
+  assignCaveHeaven(caveId: string, characterId: string | null): { success: boolean; reason: string }
+  transcend(): { success: boolean }
+  buyGenesisNode(nodeId: string): boolean
   buyLegacyNode(nodeId: string): boolean
 
   // Strategy

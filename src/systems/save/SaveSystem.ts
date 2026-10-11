@@ -16,13 +16,29 @@ import { BUILDING_DEFS } from '../../data/buildings'
 import { getAffixById } from '../../data/talentAffixes'
 import { createLegacyExpeditionTemplates, ensureUnlockedExpeditionTemplates } from '../../data/expeditionTemplates'
 import { getLegacyTemplateCapacity } from '../../data/legacy'
+import { serializeExponential, deserializeExponentialToNumber, type ExponentialPayload } from '../../utils/Decimal'
 
 const META_KEY = 'eq_save_meta'
 const OLD_SAVE_KEY = 'endlessquest_save'
 
 // ---------------------------------------------------------------------------
-// SaveMeta v11 — stored in IndexedDB 'meta' store (keyPath: slot)
+// SaveMeta v13 — stored in IndexedDB 'meta' store (keyPath: slot)
+//
+// v13: exponential-risk fields (resources, cultivation, currency totals,
+// offline gains) persist via serializeExponential — plain number below 1e15,
+// {m,e} Decimal payload above. Reads accept both shapes (deserializeExponentialToNumber),
+// so v12-and-older saves load without a data migration.
 // ---------------------------------------------------------------------------
+
+/** Resource / currency-shaped fields that grow exponentially. */
+type StoredExponential = ExponentialPayload
+
+interface StoredResources {
+  spiritStone: StoredExponential
+  spiritEnergy: StoredExponential
+  herb: StoredExponential
+  ore: StoredExponential
+}
 
 interface SaveMeta {
   slot: number
@@ -30,7 +46,7 @@ interface SaveMeta {
   lastOnlineTime: number
   sectName: string
   sectLevel: number
-  resources: Sect['resources']
+  resources: StoredResources
   techniqueCodex: string[]
   maxVaultSlots: number
   totalAdventureRuns: number
@@ -41,7 +57,11 @@ interface SaveMeta {
   unlockedPathNodeIds: Sect['unlockedPathNodeIds']
   pathUnlockedAt: Sect['pathUnlockedAt']
   legacy: Sect['legacy']
-  stats: SectStats
+  stats: Omit<SectStats, 'totalSpiritStoneEarned' | 'totalSpiritStoneSpent' | 'peakCultivationThisRun'> & {
+    totalSpiritStoneEarned: StoredExponential
+    totalSpiritStoneSpent: StoredExponential
+    peakCultivationThisRun: StoredExponential
+  }
   archiveMilestones: Sect['archiveMilestones']
   automationSettings?: Sect['automationSettings']
   strategySettings?: SectStrategySettings
@@ -53,8 +73,13 @@ interface SaveMeta {
   equipmentCodex?: Record<string, string[]>
   currentArchetype?: Sect['currentArchetype']
   routeOpportunities?: Sect['routeOpportunities']
-  offlineAccumulator?: Sect['offlineAccumulator']
+  offlineAccumulator?: Omit<OfflineAccumulator, 'resourcesGained'> & { resourcesGained: StoredResources }
   legacyTree?: Record<string, number>
+  caveHeavenAssignments?: Record<string, string>
+  genesis?: number
+  daoProvingCount?: number
+  genesisTree?: Record<string, number>
+  transcended?: boolean
 }
 
 type SavedAdventureRunRecord = {
@@ -124,7 +149,8 @@ const DEFAULT_AUTOMATION_SETTINGS: Sect['automationSettings'] = {
   reserveSpiritEnergy: 120,
   preferredDungeonId: 'lingCaoValley',
   casualtyTolerance: 'balanced',
-  autoBreakthrough: true,
+  autoBreakthrough: false,
+  autoMajorBreakthrough: false,
   productionFocus: 'balanced',
   overflowTriggerRatio: 0.9,
   herbOverflowRule: 'sell',
@@ -156,28 +182,29 @@ function normalizeFiniteNumber(value: unknown, fallback: number): number {
 }
 
 /**
- * Upper bound for exponential-risk fields (cultivation, spirit stones).
- * The V2 curve tops out around 1e100; values past this bound indicate a
- * corrupted or tampered save, so they are reset to the fallback instead of
- * poisoning the run with Infinity.
+ * Upper bound for exponential-risk fields (cultivation, spirit stones) lives
+ * in utils/Decimal.ts as MAX_EXPONENTIAL_MAGNITUDE (1e300): on load, values
+ * past the bound are treated as corrupted and reset to the field's fallback.
  */
-const MAX_STORED_MAGNITUDE = 1e300
 
 function normalizeBoundedNumber(value: unknown, fallback: number): number {
-  const n = normalizeFiniteNumber(value, fallback)
-  return Math.abs(n) > MAX_STORED_MAGNITUDE ? fallback : n
+  return deserializeExponentialToNumber(value, fallback)
 }
 
-function normalizeResources(resources: Partial<Resources> | undefined): Resources {
+function normalizeResources(resources: Partial<StoredResources> | undefined): Resources {
   return {
     spiritStone: normalizeBoundedNumber(resources?.spiritStone, DEFAULT_RESOURCES.spiritStone),
-    spiritEnergy: normalizeFiniteNumber(resources?.spiritEnergy, DEFAULT_RESOURCES.spiritEnergy),
-    herb: normalizeFiniteNumber(resources?.herb, DEFAULT_RESOURCES.herb),
-    ore: normalizeFiniteNumber(resources?.ore, DEFAULT_RESOURCES.ore),
+    spiritEnergy: deserializeExponentialToNumber(resources?.spiritEnergy, DEFAULT_RESOURCES.spiritEnergy),
+    herb: deserializeExponentialToNumber(resources?.herb, DEFAULT_RESOURCES.herb),
+    ore: deserializeExponentialToNumber(resources?.ore, DEFAULT_RESOURCES.ore),
   }
 }
 
-function normalizeOfflineAccumulator(value: Partial<OfflineAccumulator> | undefined): OfflineAccumulator {
+function normalizeOfflineAccumulator(
+  value:
+    | (Partial<Omit<OfflineAccumulator, 'resourcesGained'>> & { resourcesGained?: Partial<StoredResources> })
+    | undefined
+): OfflineAccumulator {
   const empty = {
     resourcesGained: { spiritStone: 0, spiritEnergy: 0, herb: 0, ore: 0 },
     breakthroughs: [],
@@ -190,6 +217,12 @@ function normalizeOfflineAccumulator(value: Partial<OfflineAccumulator> | undefi
     breakthroughs: Array.isArray(value.breakthroughs) ? value.breakthroughs : [],
     itemsCrafted: Array.isArray(value.itemsCrafted) ? value.itemsCrafted : [],
     taxIncome: normalizeFiniteNumber(value.taxIncome, 0),
+    lowSpiritSeconds: normalizeFiniteNumber(value.lowSpiritSeconds, 0),
+    kills: normalizeFiniteNumber(value.kills, 0),
+    equipmentGained: normalizeFiniteNumber(value.equipmentGained, 0),
+    equipmentSold: normalizeFiniteNumber(value.equipmentSold, 0),
+    dungeonRuns: normalizeFiniteNumber(value.dungeonRuns, 0),
+    dungeonFloorsCleared: normalizeFiniteNumber(value.dungeonFloorsCleared, 0),
   }
 }
 
@@ -283,14 +316,19 @@ export async function saveGame(): Promise<void> {
     const storeNames = ['meta', 'characters', 'buildings', 'vault', 'pets', 'adventure'] as const
     const tx = db.transaction(storeNames, 'readwrite')
 
-    // Write meta
+    // Write meta — v13: exponential-risk fields persist via {m,e} Decimal payloads
     await tx.objectStore('meta').put({
       slot: 1,
-      version: 12,
+      version: 16,
       lastOnlineTime: Date.now(),
       sectName: sect.name,
       sectLevel: sect.level,
-      resources: sect.resources,
+      resources: {
+        spiritStone: serializeExponential(sect.resources.spiritStone),
+        spiritEnergy: serializeExponential(sect.resources.spiritEnergy),
+        herb: serializeExponential(sect.resources.herb),
+        ore: serializeExponential(sect.resources.ore),
+      },
       techniqueCodex: sect.techniqueCodex,
       maxVaultSlots: sect.maxVaultSlots,
       totalAdventureRuns: sect.totalAdventureRuns,
@@ -301,14 +339,32 @@ export async function saveGame(): Promise<void> {
       unlockedPathNodeIds: sect.unlockedPathNodeIds,
       pathUnlockedAt: sect.pathUnlockedAt,
       legacy: sect.legacy,
-      stats: sect.stats,
+      stats: {
+        ...sect.stats,
+        totalSpiritStoneEarned: serializeExponential(sect.stats.totalSpiritStoneEarned),
+        totalSpiritStoneSpent: serializeExponential(sect.stats.totalSpiritStoneSpent),
+        peakCultivationThisRun: serializeExponential(sect.stats.peakCultivationThisRun),
+      },
       archiveMilestones: sect.archiveMilestones,
       automationSettings: sect.automationSettings,
       strategySettings: sect.strategySettings,
       autoRunDayCounter: sect.autoRunDayCounter,
       lastRandomEventTime: sect.lastRandomEventTime,
-      offlineAccumulator: sect.offlineAccumulator,
+      offlineAccumulator: {
+        ...sect.offlineAccumulator,
+        resourcesGained: {
+          spiritStone: serializeExponential(sect.offlineAccumulator.resourcesGained.spiritStone),
+          spiritEnergy: serializeExponential(sect.offlineAccumulator.resourcesGained.spiritEnergy),
+          herb: serializeExponential(sect.offlineAccumulator.resourcesGained.herb),
+          ore: serializeExponential(sect.offlineAccumulator.resourcesGained.ore),
+        },
+      },
       legacyTree: sect.legacyTree,
+      caveHeavenAssignments: sect.caveHeavenAssignments,
+      genesis: sect.genesis,
+      daoProvingCount: sect.daoProvingCount,
+      genesisTree: sect.genesisTree,
+      transcended: sect.transcended,
       currentGameDay: gameState.currentGameDay,
       dayProgressSec: gameState.dayProgressSec,
       monsterCodex: sect.monsterCodex,
@@ -319,9 +375,15 @@ export async function saveGame(): Promise<void> {
       ),
     })
 
-    // Write characters
+    // Write characters — v13: cultivation fields persist via {m,e} payloads
     const charStore = tx.objectStore('characters')
-    for (const c of sect.characters) await charStore.put(c)
+    for (const c of sect.characters) {
+      await charStore.put({
+        ...c,
+        cultivation: serializeExponential(c.cultivation),
+        totalCultivation: serializeExponential(c.totalCultivation),
+      })
+    }
     const charKeys = await charStore.getAllKeys()
     for (const k of charKeys) {
       if (!sect.characters.some((c) => c.id === k)) await charStore.delete(k)
@@ -427,6 +489,26 @@ export async function loadGame(): Promise<boolean> {
     }
     if (meta.version < 12) {
       meta.version = 12
+    }
+    // v12 → v13: exponential-risk fields move to {m,e} Decimal payloads on
+    // write; reads accept both shapes, so no data transform is needed here.
+    if (meta.version < 13) {
+      meta.version = 13
+    }
+    // v13 → v14: 仙界建筑（immortalVein/immortalField/immortalPalace）加入
+    // BUILDING_DEFS，normalizeBuildings 按 defs 自动补缺省行（level 0 未解锁），
+    // 无需数据迁移；仙界境界 = 既有 character.realm 字段的 9-12 取值。
+    if (meta.version < 14) {
+      meta.version = 14
+    }
+    // v14 → v15: 证道字段（genesis/daoProvingCount/genesisTree/transcended），
+    // 旧档读侧 ?? 缺省，无数据迁移。
+    if (meta.version < 15) {
+      meta.version = 15
+    }
+    // v15 → v16: 洞天福地派驻（工单 04），读侧 ?? 缺省零迁移。
+    if (meta.version < 16) {
+      meta.version = 16
     }
     const rawVault = await db.getAll('vault')
     const pets = (await db.getAll('pets')) as Sect['pets']
@@ -541,13 +623,23 @@ export async function loadGame(): Promise<boolean> {
       pathUnlockedAt: meta.pathUnlockedAt ?? null,
       legacy: { ...DEFAULT_LEGACY, ...(meta.legacy ?? {}), daoYun: meta.legacy?.daoYun ?? 0 },
       legacyTree: meta.legacyTree ?? {},
+      caveHeavenAssignments: meta.caveHeavenAssignments ?? {},
+      genesis: meta.genesis ?? 0,
+      daoProvingCount: meta.daoProvingCount ?? 0,
+      genesisTree: meta.genesisTree ?? {},
+      transcended: meta.transcended ?? false,
       archiveMilestones: meta.archiveMilestones ?? [],
       automationSettings: normalizeAutomationSettings(
         meta.automationSettings,
         meta.legacy?.ascensionCount ?? 0,
         meta.archiveMilestones ?? []
       ),
-      stats: { ...(meta.stats ?? DEFAULT_STATS), peakCultivationThisRun: meta.stats?.peakCultivationThisRun ?? 0 },
+      stats: {
+        ...(meta.stats ?? DEFAULT_STATS),
+        totalSpiritStoneEarned: deserializeExponentialToNumber(meta.stats?.totalSpiritStoneEarned, 0),
+        totalSpiritStoneSpent: deserializeExponentialToNumber(meta.stats?.totalSpiritStoneSpent, 0),
+        peakCultivationThisRun: deserializeExponentialToNumber(meta.stats?.peakCultivationThisRun, 0),
+      },
       currentArchetype: (meta as any).currentArchetype ?? 'pillSustain',
       strategySettings: meta.strategySettings
         ? {

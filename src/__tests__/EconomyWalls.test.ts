@@ -28,7 +28,7 @@ describe('P0-1: 灵石硬上限必须容纳下一境突破成本', () => {
     for (let realm = 0; realm < REALM_EXP.length; realm++) {
       const cap = getSectStoneCap(MAIN_HALL_MAX, realm)
       const cost = BREAKTHROUGH_COSTS[realm + 1]?.spiritStone
-      if (cost === undefined) continue // 渡劫期为最后一境
+      if (cost === undefined) continue // 道祖为最后一境（工单 07）
       expect(cap).toBeGreaterThanOrEqual(cost)
     }
   })
@@ -83,9 +83,16 @@ describe('P0-3: 最后一个境界（渡劫期）的小境界成本必须有限'
       expect(Number.isFinite(cost)).toBe(true)
       expect(cost).toBeGreaterThan(0)
     }
-    expect(getBreakthroughResourceCost(8, 0).spiritStone).toBeCloseTo(getRealmCost(8) * 0.02)
-    expect(getBreakthroughResourceCost(8, 1).spiritStone).toBeCloseTo(getRealmCost(8) * 0.04)
-    expect(getBreakthroughResourceCost(8, 2).spiritStone).toBeCloseTo(getRealmCost(8) * 0.08)
+    // 工单 07：渡劫期小境界现锚定下一境（真仙）成本；"最后一境"特例移到道祖
+    expect(getBreakthroughResourceCost(8, 0).spiritStone).toBeCloseTo(getRealmCost(9) * 0.0004) // basis(真仙)×0.02
+    for (const stage of [0, 1, 2]) {
+      const daozuCost = getBreakthroughResourceCost(12, stage).spiritStone
+      expect(Number.isFinite(daozuCost)).toBe(true)
+      expect(daozuCost).toBeGreaterThan(0)
+    }
+    expect(getBreakthroughResourceCost(12, 0).spiritStone).toBeCloseTo(getRealmCost(12) * 0.02)
+    expect(getBreakthroughResourceCost(8, 1).spiritStone).toBeCloseTo(getRealmCost(9) * 0.0008) // basis×0.04
+    expect(getBreakthroughResourceCost(8, 2).spiritStone).toBeCloseTo(getRealmCost(9) * 0.0016) // basis×0.08
   })
 
   it('全部境界全部阶段的小境界成本都有限', () => {

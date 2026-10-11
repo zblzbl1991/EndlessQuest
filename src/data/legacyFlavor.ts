@@ -17,18 +17,17 @@ interface LegacyTechniqueFlavor {
 
 const LEGACY_DUNGEON_FLAVORS: Record<string, LegacyDungeonFlavor> = {
   guixuRift: {
-    title: '褰掕櫄瑁傞殭',
-    marker: '杞洖绉樺',
-    reportEyebrow: '杞洖閬楃棔鏄惧寲',
-    reportCause:
-      '杩欑被绉樺浼氭妸闃靛鐭澘鍜岄闄╅€夋嫨鏀惧ぇ锛岃兘閫氳繃灏辫鏄庡畻闂ㄧ粓浜庢湁浜嗚Е纰拌疆鍥炶竟缂樼殑搴曟皵銆?',
+    title: '归墟裂隙',
+    marker: '轮回秘境',
+    reportEyebrow: '轮回遗痕显化',
+    reportCause: '这类秘境会把阵容短板和风险选择放大，能通过就说明宗门终于有了触碰轮回边缘的底气。',
   },
 }
 
 const LEGACY_TECHNIQUE_FLAVORS: Record<string, LegacyTechniqueFlavor> = {
   hongmengdaojue: {
-    title: '楦胯挋閬撹瘈',
-    marker: '閬椾骇鍔熸硶',
+    title: '鸿蒙道诀',
+    marker: '遗产功法',
   },
 }
 
@@ -59,18 +58,18 @@ export function buildAdventureResultMessage(
 ): string {
   const dungeonName = getLegacyDungeonName(dungeonId) ?? fallbackDungeonName
   if (!isLegacyDungeonId(dungeonId)) {
-    if (result === 'completed') return `鍘嗙粡鑹伴櫓锛屽紵瀛愪滑鍑棆褰掓潵锛岀澧?${fallbackDungeonName}閫氬叧`
-    if (result === 'failed') return `绉樺${fallbackDungeonName}鎺㈢储澶卞埄锛屽紵瀛愭姌鎴熻€屽綊`
-    return `绉樺${fallbackDungeonName}褰㈠娍涓嶅埄锛屽紵瀛愪粨鐨囨挙閫€`
+    if (result === 'completed') return `历经艰险，弟子们凯旋归来，秘境${fallbackDungeonName}通关`
+    if (result === 'failed') return `秘境${fallbackDungeonName}探索失利，弟子折戟而归`
+    return `秘境${fallbackDungeonName}形势不利，弟子仓皇撤退`
   }
 
   if (result === 'completed') {
-    return `寮熷瓙绌胯繃${dungeonName}鐨勮疆鍥炴畫鍏夛紝鎴愬姛鎶婅繖澶勯殣涓栦紶鎵挎嫋鍥炰汉闂?`
+    return `弟子穿过${dungeonName}的轮回残光，成功把这处隐世传承拖回人间`
   }
   if (result === 'failed') {
-    return `${dungeonName}鐨勬棫鏃ユ畫鍝嶅弽鍣槦浼嶏紝姝よ鏈兘绔欑ǔ鑴氳窡`
+    return `${dungeonName}的旧日残响反噬队伍，此行未能站稳脚跟`
   }
-  return `${dungeonName}涓殑杞洖浣欏▉鏈暎锛屽紵瀛愯鍔夸笉鍒╁厛琛屾挙鍑?`
+  return `${dungeonName}中的轮回余威未散，弟子见势不利先行撤退`
 }
 
 export function buildTechniqueUnlockMessage(
@@ -80,14 +79,14 @@ export function buildTechniqueUnlockMessage(
 ): string {
   const techniqueName = getLegacyTechniqueName(techniqueId) ?? fallbackTechniqueName
   if (!isLegacyTechniqueId(techniqueId)) {
-    return `绉樺涓伓鑾峰姛娉曟畫鍗凤紝${fallbackTechniqueName}褰曞叆钘忕粡闃?`
+    return `秘境中偶获功法残卷，${fallbackTechniqueName}录入藏经阁`
   }
 
   if (source === 'ascension') {
-    return `杞洖浼犳壙鑻忛啋锛?${techniqueName}鍐嶆鏄惧寲浜庤棌缁忛榿`
+    return `轮回传承苏醒，${techniqueName}再次显化于藏经阁`
   }
 
-  return `閬楃棔鍏遍福寮曞姩浼犳壙锛?${techniqueName}鍦ㄧ澧冩繁澶勯噸瑙佸ぉ鏃?`
+  return `遗迹共鸣引动传承，${techniqueName}在秘境深处重见天日`
 }
 
 export function getLegacyEventMarker(data: Record<string, unknown> | undefined): string | null {
@@ -101,6 +100,6 @@ export function getLegacyEventMarker(data: Record<string, unknown> | undefined):
     return getLegacyDungeonMarker(data.legacyDungeonId)
   }
 
-  if (data.isLegacyEncounter) return '杞洖浜嬩欢'
+  if (data.isLegacyEncounter) return '轮回事件'
   return null
 }

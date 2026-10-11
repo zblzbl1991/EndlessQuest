@@ -2,7 +2,15 @@
 import type { SectStore } from './types'
 import type { BuildingType } from '../../types'
 import type { Character } from '../../types/character'
-import { BUILDING_DEFS, getBuildingExpandCost, getBuildingNodeCap, isResourceNode } from '../../data/buildings'
+import {
+  BUILDING_DEFS,
+  getBatchUpgradeInfo,
+  getBuildingExpandCost,
+  getBuildingMaxLevel,
+  getBuildingMilestones,
+  getBuildingNodeCap,
+  isResourceNode,
+} from '../../data/buildings'
 import { SPECIALTY_BUILDING_MAP } from '../../data/specialties'
 import { checkBuildingUnlock, canUpgradeBuilding } from '../../systems/sect/BuildingSystem'
 import { emitEvent } from '../eventLogStore'
@@ -74,6 +82,14 @@ function buildAutoAssignmentResult(
   }
 }
 
+function emitMilestoneEvents(def: { type: BuildingType; name: string }, fromLevel: number, toLevel: number) {
+  for (const milestone of getBuildingMilestones(def.type)) {
+    if (milestone.level > fromLevel && milestone.level <= toLevel) {
+      emitEvent('milestone', `${def.name}里程碑达成：${milestone.name}——${milestone.description}`)
+    }
+  }
+}
+
 export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
   upgradeBuilding: (type: BuildingType) => {
     const { sect } = get()
@@ -81,7 +97,8 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
     if (!building || !building.unlocked) return false
 
     const def = BUILDING_DEFS.find((d) => d.type === type)
-    if (!def || building.level >= def.maxLevel) return false
+    const bestRealm = sect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
+    if (!def || building.level >= getBuildingMaxLevel(type, bestRealm)) return false
 
     const cost = def.upgradeCost(building.level)
     if (sect.resources.spiritStone < cost.spiritStone) return false
@@ -110,7 +127,45 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
       },
     }))
 
+    emitMilestoneEvents(def, building.level, building.level + 1)
+
     return true
+  },
+
+  upgradeBuildingBatch: (type: BuildingType, amount: 1 | 10 | 100 | 'max') => {
+    const { sect } = get()
+    const building = sect.buildings.find((b) => b.type === type)
+    if (!building || !building.unlocked) return { success: false, levels: 0 }
+
+    const def = BUILDING_DEFS.find((d) => d.type === type)
+    if (!def) return { success: false, levels: 0 }
+
+    const bestRealm = sect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
+    const desired = amount === 'max' ? Number.POSITIVE_INFINITY : amount
+    const info = getBatchUpgradeInfo(type, building.level, desired, sect.resources.spiritStone, bestRealm)
+    if (info.levels <= 0) return { success: false, levels: 0 }
+
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        buildings: s.sect.buildings.map((b) =>
+          b.type === type ? { ...b, level: b.level + info.levels, count: Math.max(1, b.count ?? 0) } : b
+        ),
+        resources: {
+          ...s.sect.resources,
+          spiritStone: s.sect.resources.spiritStone - info.totalCost,
+        },
+        stats: {
+          ...s.sect.stats,
+          totalBuildingUpgrades: s.sect.stats.totalBuildingUpgrades + info.levels,
+          totalSpiritStoneSpent: s.sect.stats.totalSpiritStoneSpent + info.totalCost,
+        },
+      },
+    }))
+
+    emitMilestoneEvents(def, building.level, building.level + info.levels)
+
+    return { success: true, levels: info.levels }
   },
 
   expandBuilding: (type: BuildingType) => {
@@ -150,7 +205,12 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
 
     const building = sect.buildings.find((b) => b.type === type)
     if (!building?.unlocked) {
-      const unlockCheck = checkBuildingUnlock(type, sect.buildings)
+      const unlockCheck = checkBuildingUnlock(
+        type,
+        sect.buildings,
+        undefined,
+        sect.characters.reduce((m, c) => Math.max(m, c.realm), 0)
+      )
       if (!unlockCheck.unlocked) return { success: false, reason: unlockCheck.reason }
 
       set((s) => ({
@@ -219,6 +279,11 @@ export const createBuildingSlice: StateCreator<SectStore, [], [], Partial<SectSt
         buildings: state.sect.buildings.map((b) =>
           b.type === buildingType ? { ...b, productionQueue: { recipeId, progress: 0 } } : b
         ),
+        // V2.1 工单 05：记忆上一配方，供"自动炼丹续产"（灵田 Lv25 里程碑）使用
+        automationSettings: {
+          ...state.sect.automationSettings,
+          lastRecipes: { ...(state.sect.automationSettings.lastRecipes ?? {}), [buildingType]: recipeId ?? '' },
+        },
       },
     }))
   },

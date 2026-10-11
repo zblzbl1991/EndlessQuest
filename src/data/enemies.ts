@@ -89,7 +89,7 @@ export function adjustEnemyByTeamPower(
 
 // ─── Loot System ──────────────────────────────────────────────────────
 
-export type LootType = 'spiritStone' | 'herb' | 'ore' | 'equipment' | 'consumable' | 'petCapture'
+export type LootType = 'spiritStone' | 'herb' | 'ore' | 'equipment' | 'consumable' | 'petCapture' | 'material'
 
 export interface LootEntry {
   type: LootType
@@ -97,6 +97,8 @@ export interface LootEntry {
   minAmount?: number
   maxAmount?: number
   quality?: 'common' | 'spirit' | 'immortal' | 'divine' | 'chaos'
+  /** material 掉落的类别（仙灵草 / 仙尘晶）。 */
+  category?: 'herb' | 'ore'
   recipeId?: string
 }
 
@@ -853,6 +855,114 @@ export const ENEMY_TEMPLATES: EnemyTemplate[] = [
       { type: 'petCapture', weight: 6 },
     ],
   },
+  // ── 仙界敌人（V2.1 工单 08）：基线中等，难度由 adjustEnemyByTeamPower
+  // 按队伍战力动态对齐（仙界弟子 baseStats 已是 ×10 量级）；掉落含仙品材料。 ──
+  {
+    id: 'immortal_ruins_guardian',
+    name: '仙墟守卫',
+    element: 'metal',
+    stats: { hp: 420, atk: 52, def: 30, spd: 16 },
+    isBoss: false,
+    affixPool: ['berserk', 'shield'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 26, minAmount: 300, maxAmount: 700 },
+      { type: 'herb', weight: 12, minAmount: 20, maxAmount: 46 },
+      { type: 'ore', weight: 12, minAmount: 20, maxAmount: 44 },
+      { type: 'material', weight: 14, category: 'herb', quality: 'immortal', minAmount: 1, maxAmount: 2 },
+      { type: 'material', weight: 10, category: 'ore', quality: 'immortal', minAmount: 1, maxAmount: 2 },
+      { type: 'equipment', weight: 12, quality: 'divine' },
+      { type: 'equipment', weight: 4, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
+  {
+    id: 'immortal_ruins_swordspirit',
+    name: '遗府剑灵',
+    element: 'metal',
+    stats: { hp: 380, atk: 60, def: 24, spd: 20 },
+    isBoss: false,
+    affixPool: ['swift', 'berserk'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 24, minAmount: 320, maxAmount: 760 },
+      { type: 'herb', weight: 10, minAmount: 22, maxAmount: 50 },
+      { type: 'ore', weight: 10, minAmount: 20, maxAmount: 46 },
+      { type: 'material', weight: 12, category: 'ore', quality: 'immortal', minAmount: 1, maxAmount: 2 },
+      { type: 'equipment', weight: 14, quality: 'divine' },
+      { type: 'equipment', weight: 6, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
+  {
+    id: 'daopeak_sovereign',
+    name: '仙墟之主',
+    element: 'fire',
+    stats: { hp: 520, atk: 66, def: 36, spd: 18 },
+    isBoss: true,
+    affixPool: ['tribulationBane'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 20, minAmount: 900, maxAmount: 2000 },
+      { type: 'herb', weight: 8, minAmount: 40, maxAmount: 90 },
+      { type: 'ore', weight: 8, minAmount: 40, maxAmount: 88 },
+      { type: 'material', weight: 16, category: 'herb', quality: 'immortal', minAmount: 2, maxAmount: 4 },
+      { type: 'material', weight: 12, category: 'ore', quality: 'immortal', minAmount: 2, maxAmount: 4 },
+      { type: 'equipment', weight: 16, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
+  {
+    id: 'daopeak_fog_beast',
+    name: '雾隐兽',
+    element: 'water',
+    stats: { hp: 460, atk: 54, def: 32, spd: 19 },
+    isBoss: false,
+    affixPool: ['shield', 'swift'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 25, minAmount: 340, maxAmount: 800 },
+      { type: 'herb', weight: 11, minAmount: 24, maxAmount: 52 },
+      { type: 'material', weight: 13, category: 'herb', quality: 'immortal', minAmount: 1, maxAmount: 2 },
+      { type: 'equipment', weight: 13, quality: 'divine' },
+      { type: 'equipment', weight: 5, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
+  {
+    id: 'daopeak_dao_disciple',
+    name: '论道修士',
+    element: 'earth',
+    stats: { hp: 440, atk: 58, def: 34, spd: 17 },
+    isBoss: false,
+    affixPool: ['berserk', 'spiritDrain'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 24, minAmount: 360, maxAmount: 820 },
+      { type: 'ore', weight: 11, minAmount: 24, maxAmount: 50 },
+      { type: 'material', weight: 13, category: 'ore', quality: 'immortal', minAmount: 1, maxAmount: 2 },
+      { type: 'equipment', weight: 13, quality: 'divine' },
+      { type: 'equipment', weight: 5, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
+  {
+    id: 'daopeak_elder',
+    name: '道峰老祖',
+    element: 'fire',
+    stats: { hp: 560, atk: 70, def: 38, spd: 20 },
+    isBoss: true,
+    affixPool: ['tribulationBane', 'berserk'],
+    dropsPerFight: 3,
+    lootTable: [
+      { type: 'spiritStone', weight: 20, minAmount: 1000, maxAmount: 2200 },
+      { type: 'herb', weight: 8, minAmount: 44, maxAmount: 96 },
+      { type: 'material', weight: 15, category: 'herb', quality: 'immortal', minAmount: 2, maxAmount: 4 },
+      { type: 'material', weight: 11, category: 'ore', quality: 'immortal', minAmount: 2, maxAmount: 4 },
+      { type: 'equipment', weight: 16, quality: 'chaos' },
+      { type: 'petCapture', weight: 6 },
+    ],
+  },
 ]
 
 // ─── Dungeon-Enemy Mapping ─────────────────────────────────────────────
@@ -906,6 +1016,14 @@ export const DUNGEON_ENEMY_MAP: Record<string, { regular: string[]; boss: string
   guixuRift: {
     regular: ['guixu_rift_tide_watcher', 'guixu_rift_void_shell'],
     boss: 'guixu_rift_abyss_sovereign',
+  },
+  immortalRuins: {
+    regular: ['immortal_ruins_guardian', 'immortal_ruins_swordspirit'],
+    boss: 'daopeak_sovereign',
+  },
+  daoPeak: {
+    regular: ['daopeak_fog_beast', 'daopeak_dao_disciple'],
+    boss: 'daopeak_elder',
   },
 }
 

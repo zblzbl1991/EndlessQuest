@@ -152,7 +152,8 @@ function simulateRun(deadlineSec: number): RunResult {
       if (bt.outcome === 'blocked' || bt.outcome === 'injured') break
     }
 
-    if (char.realm >= REALM_EXP.length - 1 && char.realmStage >= 3) {
+    // 终点固定渡劫圆满（首世锁定，工单 07）：REALM_EXP 延伸仙界后不跟表走
+    if (char.realm >= 8 && char.realmStage >= 3) {
       result.endTime = t
       result.finalRealm = char.realm
       result.finalStage = char.realmStage
@@ -187,11 +188,20 @@ it('A. 逐境界：上限覆盖下一境成本、攒石时间不超过修炼时�
   })
   console.table(rows)
 
-  for (let realm = 0; realm < REALM_EXP.length - 1; realm++) {
+  // 凡界段：全量逐境断言
+  for (let realm = 0; realm < 8; realm++) {
     const cost = BREAKTHROUGH_COSTS[realm + 1].spiritStone
     expect(capAt(realm)).toBeGreaterThanOrEqual(cost)
     // 攒石时间 ≤ 修炼时间 × 2（增量平衡律的收入侧）
     expect(cost / incomeStone(realm)).toBeLessThanOrEqual(2 * 600 * 2 ** realm)
+  }
+  // 仙界段（工单 07）：economyMult 斜率 1.0 后攒石耗时 = 2/mineRate（境界无关常数），
+  // 上限覆盖成本直到道祖前
+  for (let realm = 8; realm < REALM_EXP.length - 1; realm++) {
+    const cost = BREAKTHROUGH_COSTS[realm + 1].spiritStone
+    expect(Number.isFinite(cost)).toBe(true)
+    expect(capAt(realm)).toBeGreaterThanOrEqual(cost)
+    expect(cost / incomeStone(realm)).toBeLessThanOrEqual(2 * 600 * 2 ** 8) // 常数上界
   }
 })
 
@@ -227,8 +237,13 @@ it('C. 道韵经济打印（校准参考）', () => {
     第3次: calcDaoYunGain(peakAt(realm), realm, 2),
   }))
   console.table(rows)
-  // §7.2 校准律：同峰值下每次飞升 ≥4×
+  // V2.1 工单 01 校准律：rush 停滞（同峰值 ≤×1.25，+1/prev 吸收 floor 扰动）
+  // 且推深单调优（每数量级 ≥×1.41，严格压过 rush 重复）
   for (let asc = 1; asc <= 4; asc++) {
-    expect(calcDaoYunGain(peakAt(8), 8, asc)).toBeGreaterThanOrEqual(4 * calcDaoYunGain(peakAt(8), 8, asc - 1))
+    const prev = calcDaoYunGain(peakAt(8), 8, asc - 1)
+    const rushed = calcDaoYunGain(peakAt(8), 8, asc)
+    expect(rushed / prev).toBeLessThanOrEqual(1.25 + 1 / prev + 1e-9)
+    const pushed = calcDaoYunGain(peakAt(8) * 10, 8, asc - 1)
+    expect(pushed).toBeGreaterThanOrEqual(rushed)
   }
 })

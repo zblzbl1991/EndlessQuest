@@ -17,18 +17,32 @@ import {
   tick as cultivationTick,
   canBreakthrough,
   calcCultivationRate,
+  calcSpiritCostPerSecond,
 } from '../../systems/cultivation/CultivationEngine'
 import { processBreakthrough } from '../../systems/cultivation/BreakthroughCoordinator'
+import { canStartRecipe } from '../../systems/building/ProductionSystem'
+import { aggregateEquipmentAffixes } from '../../data/equipmentAffixes'
+import { aggregateCaveHeavenEffects } from '../../data/caveHeavens'
+import { findEquipmentById as findEqForAffix } from './initial'
 import { processCultivationEvent } from '../../systems/cultivation/CultivationEventSystem'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { rollCultivationPath, getPathName } from '../../data/cultivationPaths'
-import { calcResourceCaps } from '../../data/buildings'
+import {
+  calcResourceCaps,
+  getSectMilestoneAlchemyThroughput,
+  getSectMilestoneRateMult,
+  getImmortalVeinStoneRate,
+  getImmortalFieldEnergyRate,
+  getImmortalFieldHerbRate,
+  getImmortalPalaceCultivationMult,
+} from '../../data/buildings'
 import { getRealmEconomyMult } from '../../data/realms'
 import {
   getLegacyCultivationMult,
   getLegacyStoneMult,
   getLegacyEnergyMult,
   getLegacyBreakthroughBonus,
+  getLegacyDaoEssenceMult,
   isAutoAscendUnlocked,
   calcDaoYunGain,
 } from '../../data/legacy'
@@ -46,6 +60,18 @@ import { tickRecoveryDays } from '../../systems/character/DiscipleRecoverySystem
 import { buildAutomationRunConfig, shouldAutoRecruit } from '../../systems/sect/SectAutomationSystem'
 import { calcBuildingRouteBonus } from '../../systems/sect/SectRouteSystem'
 import { buildPathEffectMap, getMultEffect } from '../../systems/sect/SectPathEffects'
+import { getAutomationsUnlockedAtRealm } from '../../data/automationUnlocks'
+import { getBuildingCultivationMult } from '../../systems/cultivation/ProgressForecast'
+import {
+  getGenesisCultivationMult,
+  getGenesisResourceMult,
+  getGenesisMortalSpeedMult,
+  getGenesisImmortalSpeedMult,
+  getGenesisBreakthroughBonus,
+} from '../../data/genesisTree'
+import { shouldAutoProveDao } from '../../systems/sect/GenesisSystem'
+import { attemptRecord } from '../../systems/sect/DaozuRecords'
+import { isCapabilityUnlocked } from '../../data/buildings'
 import { evaluateRandomEventsForDelta } from '../../systems/idle/RandomEventSystem'
 import { getLegacyRecoveryBonusDays } from '../../data/legacy'
 import { applyCharacterExperience } from '../../data/levelSystem'
@@ -90,6 +116,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const smLevel = sect.buildings.find((b) => b.type === 'spiritMine')?.level ?? 0
     const smCount = sect.buildings.find((b) => b.type === 'spiritMine')?.count ?? 0
     const mhLevel = sect.buildings.find((b) => b.type === 'mainHall')?.level ?? 0
+
+    // 1b. 洞天福地被动（V2.2 工单 04）：派驻弟子的宗门级加成
+    const caveHeavenEffects = aggregateCaveHeavenEffects(
+      sect.characters.reduce((max, c) => Math.max(max, c.realm), 0),
+      sect.caveHeavenAssignments ?? {},
+      sect.characters
+    )
 
     // 2. Calculate resource caps
     const caps = calcResourceCaps(sfLevel, smLevel, sfCount, smCount)
@@ -164,10 +197,48 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     // 4h. Ascension-tree resource multipliers (resource branch)
     const legacyStoneMult = getLegacyStoneMult(sect.legacyTree)
     const legacyEnergyMult = getLegacyEnergyMult(sect.legacyTree)
-    rates.spiritStone *= realmEconomyMult * legacyStoneMult
-    rates.herb *= realmEconomyMult
-    rates.ore *= realmEconomyMult
-    rates.spiritEnergy *= legacyEnergyMult
+    const legacyEssenceMult = getLegacyDaoEssenceMult(sect.legacyTree)
+    // 4i. Building Milestone resource multipliers (V2.1 工单 03)
+    const milestoneStoneMult = getSectMilestoneRateMult(sect.buildings, 'spiritStone')
+    const milestoneEnergyMult = getSectMilestoneRateMult(sect.buildings, 'spiritEnergy')
+    const milestoneHerbMult = getSectMilestoneRateMult(sect.buildings, 'herb')
+    const milestoneOreMult = getSectMilestoneRateMult(sect.buildings, 'ore')
+    // 4j. 仙界建筑产出（V2.1 工单 07）：与凡界产出同乘区（economyMult/legacy/milestone）
+    const immortalVein = sect.buildings.find((b) => b.type === 'immortalVein')
+    const immortalField = sect.buildings.find((b) => b.type === 'immortalField')
+    if (immortalVein?.unlocked && immortalVein.level > 0) {
+      rates.spiritStone += getImmortalVeinStoneRate(immortalVein.level)
+    }
+    if (immortalField?.unlocked && immortalField.level > 0) {
+      rates.spiritEnergy += getImmortalFieldEnergyRate(immortalField.level)
+      rates.herb += getImmortalFieldHerbRate(immortalField.level)
+    }
+    const genesisResourceMult = getGenesisResourceMult(sect.genesisTree)
+    rates.spiritStone *=
+      realmEconomyMult *
+      legacyStoneMult *
+      legacyEssenceMult *
+      milestoneStoneMult *
+      genesisResourceMult *
+      (1 + caveHeavenEffects.resourceMult.spiritStone)
+    rates.herb *=
+      realmEconomyMult *
+      legacyEssenceMult *
+      milestoneHerbMult *
+      genesisResourceMult *
+      (1 + caveHeavenEffects.resourceMult.herb)
+    rates.ore *=
+      realmEconomyMult *
+      legacyEssenceMult *
+      milestoneOreMult *
+      genesisResourceMult *
+      (1 + caveHeavenEffects.resourceMult.ore)
+    rates.spiritEnergy *=
+      legacyEnergyMult *
+      legacyEssenceMult *
+      milestoneEnergyMult *
+      genesisResourceMult *
+      (1 + caveHeavenEffects.resourceMult.spiritEnergy)
 
     const spiritProduced = rates.spiritEnergy * deltaSec
 
@@ -184,8 +255,22 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
     for (const bType of processingTypes) {
       const building = newBuildings.find((b) => b.type === bType)
-      if (!building || !building.unlocked || building.level === 0 || !building.productionQueue.recipeId) continue
-      const routeSpeedBonus = calcBuildingRouteBonus(sect.activeRoute, bType)
+      if (!building || !building.unlocked || building.level === 0) continue
+      // V2.1 工单 05：自动炼丹续产（灵田 Lv25 里程碑解锁）——空队列自动续上上一配方
+      if (
+        !building.productionQueue.recipeId &&
+        bType === 'alchemyFurnace' &&
+        isCapabilityUnlocked(sect.buildings, 'autoAlchemy')
+      ) {
+        const lastRecipe = sect.automationSettings.lastRecipes?.[bType]
+        if (lastRecipe && canStartRecipe(lastRecipe, building.level) && sect.vault.length < sect.maxVaultSlots) {
+          building.productionQueue = { recipeId: lastRecipe, progress: 0 }
+        }
+      }
+      if (!building.productionQueue.recipeId) continue
+      const routeSpeedBonus =
+        calcBuildingRouteBonus(sect.activeRoute, bType) *
+        (bType === 'alchemyFurnace' ? getSectMilestoneAlchemyThroughput(sect.buildings) : 1)
       const vaultFreeSlots = sect.maxVaultSlots - newVault.length
       if (deltaSec >= USE_OFFLINE_THRESHOLD) {
         const offlineResult = calcOfflineProduction(
@@ -235,8 +320,11 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     }
 
     // 6. Count cultivating characters (secluded uses spirit stones, not spirit energy)
-    const cultivatingCount = sect.characters.filter((c) => c.status === 'idle').length
-    const spiritConsumed = cultivatingCount * 2 * deltaSec
+    // V2.1 工单 04：灵气消耗随境界 ×2 缩放，逐弟子按各自境界求和
+    const cultivatingCharacters = sect.characters.filter((c) => c.status === 'idle')
+    const cultivatingCount = cultivatingCharacters.length
+    const spiritConsumed =
+      cultivatingCharacters.reduce((sum, c) => sum + calcSpiritCostPerSecond(c.realm), 0) * deltaSec
 
     // 7. Spirit ratio
     let spiritRatio = 1
@@ -257,14 +345,38 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     const pathAssignedEvents: string[] = []
     const levelUpEvents: string[] = []
     const breakthroughDeaths: Character[] = []
+    // 藏经阁基础修炼效率 + 建筑 Milestone 修炼倍率（共享实现见 ProgressForecast）
+    // 仙宫（工单 07）+ 本源树（工单 09）：全局与分段修炼乘区
+    const immortalPalace = sect.buildings.find((b) => b.type === 'immortalPalace')
+    const genesisSegmentMult = (realm: number) =>
+      realm >= 9 ? getGenesisImmortalSpeedMult(sect.genesisTree) : getGenesisMortalSpeedMult(sect.genesisTree)
+    const buildingCultivationMult =
+      getBuildingCultivationMult(sect) *
+      getImmortalPalaceCultivationMult(immortalPalace?.level ?? 0) *
+      getGenesisCultivationMult(sect.genesisTree)
+    void genesisSegmentMult
     const updatedCharacters = sect.characters.map((char) => {
       // Branch 1: idle characters auto-cultivate
       if (char.status === 'idle') {
-        const effectiveSpirit = 2 * spiritRatio * deltaSec
+        const effectiveSpirit = calcSpiritCostPerSecond(char.realm) * spiritRatio * deltaSec
 
         // --- Cultivation event processing ---
-        const legacyRateMult = getLegacyCultivationMult(sect.legacyTree)
-        const cultivationRate = calcCultivationRate(char, char.learnedTechniques, legacyRateMult)
+        const legacyRateMult =
+          getLegacyCultivationMult(sect.legacyTree) *
+          getLegacyDaoEssenceMult(sect.legacyTree) *
+          buildingCultivationMult *
+          (char.realm >= 9
+            ? getGenesisImmortalSpeedMult(sect.genesisTree)
+            : getGenesisMortalSpeedMult(sect.genesisTree))
+        // V2.2 工单 03：装备词条"悟道/静修"修炼速率乘区
+        const eqAffixCultivation = aggregateEquipmentAffixes(
+          char.equippedGear.map((id: string | null) =>
+            id ? (findEqForAffix(sect, id) as import('../../types/item').Equipment | undefined) : undefined
+          )
+        ).cultivationMult
+        const legacyRateMultWithGear =
+          legacyRateMult * (1 + eqAffixCultivation) * (1 + caveHeavenEffects.cultivationMult)
+        const cultivationRate = calcCultivationRate(char, char.learnedTechniques, legacyRateMultWithGear)
         const eventResult = processCultivationEvent(char, cultivationRate, deltaSec)
 
         // Emit event messages (new event started or ended)
@@ -273,6 +385,19 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         }
 
         const result = cultivationTick(char, effectiveSpirit, deltaSec, char.learnedTechniques, legacyRateMult)
+        // V2.2 工单 03：装备词条"剑意/参悟"熟练度增长乘区
+        {
+          const eqAffixMastery = aggregateEquipmentAffixes(
+            char.equippedGear.map((id: string | null) =>
+              id ? (findEqForAffix(sect, id) as import('../../types/item').Equipment | undefined) : undefined
+            )
+          ).masteryMult
+          if (eqAffixMastery > 0 && result.comprehensionGrowth) {
+            for (const key of Object.keys(result.comprehensionGrowth)) {
+              result.comprehensionGrowth[key] *= 1 + eqAffixMastery
+            }
+          }
+        }
         // Apply event modifier and archetype/campaign multipliers
         const gained =
           (result.cultivationGained * eventResult.cultivationMultiplier + eventResult.extraCultivation) *
@@ -321,8 +446,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
         // Auto-breakthrough: delegate to pure coordinator. Loop so one delta
         // (especially offline catch-up) can traverse several stages while
         // cultivation overshoots; bounded to keep a single tick cheap.
+        // V2.1 工单 05：小境界自动突破元婴解锁、大境界化神解锁——前期手动建立心智。
+        const autoMinorEnabled = sect.automationSettings.autoBreakthrough && bestRealm >= 3
+        const autoMajorEnabled = (sect.automationSettings.autoMajorBreakthrough ?? false) && bestRealm >= 4
         let btAttempts = 0
-        while (canBreakthrough(updatedChar) && btAttempts < 40 && updatedChar.status === 'idle') {
+        while (autoMinorEnabled && canBreakthrough(updatedChar) && btAttempts < 40 && updatedChar.status === 'idle') {
+          // 大境界圆满（stage 3 冲下一境）需另受"大境界自动突破"门控
+          if (updatedChar.realmStage >= 3 && !autoMajorEnabled) break
           btAttempts++
           const btResult = processBreakthrough(
             updatedChar,
@@ -333,7 +463,9 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
             pathEffectMap,
             undefined,
             sect.resources.herb - breakthroughHerbCost,
-            getLegacyBreakthroughBonus(sect.legacyTree)
+            getLegacyBreakthroughBonus(sect.legacyTree) +
+              getGenesisBreakthroughBonus(sect.genesisTree) +
+              caveHeavenEffects.breakthroughBonus
           )
 
           updatedChar = btResult.updatedChar
@@ -374,6 +506,24 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
 
           if (btResult.breakthroughSuccess) {
             realmsReachedByBreakthrough.add(btResult.updatedChar.realm)
+            // V2.2 工单 05：道祖榜纪录判定（渡劫/道祖最快到达，秒表 = totalPlayTime）
+            const playSeconds = sect.stats.totalPlayTime + deltaSec
+            if (btResult.updatedChar.realm === 8) {
+              const old = attemptRecord(sect.stats, 'fastestTribulationSeconds', playSeconds)
+              if (old !== null)
+                emitEvent(
+                  'milestone',
+                  `打破纪录！最快渡劫 ${(playSeconds / 86400).toFixed(2)} 天（原 ${(old / 86400).toFixed(2)} 天）`
+                )
+            }
+            if (btResult.updatedChar.realm === 12) {
+              const old = attemptRecord(sect.stats, 'fastestDaozuSeconds', playSeconds)
+              if (old !== null)
+                emitEvent(
+                  'milestone',
+                  `打破纪录！最快道祖 ${(playSeconds / 86400).toFixed(2)} 天（原 ${(old / 86400).toFixed(2)} 天）`
+                )
+            }
           }
 
           // Track breakthroughs for offline accumulator from events
@@ -435,14 +585,50 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       mhLevel
     )
 
+    // Dynamic vault capacity: 50 + (mainHallLevel - 1) * 20
+    const dynamicMaxVaultSlots = 50 + (mhLevel - 1) * 20
+
+    // V2.1 工单 05：自动出售凡品（灵矿 Lv25 里程碑解锁）——仓库接近满位时清理凡品装备
+    let vaultAfterSweep = newVault
+    let sweepStoneGain = 0
+    let sweepOreGain = 0
+    let autoSellSweptCount = 0
+    if (
+      isCapabilityUnlocked(sect.buildings, 'autoSellJunk') &&
+      newVault.length >= Math.floor(dynamicMaxVaultSlots * 0.8)
+    ) {
+      const keepStacks: typeof newVault = []
+      let sweptCount = 0
+      for (const stack of newVault) {
+        if (stack.item.quality === 'common') {
+          // V2.2 工单 03：分解语义——半价灵石 + 等值矿材（高于直接出售）
+          const value = stack.item.sellPrice * stack.quantity
+          sweepStoneGain += Math.floor(value / 2)
+          sweepOreGain += Math.floor(value / 4)
+          sweptCount += stack.quantity
+        } else {
+          keepStacks.push(stack)
+        }
+      }
+      if (sweepStoneGain > 0 || sweepOreGain > 0) {
+        vaultAfterSweep = keepStacks
+        autoSellSweptCount = sweptCount
+      }
+    }
+
     const newResources = {
       spiritEnergy: Math.max(0, updatedSpiritEnergy),
       spiritStone: Math.max(
         0,
-        sect.resources.spiritStone + mineStoneProduced + taxProduced - totalConsumed.spiritStone - breakthroughStoneCost
+        sect.resources.spiritStone +
+          mineStoneProduced +
+          taxProduced +
+          sweepStoneGain -
+          totalConsumed.spiritStone -
+          breakthroughStoneCost
       ),
       herb: sect.resources.herb + rates.herb * deltaSec - totalConsumed.herb - breakthroughHerbCost,
-      ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore,
+      ore: sect.resources.ore + rates.ore * deltaSec - totalConsumed.ore + sweepOreGain,
     }
 
     const overflowTriggerRatio = Math.min(0.98, Math.max(0.5, sect.automationSettings.overflowTriggerRatio ?? 0.9))
@@ -493,9 +679,6 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     // 13. Clamp resources to caps (with spirit stone hard cap = soft cap * 5)
     const clampedResources = clampResources(overflowAdjustedResources, caps, stoneCap)
 
-    // Dynamic vault capacity: 50 + (mainHallLevel - 1) * 20
-    const dynamicMaxVaultSlots = 50 + (mhLevel - 1) * 20
-
     // 14. Update offline accumulator
     const prevAcc = sect.offlineAccumulator
     const updatedAccumulator: OfflineAccumulator = {
@@ -508,10 +691,17 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       breakthroughs: [...prevAcc.breakthroughs, ...accBreakthroughs],
       itemsCrafted: [...prevAcc.itemsCrafted, ...accItemsCrafted],
       taxIncome: prevAcc.taxIncome + taxProduced,
+      // V2.1 工单 04：灵气供给不足的时长归因（离线报告展示）
+      lowSpiritSeconds: (prevAcc.lowSpiritSeconds ?? 0) + (spiritRatio < 0.95 ? deltaSec : 0),
+      kills: prevAcc.kills ?? 0,
+      equipmentGained: prevAcc.equipmentGained ?? 0,
+      equipmentSold: (prevAcc.equipmentSold ?? 0) + autoSellSweptCount,
+      dungeonRuns: prevAcc.dungeonRuns ?? 0,
+      dungeonFloorsCleared: prevAcc.dungeonFloorsCleared ?? 0,
     }
 
     // Calculate spirit stone income for stats
-    const spiritStoneEarned = mineStoneProduced + taxProduced + overflowStoneEarned
+    const spiritStoneEarned = mineStoneProduced + taxProduced + overflowStoneEarned + sweepStoneGain
 
     // Build the updated sect for the set call
     let archiveMilestones = sect.archiveMilestones
@@ -543,6 +733,13 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       }
     }
 
+    // V2.1 工单 05：境界突破时刻的自动化解锁反馈（"从此这件事自动发生"）
+    for (const realm of realmsReachedByBreakthrough) {
+      for (const item of getAutomationsUnlockedAtRealm(realm)) {
+        emitEvent('milestone', `自动化解锁：${item.name}——${item.description}`)
+      }
+    }
+
     // Sect level milestone
     if (newSectLevel >= 5) {
       const nextMilestones = unlockArchiveMilestone(archiveMilestones, 'sectLevel5')
@@ -557,7 +754,7 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
       characters: updatedCharacters,
       resources: clampedResources,
       buildings: newBuildings,
-      vault: newVault,
+      vault: vaultAfterSweep,
       maxVaultSlots: dynamicMaxVaultSlots,
       level: newSectLevel,
       offlineAccumulator: updatedAccumulator,
@@ -725,9 +922,10 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           },
         }))
 
-        // Auto-recruit runs every day
+        // Auto-recruit runs every day (V2.1 工单 05：元婴期解锁)
         let currentState = get()
         while (
+          bestRealm >= 3 &&
           shouldAutoRecruit({
             spiritStone: currentState.sect.resources.spiritStone,
             reserveSpiritStone: currentState.sect.automationSettings.reserveSpiritStone,
@@ -787,6 +985,16 @@ export const createTickSlice: StateCreator<SectStore, [], [], Partial<SectStore>
           get().performAscension()
           return { spiritProduced: 0, spiritConsumed: 0 }
         }
+      }
+
+      // 自动证道（天机证道节点 + 开关 + 本源预期门槛，工单 09）
+      const autoProveSect = get().sect
+      if (
+        (autoProveSect.automationSettings.autoProveDao ?? false) &&
+        shouldAutoProveDao(autoProveSect, autoProveSect.automationSettings.autoProveMinGenesis ?? 0)
+      ) {
+        get().proveDao()
+        return { spiritProduced: 0, spiritConsumed: 0 }
       }
 
       // Expire stale route opportunities

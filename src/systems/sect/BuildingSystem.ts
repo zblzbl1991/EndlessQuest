@@ -1,5 +1,6 @@
 import type { Building, BuildingType } from '../../types/sect'
-import { BUILDING_DEFS } from '../../data/buildings'
+import { BUILDING_DEFS, getBuildingMaxLevel } from '../../data/buildings'
+import { IMMORTAL_REALM_INDEX } from '../../data/realms'
 
 export interface BuildingUnlockCheck {
   unlocked: boolean
@@ -9,7 +10,8 @@ export interface BuildingUnlockCheck {
 export function checkBuildingUnlock(
   buildingType: BuildingType,
   buildings: Building[],
-  _discipleCount?: { common: number; spirit: number; immortal: number; divine: number }
+  _discipleCount?: { common: number; spirit: number; immortal: number; divine: number },
+  bestRealm = 0
 ): BuildingUnlockCheck {
   const def = BUILDING_DEFS.find((d) => d.type === buildingType)
   if (!def) return { unlocked: false, reason: '未知建筑' }
@@ -19,6 +21,12 @@ export function checkBuildingUnlock(
 
   const cond = def.unlockCondition
   if (cond === '初始') return { unlocked: true, reason: '' }
+
+  // 仙界建筑（V2.1 工单 07）：需宗门最高境界达真仙（飞升后解锁）
+  if (cond === '真仙期') {
+    if (bestRealm >= IMMORTAL_REALM_INDEX) return { unlocked: true, reason: '' }
+    return { unlocked: false, reason: '需飞升入仙界（真仙期）' }
+  }
 
   const parts = cond.split(/\s*\+\s*/)
   for (const part of parts) {
@@ -50,7 +58,8 @@ export function canUpgradeBuilding(
   buildings: Building[],
   spiritStone: number,
   herb?: number,
-  ore?: number
+  ore?: number,
+  bestRealm = 0
 ): {
   canUpgrade: boolean
   cost: ReturnType<(typeof import('../../data/buildings').BUILDING_DEFS)[0]['upgradeCost']>
@@ -60,7 +69,9 @@ export function canUpgradeBuilding(
   if (!building || !building.unlocked) return { canUpgrade: false, cost: { spiritStone: 0 }, reason: '未解锁' }
 
   const def = BUILDING_DEFS.find((d) => d.type === buildingType)
-  if (!def || building.level >= def.maxLevel) return { canUpgrade: false, cost: { spiritStone: 0 }, reason: '已满级' }
+  if (!def || building.level >= getBuildingMaxLevel(buildingType, bestRealm)) {
+    return { canUpgrade: false, cost: { spiritStone: 0 }, reason: '已满级' }
+  }
 
   const cost = def.upgradeCost(building.level)
   if (spiritStone < cost.spiritStone) return { canUpgrade: false, cost, reason: '灵石不足' }

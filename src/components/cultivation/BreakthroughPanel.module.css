@@ -232,3 +232,17 @@
   color: var(--color-text-tertiary);
   margin-top: 4px;
 }
+
+/* V2.1 工单 05：手动突破按钮（元婴/化神自动化解锁前的主要突破入口） */
+.attemptBtn {
+  width: 100%;
+  margin-top: var(--space-sm);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  background: var(--color-accent);
+  color: #fff;
+  transition: opacity var(--transition-fast);
+}

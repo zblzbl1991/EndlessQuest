@@ -31,6 +31,10 @@ export interface CombatUnit {
   spiritRegenBonus?: number
   /** Heal this ratio of maxHp when killing an enemy (from reaper_mark blessing) */
   healOnKillRatio?: number
+  /** Reflect this ratio of received damage back to the attacker (V2.2 棘甲反震) */
+  thornsRatio?: number
+  /** Lifesteal this ratio of dealt damage (V2.2 饮血词条) */
+  lifestealRatio?: number
   /** Element affinity bonus: primary = 20%, secondary = 10% extra multiplier */
   elementAffinity?: { primary: Element; secondary?: Element }
 }
@@ -68,6 +72,8 @@ export interface CombatResult {
   actions: CombatAction[]
   allyHp: number[]
   enemyHp: number[]
+  /** V2.2 工单 03：击杀的敌人数（吞灵词条结算用）。 */
+  kills: number
 }
 
 function randomVariance(): number {
@@ -138,6 +144,7 @@ export function simulateCombat(
         actions,
         allyHp: buildHpResult(allies, units),
         enemyHp: buildHpResult(enemies, units),
+        kills: enemies.filter((u) => u.hp <= 0).length,
       }
     }
     if (getAllies(units, 'enemy').length === 0) {
@@ -147,6 +154,7 @@ export function simulateCombat(
         actions,
         allyHp: buildHpResult(allies, units),
         enemyHp: buildHpResult(enemies, units),
+        kills: enemies.filter((u) => u.hp <= 0).length,
       }
     }
 
@@ -298,6 +306,18 @@ export function simulateCombat(
 
       target.hp = Math.max(0, target.hp - damage)
 
+      // Thorns (V2.2 棘甲反震)：受击者存活时把部分伤害反震给攻击者
+      if (damage > 0 && target.hp > 0 && target.thornsRatio && target.thornsRatio > 0 && actor.hp > 0) {
+        const reflect = Math.max(1, Math.floor(damage * target.thornsRatio))
+        actor.hp = Math.max(0, actor.hp - reflect)
+      }
+
+      // Lifesteal (V2.2 饮血词条)：按造成伤害回血
+      if (damage > 0 && actor.lifestealRatio && actor.lifestealRatio > 0 && actor.hp > 0) {
+        const steal = Math.floor(damage * actor.lifestealRatio)
+        if (steal > 0) actor.hp = Math.min(actor.maxHp, actor.hp + steal)
+      }
+
       // Heal on kill: if the target died and the attacker has healOnKillRatio
       if (target.hp <= 0 && actor.healOnKillRatio && actor.healOnKillRatio > 0) {
         const healAmount = Math.floor(actor.maxHp * actor.healOnKillRatio)
@@ -343,5 +363,6 @@ export function simulateCombat(
     actions,
     allyHp: buildHpResult(allies, units),
     enemyHp: buildHpResult(enemies, units),
+    kills: enemies.filter((u) => u.hp <= 0).length,
   }
 }

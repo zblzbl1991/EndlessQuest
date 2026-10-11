@@ -3,22 +3,16 @@ import type { RunBuildBiasContext } from '../../types/runBuild'
 import type { CombatUnit } from '../combat/CombatEngine'
 import type { DiscipleMutationId } from '../../data/discipleMutations'
 import { getDiscipleMutationDef } from '../../data/discipleMutations'
+import {
+  BLESSING_DEFS,
+  ALL_BLESSING_IDS,
+  aggregateBlessingEffects,
+  aggregateRunSynergies,
+  getBlessingTier,
+} from '../../data/blessings'
 
-const ALL_BLESSINGS: BlessingId[] = [
-  'stoneHarvest',
-  'verdantBounty',
-  'ironBody',
-  'galeStride',
-  'battleFocus',
-  'flame_heart',
-  'iron_wall',
-  'jade_pulse',
-  'spirit_spring',
-  'keen_eye',
-  'reaper_mark',
-  'golden_touch',
-  'wind_step',
-]
+// V2.2 工单 02：池 = 全部 36 种（六系）；升阶语义见 pickBlessingOptions
+const ALL_BLESSINGS: BlessingId[] = ALL_BLESSING_IDS
 
 const ALL_RELICS: RelicId[] = [
   'jadeGourd',
@@ -97,11 +91,24 @@ export function pickBlessingOptions(
   rng: () => number = Math.random,
   context: RunBuildBiasContext = {}
 ): BlessingId[] {
-  const pool = ALL_BLESSINGS.filter((id) => !ownedBlessings.includes(id))
+  // V2.2 工单 02：未满 3 阶的已拥有祝福留在池中（再次抽到即升阶）；
+  // 同系持有越多，该系未拥有祝福权重越高（Build 倾斜）。
+  const tierOf = (id: BlessingId) => getBlessingTier(ownedBlessings, id)
+  const pool = ALL_BLESSINGS.filter((id) => tierOf(id) < 3)
+  const schoolLean = new Map<string, number>()
+  for (const id of ownedBlessings) {
+    const school = BLESSING_DEFS[id]?.school
+    if (school) schoolLean.set(school, (schoolLean.get(school) ?? 0) + 1)
+  }
   const picked: BlessingId[] = []
   while (pool.length > 0 && picked.length < count) {
     const weighted = pool
-      .map((id) => ({ id, weight: getBlessingWeight(id, context) }))
+      .map((id) => {
+        const base = getBlessingWeight(id, context)
+        // 系倾斜：该系已持有数 × 0.6 × (基础权重+1) 加到权重上
+        const lean = (schoolLean.get(BLESSING_DEFS[id]?.school ?? '') ?? 0) * 0.6 * (base + 1)
+        return { id, weight: base + lean }
+      })
       .sort((a, b) => b.weight - a.weight || ALL_BLESSINGS.indexOf(a.id) - ALL_BLESSINGS.indexOf(b.id))
     const totalWeight = weighted.reduce((sum, entry) => sum + entry.weight, 0)
     let roll = rng() * totalWeight
@@ -128,22 +135,24 @@ export function pickRelicReward(ownedRelics: RelicId[], rng: () => number = Math
 }
 
 export function applyRunRewardModifiers(reward: Resources, blessings: BlessingId[], relics: RelicId[]): Resources {
-  let spiritStoneMult = 1
-  let herbMult = 1
-
-  if (blessings.includes('stoneHarvest')) spiritStoneMult *= 1.3
-  if (blessings.includes('verdantBounty')) herbMult *= 1.3
+  const agg = aggregateBlessingEffects(blessings)
+  const synergies = aggregateRunSynergies(blessings, { learnedTechniqueCount: 0, swordWeaponCount: 0 })
+  let spiritStoneMult = 1 + agg.rewardPct.spiritStone + agg.rewardPct.all + synergies.rewardPct
+  let herbMult = 1 + agg.rewardPct.herb + agg.rewardPct.all + synergies.rewardPct
+  let oreMult = 1 + agg.rewardPct.ore + agg.rewardPct.all + synergies.rewardPct
+  // 掉落加成对三资源等效放大（旧 golden_touch 仅石/草，V2.2 起含矿材——设计意图"掉落数量"）
+  const lootMult = 1 + agg.lootPct
+  spiritStoneMult *= lootMult
+  herbMult *= lootMult
+  oreMult *= lootMult
   if (relics.includes('warBanner')) spiritStoneMult *= 1.1
-  if (blessings.includes('golden_touch')) {
-    spiritStoneMult *= 1.2
-    herbMult *= 1.2
-  }
   if (relics.includes('golden_scale')) spiritStoneMult *= 1.25
 
   return {
     ...reward,
     spiritStone: Math.floor((reward.spiritStone || 0) * spiritStoneMult),
     herb: Math.floor((reward.herb || 0) * herbMult),
+    ore: Math.floor((reward.ore || 0) * oreMult),
   }
 }
 
@@ -167,38 +176,39 @@ export function applyMutationRewardModifiers(reward: Resources, mutationIds: Dis
   }
 }
 
-export function applyRunCombatModifiers(unit: CombatUnit, blessings: BlessingId[], relics: RelicId[]): CombatUnit {
-  let atkMult = 1
-  let defMult = 1
-  let spdMult = 1
+export interface RunModifierContext {
+  /** 队伍已学功法总数（协同：大道共鸣）。 */
+  learnedTechniqueCount?: number
+  /** 队伍装备剑类武器数（协同：剑阵）。 */
+  swordWeaponCount?: number
+}
 
-  if (blessings.includes('battleFocus')) atkMult *= 1.15
-  if (blessings.includes('galeStride')) spdMult *= 1.15
-  if (blessings.includes('flame_heart')) atkMult *= 1.15
-  if (blessings.includes('wind_step')) atkMult *= 1.15
-  if (blessings.includes('iron_wall')) defMult *= 1.15
+export function applyRunCombatModifiers(
+  unit: CombatUnit,
+  blessings: BlessingId[],
+  relics: RelicId[],
+  modifierContext: RunModifierContext = {}
+): CombatUnit {
+  const agg = aggregateBlessingEffects(blessings)
+  const synergies = aggregateRunSynergies(blessings, {
+    learnedTechniqueCount: modifierContext.learnedTechniqueCount ?? 0,
+    swordWeaponCount: modifierContext.swordWeaponCount ?? 0,
+  })
+
+  let atkMult = 1 + agg.atkPct + synergies.atkPct
+  let defMult = 1 + agg.defPct
+  const spdMult = 1 + agg.spdPct
+  const maxHpMult = 1 + agg.hpPct + synergies.hpPct
+
   if (relics.includes('warBanner')) {
     atkMult *= 1.1
     defMult *= 1.1
   }
   if (relics.includes('jade_armor')) defMult *= 1.2
-
-  // hpBoost: increase maxHp
-  let maxHpMult = 1
-  if (blessings.includes('jade_pulse')) maxHpMult *= 1.12
-
-  // critBoost: flat crit addition
-  let critBonus = 0
-  if (blessings.includes('keen_eye')) critBonus += 0.05
-  if (relics.includes('mirror_shard')) critBonus += 0.04
+  // 遗物镜片：暴击 +4%（旧行为保留）
+  const relicCritBonus = relics.includes('mirror_shard') ? 0.04 : 0
 
   const newMaxHp = Math.floor(unit.maxHp * maxHpMult)
-
-  // spiritRegen: extra spirit per combat turn
-  const spiritRegenBonus = blessings.includes('spirit_spring') ? 5 : (unit.spiritRegenBonus ?? 0)
-
-  // healOnKill: heal ratio of maxHp on enemy kill
-  const healOnKillRatio = blessings.includes('reaper_mark') ? 0.1 : (unit.healOnKillRatio ?? 0)
 
   return {
     ...unit,
@@ -207,9 +217,11 @@ export function applyRunCombatModifiers(unit: CombatUnit, blessings: BlessingId[
     spd: Math.floor(unit.spd * spdMult),
     maxHp: newMaxHp,
     hp: Math.min(unit.hp, newMaxHp),
-    crit: Math.min(1, unit.crit + critBonus),
-    spiritRegenBonus,
-    healOnKillRatio,
+    crit: Math.min(1, unit.crit + agg.critAdd + relicCritBonus),
+    critDmg: unit.critDmg + agg.critDmgAdd,
+    spiritRegenBonus: agg.spiritRegen,
+    healOnKillRatio: agg.healOnKill,
+    thornsRatio: agg.thornsPct,
   }
 }
 

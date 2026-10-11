@@ -5,6 +5,7 @@ import { TECHNIQUE_TIER_ORDER, TECHNIQUE_TIER_NAMES } from '../../types/techniqu
 import { TECHNIQUES } from '../../data/techniquesTable'
 import { QUALITY_NAMES } from '../../data/items'
 import { pickSetForSlot, generateRandomAffixes } from '../../data/equipmentSets'
+import { rollEquipmentAffixes, tierFromQuality } from '../../data/equipmentAffixes'
 
 export interface SlotBaseStats {
   hp: number
@@ -102,6 +103,9 @@ export function generateEquipment(slot: EquipSlot, quality: ItemQuality, _seed?:
   const set = pickSetForSlot(slot, quality)
   const setId = set?.id ?? null
   const refinementStats = generateRandomAffixes(quality, slot, stats)
+  // V2.2 工单 03：阶位 + 机制词条 roll
+  const tier = tierFromQuality(quality)
+  const affixes = rollEquipmentAffixes(tier)
 
   // Build description with set name if applicable
   const setDesc = set ? `，${set.name}` : ''
@@ -119,6 +123,8 @@ export function generateEquipment(slot: EquipSlot, quality: ItemQuality, _seed?:
     stats,
     enhanceLevel: 0,
     refinementStats,
+    tier,
+    affixes,
     setId,
     description: `${QUALITY_NAMES[quality]}品质${SLOT_PREFIX[slot]}${setDesc}，${statDesc}`,
     sellPrice: Math.floor(mult * 10),

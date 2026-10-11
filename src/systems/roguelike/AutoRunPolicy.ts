@@ -33,7 +33,22 @@ const ROUTE_ARCHETYPE_NAMES: Record<RouteArchetype, string> = {
   mutation: 'mutation route',
 }
 
-const BLESSING_WEIGHTS: Record<AutomationStrategy, Record<BlessingId, number>> = {
+// V2.2 工单 02：Partial——未列出的新祝福走 RunBuildSystem 的基础权重（按系倾斜由三选一生成器处理）
+const BLESSING_WEIGHTS: Record<AutomationStrategy, Partial<Record<BlessingId, number>>> = {
+  // 求道（V2.2 工单 02）：只走事件/奇遇路线刷祝福与功法——权重全面倾斜稀有系
+  seekDao: {
+    sword_array: 5,
+    crit_dao: 5,
+    thunder_dao: 5,
+    immortal_body: 4,
+    beast_king: 4,
+    spirit_dao: 5,
+    sword_intent: 3,
+    deadly_slot: 3,
+    thorn_shell: 3,
+    hunt_master: 3,
+    treasure_gath: 3,
+  },
   steady: {
     ironBody: 6,
     galeStride: 3,
@@ -48,6 +63,13 @@ const BLESSING_WEIGHTS: Record<AutomationStrategy, Record<BlessingId, number>> =
     reaper_mark: 2,
     golden_touch: 1,
     wind_step: 2,
+    // 稳守倾向体修/灵息新祝福
+    mountain_body: 4,
+    thorn_shell: 3,
+    immortal_body: 2,
+    spirit_well: 3,
+    treasure_gath: 3,
+    spirit_dao: 2,
   },
   combat: {
     battleFocus: 6,
@@ -63,6 +85,16 @@ const BLESSING_WEIGHTS: Record<AutomationStrategy, Record<BlessingId, number>> =
     reaper_mark: 3,
     golden_touch: 1,
     wind_step: 4,
+    // 争锋倾向剑修/会心/雷法新祝福
+    sword_qi: 4,
+    sword_intent: 3,
+    sword_array: 2,
+    crit_heart: 3,
+    deadly_slot: 3,
+    crit_dao: 2,
+    thunder_soul: 3,
+    storm_eye: 2,
+    thunder_dao: 2,
   },
   profit: {
     stoneHarvest: 6,
@@ -78,6 +110,12 @@ const BLESSING_WEIGHTS: Record<AutomationStrategy, Record<BlessingId, number>> =
     reaper_mark: 1,
     golden_touch: 5,
     wind_step: 2,
+    // 求财倾向御兽/灵息新祝福
+    hunt_master: 4,
+    blood_fang: 2,
+    beast_king: 2,
+    treasure_gath: 4,
+    spirit_well: 2,
   },
 }
 
@@ -178,13 +216,16 @@ function scoreAndPick(
 export function pickAutomationBlessing(strategy: AutomationStrategy, options: BlessingId[]): BlessingId {
   const weights = BLESSING_WEIGHTS[strategy]
   return options.reduce((best, option) => {
-    if (weights[option] > weights[best]) return option
+    if ((weights[option] ?? 0) > (weights[best] ?? 0)) return option
     return best
   }, options[0])
 }
 
 export function shouldRetreat(strategy: AutomationStrategy, context: AutomationContext): boolean {
   switch (strategy) {
+    case 'seekDao':
+      // 求道以拿祝福为先，血线保守（与 steady 同阈值）
+      return context.averageHpRatio < 0.55 || context.lowestHpRatio < 0.3
     case 'steady':
       return context.averageHpRatio < 0.55 || context.lowestHpRatio < 0.3
     case 'combat':
@@ -202,6 +243,8 @@ export function shouldAttemptPetCapture(strategy: AutomationStrategy, context: A
       return context.averageHpRatio >= 0.45 && context.lowestHpRatio >= 0.4
     case 'profit':
       return context.averageHpRatio >= 0.55 && context.lowestHpRatio >= 0.5
+    case 'seekDao':
+      return context.averageHpRatio >= 0.6 && context.lowestHpRatio >= 0.55
   }
 }
 

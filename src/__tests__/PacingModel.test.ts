@@ -63,9 +63,9 @@ function stoneIncome(realmIndex: number): number {
 }
 
 describe('V2 pacing model (design doc §5.1 / §十三)', () => {
-  it('defines exactly 9 mortal realms with the agreed exponent curve', () => {
-    expect([...REALM_EXP]).toEqual([2, 4, 6, 9, 13, 18, 24, 31, 40])
-    expect(REALMS).toHaveLength(9)
+  it('defines exactly 13 realms (9 mortal + 4 immortal) with the agreed exponent curve', () => {
+    expect([...REALM_EXP]).toEqual([2, 4, 6, 9, 13, 18, 24, 31, 40, 50, 65, 80, 100])
+    expect(REALMS).toHaveLength(13)
     expect(getRealmCost(8)).toBe(1e40)
   })
 
@@ -135,6 +135,6 @@ describe('V2 pacing model (design doc §5.1 / §十三)', () => {
       }
     })
     console.table(rows)
-    expect(rows).toHaveLength(9)
+    expect(rows).toHaveLength(13)
   })
 })

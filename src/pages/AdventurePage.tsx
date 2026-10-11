@@ -32,7 +32,7 @@ import { PixelIcon } from '../components/common/PixelIcon'
 import TacticPresetPicker from '../components/adventure/TacticPresetPicker'
 import styles from './AdventurePage.module.css'
 
-const RUN_INTENT_IDS: AutomationStrategy[] = ['steady', 'combat', 'profit']
+const RUN_INTENT_IDS: AutomationStrategy[] = ['steady', 'combat', 'profit', 'seekDao']
 
 function getDungeonIconName(dungeonId: string): string {
   switch (dungeonId) {

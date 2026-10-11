@@ -1,6 +1,7 @@
 import type { Equipment, ItemStats, EquipSlot } from '../../types/item'
 import { getEnhanceRate, EQUIP_SLOTS } from '../../data/items'
 import { calcSetBonusStats } from '../../data/equipmentSets'
+import { spiritLevelFromExp, spiritLevelBonus } from '../../data/equipmentAffixes'
 import type { ItemQuality } from '../../types/item'
 import type { Character, CultivationPath, SpecialtyType } from '../../types/character'
 
@@ -96,6 +97,9 @@ export function getEffectiveStats(item: Equipment): ItemStats {
     critDmg: Math.round(item.stats.critDmg * enhanceBonus * 100) / 100,
   }
 
+  // V2.2 工单 03：器灵加成（每级全属性 +2%，经验由击杀积累）
+  const spiritMult = spiritLevelBonus(spiritLevelFromExp(item.spiritExp ?? 0))
+
   // Add refinement stats
   for (const ref of item.refinementStats) {
     stats = {
@@ -108,7 +112,14 @@ export function getEffectiveStats(item: Equipment): ItemStats {
     }
   }
 
-  return stats
+  return {
+    hp: Math.floor(stats.hp * spiritMult),
+    atk: Math.floor(stats.atk * spiritMult),
+    def: Math.floor(stats.def * spiritMult),
+    spd: Math.floor(stats.spd * spiritMult),
+    crit: stats.crit,
+    critDmg: stats.critDmg,
+  }
 }
 
 /**

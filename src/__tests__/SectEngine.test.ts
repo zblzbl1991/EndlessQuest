@@ -93,34 +93,34 @@ describe('SectEngine', () => {
       expect(result).toBe(1)
     })
 
-    it('should calculate based on spirit field rate: level 3 = 7/sec, floor(7/2) = 3', () => {
+    it('should calculate based on spirit field rate: level 3 = 3.63/sec, floor(3.63/2) = 1', () => {
       const buildings = makeBuildings({ spiritField: { level: 3 } })
       const result = calcMaxDisciplesByResources(buildings, [], null)
-      expect(result).toBe(3)
+      expect(result).toBe(1)
     })
 
-    it('should calculate based on spirit field rate: level 5 = 11/sec, floor(11/2) = 5', () => {
+    it('should calculate based on spirit field rate: level 5 = 4.39/sec, floor(4.39/2) = 2', () => {
       const buildings = makeBuildings({ spiritField: { level: 5 } })
       const result = calcMaxDisciplesByResources(buildings, [], null)
-      expect(result).toBe(5)
+      expect(result).toBe(2)
     })
 
-    it('should multiply by spirit field count: 2x level 5 = 22/sec, floor(22/2) = 11', () => {
+    it('should multiply by spirit field count: 2x level 5 = 8.78/sec, floor(8.78/2) = 4', () => {
       const buildings = makeBuildings({ spiritField: { level: 5, count: 2 } })
       const result = calcMaxDisciplesByResources(buildings, [], null)
-      expect(result).toBe(11)
+      expect(result).toBe(4)
     })
 
-    it('should scale with building level: level 10 = 21/sec, floor(21/2) = 10', () => {
+    it('should scale with building level: level 10 = 7.07/sec, floor(7.07/2) = 3', () => {
       const buildings = makeBuildings({ spiritField: { level: 10 } })
       const result = calcMaxDisciplesByResources(buildings, [], null)
-      expect(result).toBe(10)
+      expect(result).toBe(3)
     })
 
     it('should scale with 4x spirit field level 10: 84/sec, floor(84/2) = 42', () => {
       const buildings = makeBuildings({ spiritField: { level: 10, count: 4 } })
       const result = calcMaxDisciplesByResources(buildings, [], null)
-      expect(result).toBe(42)
+      expect(result).toBe(14) // 4×3×1.1^9 = 28.3/s → floor(/2) = 14
     })
 
     it('should return at least 1 (minimum)', () => {
@@ -131,9 +131,9 @@ describe('SectEngine', () => {
 
     it('should account for characters with techniques providing bonuses', () => {
       const buildings = makeBuildings({ spiritField: { level: 3 } })
-      // Without characters: level 3 spirit field = 7/sec → floor(7/2) = 3
+      // Without characters: level 3 spirit field = 3.63/sec → floor(3.63/2) = 1
       const withoutChars = calcMaxDisciplesByResources(buildings, [], null)
-      expect(withoutChars).toBe(3)
+      expect(withoutChars).toBe(1)
 
       // With an idle character with learned techniques (technique multiplier > 1)
       const char = generateCharacter('common')

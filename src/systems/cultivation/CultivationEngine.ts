@@ -7,8 +7,15 @@ import { calcTribulationFailRate } from './TribulationSystem'
 // Base cultivation rate: 修为 per second (pacing anchor shared with realms.ts)
 const BASE_CULTIVATION_RATE = PACING_BASE_CULTIVATION_RATE
 
-// Spirit energy cost per second during cultivation
+// Base spirit energy cost per second during cultivation (at 炼气期).
+// V2.1 工单 04：消耗随境界 ×2 增长（略高于修为速率的逐境增速 ×1.67），
+// 使"灵气 → 修为"生产链在全程成立、单位修为的灵气成本温和上升。
 const SPIRIT_COST_PER_SECOND = 2
+
+/** 每弟子灵气消耗/秒：2 × 2^realmIndex。realmIndex 缺省 0（炼气期，与旧常数一致）。 */
+export function calcSpiritCostPerSecond(realmIndex = 0): number {
+  return SPIRIT_COST_PER_SECOND * 2 ** Math.max(0, realmIndex)
+}
 
 // Stat growth per sub-level as fraction of major realm growth
 const SUBLEVEL_STAT_FRACTION = 0.15
@@ -99,12 +106,8 @@ export function calcCultivationRate(
   return rate
 }
 
-export function calcSpiritCostPerSecond(): number {
-  return SPIRIT_COST_PER_SECOND
-}
-
-export function canCultivate(spiritEnergy: number): boolean {
-  return spiritEnergy >= SPIRIT_COST_PER_SECOND
+export function canCultivate(spiritEnergy: number, realmIndex = 0): boolean {
+  return spiritEnergy >= calcSpiritCostPerSecond(realmIndex)
 }
 
 /**
@@ -159,10 +162,11 @@ export function tick(
   }
 
   const rate = calcCultivationRate(character, learnedTechniques, legacyRateMult)
-  // Scale cultivation proportionally to available spirit energy
-  const spiritScale = Math.min(1, spiritEnergyAvailable / (SPIRIT_COST_PER_SECOND * deltaSec))
+  // Scale cultivation proportionally to available spirit energy (realm-aware cost)
+  const costPerSec = calcSpiritCostPerSecond(character.realm)
+  const spiritScale = Math.min(1, spiritEnergyAvailable / (costPerSec * deltaSec))
   const gained = rate * deltaSec * spiritScale
-  const spent = Math.min(spiritEnergyAvailable, SPIRIT_COST_PER_SECOND * deltaSec)
+  const spent = Math.min(spiritEnergyAvailable, costPerSec * deltaSec)
 
   // Comprehension grows only during cultivation ticks (and only when spirit is available)
   const comprehensionGrowth = spiritScale > 0 ? calcComprehensionGrowth(character) : {}

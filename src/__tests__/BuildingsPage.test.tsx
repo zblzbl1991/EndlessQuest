@@ -47,7 +47,8 @@ describe('BuildingsPage', () => {
   it('renders buildings page interactions in Chinese', () => {
     render(<BuildingsPage />)
 
-    expect(screen.queryByText('MAX')).not.toBeInTheDocument()
+    // V2.1 批量购买档位以中文渲染（MAX 为档位标签，属合法 UI 文案）
+    expect(screen.getByText('批量购买')).toBeInTheDocument()
     expect(screen.queryByText('Core sect building.')).not.toBeInTheDocument()
     expect(
       screen.queryByText(/Sect tier|Daily refreshes|Potion power|Forge success|Codex cap|Recruit cost/)

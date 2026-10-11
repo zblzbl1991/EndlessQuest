@@ -58,7 +58,9 @@ export function getCultivationEconomySnapshot(sect: Sect): CultivationEconomySna
   }
 
   const spiritProduced = rates.spiritEnergy
-  const spiritConsumed = cultivatingCount * calcSpiritCostPerSecond()
+  // V2.1 工单 04：逐弟子按各自境界求和的灵气需求
+  const idleCharacters = sect.characters.filter((c) => c.status === 'idle')
+  const spiritConsumed = idleCharacters.reduce((sum, c) => sum + calcSpiritCostPerSecond(c.realm), 0)
   return {
     cultivatingCount,
     spiritProductionPerSecond: spiritProduced,

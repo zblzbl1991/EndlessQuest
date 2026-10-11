@@ -1,8 +1,19 @@
 import type { StateCreator } from 'zustand'
 import type { SectStore } from './types'
+import { bumpOfflineAccumulator } from '../../systems/sect/OfflineStats'
 import { createInitialState } from './initial'
 
 export const createMiscSlice: StateCreator<SectStore, [], [], Partial<SectStore>> = (set, get) => ({
+  // V2.2 工单 01：离线统计增量的统一入口（adventureStore/itemSlice/tickSlice 消费）
+  bumpOfflineStats: (delta) => {
+    set((s) => ({
+      sect: {
+        ...s.sect,
+        offlineAccumulator: bumpOfflineAccumulator(s.sect.offlineAccumulator, delta),
+      },
+    }))
+  },
+
   healCharacter: (characterId: string) => {
     const { sect } = get()
     const char = sect.characters.find((c) => c.id === characterId)

@@ -16,7 +16,7 @@ import {
   pickRelicReward,
 } from '../systems/roguelike/RunBuildSystem'
 import { getDiscipleMutationWeight, pickDiscipleMutation } from '../data/discipleMutations'
-import { BLESSING_DEFS, BLESSINGS } from '../data/blessings'
+import { BLESSING_DEFS, BLESSINGS, ALL_BLESSING_IDS } from '../data/blessings'
 import { RELIC_DEFS, RELICS } from '../data/relics'
 import { simulateCombat } from '../systems/combat/CombatEngine'
 
@@ -90,10 +90,12 @@ describe('RunBuildSystem', () => {
     expect(healed).toBeLessThanOrEqual(100)
   })
 
-  it('should offer blessing choices that exclude already owned blessings', () => {
+  it('should offer blessing choices with tier-up semantics (V2.2 工单 02)', () => {
+    // 新语义：1-2 阶的已拥有祝福保留在池中（再次抽到即升阶）；3 阶封顶排除
     const options = pickBlessingOptions(['stoneHarvest'], 3, () => 0.1)
     expect(options).toHaveLength(3)
-    expect(options).not.toContain('stoneHarvest')
+    const maxed = pickBlessingOptions(['stoneHarvest', 'stoneHarvest', 'stoneHarvest'], 3, () => 0.1)
+    expect(maxed).not.toContain('stoneHarvest')
   })
 
   it('should pick a relic reward that excludes already owned relics', () => {
@@ -143,7 +145,7 @@ describe('RunBuildSystem', () => {
     const genericIds = BLESSINGS.map((b) => b.id)
     // Pick from an empty pool with deterministic rng to verify they can all appear
     for (const id of genericIds) {
-      const options = pickBlessingOptions([], 13, () => 0)
+      const options = pickBlessingOptions([], ALL_BLESSING_IDS.length, () => 0)
       expect(options).toContain(id)
     }
   })
@@ -313,8 +315,22 @@ describe('RunBuildSystem', () => {
     expect(reward.spiritStone).toBe(156)
   })
 
-  it('should exclude owned generic blessings from options', () => {
-    const options = pickBlessingOptions(['flame_heart', 'iron_wall', 'keen_eye'], 3, () => 0.5)
+  it('should exclude maxed-tier owned blessings from options (V2.2 升阶语义)', () => {
+    const options = pickBlessingOptions(
+      [
+        'flame_heart',
+        'flame_heart',
+        'flame_heart',
+        'iron_wall',
+        'iron_wall',
+        'iron_wall',
+        'keen_eye',
+        'keen_eye',
+        'keen_eye',
+      ],
+      3,
+      () => 0.5
+    )
     expect(options).not.toContain('flame_heart')
     expect(options).not.toContain('iron_wall')
     expect(options).not.toContain('keen_eye')

@@ -1,0 +1,81 @@
+/* 洞天福地（V2.2 工单 04）——清墨轻岚基线 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.slots {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(95, 122, 141, 0.05);
+}
+
+.item.locked {
+  opacity: 0.5;
+}
+
+.itemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.name {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.lockHint {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+}
+
+.desc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.bonus {
+  font-size: 11px;
+  color: var(--color-success);
+}
+
+.select {
+  min-height: 32px;
+  max-width: 180px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(95, 122, 141, 0.3);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-size: 12px;
+}
+
+.summary {
+  font-size: 12px;
+  color: var(--color-accent);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(79, 122, 116, 0.08);
+}

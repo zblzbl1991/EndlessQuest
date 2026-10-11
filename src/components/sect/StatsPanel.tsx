@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useSectStore } from '../../stores/sectStore'
 import { canBreakthrough } from '../../systems/cultivation/CultivationEngine'
+import { readRecords, RECORD_DEFS } from '../../systems/sect/DaozuRecords'
 import { getCultivationNeeded } from '../../data/realms'
 import { canUpgradeBuilding } from '../../systems/sect/BuildingSystem'
 import { BUILDING_DEFS, calcResourceCaps } from '../../data/buildings'
@@ -185,6 +186,16 @@ export default function StatsPanel() {
             <StatRow label="最长离线时长" value={`${longestOfflineMin.toLocaleString('zh-CN')} 分钟`} />
           )}
         </div>
+      </div>
+
+      <div className={styles.statsGroup} data-testid="daozu-records">
+        <div className={styles.statsGroupTitle}>自我基准 · 道祖榜</div>
+        {RECORD_DEFS.map((def) => {
+          const records = readRecords(stats)
+          const value = records[def.key] ?? 0
+          return <StatRow key={def.key} label={def.name} value={value > 0 ? def.format(value) : '—'} />
+        })}
+        <StatRow label="证道次数" value={String(readRecords(stats).daoProvingCount ?? 0)} />
       </div>
     </div>
   )

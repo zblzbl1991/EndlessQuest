@@ -60,3 +60,27 @@ export const EQUIP_SLOT_NAMES: Record<string, string> = {
   accessory2: '饰品',
   talisman: '法宝',
 }
+
+// ─── 仙品材料（V2.1 工单 08）：仙界秘境掉落的高阶天材地宝 ─────────────────
+
+export const IMMORTAL_MATERIAL_TIER_NAMES = ['', '下品', '中品', '上品', '极品'] as const
+
+/**
+ * 仙品材料：quality 恒 immortal，品阶（1-4）由掉落地深化（层数 × 世界层），
+ * 表现在名称与卖价上。灵石卖价 ~2^tier × 5e4（仙界 economyMult 域内可感）。
+ */
+export function createImmortalMaterial(category: 'herb' | 'ore', tier: number) {
+  const t = Math.min(4, Math.max(1, Math.floor(tier)))
+  const baseName = category === 'herb' ? '仙灵草' : '仙尘晶'
+  const tierName = IMMORTAL_MATERIAL_TIER_NAMES[t]
+  return {
+    id: `immortal_${category}_${t}_${Math.random().toString(36).slice(2, 8)}`,
+    name: `${tierName}${baseName}`,
+    quality: 'immortal' as const,
+    type: 'material' as const,
+    category,
+    description:
+      category === 'herb' ? '仙界灵田孕育的灵药，药性玄妙，传闻可入仙丹。' : '仙界矿脉凝成的晶砂，蕴含精纯道韵。',
+    sellPrice: 5e4 * 2 ** (t - 1),
+  }
+}

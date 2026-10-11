@@ -8,7 +8,8 @@ import {
   scaleBossStats,
   type EnemyTemplate,
 } from '../../data/enemies'
-import { EQUIP_SLOTS } from '../../data/items'
+import { EQUIP_SLOTS, createImmortalMaterial } from '../../data/items'
+import { DUNGEONS } from '../../data/events'
 import { getTechniqueById } from '../../data/techniquesTable'
 import type { Resources } from '../../types/sect'
 import type { CombatResult, CombatUnit } from '../combat/CombatEngine'
@@ -94,6 +95,14 @@ function buildCombatComprehensionGrowth(team: CombatUnit[]): Record<string, Reco
   return growth
 }
 
+/** 仙界秘境的掉落上下文（品阶 = 层数 × 世界层）。 */
+function getDungeonLootContext(dungeonId?: string): { totalLayers: number; unlockRealm: number } | undefined {
+  if (!dungeonId) return undefined
+  const dungeon = DUNGEONS.find((d) => d.id === dungeonId)
+  if (!dungeon) return undefined
+  return { totalLayers: dungeon.totalLayers, unlockRealm: dungeon.unlockRealm }
+}
+
 function resolveLoot(loot: LootResult[]): {
   reward: Resources
   itemRewards: AnyItem[]
@@ -130,6 +139,13 @@ function resolveLoot(loot: LootResult[]): {
       }
       case 'consumable':
         break
+      case 'material': {
+        const tier = drop.tier ?? 1
+        for (let i = 0; i < drop.amount; i++) {
+          itemRewards.push(createImmortalMaterial(drop.category ?? 'herb', tier))
+        }
+        break
+      }
       case 'petCapture':
         hasPetCapture = true
         break
@@ -507,7 +523,12 @@ export function resolveEvent(
         }
       }
 
-      const loot = generateLoot(enemyTemplate.lootTable, enemyTemplate.dropsPerFight, floorNumber)
+      const loot = generateLoot(
+        enemyTemplate.lootTable,
+        enemyTemplate.dropsPerFight,
+        floorNumber,
+        getDungeonLootContext(dungeonId)
+      )
       const { reward, itemRewards, hasPetCapture, equipmentDiscoveries } = resolveLoot(loot)
       return {
         type: 'combat',
@@ -680,7 +701,12 @@ export function resolveEvent(
         }
       }
 
-      const loot = generateLoot(bossTemplate.lootTable, bossTemplate.dropsPerFight, floorNumber)
+      const loot = generateLoot(
+        bossTemplate.lootTable,
+        bossTemplate.dropsPerFight,
+        floorNumber,
+        getDungeonLootContext(dungeonId)
+      )
       const { reward, itemRewards, hasPetCapture, equipmentDiscoveries } = resolveLoot(loot)
       return {
         type: 'boss',

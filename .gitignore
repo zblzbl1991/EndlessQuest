@@ -14,3 +14,9 @@ yarn-error.log*
 /.superpowers/
 
 /dist
+
+# 本地测试产物
+/test-screenshots/
+/gui-test-screenshots/
+/audit-screenshots/
+*.stackdump

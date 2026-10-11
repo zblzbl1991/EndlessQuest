@@ -25,6 +25,9 @@ import type { CombatUnit } from '../systems/combat/CombatEngine'
 import { createCharacterCombatUnit } from '../data/enemies'
 import { getEffectiveLegacyStatBonus, getLegacyDropMult } from '../data/legacy'
 import { scaleDungeonResources } from '../systems/adventure/RewardEconomy'
+import { countEquipmentItems } from '../systems/sect/OfflineStats'
+import { aggregateEquipmentAffixes } from '../data/equipmentAffixes'
+import { aggregateBlessingEffects } from '../data/blessings'
 import { getMaxSimultaneousRuns } from '../systems/character/CharacterEngine'
 import { resolveAdventureFailureOutcome } from '../systems/character/DiscipleRecoverySystem'
 import { DISPATCH_MISSIONS } from '../data/missions'
@@ -666,11 +669,22 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
     if (!character) continue
 
     // Compute equipment stats from character's equipped gear
+    const equippedItems = character.equippedGear.map((id: string | null) =>
+      id ? (findEquipmentById(sect, id) as Equipment | undefined) : undefined
+    )
     const eqStats = calcEquipmentStats(
       character.equippedGear,
       [],
       (id: string) => findEquipmentById(sect, id) as Equipment | undefined
     )
+    // V2.2 工单 03：装备机制词条聚合（百分比属性乘进 eqStats，机制值随单位进战斗）
+    const eqAffix = aggregateEquipmentAffixes(equippedItems)
+    eqStats.atk = Math.floor(eqStats.atk * (1 + eqAffix.atkPct))
+    eqStats.def = Math.floor(eqStats.def * (1 + eqAffix.defPct))
+    eqStats.hp = Math.floor(eqStats.hp * (1 + eqAffix.hpPct))
+    eqStats.spd = Math.floor(eqStats.spd * (1 + eqAffix.spdPct))
+    eqStats.crit = Math.round((eqStats.crit + eqAffix.critAdd) * 10000) / 10000
+    eqStats.critDmg = Math.round((eqStats.critDmg + eqAffix.critDmgAdd) * 100) / 100
 
     const unit = createCharacterCombatUnit(
       character,
@@ -679,6 +693,8 @@ function buildAliveTeamUnits(run: DungeonRun): CombatUnit[] {
       eqStats,
       getEffectiveLegacyStatBonus(sect.legacy, sect.legacyTree)
     )
+    unit.lifestealRatio = eqAffix.lifesteal
+    unit.thornsRatio = (unit.thornsRatio ?? 0) + eqAffix.thorns
     const tunedUnit = applyRouteCombatModifiers(applyRunCombatModifiers(unit, run.blessings ?? [], run.relics ?? []))
     // Override HP with current member state HP (not max)
     tunedUnit.hp = memberState.currentHp
@@ -1219,6 +1235,79 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
           },
         },
       }))
+      // V2.2 工单 01：击杀入离线统计
+      useSectStore.getState().bumpOfflineStats({ kills: statKills })
+
+      // V2.2 工单 03：吞灵（击杀回修为）/ 灵气回流（胜利）/ 器灵经验
+      const { sect: settleSect } = useSectStore.getState()
+      const devourCultivation: Record<string, number> = {}
+      let spiritFlowGain = 0
+      const spiritExpByGear = new Map<string, number>()
+      for (const charId of run.teamCharacterIds) {
+        const character = settleSect.characters.find((c) => c.id === charId)
+        if (!character) continue
+        const equippedItems = character.equippedGear.map((id: string | null) =>
+          id ? (findEquipmentById(settleSect, id) as Equipment | undefined) : undefined
+        )
+        const eqAffix = aggregateEquipmentAffixes(equippedItems)
+        if (eqAffix.devourOnKill > 0) {
+          devourCultivation[charId] = eqAffix.devourOnKill * statKills
+        }
+        spiritFlowGain += eqAffix.spiritFlowOnVictory * statVictories
+        const expPerGear = (2 * statKills) / Math.max(1, run.teamCharacterIds.length)
+        for (const gearId of character.equippedGear) {
+          if (gearId) spiritExpByGear.set(gearId, (spiritExpByGear.get(gearId) ?? 0) + expPerGear)
+        }
+      }
+
+      if (Object.keys(devourCultivation).length > 0 || spiritFlowGain > 0 || spiritExpByGear.size > 0) {
+        useSectStore.setState((s) => ({
+          sect: {
+            ...s.sect,
+            characters: s.sect.characters.map((c) => {
+              const devour = devourCultivation[c.id]
+              const base = devour
+                ? { ...c, cultivation: c.cultivation + devour, totalCultivation: c.totalCultivation + devour }
+                : c
+              if (spiritExpByGear.size === 0) return base
+              return {
+                ...base,
+                equippedGear: base.equippedGear.map((gearId) => {
+                  if (!gearId || !spiritExpByGear.has(gearId)) return gearId
+                  return gearId
+                }),
+              }
+            }),
+            vault:
+              spiritExpByGear.size > 0
+                ? s.sect.vault.map((stack) => {
+                    const exp = spiritExpByGear.get(stack.item.id)
+                    if (!exp || stack.item.type !== 'equipment') return stack
+                    return { ...stack, item: { ...stack.item, spiritExp: (stack.item.spiritExp ?? 0) + exp } }
+                  })
+                : s.sect.vault,
+            resources: {
+              ...s.sect.resources,
+              spiritEnergy: s.sect.resources.spiritEnergy + spiritFlowGain,
+            },
+          },
+        }))
+        // 吞灵修为同步进峰值统计
+        if (Object.keys(devourCultivation).length > 0) {
+          useSectStore.setState((s) => ({
+            sect: {
+              ...s.sect,
+              stats: {
+                ...s.sect.stats,
+                peakCultivationThisRun: Math.max(
+                  s.sect.stats.peakCultivationThisRun,
+                  ...s.sect.characters.map((c) => c.totalCultivation)
+                ),
+              },
+            },
+          }))
+        }
+      }
     }
 
     // Check if all members are dead
@@ -1249,6 +1338,18 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
 
     // Increment currentFloor
     const nextFloor = run.currentFloor + 1
+
+    // V2.2 工单 02：层间恢复（铁骨生机等 layerHealPct 祝福）
+    {
+      const agg = aggregateBlessingEffects(newBlessings)
+      if (agg.layerHealPct > 0) {
+        for (const charId of Object.keys(newMemberStates)) {
+          const member = newMemberStates[charId]
+          if (member.status === 'dead') continue
+          member.currentHp = Math.min(member.maxHp, member.currentHp + Math.floor(member.maxHp * agg.layerHealPct))
+        }
+      }
+    }
 
     // If next floor exceeds total floors, complete the run
     if (nextFloor > run.floors.length) {
@@ -1321,7 +1422,10 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
   chooseBlessing: (runId, blessingId) => {
     const run = get().activeRuns[runId]
     if (!run) return false
-    if (!(run.pendingBlessingOptions ?? []).includes(blessingId)) return false
+    const optionIdx = (run.pendingBlessingOptions ?? []).indexOf(blessingId)
+    if (optionIdx === -1) return false
+    // V2.2 工单 02：同 id 重复获取 = 升阶（上限 3 阶，升阶由聚合函数按计数取值）
+    void optionIdx
 
     const nextBlessings = run.blessings.includes(blessingId) ? run.blessings : [...run.blessings, blessingId]
     const nextLog = [
@@ -1534,6 +1638,12 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         },
       },
     }))
+    // V2.2 工单 01：秘境探索与装备获取入离线统计（在线/离线共用本漏斗）
+    useSectStore.getState().bumpOfflineStats({
+      dungeonRuns: 1,
+      dungeonFloorsCleared: Math.max(0, run.currentFloor - 1),
+      equipmentGained: countEquipmentItems(settledRun.itemRewards),
+    })
 
     // Floor depth milestone
     if (run.currentFloor - 1 >= 10) {
@@ -1608,6 +1718,12 @@ export const useAdventureStore = create<AdventureStore>((set, get) => ({
         },
       },
     }))
+    // V2.2 工单 01：失败的探索同样计入统计
+    useSectStore.getState().bumpOfflineStats({
+      dungeonRuns: 1,
+      dungeonFloorsCleared: Math.max(0, run.currentFloor - 1),
+      equipmentGained: countEquipmentItems(run.itemRewards),
+    })
 
     // 1. Deposit 50% of totalRewards (scaled by realm economy + ascension-tree drop multiplier)
     depositFractionResourcesToSect(

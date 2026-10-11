@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom'
+import { getRealmName } from '../../data/realms'
 import { motion, useReducedMotion } from 'framer-motion'
 import type { Resources } from '../../types'
 import type {
@@ -13,8 +15,25 @@ interface OfflineReportData {
   breakthroughs: { characterName: string; targetRealm: string; success: boolean }[]
   itemsCrafted: { name: string; quantity: number }[]
   taxIncome: number
+  /** V2.1 工单 04：灵气供给不足累计秒数（> 0 时展示修为缩水归因）。 */
+  lowSpiritSeconds?: number
   notableEvents?: OfflineNarrativeItem[]
   nextSuggestion?: string
+  /** V2.1 工单 06："自上次拜访"摘要（境界变化 + 资源相对存量倍数）。 */
+  visitSummary?: {
+    realmChanges: { characterName: string; toRealmName: string; success: boolean }[]
+    multiples: { label: string; gained: number; multiple: number }[]
+  }
+  /** V2.1 工单 06：下次上线建议（瓶颈判定生成，可跳转）。 */
+  suggestions?: { text: string; link: string }[]
+  /** V2.2 工单 01：战斗与探索统计。 */
+  combatStats?: {
+    kills: number
+    dungeonRuns: number
+    dungeonFloorsCleared: number
+    equipmentGained: number
+    equipmentSold: number
+  }
   loopRewards?: OfflineLoopRewardSummary
   loopAdjustment?: OfflineLoopAdjustment & { applied?: boolean }
 }
@@ -47,6 +66,12 @@ function BreakthroughEventItem({
   index: number
 }) {
   const prefersReducedMotion = useReducedMotion()
+  // targetRealm 可能是 "realm-stage" 代号，转为玩家可读的境界名
+  const [realmNum, stageNum] = bt.targetRealm.split('-').map(Number)
+  const targetLabel =
+    Number.isFinite(realmNum) && Number.isFinite(stageNum)
+      ? getRealmName(realmNum, stageNum as 0 | 1 | 2 | 3)
+      : bt.targetRealm
 
   if (bt.success) {
     return (
@@ -58,7 +83,7 @@ function BreakthroughEventItem({
       >
         <span className={s.eventSuccess}>突破</span>
         <span>
-          {bt.characterName} {'->'} {bt.targetRealm}
+          {bt.characterName} {'->'} {targetLabel}
         </span>
       </motion.li>
     )
@@ -73,7 +98,7 @@ function BreakthroughEventItem({
     >
       <span className={s.eventFailure}>受阻</span>
       <span>
-        {bt.characterName} {'->'} {bt.targetRealm}（失败）
+        {bt.characterName} {'->'} {targetLabel}（失败）
       </span>
     </motion.li>
   )
@@ -82,6 +107,7 @@ function BreakthroughEventItem({
 export type { OfflineReportData }
 
 export default function OfflineReportModal({ report, onClose, onApplyLoopAdjustment }: OfflineReportModalProps) {
+  const navigate = useNavigate()
   const r = report.resourcesGained
   const notableEvents = report.notableEvents ?? []
   const nextSuggestion = report.nextSuggestion ?? '继续按当前配置运转，优先处理宗门页提示的瓶颈。'
@@ -231,9 +257,97 @@ export default function OfflineReportModal({ report, onClose, onApplyLoopAdjustm
             </div>
           )}
 
+          {report.combatStats &&
+            (report.combatStats.kills > 0 ||
+              report.combatStats.dungeonRuns > 0 ||
+              report.combatStats.equipmentGained > 0 ||
+              report.combatStats.equipmentSold > 0) && (
+              <div className={s.section}>
+                <div className={s.sectionTitle}>战斗与探索</div>
+                <div className={s.resourceGrid}>
+                  {report.combatStats.kills > 0 && (
+                    <div className={s.resourceItem}>
+                      <span className={s.resourceLabel}>击败敌人</span>
+                      <span className={s.resourceValue}>{fmt(report.combatStats.kills)}</span>
+                    </div>
+                  )}
+                  {report.combatStats.dungeonRuns > 0 && (
+                    <div className={s.resourceItem}>
+                      <span className={s.resourceLabel}>秘境探索</span>
+                      <span className={s.resourceValue}>
+                        {report.combatStats.dungeonRuns} 次 · {fmt(report.combatStats.dungeonFloorsCleared)} 层
+                      </span>
+                    </div>
+                  )}
+                  {report.combatStats.equipmentGained > 0 && (
+                    <div className={s.resourceItem}>
+                      <span className={s.resourceLabel}>装备获取</span>
+                      <span className={s.resourceValue}>+{fmt(report.combatStats.equipmentGained)} 件</span>
+                    </div>
+                  )}
+                  {report.combatStats.equipmentSold > 0 && (
+                    <div className={s.resourceItem}>
+                      <span className={s.resourceLabel}>出售/分解</span>
+                      <span className={s.resourceValue}>{fmt(report.combatStats.equipmentSold)} 件</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          {(report.lowSpiritSeconds ?? 0) > 0 && (
+            <div className={s.section}>
+              <div className={s.taxRow}>
+                <span className={s.taxLabel}>修为缩水归因</span>
+                <span className={s.taxValue}>
+                  灵气供给不足 {formatDuration(report.lowSpiritSeconds!)}——建议提升灵田等级
+                </span>
+              </div>
+            </div>
+          )}
+
+          {report.visitSummary &&
+            (report.visitSummary.realmChanges.length > 0 || report.visitSummary.multiples.length > 0) && (
+              <div className={s.section}>
+                <div className={s.sectionTitle}>自上次拜访</div>
+                {report.visitSummary.realmChanges.slice(0, 3).map((change, i) => (
+                  <div key={`rc-${i}`} className={s.eventRow}>
+                    <span>{change.characterName}</span>
+                    <span className={change.success ? s.eventGood : s.eventBad}>
+                      {change.success ? `突破至 ${change.toRealmName}` : '突破受挫'}
+                    </span>
+                  </div>
+                ))}
+                {report.visitSummary.multiples.map((m, i) => (
+                  <div key={`m-${i}`} className={s.eventRow}>
+                    <span>{m.label}增长</span>
+                    <span>
+                      +{fmt(m.gained)}
+                      {m.multiple >= 0.05
+                        ? `（约 ×${m.multiple >= 10 ? Math.round(m.multiple) : m.multiple.toFixed(1)} 现存）`
+                        : ''}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+
           <div className={s.section}>
-            <div className={s.sectionTitle}>下一步建议</div>
+            <div className={s.sectionTitle}>下次上线时</div>
             <div className={s.suggestionCard}>{nextSuggestion}</div>
+            {(report.suggestions ?? []).map((sug, i) => (
+              <button
+                key={`sug-${i}`}
+                className={s.suggestionLink}
+                data-testid={`offline-suggestion-${i}`}
+                onClick={() => {
+                  onClose()
+                  navigate(sug.link)
+                }}
+              >
+                {sug.text} →
+              </button>
+            ))}
           </div>
 
           {!hasResources &&

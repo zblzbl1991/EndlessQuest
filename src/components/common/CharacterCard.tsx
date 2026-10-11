@@ -144,7 +144,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
           <ProgressBar value={character.cultivation} max={needed} variant="ink" />
           <div className={styles.progressStats}>
             <span>
-              修为 {formatCultivationValue(character.cultivation)}/{needed.toLocaleString()}
+              修为 {formatCultivationValue(Math.min(character.cultivation, needed))}/{needed.toLocaleString()}
             </span>
             <span>{'\u00B7'}</span>
             <span>+{effectiveCultivationSpeed.toFixed(1)}/s</span>
@@ -160,7 +160,7 @@ export default function CharacterCard({ character, onClick }: CharacterCardProps
             <ProgressBar value={xp} max={xpNeeded} variant="ink" />
             <div className={styles.progressStats}>
               <span>
-                经验 {xp}/{xpNeeded}
+                经验 {Math.min(xp, xpNeeded).toFixed(1)}/{xpNeeded}
               </span>
             </div>
           </div>

@@ -20,12 +20,21 @@ describe('daoYun formula', () => {
     expect(calcDaoYunGain(1e40, 8, 0)).toBeGreaterThan(calcDaoYunGain(1e40, 4, 0))
   })
 
-  it('satisfies the §7.2 rule: each ascension yields ≥4× the previous one', () => {
-    // 境界表只有 9 境时，同峰值下道韵若只按 (1+0.25n) 线性增长， prestidge 循环会饱和。
-    for (let asc = 1; asc < 8; asc++) {
+  it('rush-stall: same-peak repeat ascensions grow only by the linear count term (≤×1.25)', () => {
+    // V2.1 工单 01：增长必须来自推深而不是飞得更多（4^n 已废除）
+    for (let asc = 1; asc < 10; asc++) {
       const prev = calcDaoYunGain(1e40, 8, asc - 1)
       const curr = calcDaoYunGain(1e40, 8, asc)
-      expect(curr).toBeGreaterThanOrEqual(4 * prev)
+      expect(curr).toBeGreaterThan(prev)
+      expect(curr / prev).toBeLessThanOrEqual(1.25 + 1 / prev + 1e-9)
+    }
+  })
+
+  it('push-monotone: one tenfold of peak beats rushing a repeat ascension', () => {
+    for (let asc = 0; asc < 10; asc++) {
+      const rushed = calcDaoYunGain(1e40, 8, asc + 1)
+      const pushed = calcDaoYunGain(1e41, 8, asc)
+      expect(pushed).toBeGreaterThanOrEqual(rushed)
     }
   })
 

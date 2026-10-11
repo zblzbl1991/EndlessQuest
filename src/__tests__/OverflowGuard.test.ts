@@ -50,6 +50,8 @@ describe('save overflow guard (MAX_STORED_MAGNITUDE)', () => {
     useGameStore.getState().reset()
     expect(await loadGame()).toBe(true)
 
-    expect(useSectStore.getState().sect.characters[0].cultivation).toBeCloseTo(1.5e40)
+    // v13 {m,e} 载荷往返保留 ~15 位相对精度（1 ulp 级）；绝对容差断言在此量级无意义
+    const loaded = useSectStore.getState().sect.characters[0].cultivation
+    expect(loaded / 1.5e40).toBeCloseTo(1, 13)
   })
 })

@@ -330,17 +330,17 @@ describe('Items data', () => {
 // ─── Buildings (spirit field rate) ───────────────────────────────────
 
 describe('Buildings data', () => {
-  it('should define 8 building types', () => {
-    expect(BUILDING_DEFS).toHaveLength(8)
+  it('should define 11 building types (8 mortal + 3 immortal)', () => {
+    expect(BUILDING_DEFS).toHaveLength(11)
     expect(BUILDING_DEFS[0].type).toBe('mainHall')
   })
 
-  it('getSpiritFieldRate should follow formula 3 + (level-1) * 2', () => {
+  it('getSpiritFieldRate should follow formula 3 * 1.1^(level-1) (V2.1 Generator)', () => {
     expect(getSpiritFieldRate(1)).toBe(3)
-    expect(getSpiritFieldRate(2)).toBe(5)
-    expect(getSpiritFieldRate(3)).toBe(7)
-    expect(getSpiritFieldRate(5)).toBe(11)
-    expect(getSpiritFieldRate(10)).toBe(21)
+    expect(getSpiritFieldRate(2)).toBeCloseTo(3.3, 10)
+    expect(getSpiritFieldRate(3)).toBeCloseTo(3 * 1.1 ** 2, 10)
+    expect(getSpiritFieldRate(5)).toBeCloseTo(3 * 1.1 ** 4, 10)
+    expect(getSpiritFieldRate(10)).toBeCloseTo(3 * 1.1 ** 9, 10)
   })
 
   it('getSpiritFieldRate should return 0 for level 0', () => {
@@ -351,9 +351,9 @@ describe('Buildings data', () => {
 // ─── Realms (breakthrough resource costs) ──────────────────────────
 
 describe('Realms data', () => {
-  it('MINOR_BREAKTHROUGH_COSTS covers minor stages for all realms but the last', () => {
+  it('MINOR_BREAKTHROUGH_COSTS covers minor stages for all 13 realms', () => {
     // realms 0-7 each have 3 minor transitions (stage 0→1, 1→2, 2→3); the last realm has none
-    expect(Object.keys(MINOR_BREAKTHROUGH_COSTS)).toHaveLength(9)
+    expect(Object.keys(MINOR_BREAKTHROUGH_COSTS)).toHaveLength(13)
     for (let realm = 0; realm <= 7; realm++) {
       expect(MINOR_BREAKTHROUGH_COSTS[realm][1]).toBeGreaterThan(0)
       expect(MINOR_BREAKTHROUGH_COSTS[realm][2]).toBeGreaterThan(0)

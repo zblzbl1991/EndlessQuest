@@ -1,0 +1,100 @@
+/* 自动化面板（V2.1 工单 05）——清墨轻岚基线：轻、静、透 */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.groupTitle {
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  letter-spacing: 0.08em;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(95, 122, 141, 0.05);
+}
+
+.itemLocked {
+  opacity: 0.55;
+}
+
+.itemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.itemDesc {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.stateTag {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-variant-numeric: tabular-nums;
+}
+
+.stateOn {
+  background: rgba(79, 122, 116, 0.12);
+  color: var(--color-success);
+}
+
+.stateAvailable {
+  background: rgba(95, 122, 141, 0.1);
+  color: var(--color-text-secondary);
+}
+
+.stateLocked {
+  background: rgba(95, 122, 141, 0.06);
+  color: var(--color-text-tertiary);
+}
+
+.toggle {
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.toggleOn {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.toggleOff {
+  background: transparent;
+  border: 1px solid rgba(95, 122, 141, 0.3);
+  color: var(--color-text-secondary);
+}
+
+.message {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}

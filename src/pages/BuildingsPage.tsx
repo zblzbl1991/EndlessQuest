@@ -3,11 +3,17 @@ import { useSectStore } from '../stores/sectStore'
 import {
   BUILDING_DEFS,
   calcResourceCaps,
+  getBatchUpgradeInfo,
   getBuildingEffectText,
   getBuildingExpandCost,
+  getBuildingMaxLevel,
+  getBuildingMilestones,
   getBuildingNodeCap,
   getBuildingUnlockText,
+  getMilestonesReached,
+  getNextMilestone,
 } from '../data/buildings'
+import { formatNumber } from '../utils/Decimal'
 import { checkBuildingUnlock } from '../systems/sect/BuildingSystem'
 import { getActiveSynergies } from '../systems/economy/SynergySystem'
 import { SYNERGIES } from '../data/buildings'
@@ -370,6 +376,7 @@ function BuildingsTab({
 }) {
   const sect = useSectStore((s) => s.sect)
   const tryUpgradeBuilding = useSectStore((s) => s.tryUpgradeBuilding)
+  const upgradeBuildingBatch = useSectStore((s) => s.upgradeBuildingBatch)
   const tryExpandBuilding = useSectStore((s) => s.tryExpandBuilding)
   const setProductionRecipe = useSectStore((s) => s.setProductionRecipe)
   const setAutomationSettings = useSectStore((s) => s.setAutomationSettings)
@@ -377,6 +384,7 @@ function BuildingsTab({
   const autoOptimizeBuildingAssignments = useSectStore((s) => s.autoOptimizeBuildingAssignments)
   const [message, setMessage] = useState<{ success: boolean; text: string } | null>(null)
   const [drawerBuilding, setDrawerBuilding] = useState<string | null>(null)
+  const [batchAmount, setBatchAmount] = useState<1 | 10 | 100 | 'max'>(1)
 
   const mainHallLevel = sect.buildings.find((building) => building.type === 'mainHall')?.level ?? 1
   const resourceNodeCap = getBuildingNodeCap(mainHallLevel)
@@ -425,6 +433,20 @@ function BuildingsTab({
       setMessage({ success: true, text: '升级成功' })
     } else {
       setMessage({ success: false, text: result.reason })
+    }
+    setTimeout(() => setMessage(null), 2000)
+  }
+
+  const handleUpgradeBatch = (type: BuildingType) => {
+    if (batchAmount === 1) {
+      handleUpgrade(type)
+      return
+    }
+    const result = upgradeBuildingBatch(type, batchAmount)
+    if (result.success) {
+      setMessage({ success: true, text: `连升 ${result.levels} 级` })
+    } else {
+      setMessage({ success: false, text: '灵石不足，无法连升' })
     }
     setTimeout(() => setMessage(null), 2000)
   }
@@ -741,14 +763,41 @@ function BuildingsTab({
         </section>
       )}
 
+      <div className={styles.batchBar} role="group" aria-label="批量购买档位">
+        <span className={styles.batchLabel}>批量购买</span>
+        {([1, 10, 100, 'max'] as const).map((amount) => (
+          <button
+            key={String(amount)}
+            className={`${styles.batchOption} ${batchAmount === amount ? styles.batchActive : ''}`}
+            onClick={() => setBatchAmount(amount)}
+          >
+            {amount === 'max' ? 'MAX' : `×${amount}`}
+          </button>
+        ))}
+      </div>
+
       {BUILDING_DEFS.map((def) => {
         const building = sect.buildings.find((b) => b.type === def.type)
         if (!building) return null
 
         const isUnlocked = building.unlocked
-        const isMaxLevel = building.level >= def.maxLevel
+        const bestRealm = sect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
+        const maxLevel = getBuildingMaxLevel(def.type, bestRealm)
+        const isMaxLevel = building.level >= maxLevel
         const cost = def.upgradeCost(building.level)
-        const canAfford = sect.resources.spiritStone >= cost.spiritStone
+        const batchInfo =
+          batchAmount === 1
+            ? { levels: 1, totalCost: cost.spiritStone }
+            : getBatchUpgradeInfo(
+                def.type,
+                building.level,
+                batchAmount === 'max' ? Number.POSITIVE_INFINITY : batchAmount,
+                sect.resources.spiritStone,
+                bestRealm
+              )
+        const canAfford = batchInfo.levels > 0 && sect.resources.spiritStone >= batchInfo.totalCost
+        const reachedMilestones = getMilestonesReached(def.type, building.level)
+        const nextMilestone = getNextMilestone(def.type, building.level)
         const isProcessing = PROCESSING_BUILDINGS.includes(def.type)
         const expandCost = def.expandable ? getBuildingExpandCost(def.type, building.count ?? 0) : null
         const canExpand =
@@ -836,13 +885,28 @@ function BuildingsTab({
               </div>
             )}
 
+            {isUnlocked && reachedMilestones.length > 0 && (
+              <div className={styles.buildingHint}>
+                里程碑 {reachedMilestones.length}/{getBuildingMilestones(def.type).length} 已达成
+              </div>
+            )}
+            {isUnlocked && nextMilestone && (
+              <div className={styles.buildingHint}>
+                下一里程碑 Lv{nextMilestone.level} · {nextMilestone.name}——{nextMilestone.description}
+              </div>
+            )}
+
             {isUnlocked && !isMaxLevel && (
               <button
                 className={`${styles.upgradeBtn} ${canAfford ? styles.upgradeReady : styles.upgradeDisabled}`}
-                onClick={() => handleUpgrade(def.type)}
+                onClick={() => handleUpgradeBatch(def.type)}
                 disabled={!canAfford}
               >
-                升级 ({cost.spiritStone}灵石)
+                {batchAmount === 1
+                  ? `升级 (${formatNumber(cost.spiritStone)}灵石)`
+                  : batchInfo.levels > 0
+                    ? `连升 ×${batchInfo.levels} (${formatNumber(batchInfo.totalCost)}灵石)`
+                    : `连升 ×${batchAmount === 'max' ? '∞' : batchAmount} (灵石不足)`}
               </button>
             )}
             {def.expandable && isUnlocked && building.level > 0 && expandCost && (
@@ -859,7 +923,7 @@ function BuildingsTab({
             {isMaxLevel && <span className={styles.maxLevelTag}>已满级</span>}
             {!isUnlocked &&
               (() => {
-                const unlockCheck = checkBuildingUnlock(def.type, sect.buildings)
+                const unlockCheck = checkBuildingUnlock(def.type, sect.buildings, undefined, bestRealm)
                 if (unlockCheck.unlocked) {
                   const buildCost = def.upgradeCost(building.level)
                   const canBuild = sect.resources.spiritStone >= buildCost.spiritStone

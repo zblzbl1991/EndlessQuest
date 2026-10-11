@@ -7,6 +7,8 @@ import { useEventLogStore } from './stores/eventLogStore'
 import { emitEvent } from './stores/eventLogStore'
 import { GameLoop, calcOfflineSeconds, MAX_OFFLINE_SECONDS } from './systems/idle/GameLoop'
 import { getLegacyOfflineBonusHours } from './data/legacy'
+import { getGenesisOfflineBonusHours } from './data/genesisTree'
+import { aggregateCaveHeavenEffects } from './data/caveHeavens'
 import { loadGame } from './systems/save/SaveSystem'
 import { loadTestSave } from './systems/save/testFixture'
 import { startAutoSave } from './systems/save/startAutoSave'
@@ -17,7 +19,34 @@ import BottomNav from './components/common/BottomNav'
 import TopBar from './components/common/TopBar'
 import ErrorBoundary from './components/common/ErrorBoundary'
 import OfflineReportModal from './components/common/OfflineReportModal'
+import { diagnoseSectBottlenecks } from './systems/sect/SectBottleneckSystem'
+import { getRealmName } from './data/realms'
+import type { OfflineAccumulator } from './types'
+import type { Sect } from './types'
 import type { OfflineReportData } from './components/common/OfflineReportModal'
+
+/** V2.1 工单 06："自上次拜访"摘要——境界变化 Top3 + 资源相对现存倍数。 */
+function buildVisitSummary(sect: Sect, acc: OfflineAccumulator): OfflineReportData['visitSummary'] {
+  const realmChanges = acc.breakthroughs.slice(-3).map((bt) => {
+    const [realmStr, stageStr] = bt.targetRealm.split('-')
+    const realm = Number(realmStr)
+    const stage = Number(stageStr)
+    const toRealmName =
+      bt.success && Number.isFinite(realm) && Number.isFinite(stage)
+        ? getRealmName(realm, stage as 0 | 1 | 2 | 3)
+        : '未知境界'
+    return { characterName: bt.characterName, toRealmName, success: bt.success }
+  })
+  const current = sect.resources
+  const multiples = (['spiritStone', 'spiritEnergy', 'herb', 'ore'] as const)
+    .map((key) => ({
+      label: key === 'spiritStone' ? '灵石' : key === 'spiritEnergy' ? '灵气' : key === 'herb' ? '灵草' : '矿材',
+      gained: acc.resourcesGained[key],
+      multiple: current[key] > 0 ? acc.resourcesGained[key] / current[key] : 0,
+    }))
+    .filter((m) => m.gained > 0)
+  return { realmChanges, multiples }
+}
 const SectPage = lazy(() => import('./pages/SectPage'))
 const CharactersPage = lazy(() => import('./pages/CharactersPage'))
 const BuildingsPage = lazy(() => import('./pages/BuildingsPage'))
@@ -69,7 +98,16 @@ export default function App() {
     startGame()
 
     // Offline catch-up (ascension tree "temporalInsight" extends the cap)
-    const offlineCap = MAX_OFFLINE_SECONDS + getLegacyOfflineBonusHours(useSectStore.getState().sect.legacyTree) * 3600
+    const offlineCap =
+      MAX_OFFLINE_SECONDS +
+      (getLegacyOfflineBonusHours(useSectStore.getState().sect.legacyTree) +
+        getGenesisOfflineBonusHours(useSectStore.getState().sect.genesisTree) +
+        aggregateCaveHeavenEffects(
+          useSectStore.getState().sect.characters.reduce((max, c) => Math.max(max, c.realm), 0),
+          useSectStore.getState().sect.caveHeavenAssignments ?? {},
+          useSectStore.getState().sect.characters
+        ).offlineHours) *
+        3600
     const offline = calcOfflineSeconds(lastOnlineTime, offlineCap)
     if (offline > 1) {
       tickAll(offline)
@@ -108,6 +146,19 @@ export default function App() {
           breakthroughs: [...acc.breakthroughs],
           itemsCrafted: [...acc.itemsCrafted],
           taxIncome: acc.taxIncome,
+          lowSpiritSeconds: acc.lowSpiritSeconds,
+          visitSummary: buildVisitSummary(sectState.sect, acc),
+          combatStats: {
+            kills: acc.kills ?? 0,
+            dungeonRuns: acc.dungeonRuns ?? 0,
+            dungeonFloorsCleared: acc.dungeonFloorsCleared ?? 0,
+            equipmentGained: acc.equipmentGained ?? 0,
+            equipmentSold: acc.equipmentSold ?? 0,
+          },
+          suggestions: diagnoseSectBottlenecks(sectState.sect)
+            .filter((b) => b.id !== 'stable')
+            .slice(0, 2)
+            .map((b) => ({ text: `${b.label}：${b.suggestion}`, link: b.link })),
           notableEvents: narrative.notableEvents,
           nextSuggestion: narrative.nextSuggestion,
           loopRewards: narrative.loopRewards,

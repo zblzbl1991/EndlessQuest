@@ -9,7 +9,13 @@ import type { RealmStage } from '../types/character'
  * incremental balance law. All values stay far below Number.MAX_VALUE (max
  * 1e40 here); utils/Decimal.ts exists for anything that outgrows doubles.
  */
-export const REALM_EXP = [2, 4, 6, 9, 13, 18, 24, 31, 40] as const
+export const REALM_EXP = [2, 4, 6, 9, 13, 18, 24, 31, 40, 50, 65, 80, 100] as const
+
+/** 凡界境界数（index 0-8）；仙界从 index 9（真仙）开始。 */
+export const MORTAL_REALM_COUNT = 9
+
+/** 仙界境界起点（真仙）。bestRealm ≥ 此值即"宗门已入仙界"。 */
+export const IMMORTAL_REALM_INDEX = 9
 
 /** First realm should take this long for a fresh base-stat disciple (seconds). */
 export const PACING_FIRST_REALM_SECONDS = 600
@@ -31,7 +37,14 @@ const STAGE_NAMES: string[] = ['初期', '中期', '后期', '圆满']
 
 /** Total cultivation required to cross realm i. */
 export function getRealmCost(realmIndex: number): number {
-  return Math.pow(10, REALM_EXP[realmIndex])
+  return Math.pow(10, REALM_EXP[realmIndex] ?? REALM_EXP[REALM_EXP.length - 1])
+}
+
+/**
+ * 属性倍率：凡界 ×8、仙界 ×10（设计稿 §5.1；工单 07 延伸仙界段）。
+ */
+export function getRealmStatMultiplier(realmIndex: number): number {
+  return realmIndex >= IMMORTAL_REALM_INDEX ? 10 : 8
 }
 
 /**
@@ -52,12 +65,16 @@ export function getRealmSpeedMult(realmIndex: number): number {
  * realm the sect is SAVING FOR — callers pass the target realm (bestRealm + 1)
  * so exponential breakthrough costs stay affordable. Keying the multiplier to
  * the current realm instead made every major breakthrough past 金丹 take years
- * to fund (income grew 10^(0.9Δ) while costs grew 10^Δ). The index is clamped
- * so bestRealm + 1 past the last realm stays finite.
+ * to fund (income grew 10^(0.9Δ) while costs grew 10^Δ).
+ * V2.1 工单 07：斜率 0.9 → 1.0——仙界段相邻境界差拉大到 10 个数量级
+ * （1e40→1e50→1e65…），0.9 斜率下每境残留 ×10 收入缺口、仙界必卡墙；
+ * 1.0 使收入增速与成本增速同阶（攒突破钱的耗时占比与境界无关，
+ * 灵石的主要去向转为 Generator 建筑投资——工单 03 的设计意图）。
+ * The index is clamped so bestRealm + 1 past the last realm stays finite.
  */
 export function getRealmEconomyMult(realmIndex: number): number {
   const idx = Math.min(Math.max(realmIndex, 0), REALM_EXP.length - 1)
-  return Math.pow(10, (REALM_EXP[idx] - REALM_EXP[0]) * 0.9)
+  return Math.pow(10, REALM_EXP[idx] - REALM_EXP[0])
 }
 
 /**
@@ -86,6 +103,11 @@ const REALM_META: {
   { name: '合体期', unlockContent: '自动秘境全托管', breakthroughExtra: '天劫 + 灵石' },
   { name: '大乘期', unlockContent: '自动飞升', breakthroughExtra: '天劫 + 灵石' },
   { name: '渡劫期', unlockContent: '飞升仙界', breakthroughExtra: '天劫 + 全建筑满级' },
+  // ── 仙界（V2.1 工单 07）：index 9-12 ──
+  { name: '真仙期', unlockContent: '仙界建筑线（仙灵脉 / 仙田 / 仙宫）', breakthroughExtra: '仙劫 + 灵石' },
+  { name: '金仙期', unlockContent: '仙品材料品阶', breakthroughExtra: '仙劫 + 灵石' },
+  { name: '大罗期', unlockContent: '证道预览', breakthroughExtra: '仙劫 + 灵石' },
+  { name: '道祖期', unlockContent: '证道（终局）', breakthroughExtra: '仙劫 + 灵石' },
 ]
 
 export const REALMS: RealmDef[] = REALM_META.map((meta, i) => ({
@@ -95,7 +117,7 @@ export const REALMS: RealmDef[] = REALM_META.map((meta, i) => ({
   cultivationCosts: [0.05, 0.15, 0.3, 0.5].map((f) => getRealmCost(i) * f),
   breakthroughExtra: meta.breakthroughExtra,
   unlockContent: meta.unlockContent,
-  statMultiplier: 8,
+  statMultiplier: getRealmStatMultiplier(i),
 }))
 
 export function getRealmName(realmIndex: number, stage: RealmStage): string {
@@ -125,7 +147,7 @@ export const BREAKTHROUGH_COSTS: Record<number, BreakthroughResourceCost> = Obje
     {
       spiritStone: Math.pow(10, exp) * 0.02,
       spiritEnergy: 0,
-      herb: [0, 50, 100, 200, 400, 800, 1200, 1800, 2700][i] ?? 0,
+      herb: [0, 50, 100, 200, 400, 800, 1200, 1800, 2700, 4000, 6000, 9000, 14000][i] ?? 0,
     },
   ]).slice(1)
 )
@@ -158,6 +180,11 @@ export const MINOR_BREAKTHROUGH_HERB_COSTS: Record<number, Record<number, number
   6: { 1: 120, 2: 240, 3: 480 },
   7: { 1: 240, 2: 480, 3: 960 },
   8: { 1: 480, 2: 960, 3: 1920 },
+  // 仙界（工单 07）：小境界药草消耗随曲线延续
+  9: { 1: 960, 2: 1920, 3: 3840 },
+  10: { 1: 1920, 2: 3840, 3: 7680 },
+  11: { 1: 3840, 2: 7680, 3: 15360 },
+  12: { 1: 7680, 2: 15360, 3: 30720 },
 }
 
 export function getBreakthroughCost(realmIndex: number, currentStage: number): number {

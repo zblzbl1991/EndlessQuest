@@ -19,7 +19,9 @@ describe('Enemy loot tables', () => {
   it('loot entries have required fields', () => {
     for (const enemy of ENEMY_TEMPLATES) {
       for (const entry of enemy.lootTable) {
-        expect(['spiritStone', 'herb', 'ore', 'equipment', 'consumable', 'petCapture']).toContain(entry.type)
+        expect(['spiritStone', 'herb', 'ore', 'equipment', 'consumable', 'petCapture', 'material']).toContain(
+          entry.type
+        )
         expect(entry.weight).toBeGreaterThan(0)
       }
     }

@@ -179,13 +179,19 @@ describe('CultivationEngine', () => {
     })
 
     it('should return false when at max stage of last realm', () => {
-      // Last realm (渡劫) at final stage cannot break through further
-      const character = createCharacter({
+      // 工单 07：仙界延伸后最后一境是道祖（12）；渡劫圆满可突破入真仙
+      const atDaozu = createCharacter({
+        realm: 12,
+        realmStage: 3 as 0 | 1 | 2 | 3,
+        cultivation: 1e100,
+      })
+      expect(canBreakthrough(atDaozu)).toBe(false)
+      const atDujie = createCharacter({
         realm: 8,
         realmStage: 3 as 0 | 1 | 2 | 3,
         cultivation: 1e40,
       })
-      expect(canBreakthrough(character)).toBe(false)
+      expect(canBreakthrough(atDujie)).toBe(true)
     })
 
     it('should return false when spirit stones insufficient', () => {

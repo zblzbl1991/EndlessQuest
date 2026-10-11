@@ -25,6 +25,9 @@ import ResourceRate from '../components/common/ResourceRate'
 import StrategyPanel from '../components/sect/StrategyPanel'
 import SectPathPanel from '../components/sect/SectPathPanel'
 import LegacyPanel from '../components/sect/LegacyPanel'
+import AutomationPanel from '../components/sect/AutomationPanel'
+import CaveHeavenPanel from '../components/sect/CaveHeavenPanel'
+import SectOutlookCard from '../components/sect/SectOutlookCard'
 import StatsPanel from '../components/sect/StatsPanel'
 import ActionAgenda from '../components/sect/ActionAgenda'
 import { clearSaveData } from '../systems/save/SaveSystem'
@@ -304,6 +307,10 @@ export default function SectPage() {
       </section>
 
       <section className={styles.section}>
+        <SectOutlookCard />
+      </section>
+
+      <section className={styles.section}>
         <div className={styles.sectionTitle}>宗门路线</div>
         <div className={styles.archetypeCard}>
           {(() => {
@@ -419,6 +426,16 @@ export default function SectPage() {
           </section>
         )
       })()}
+
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>宗门自动化</div>
+        <AutomationPanel />
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionTitle}>洞天福地</div>
+        <CaveHeavenPanel />
+      </section>
 
       <section className={styles.section}>
         <div className={styles.sectionTitle}>今日宗务</div>

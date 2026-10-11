@@ -82,6 +82,9 @@ export type BuildingType =
   | 'forge'
   | 'scriptureHall'
   | 'recruitmentPavilion'
+  | 'immortalVein'
+  | 'immortalField'
+  | 'immortalPalace'
 
 export type ResourceType = 'spiritStone' | 'spiritEnergy' | 'herb' | 'ore'
 
@@ -111,6 +114,18 @@ export interface OfflineAccumulator {
   breakthroughs: { characterName: string; targetRealm: string; success: boolean }[]
   itemsCrafted: { name: string; quantity: number }[]
   taxIncome: number
+  /** V2.1 工单 04：灵气供给不足（spiritRatio < 0.95）累计秒数，供离线报告归因。 */
+  lowSpiritSeconds?: number
+  /** V2.2 工单 01：周期内击杀数。 */
+  kills?: number
+  /** V2.2 工单 01：周期内获取装备件数。 */
+  equipmentGained?: number
+  /** V2.2 工单 01：周期内出售/分解装备件数（含自动出售凡品）。 */
+  equipmentSold?: number
+  /** V2.2 工单 01：周期内秘境探索次数。 */
+  dungeonRuns?: number
+  /** V2.2 工单 01：周期内秘境推进层数合计。 */
+  dungeonFloorsCleared?: number
 }
 
 export interface ExpeditionTemplate {
@@ -170,6 +185,16 @@ export interface SectStats {
   longestOfflineSeconds: number
   /** 本世弟子最高累计修为（飞升道韵结算依据，飞升时清零） */
   peakCultivationThisRun: number
+  /** V2.2 工单 05：道祖榜——渡劫期最快到达（累计游戏秒，0 = 未创建）。 */
+  fastestTribulationSeconds?: number
+  /** V2.2 工单 05：道祖榜——道祖期最快到达（累计游戏秒）。 */
+  fastestDaozuSeconds?: number
+  /** V2.2 工单 05：道祖榜——单世最高道韵。 */
+  bestDaoYunGain?: number
+  /** V2.2 工单 05：道祖榜——单世最高修为峰值（与 peakCultivationThisRun 区别：跨轮回保留）。 */
+  bestPeakCultivation?: number
+  /** V2.2 工单 05：证道次数（镜像 daoProvingCount 便于榜面单一数据源）。 */
+  daoProvingCount?: number
 }
 
 /** 怪物图鉴条目状态 */
@@ -195,6 +220,14 @@ export interface SectAutomationSettings {
   autoAscend: boolean
   /** 自动飞升的最低道韵预期 */
   autoAscendMinDaoYun: number
+  /** V2.1 工单 05：大境界自动突破（化神解锁，缺省 false 兼容旧档） */
+  autoMajorBreakthrough?: boolean
+  /** V2.1 工单 05：自动炼丹记忆（灵田 Lv25 解锁后空队列自动续产上一配方） */
+  lastRecipes?: Partial<Record<string, string>>
+  /** V2.1 工单 09：自动证道开关（需本源树"天机证道"节点） */
+  autoProveDao?: boolean
+  /** V2.1 工单 09：自动证道的最低本源预期 */
+  autoProveMinGenesis?: number
 }
 
 export interface Sect {
@@ -221,6 +254,16 @@ export interface Sect {
   automationSettings: SectAutomationSettings
   /** 飞升树已购等级：nodeId -> level（未购节点缺省 0） */
   legacyTree: Record<string, number>
+  /** V2.1 工单 09：大道本源（证道 Prestige② 永久货币）。 */
+  genesis: number
+  /** 证道次数。 */
+  daoProvingCount: number
+  /** 本源树等级（同 legacyTree 模式，跨证道保留）。 */
+  genesisTree: Record<string, number>
+  /** 超脱标记（本源树终局，无尽模式）。 */
+  transcended: boolean
+  /** V2.2 工单 04：洞天福地派驻（slotId → characterId）。 */
+  caveHeavenAssignments?: Record<string, string>
   currentArchetype: SectArchetype
   strategySettings: SectStrategySettings
   autoRunDayCounter: number

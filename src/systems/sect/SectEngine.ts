@@ -6,7 +6,7 @@ import type { Character } from '../../types/character'
 import { calcSectLevel, getMaxSimultaneousRuns } from '../character/CharacterEngine'
 import { calcResourceRates } from '../economy/ResourceEngine'
 import type { ProductionBonuses } from '../economy/ResourceEngine'
-import { calcCultivationRate } from '../cultivation/CultivationEngine'
+import { calcCultivationRate, calcSpiritCostPerSecond } from '../cultivation/CultivationEngine'
 import { getBuildingBonus } from '../character/SpecialtySystem'
 import { getSynergyBonus } from '../economy/SynergySystem'
 import { calcBuildingRouteBonus } from './SectRouteSystem'
@@ -15,14 +15,13 @@ import { calcBuildingRouteBonus } from './SectRouteSystem'
 export { calcSectLevel, getMaxSimultaneousRuns }
 
 /** Spirit energy consumed per second by each idle (cultivating) disciple. */
-const SPIRIT_ENERGY_PER_DISCIPLE = 2
 
 /**
  * Calculate the maximum number of disciples the sect can sustain
  * based on current resource production capacity.
  *
  * The cap ensures spirit energy net production never goes negative:
- *   spiritEnergyProduction >= disciples × SPIRIT_ENERGY_PER_DISCIPLE
+ *   spiritEnergyProduction >= disciples × calcSpiritCostPerSecond(bestRealm)
  *
  * All multipliers (technique, specialty, synergy, route) are included.
  */
@@ -75,6 +74,9 @@ export function calcMaxDisciplesByResources(
   // Route bonuses
   rates.spiritEnergy *= calcBuildingRouteBonus(activeRoute, 'spiritField')
 
-  const maxDisciples = Math.floor(rates.spiritEnergy / SPIRIT_ENERGY_PER_DISCIPLE)
+  // V2.1 工单 04：每弟子灵气需求随境界缩放，弟子上限按宗门最高境界折算
+  const bestRealm = characters.reduce((max, c) => Math.max(max, c.realm), 0)
+  const perDiscipleCost = calcSpiritCostPerSecond(bestRealm)
+  const maxDisciples = Math.floor(rates.spiritEnergy / perDiscipleCost)
   return Math.max(1, maxDisciples)
 }

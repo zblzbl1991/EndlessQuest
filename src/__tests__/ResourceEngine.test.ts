@@ -35,8 +35,8 @@ describe('ResourceEngine', () => {
       spiritMineCount: 0,
       mainHall: 1,
     })
-    expect(rates.spiritEnergy).toBe(7)
-    expect(rates.herb).toBeCloseTo(0.3)
+    expect(rates.spiritEnergy).toBeCloseTo(3 * 1.1 ** 2, 10) // V2.1 Generator 指数曲线
+    expect(rates.herb).toBeCloseTo(0.1 * 1.08 ** 2, 10)
   })
 
   it('should scale production with resource node count', () => {
@@ -47,8 +47,8 @@ describe('ResourceEngine', () => {
       spiritMineCount: 3,
       mainHall: 1,
     })
-    expect(rates.spiritEnergy).toBe(10)
-    expect(rates.herb).toBeCloseTo(0.4)
+    expect(rates.spiritEnergy).toBeCloseTo(3.3 * 2, 10)
+    expect(rates.herb).toBeCloseTo(0.108 * 2, 10)
     expect(rates.spiritStone).toBeCloseTo(1.5)
     expect(rates.ore).toBeCloseTo(0.15)
   })
@@ -58,8 +58,8 @@ describe('ResourceEngine', () => {
       { spiritField: 2, spiritFieldCount: 1, spiritMine: 0, spiritMineCount: 0, mainHall: 1 },
       { techniqueMultiplier: 1.2, discipleMultiplier: 1.1 }
     )
-    expect(rates.spiritEnergy).toBeCloseTo(5 * 1.2 * 1.1)
-    expect(rates.herb).toBeCloseTo(0.1 * 2 * 1.2 * 1.1)
+    expect(rates.spiritEnergy).toBeCloseTo(3.3 * 1.2 * 1.1, 10)
+    expect(rates.herb).toBeCloseTo(0.108 * 1.2 * 1.1, 10)
   })
 
   it('should produce spirit stone and ore from spirit mine', () => {
@@ -82,10 +82,10 @@ describe('ResourceEngine', () => {
       spiritMineCount: 1,
       mainHall: 1,
     })
-    expect(rates.spiritEnergy).toBe(5)
-    expect(rates.spiritStone).toBeCloseTo(1.5)
-    expect(rates.herb).toBeCloseTo(0.2)
-    expect(rates.ore).toBeCloseTo(0.15)
+    expect(rates.spiritEnergy).toBeCloseTo(3.3, 10)
+    expect(rates.spiritStone).toBeCloseTo(0.5 * 1.1 ** 2, 10)
+    expect(rates.herb).toBeCloseTo(0.1 * 1.08, 10)
+    expect(rates.ore).toBeCloseTo(0.05 * 1.09 ** 2, 10)
   })
 })
 

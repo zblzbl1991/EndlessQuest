@@ -126,6 +126,69 @@ function repair(candidate: Decimal, fallback: DecimalSource): Decimal {
 }
 
 // ---------------------------------------------------------------------------
+// Exponential-safe storage & cost helpers (V2.1 map 工单 02)
+// ---------------------------------------------------------------------------
+
+/**
+ * Values at or beyond this magnitude are outside the compute layer's double
+ * range: on load they are treated as corrupted and reset to the field's
+ * fallback (matches SaveSystem's OverflowGuard semantics).
+ */
+export const MAX_EXPONENTIAL_MAGNITUDE = 1e300
+
+/** Plain numbers below this threshold store exactly and read clearly in devtools. */
+const PLAIN_NUMBER_STORE_MAX = 1e15
+
+export type ExponentialPayload = number | SerializedDecimal
+
+/**
+ * Store an exponential-risk field (resources, cultivation, currency totals):
+ * plain number below 1e15, {m,e} payload above. Non-finite input becomes a
+ * 0 payload so a poisoned field cannot corrupt the object store.
+ */
+export function serializeExponential(value: number): ExponentialPayload {
+  if (Number.isFinite(value) && Math.abs(value) < PLAIN_NUMBER_STORE_MAX) return value
+  const serialized = serializeDecimal(value)
+  if (!Number.isFinite(serialized.m) || !Number.isFinite(serialized.e)) return 0
+  return serialized
+}
+
+/**
+ * Read an exponential-risk field written by serializeExponential (or a legacy
+ * plain number — old saves stay readable without a data migration). Values
+ * beyond MAX_EXPONENTIAL_MAGNITUDE reset to the fallback, mirroring
+ * normalizeBoundedNumber; the stored {m,e} form keeps the field's magnitude
+ * on disk, so a future compute-layer Decimal migration can lift the bound
+ * without another format break.
+ */
+export function deserializeExponentialToNumber(value: unknown, fallback = 0): number {
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) return fallback
+    if (Math.abs(value) > MAX_EXPONENTIAL_MAGNITUDE) return fallback
+    return value
+  }
+  if (value && typeof value === 'object' && typeof (value as SerializedDecimal).m === 'number') {
+    const n = deserializeDecimal(value as Partial<SerializedDecimal>, fallback).toNumber()
+    if (!Number.isFinite(n)) return fallback
+    if (Math.abs(n) > MAX_EXPONENTIAL_MAGNITUDE) return fallback
+    return n
+  }
+  return fallback
+}
+
+/**
+ * Geometric cost `base × growth^level` computed through Decimal so extreme
+ * levels stay finite (Math.pow overflows to Infinity around 1e308). Results
+ * past MAX_EXPONENTIAL_MAGNITUDE clamp to the bound — such a cost is
+ * "unaffordable" by construction, since income cannot reach the bound either.
+ */
+export function safeExpCost(base: number, growth: number, level: number): number {
+  const cost = decMul(base, decPow(growth, level))
+  if (decGt(cost, MAX_EXPONENTIAL_MAGNITUDE)) return MAX_EXPONENTIAL_MAGNITUDE
+  return Math.max(0, cost.toNumber())
+}
+
+// ---------------------------------------------------------------------------
 // Display formatting
 // ---------------------------------------------------------------------------
 

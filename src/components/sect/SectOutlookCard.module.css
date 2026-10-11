@@ -1,0 +1,70 @@
+/* 现状与前瞻卡（V2.1 工单 06）——清墨轻岚：信息如山水远近，最近的最清晰 */
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  background: rgba(95, 122, 141, 0.05);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
+}
+
+.title {
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--color-text-tertiary);
+}
+
+.spiritWarning {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: var(--radius-xs);
+  background: rgba(166, 92, 60, 0.1);
+  color: var(--color-danger, #a65c3c);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-sm);
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  min-width: 2.5em;
+}
+
+.value {
+  font-size: 13px;
+  color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0;
+}
+
+.eta {
+  font-size: 12px;
+  color: var(--color-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 639px) {
+  .eta {
+    width: 100%;
+    padding-left: calc(2.5em + var(--space-sm));
+  }
+}

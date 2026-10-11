@@ -11,6 +11,8 @@ import {
 } from '../../data/legacy'
 import { getLegacyDungeonName, getLegacyTechniqueName } from '../../data/legacyUnlocks'
 import { LEGACY_TREE, getLegacyNodeUpgradeCost } from '../../data/legacyTree'
+import { GENESIS_TREE, getGenesisNodeUpgradeCost, getGenesisTreeTotalLevel } from '../../data/genesisTree'
+import { canProveDao, calcGenesisGain, canTranscend } from '../../systems/sect/GenesisSystem'
 import { PixelIcon } from '../common/PixelIcon'
 import styles from './LegacyPanel.module.css'
 
@@ -18,6 +20,9 @@ export default function LegacyPanel() {
   const sect = useSectStore((s) => s.sect)
   const performAscension = useSectStore((s) => s.performAscension)
   const buyLegacyNode = useSectStore((s) => s.buyLegacyNode)
+  const proveDao = useSectStore((s) => s.proveDao)
+  const transcend = useSectStore((s) => s.transcend)
+  const buyGenesisNode = useSectStore((s) => s.buyGenesisNode)
   const [showConfirm, setShowConfirm] = useState(false)
 
   const { legacy } = sect
@@ -27,6 +32,13 @@ export default function LegacyPanel() {
   const currentPerks = getUnlockedLegacyPerks(legacy.ascensionCount)
   const nextTier = LEGACY_REWARD_TIERS.find((tier) => tier.ascensionCount > legacy.ascensionCount)
   const nextPerk = LEGACY_PERKS.find((perk) => perk.ascensionCount > legacy.ascensionCount)
+  const provingCheck = canProveDao(sect)
+  const provingCount = sect.daoProvingCount ?? 0
+  const genesis = sect.genesis ?? 0
+  const genesisTree = sect.genesisTree ?? {}
+  const highestRealm = sect.characters.reduce((max, c) => Math.max(max, c.realm), 0)
+  const expectedGenesis = calcGenesisGain(sect.stats.peakCultivationThisRun ?? 0, highestRealm, provingCount)
+  const transcendCheck = canTranscend(sect)
   const unlockedTechniqueNames = legacy.unlockedTechniques.map((item) => getLegacyTechniqueName(item))
   const unlockedDungeonNames = legacy.unlockedDungeons.map((item) => getLegacyDungeonName(item))
 
@@ -198,6 +210,75 @@ export default function LegacyPanel() {
           </div>
         </div>
       )}
+      {(sect.transcended ?? false) && (
+        <div className={styles.rewardPreview} data-testid="transcended-banner">
+          <div className={styles.rewardTier}>
+            <span className={styles.tierCount}>已超脱</span>
+            <span className={styles.tierDesc}>跳出诸天之外，此界因果再不能束缚于你。宗门仍在无尽中运转。</span>
+          </div>
+        </div>
+      )}
+      <div className={styles.sectionLabel} data-testid="dao-proving-section">
+        <PixelIcon name="eventAncientCave" size={14} className={styles.inlineIcon} aria-label="证道" />
+        证道 · 大道本源 {genesis}
+      </div>
+      <div className={styles.checklist}>
+        <CheckItem label="至少 1 名弟子达到道祖期" met={highestRealm >= 12} />
+        <CheckItem
+          label={`预计本源 +${expectedGenesis}（第 ${provingCount + 1} 次证道）`}
+          met={provingCheck.canProve}
+        />
+      </div>
+      <button
+        type="button"
+        className={styles.ascendBtn}
+        disabled={!provingCheck.canProve}
+        onClick={() => proveDao()}
+        data-testid="prove-dao-btn"
+      >
+        证道归元
+      </button>
+
+      <div className={styles.sectionLabel}>
+        <PixelIcon name="realmGoldenCore" size={14} className={styles.inlineIcon} aria-label="本源树" />
+        本源树 · 累计 {getGenesisTreeTotalLevel(genesisTree)} 级
+      </div>
+      <div className={styles.checklist}>
+        {GENESIS_TREE.map((node) => {
+          const level = genesisTree[node.id] ?? 0
+          const cost = getGenesisNodeUpgradeCost(node.id, level)
+          const affordable = cost !== null && genesis >= cost
+          return (
+            <div key={node.id} className={styles.perkItem}>
+              <span className={styles.perkName}>
+                {node.name} {level > 0 ? `Lv.${level}` : ''}
+                {level >= node.maxLevel ? '（满级）' : ''}
+              </span>
+              <span className={styles.perkDesc}>{node.description}</span>
+              {cost !== null ? (
+                <button type="button" disabled={!affordable} onClick={() => buyGenesisNode(node.id)}>
+                  消耗 {cost} 本源
+                </button>
+              ) : null}
+            </div>
+          )
+        })}
+      </div>
+
+      <div className={styles.sectionLabel}>超脱</div>
+      <div className={styles.checklist}>
+        <CheckItem label={'点亮本源树「超脱之门」'} met={(genesisTree.heavenTranscend ?? 0) > 0} />
+        <CheckItem label="本源树累计 30 级" met={getGenesisTreeTotalLevel(genesisTree) >= 30} />
+      </div>
+      <button
+        type="button"
+        className={styles.ascendBtn}
+        disabled={!transcendCheck.canProve}
+        onClick={() => transcend()}
+        data-testid="transcend-btn"
+      >
+        {sect.transcended ? '已超脱 · 无尽模式' : '超脱而去'}
+      </button>
     </div>
   )
 }

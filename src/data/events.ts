@@ -21,11 +21,28 @@ export const DUNGEONS: Dungeon[] = [
   },
   {
     id: 'guixuRift',
-    name: '褰掕櫄瑁傞殭',
+    name: '归墟裂隙',
     totalLayers: 18,
     eventsPerLayer: 5,
     unlockRealm: 4,
     unlockStage: 3,
     legacyUnlockId: 'guixuRift',
+  },
+  // ── 仙界秘境（V2.1 工单 08）：飞升后解锁，掉落仙品材料 ──
+  {
+    id: 'immortalRuins',
+    name: '仙墟遗府',
+    totalLayers: 22,
+    eventsPerLayer: 5,
+    unlockRealm: 9,
+    unlockStage: 0,
+  },
+  {
+    id: 'daoPeak',
+    name: '论道峰',
+    totalLayers: 26,
+    eventsPerLayer: 5,
+    unlockRealm: 10,
+    unlockStage: 0,
   },
 ]

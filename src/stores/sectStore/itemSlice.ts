@@ -92,6 +92,10 @@ export const createItemSlice: StateCreator<SectStore, [], [], Partial<SectStore>
     if (!stack) return false
     const { stacks: newVault, removed } = removeStackAtIndex(sect.vault, vaultIndex)
     if (!removed) return false
+    // V2.2 工单 01：装备出售/分解计入离线统计
+    if (removed.item.type === 'equipment') {
+      get().bumpOfflineStats({ equipmentSold: removed.quantity })
+    }
     set((s) => ({
       sect: {
         ...s.sect,

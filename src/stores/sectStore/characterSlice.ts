@@ -18,6 +18,10 @@ import { getPathName } from '../../data/cultivationPaths'
 import { syncCharacterSkillLoadout } from '../../data/activeSkills'
 import { needsCultivationPathChoice } from '../../systems/character/CultivationPathSystem'
 import { generateRouteOpportunity } from '../../systems/sect/RouteOpportunitySystem'
+import { canBreakthrough } from '../../systems/cultivation/CultivationEngine'
+import { processBreakthrough } from '../../systems/cultivation/BreakthroughCoordinator'
+import { buildPathEffectMap } from '../../systems/sect/SectPathEffects'
+import { getLegacyBreakthroughBonus } from '../../data/legacy'
 
 const DISCIPLE_POOL_RECRUIT_DISCOUNT = 0.8
 const TARGETED_RECRUIT_MULT = 1.5
@@ -485,5 +489,85 @@ export const createCharacterSlice: StateCreator<SectStore, [], [], Partial<SectS
     }
 
     return character
+  },
+
+  // V2.1 工单 05：手动突破入口——元婴（小境界）/化神（大境界）自动化解锁前，
+  // 突破时机由玩家在弟子详情面板决定（产品支柱"决定关键突破时机"）。
+  attemptBreakthrough: (characterId: string) => {
+    const { sect } = get()
+    const char = sect.characters.find((c) => c.id === characterId)
+    if (!char) return { success: false, reason: '弟子不存在' }
+    if (char.status !== 'idle') return { success: false, reason: '弟子不在洞府中' }
+    if (needsCultivationPathChoice(char)) return { success: false, reason: '需先选择修行方向' }
+    if (!canBreakthrough(char)) return { success: false, reason: '突破条件未满足' }
+
+    const pathEffectMap = buildPathEffectMap(sect.sectPath, sect.unlockedPathNodeIds)
+    const btResult = processBreakthrough(
+      char,
+      sect.resources.spiritStone,
+      sect.resources.spiritEnergy,
+      get().sect.techniqueCodex,
+      { spiritStone: 0, spiritEnergy: 0, herb: 0 },
+      pathEffectMap,
+      undefined,
+      sect.resources.herb,
+      getLegacyBreakthroughBonus(sect.legacyTree)
+    )
+
+    if (btResult.attemptsCount === 0) {
+      for (const event of btResult.events) emitEvent(event.type, event.message)
+      return { success: false, reason: '资源不足，无法突破' }
+    }
+
+    let updatedChar = btResult.updatedChar
+    if (btResult.outcome === 'injured' && btResult.injuryTimer > 0) {
+      updatedChar = { ...updatedChar, status: 'injured' as const, injuryTimer: btResult.injuryTimer }
+    }
+
+    set((s) => {
+      let archiveMilestones = s.sect.archiveMilestones
+      if (btResult.unlockedTribulationMilestone) {
+        const next = unlockArchiveMilestone(archiveMilestones, 'firstTribulationSuccess')
+        if (next.length !== archiveMilestones.length) {
+          archiveMilestones = next
+          emitEvent('milestone', `宗门里程碑达成：${getArchiveMilestoneDef('firstTribulationSuccess').title}`)
+        }
+      }
+      return {
+        sect: {
+          ...s.sect,
+          characters: s.sect.characters.map((c) => (c.id === characterId ? syncCharacterSkillLoadout(updatedChar) : c)),
+          resources: {
+            ...s.sect.resources,
+            spiritStone: Math.max(0, s.sect.resources.spiritStone - btResult.resourceCost.spiritStone),
+            herb: Math.max(0, s.sect.resources.herb - btResult.resourceCost.herb),
+          },
+          stats: {
+            ...s.sect.stats,
+            totalBreakthroughAttempts: s.sect.stats.totalBreakthroughAttempts + btResult.attemptsCount,
+            totalBreakthroughSuccesses: s.sect.stats.totalBreakthroughSuccesses + btResult.successesCount,
+          },
+          offlineAccumulator: {
+            ...s.sect.offlineAccumulator,
+            breakthroughs: [
+              ...s.sect.offlineAccumulator.breakthroughs,
+              ...btResult.events
+                .filter((e) => e.type === 'breakthrough_success' || e.type === 'breakthrough_failure')
+                .map((e) => ({
+                  characterName: updatedChar.name,
+                  targetRealm:
+                    e.type === 'breakthrough_success' ? `${updatedChar.realm}-${updatedChar.realmStage}` : 'unknown',
+                  success: e.type === 'breakthrough_success',
+                })),
+            ],
+          },
+          archiveMilestones,
+        },
+      }
+    })
+
+    for (const event of btResult.events) emitEvent(event.type, event.message)
+
+    return { success: true, reason: '', outcome: btResult.outcome, died: btResult.died }
   },
 })

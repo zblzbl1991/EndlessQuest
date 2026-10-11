@@ -22,6 +22,11 @@ export const RUN_INTENTS: Record<AutomationStrategy, RunIntentDef> = {
     label: '寻机',
     shortDescription: '优先机缘、功法与成长收获。',
   },
+  seekDao: {
+    id: 'seekDao',
+    label: '求道',
+    shortDescription: '只走奇遇路线刷祝福与功法，构筑优先。',
+  },
 }
 
 export function getRunIntentDef(strategy: AutomationStrategy): RunIntentDef {
